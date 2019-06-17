@@ -1,0 +1,19 @@
+version: 0.1
+
+phases:
+  install:
+    commands:
+      - echo "Phase - install"
+      - ls
+      - pwd
+      - echo "Install"
+      - chmod +x reset
+      - aws --version
+  build:
+    commands:
+      - echo "Phase - Reset"
+      - ./reset
+      - aws --version
+  post_build:
+    commands:
+      - echo "Phase - Post Reset"

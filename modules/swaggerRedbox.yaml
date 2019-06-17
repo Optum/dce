@@ -1,0 +1,122 @@
+swagger: "2.0"
+info:
+  version: "1.0"
+  title: ${namespace}
+schemes:
+  - https
+paths:
+  "/leases":
+    post:
+      summary: Creates a new lease.
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: lease
+          description: The owner of the lease
+          schema:
+            type: object
+            required:
+              - userId
+            properties:
+              userId:
+                type: string
+      produces:
+        - application/json
+      responses:
+        201:
+          $ref: "#/definitions/assignmentId"
+        403:
+          description: "Failed to add lease"
+      x-amazon-apigateway-integration:
+        uri: ${router_lambda_arn}
+        httpMethod: "POST"
+        type: "aws_proxy"
+        passthroughBehavior: "when_no_match"
+      security:
+        - sigv4: []
+    delete:
+      summary: Removes a lease.
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: lease
+          description: The owner of the lease
+          schema:
+            type: object
+            required:
+              - userId
+              - accountId
+            properties:
+              userId:
+                type: string
+              accountId:
+                type: string
+      produces:
+        - application/json
+      responses:
+        200:
+          description: "Lease successfully removed"
+        403:
+          description: "Failed to remove lease"
+      x-amazon-apigateway-integration:
+        uri: ${router_lambda_arn}
+        httpMethod: "POST"
+        type: "aws_proxy"
+        passthroughBehavior: "when_no_match"
+      security:
+        - sigv4: []
+    get:
+      summary: Get a lease by userId and accountId [NOT IMPLEMENTED]
+      produces:
+        - application/json
+      parameters:
+        - in: path
+          name: userId
+          type: string
+          required: true
+          description: userId of the lease to get
+        - in: path
+          name: accountId
+          type: string
+          required: true
+          description: accountId of the lease to get
+      responses:
+        200:
+          $ref: "#/definitions/assignmentId"
+        403:
+          description: "Failed to retrieve leases"
+      x-amazon-apigateway-integration:
+        uri: ${router_lambda_arn}
+        httpMethod: "POST"
+        type: "aws_proxy"
+        passthroughBehavior: "when_no_match"
+      security:
+        - sigv4: []
+securityDefinitions:
+  sigv4:
+    type: "apiKey"
+    name: "Authorization"
+    in: "header"
+    x-amazon-apigateway-authtype: "awsSigv4"
+definitions:
+  assignmentId:
+    description: "Assignment Id"
+    type: object
+    properties:
+      userId:
+        type: string
+        description: userId of the lease to get
+      accountId:
+        type: string
+        description: accountId of the AWS account
+      assignmentStatus:
+        type: string
+        description: Active, Decommissioned
+      createdOn:
+        type: number
+        description: creation date in epoch seconds
+      lastModifiedOn:
+        type: number
+        description: date last modified in epoch seconds

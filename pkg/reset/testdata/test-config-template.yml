@@ -1,0 +1,6 @@
+accounts:
+  "{{id}}":
+    filters:
+      {{service}}:
+        - "Account-IAM"
+        - "IAM-Password-Policy"
