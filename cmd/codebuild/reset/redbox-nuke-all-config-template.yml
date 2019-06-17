@@ -1,0 +1,105 @@
+regions:
+  - "global"
+  - "us-east-1"
+  - "us-east-2"
+  - "us-west-1"
+  - "us-west-2"
+  - "eu-central-1"
+  - "eu-west-1"
+  - "eu-west-2"
+  - "eu-west-3"
+  - "eu-north-1"
+  - "ap-south-1"
+  - "ap-northeast-1"
+  - "ap-northeast-2"
+  - "ap-northeast-3"
+  - "ap-southeast-1"
+  - "ap-southeast-2"
+  - "ca-central-1"
+  - "cn-north-1"
+  - "cn-northwest-1"
+  - "sa-east-1"
+
+account-blacklist:
+- "999999999999" # Arbitrary production account id
+
+resource-types:
+  excludes:
+  - S3Object # Let the S3Bucket delete all Objects instead of individual objects 
+
+accounts:
+  "{{id}}": # Redbox Account
+    filters:
+      CloudFormationStack:
+        - "Account-IAM"
+        - "IAM-Password-Policy"
+      CloudWatchLogsLogGroup:
+        - type: "contains"
+          value: "/aws/lambda/Account-IAM-rIdPLambda-"
+        - type: "contains"
+          value: "/aws/lambda/IAM-Password-Policy-rLambdaFunction-"
+      IAMPolicy:
+        - type: "contains"
+          value: "arn:aws:iam::{{id}}:policy/federated/Account-IAM-InfrastructurePolicy-"
+        - type: "contains"
+          value: "arn:aws:iam::{{id}}:policy/federated/Account-IAM-SecurityPolicy-"
+        - type: "contains"
+          value: "arn:aws:iam::{{id}}:policy/federated/Account-IAM-BusinessOfficePolicy-"
+        - "arn:aws:iam::{{id}}:policy/Redbox_Nuke_Policy"
+        - "arn:aws:iam::{{id}}:policy/AzureAD_ListRoles"
+      IAMRole:
+        - type: "contains"
+          value: "Account-IAM-rLambdaExecutionRole-"
+        - type: "contains"
+          value: "IAM-Password-Policy-rLambdaRole-"
+        - "AWS_{{id}}_Admins"
+        - "AWS_{{id}}_BusinessOffice"
+        - "AWS_{{id}}_Infrastructure"
+        - "AWS_{{id}}_Security"
+        - "AWS_{{id}}_Users"
+        - "OrganizationAccountAccessRole"
+        - "Azure_SSO_S3_Admin"
+      IAMRolePolicy:
+        - type: "contains"
+          value: "Account-IAM-rLambdaExecutionRole-"
+        - type: "contains"
+          value: "IAM-Password-Policy-rLambdaRole-"
+        - type: "contains"
+          value : "OrganizationAccountAccessRole"
+        - type: "contains"
+          value : "AzureAD_ListRoles"
+      IAMRolePolicyAttachment:
+        - type: "contains"
+          value: "AWS_{{id}}_BusinessOffice -> Account-IAM-BusinessOfficePolicy-"
+        - type: "contains"
+          value: "AWS_{{id}}_Infrastructure -> Account-IAM-InfrastructurePolicy-"
+        - type: "contains"
+          value: "AWS_{{id}}_Security -> Account-IAM-SecurityPolicy-"
+        - type: "contains"
+          value: "Azure_SSO_S3_Admin"
+        - "AWS_{{id}}_Admins -> AdministratorAccess"
+        - "AWS_{{id}}_BusinessOffice -> AmazonEC2ReadOnlyAccess"
+        - "AWS_{{id}}_BusinessOffice -> AWSWAFReadOnlyAccess"
+        - "AWS_{{id}}_BusinessOffice -> AmazonS3ReadOnlyAccess"
+        - "AWS_{{id}}_BusinessOffice -> CloudFrontReadOnlyAccess"
+        - "AWS_{{id}}_Infrastructure -> NetworkAdministrator"
+        - "AWS_{{id}}_Security -> AWSConfigUserAccess"
+        - "AWS_{{id}}_Security -> SecurityAudit"
+        - "AWS_{{id}}_Security -> CloudWatchReadOnlyAccess"
+        - "AWS_{{id}}_Users -> AdministratorAccess"
+      IAMSAMLProvider:
+        - "arn:aws:iam::{{id}}:saml-provider/UHG_AWS_POC"
+        - "arn:aws:iam::{{id}}:saml-provider/AzureAD"
+      IAMUser:
+        - "Azure_SSO_role_read_only"
+      IAMUserAccessKey:
+        - type: "contains"
+          value: "Azure_SSO_role_read_only"
+      IAMUserPolicyAttachment:
+        - type: "contains"
+          value: "Azure_SSO_role_read_only"
+      LambdaFunction:
+        - type: "contains" 
+          value: "Account-IAM-rIdPLambda-"
+        - type: "contains"
+          value: "IAM-Password-Policy-rLambdaFunction-"

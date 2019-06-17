@@ -1,0 +1,6 @@
+accounts:
+  "123456789012":
+    filters:
+      CloudFormationStack:
+        - "Account-IAM"
+        - "IAM-Password-Policy"
