@@ -18,15 +18,9 @@ We have some general guidelines towards contributing to this project.
 
 ### Languages
 
-*Python*
+*Go*
 
-The source code for this project is written in Python. You are welcome to add versions of files for other languages, however the core code will remain in Python.
-
-### Keras Backends
-
-*Tensorflow*
-
-By default we assume that this reimplementation will be run using Tensorflow backend. As Keras grows its support for other backends, we will welcome changes that will make these scripts backend independent.
+The source code for this project is written in Go. You are welcome to add versions of files for other languages, however the core code will remain in Go.
 
 ## Pull Requests
 
