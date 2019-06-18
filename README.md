@@ -201,7 +201,7 @@ Status of each Account in our pool
 ```
 {
     "Id": "123456789012", # *Unique AWS Account ID*
-    "GroupId": "5e27e7f0-1417-44b8-a19e-6a126b2db468" # *Unique Azure AD Group ID*
+    "GroupId": "123"
     "AccountStatus": "Assigned" | "Ready" | "NotReady"
     "LastModifiedOn": 1555690626 # *Epoch Timestamp*
 }
@@ -218,7 +218,7 @@ Records are unique by AccountId+UserId.
 ```
 {
   "AccountId":  "123456789012", # AWS Account ID
-  "UserId": "539133c1-db80-4606-9229-0ba49dfa0057" # *Azure AD Group ID*
+  "UserId": "123"
   "AssignmentStatus": "Active" | "FinanceLock" | "ResetLock" | "ResetFinanceLock" | "Decommissioned"
   "CreatedOn": 1555690626 # *Epoch Timestamp*
   "LastModifiedOn": 1555690626 # *Epoch Timestamp*
@@ -234,8 +234,7 @@ Secondary Range Key: UserId
 ## Reset
 
 AWS Redbox Reset will process an AWS Redbox Account to a clean and secure state.
-The Reset has 2 main procedures, clearing the resources in an account (**Nuke**)
-and reapply security monitoring (**Launchpad**).
+The Reset has 2 main procedures, clearing the resources in an account (**Nuke**).
 
 The Reset of an account is done through a CodeBuild stage in a CodePipeline.
 
