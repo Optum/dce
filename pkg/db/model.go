@@ -12,7 +12,7 @@ type RedboxAccount struct {
 // RedboxAccountAssignment is a type corresponding to a RedboxAccountAssignment
 // table record
 type RedboxAccountAssignment struct {
-	AccountID        string           `json:"AccountId"`        // AWS Account ID
+	AccountID        string           `json:"AccountId"` // AWS Account ID
 	UserID           string           `json:"UserId"`
 	AssignmentStatus AssignmentStatus `json:"AssignmentStatus"` // Status of the Assignment
 	CreatedOn        int64            `json:"CreatedOn"`        // Created Epoch Timestamp

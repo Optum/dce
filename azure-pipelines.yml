@@ -1,0 +1,34 @@
+
+pool:
+  vmImage: 'Ubuntu 16.04'
+
+pr:
+- master      
+
+steps:
+- task: GoTool@0
+  inputs:
+    version: '1.12.6'
+  displayName: 'Set up the Go workspace'
+
+- script: |
+    ./scripts/install_ci.sh
+  displayName: 'Set up Golang CI Tools'
+
+- script: |
+    make lint
+  displayName: 'Run lint'    
+
+- script: |
+    ./scripts/test.sh
+  displayName: 'Run Tests'
+
+- task: PublishTestResults@2
+  inputs:
+    testRunner: JUnit
+    testResultsFiles: $(System.DefaultWorkingDirectory)/junit-report/report.xml
+
+- task: PublishCodeCoverageResults@1
+  inputs:
+    codeCoverageTool: Cobertura 
+    summaryFileLocation: $(System.DefaultWorkingDirectory)/coverage.xml
