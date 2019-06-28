@@ -7,14 +7,15 @@ import (
 	"os"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/ssm"
-	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/Optum/Redbox/pkg/common"
 	"github.com/Optum/Redbox/pkg/db"
 	"github.com/Optum/Redbox/pkg/reset"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/aws/aws-sdk-go/service/ssm"
+	"github.com/aws/aws-sdk-go/service/sts"
 )
 
 // Declare singleton instances of each service
@@ -25,6 +26,7 @@ var (
 	_awsSession   *session.Session
 	_tokenService *common.STS
 	_ssmService   *common.SSM
+	_s3Service    *common.S3
 	_db           *db.DB
 )
 
@@ -36,12 +38,15 @@ type service struct {
 }
 
 type serviceConfig struct {
-	accountID        string
-	customerRoleName string
-	customerRoleArn  string
+	accountID            string
+	accountUserRoleName  string
+	accountAdminRoleName string
+	accountAdminRoleARN  string
 
-	isNukeEnabled bool
-	nukeTemplate  string
+	isNukeEnabled       bool
+	nukeTemplateDefault string
+	nukeTemplateBucket  string
+	nukeTemplateKey     string
 
 	isLaunchpadEnabled     bool
 	launchpadBaseEndpoint  string
@@ -54,15 +59,18 @@ func (svc *service) config() *serviceConfig {
 	if _config != nil {
 		return _config
 	}
-	resetRole := common.RequireEnv("RESET_ROLE")
+	accountAdminRoleName := common.RequireEnv("RESET_ACCOUNT_ADMIN_ROLE")
 	accountID := common.RequireEnv("RESET_ACCOUNT")
 	_config = &serviceConfig{
-		accountID:        accountID,
-		customerRoleName: resetRole,
-		customerRoleArn:  "arn:aws:iam::" + accountID + ":role/" + resetRole,
+		accountID:            accountID,
+		accountUserRoleName:  common.RequireEnv("RESET_ACCOUNT_USER_ROLE"),
+		accountAdminRoleName: accountAdminRoleName,
+		accountAdminRoleARN:  "arn:aws:iam::" + accountID + ":role/" + accountAdminRoleName,
 
-		nukeTemplate:  common.RequireEnv("RESET_TEMPLATE"),
-		isNukeEnabled: os.Getenv("RESET_NUKE_TOGGLE") != "false",
+		isNukeEnabled:       os.Getenv("RESET_NUKE_TOGGLE") != "false",
+		nukeTemplateDefault: common.RequireEnv("RESET_NUKE_TEMPLATE_DEFAULT"),
+		nukeTemplateBucket:  common.RequireEnv("RESET_NUKE_TEMPLATE_BUCKET"),
+		nukeTemplateKey:     common.RequireEnv("RESET_NUKE_TEMPLATE_KEY"),
 
 		isLaunchpadEnabled:     os.Getenv("RESET_LAUNCHPAD_TOGGLE") != "false",
 		launchpadBaseEndpoint:  common.RequireEnv("RESET_LAUNCHPAD_BASE_ENDPOINT"),
@@ -105,6 +113,16 @@ func (svc *service) ssmService() *common.SSM {
 	return _ssmService
 }
 
+func (svc *service) _s3Service() *common.S3 {
+	if _s3Service == nil {
+		_s3Service = &common.S3{
+			Client:  s3.New(svc.awsSession()),
+			Manager: s3manager.NewDownloader(svc.awsSession()),
+		}
+	}
+	return _s3Service
+}
+
 func (svc *service) launchpadAPI() *reset.LaunchpadAPI {
 	if _launchpadAPI != nil {
 		return _launchpadAPI
@@ -127,7 +145,7 @@ func (svc *service) launchpadAPI() *reset.LaunchpadAPI {
 	// Create the Storage service under the assumed role
 	awsSession := svc.awsSession()
 	tokenService := svc.tokenService()
-	creds := tokenService.NewCredentials(awsSession, config.customerRoleArn)
+	creds := tokenService.NewCredentials(awsSession, config.accountAdminRoleARN)
 	s3Client := s3.New(awsSession, &aws.Config{
 		Credentials: creds,
 	})

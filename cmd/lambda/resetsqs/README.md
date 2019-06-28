@@ -1,5 +1,8 @@
 ## Redbox Reset Generator
 
+Reference for the workflow in this lambda:
+-- https://www.lucidchart.com/documents/view/844c2afe-2e6d-4ba3-8139-96cb16e79d7c
+
 This lambda will read from DynamoDB and create SQS entries for the Redbox Nuke function to consume.
 
 events.dyanmoDBEvent{} ---> enqueue() Lambda ---> sqs.SendMessage()

@@ -4,11 +4,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/avast/retry-go"
-	"github.com/Optum/Redbox/pkg/db"
-	"github.com/Optum/Redbox/pkg/reset"
 	"io/ioutil"
 	"log"
+
+	"github.com/Optum/Redbox/pkg/db"
+	"github.com/Optum/Redbox/pkg/reset"
+	"github.com/avast/retry-go"
 )
 
 // main will run through the reset process for an account which involves using
@@ -26,7 +27,6 @@ func main() {
 	}
 
 	// Execute aws-nuke, to delete all resources from the account
-	// Note that
 	err := nukeAccount(
 		svc,
 		// Execute nuke as a dry run, if isNukeEnabled is off
@@ -121,11 +121,9 @@ func updateDBPostReset(dbSvc db.DBer, accountID string) error {
 }
 
 func nukeAccount(svc *service, isDryRun bool) error {
-	config := svc.config()
-
 	// Generate the configuration of the yaml file using the template file
 	// provided and substituting necessary phrases.
-	configFile, err := generateNukeConfig(config)
+	configFile, err := generateNukeConfig(svc)
 	if err != nil {
 		return err
 	}
@@ -134,9 +132,10 @@ func nukeAccount(svc *service, isDryRun bool) error {
 	nuke := reset.Nuke{}
 
 	// Configure the NukeAccountInput
+	config := svc.config()
 	nukeAccountInput := reset.NukeAccountInput{
 		AccountID:  config.accountID,
-		RoleName:   config.customerRoleName,
+		RoleName:   config.accountAdminRoleName,
 		ConfigPath: configFile,
 		NoDryRun:   !isDryRun,
 		Token:      svc.tokenService(),
@@ -158,18 +157,45 @@ func nukeAccount(svc *service, isDryRun bool) error {
 	return nil
 }
 
-func generateNukeConfig(config *serviceConfig) (string, error) {
+func generateNukeConfig(svc *service) (string, error) {
+	config := svc.config()
+
+	// Verify the nuke template configuration to download file from s3 or to
+	// use the default
+	var template string
+	if config.nukeTemplateBucket != "STUB" && config.nukeTemplateKey != "STUB" {
+		log.Printf("Using Nuke Configuration from S3: %s/%s",
+			config.nukeTemplateBucket, config.nukeTemplateKey)
+
+		// Download the file from S3
+		template = fmt.Sprintf("/tmp/nuke-config-template-%s.yml",
+			config.accountID)
+		err := svc._s3Service().Download(config.nukeTemplateBucket,
+			config.nukeTemplateKey, template)
+		if err != nil {
+			return "", err
+		}
+	} else {
+		log.Printf("Using Default Nuke Configuration: %s",
+			config.nukeTemplateDefault)
+
+		// Use default template
+		template = config.nukeTemplateDefault
+	}
+
 	// Generate the configuration of the yaml file using the template file
 	// provided and substituting necessary phrases.
-	accountSubs := map[string]string{
-		"{{id}}": config.accountID,
+	subs := map[string]string{
+		"{{id}}":         config.accountID,
+		"{{admin_role}}": config.accountAdminRoleName,
+		"{{user_role}}":  config.accountUserRoleName,
 	}
-	modConfig, err := reset.GenerateConfig(config.nukeTemplate, accountSubs)
+	modConfig, err := reset.GenerateConfig(template, subs)
 	if err != nil {
 		log.Fatalf("%s  :  %s\n", config.accountID, err)
 	}
 	log.Println(string(modConfig))
-	configFile := fmt.Sprintf("/tmp/redbox-config-%s.yml", config.accountID)
+	configFile := fmt.Sprintf("/tmp/nuke-config-%s.yml", config.accountID)
 	err = ioutil.WriteFile(configFile, modConfig, 0666)
 	if err != nil {
 		return "", err

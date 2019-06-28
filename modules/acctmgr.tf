@@ -1,6 +1,3 @@
-# Placeholder for acctmgr lambda function
-# so our Jenkins will pass.
-# This hasn't been fully integrated yet.
 resource "aws_lambda_function" "acctmgr" {
   function_name = "acctmgr-${var.namespace}"
   description   = "Account membership handler function"
@@ -17,6 +14,8 @@ resource "aws_lambda_function" "acctmgr" {
       RESET_SQS_URL      = aws_sqs_queue.account_reset.id
       ACCOUNT_DB         = aws_dynamodb_table.redbox_account.id
       ASSIGNMENT_DB      = aws_dynamodb_table.redbox_account_assignment.id
+      PROVISION_TOPIC    = aws_sns_topic.lease_added.arn
+      DECOMMISSION_TOPIC = aws_sns_topic.lease_removed.arn
     }
   }
 
@@ -34,3 +33,12 @@ resource "aws_lambda_function" "acctmgr" {
   tags = var.global_tags
 }
 
+resource "aws_sns_topic" "lease_added" {
+  name = "redbox-acctmgr-provision-${var.namespace}"
+  tags = var.global_tags
+}
+
+resource "aws_sns_topic" "lease_removed" {
+  name = "redbox-acctmgr-decommission-${var.namespace}"
+  tags = var.global_tags
+}

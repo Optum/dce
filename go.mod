@@ -1,6 +1,6 @@
 module github.com/Optum/Redbox
 
-go 1.12
+go 1.12x
 
 require (
 	github.com/Azure/azure-sdk-for-go v27.3.0+incompatible

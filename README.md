@@ -12,9 +12,17 @@ markdown-toc -i README.md --maxdepth 3
 
 <!-- toc -->
 
+- [What is Redbox?](#what-is-redbox)
+- [Implementing Redbox](#implementing-redbox)
+  * [Deploying Redbox](#deploying-redbox)
+  * [Using the Redbox API](#using-the-redbox-api)
+  * [Integrating with Redbox](#integrating-with-redbox)
 - [API Reference](#api-reference)
   * [API Location](#api-location)
   * [Authorization](#authorization)
+- [SNS Topic Reference](#sns-topic-reference)
+  * [Lease Added](#lease-added)
+  * [Lease Removed](#lease-removed)
 - [Scripts](#scripts)
   * [`scripts/build.sh`](#scriptsbuildsh)
   * [`scripts/deploy.sh`](#scriptsdeploysh)
@@ -22,19 +30,64 @@ markdown-toc -i README.md --maxdepth 3
 - [Lambda Overview](#lambda-overview)
 - [CodeBuild Overview](#codebuild-overview)
 - [Database Schema](#database-schema)
+- [Database Backups](#database-backups)
 - [Reset](#reset)
   * [Nuke](#nuke)
   * [Launchpad](#launchpad)
+  * [Alarms/Alerting](#alarmsalerting)
 - [Directory Structure](#directory-structure)
 - [Account Provisioning & Decommissioning](#account-provisioning--decommissioning)
+- [API Spec](#api-spec)
 
 <!-- tocstop -->
+
+## What is Redbox?
+
+_TODO_
+
+## Implementing Redbox
+
+This repo provides a set of components which implementors (you) can use to deploy your own Redbox instance. These components come in the form of:
+
+- Terraform modules to deploy Redbox infrastructure to AWS
+- Packaged go modules and other assets, to deploy to Lambda, CodeBuild, etc. to your AWS master account
+
+With these resources deployed, you will have access to a set of _integration points_, for working with your Redbox instance:
+
+- APIs for managing Redbox resources (accounts, leases, etc.)
+- SNS topics, allowing you hook in to Redbox events, and implement your own custom business logic
+
+### Deploying Redbox
+
+_TODO_
+
+### Using the Redbox API
+
+_TODO_
+
+### Integrating with Redbox
+
+Redbox provides a number of SNS topics, which allow you to hook into Redbox events, and implement your own custom business logic. Out of the box, Redbox is unopinionated about how you manage the details of your Redbox accounts. Some questions which are left to you to answer are:
+
+- How do you grant and remove access to AWS Accounts?
+- What do you do when an account reaches a budget threshold?
+
+To answers to these questions, you can subscribe to SNS topics provided by Redbox. For example, you could subscribe to the _Lease Added_ topic, create an IAM User, and email an invite to the lease principal to login. On _Lease Removed_, you might delete that IAM User, and notify the lease principal that they no longer have access.
+
+See the [SNS Topic Reference](#sns-topic-reference) for details on available SNS topics. 
+
+ 
+
+#### Example: Vanilla Redbox Integration
+
+_TODO: what's the simplest / least opinionated approach to integrating with Redbox_
+
 
 ## API Reference
 
 Redbox exposes an API for managing Redbox accounts and assignments.
 
-See [swaggerRedbox.yaml](./modules/swaggerRedbox.yaml) for endpoint documentation.
+See [swaggerRedbox.yaml](./modules/swaggerRedbox.yaml) for endpoint documentation (better Swagger docs to come...).
 
 ### API Location
 
@@ -107,6 +160,117 @@ Alternatively, you could consider open-source libraries like [aws-requests-auth]
 #### Signing requests in Postman 
 
 See AWS docs for [sending signed requests in Postman](https://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-use-postman-to-call-api.html)
+
+
+
+## SNS Topic Reference
+
+### Account Created
+
+#### Description
+
+An account was added to the account pool
+
+#### Payload
+
+This message includes a payload as JSON, with the following fields:
+
+| Field | Type | Description |
+| --- | --- | --- |
+| id | string | AWS Account ID |
+| accountStatus | "Ready", "NotReady", or "Assigned" | Account status |
+| adminRoleArn | string | ARN for the IAM role used by the Redbox master account to manage the account |
+| lastModifiedOn | int | Last modified timestamp |
+| createdOn | int | Last modified timestamp |
+
+Example:
+
+```json
+{
+  "id": "1234567890",
+  "accountStatus": "NotReady",
+  "adminRoleArn": "arn:aws:iam::1234567890123:role/adminRole",
+  "createdOn": 1560306008,
+  "lastModifiedOn": 1560306008
+}
+```
+
+### Lease Added
+
+#### Description
+
+Triggered when a lease is created.
+
+#### Payload
+
+This message includes a payload as JSON, with the following fields:
+
+| Field | Type | Description |
+| --- | --- | --- |
+| accountId | string | AWS Account ID |
+| userId | string | User ID, associated with the lease |
+| assignmentStatus | string | Status of the lease. |
+| createdOn | integer | Timestamp (epoch) of creation |
+| lastModifiedOn | integer | Timestamp (epoch) of last modification | 
+
+Example:
+
+```json
+{
+  "accountId": "1234567890",
+  "userId": "jdoe17",
+  "assignmentStatus": "Active",
+  "createdOn": 1560306008,
+  "lastModifiedOn": 1560306008,
+}
+```
+
+#### Topic ARN
+
+This SNS topic ARN is provided as a Terraform output:
+
+```
+terraform output lease_added_topic_arn
+```
+
+
+### Lease Removed
+
+#### Description
+
+Triggered when a lease is deleted.
+
+#### Payload
+
+This message includes a payload as JSON, with the following fields:
+
+| Field | Type | Description |
+| --- | --- | --- |
+| accountId | string | AWS Account ID |
+| userId | string | User ID, associated with the lease |
+| assignmentStatus | string | Status of the lease. |
+| createdOn | integer | Timestamp (epoch) of creation |
+| lastModifiedOn | integer | Timestamp (epoch) of last modification | 
+
+Example:
+
+```json
+{
+  "accountId": "1234567890",
+  "userId": "jdoe17",
+  "assignmentStatus": "Decommissioned",
+  "createdOn": 1560306008,
+  "lastModifiedOn": 1560306008,
+}
+```
+
+#### Topic ARN
+
+This SNS topic ARN is provided as a Terraform output:
+
+```
+terraform output lease_removed_topic_arn
+```
 
 ## Scripts
 
@@ -190,7 +354,7 @@ file in the artifact bucket, no AWS CLI calls needed.
 
 | Function | Description                                                                                                                                                                                                                                                                                                                                         |
 | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| reset    | Functionality for Resetting an AWS Account using [aws-nuke](https://github.com/rebuy-de/aws-nuke). Updates the DynamoDB Account and Account Assignment manifest accordingly |
+| reset    | Functionality for Resetting an AWS Account using [aws-nuke](https://github.com/rebuy-de/aws-nuke)). Updates the DynamoDB Account and Account Assignment manifest accordingly |
 
 ## Database Schema
 
@@ -201,7 +365,6 @@ Status of each Account in our pool
 ```
 {
     "Id": "123456789012", # *Unique AWS Account ID*
-    "GroupId": "123"
     "AccountStatus": "Assigned" | "Ready" | "NotReady"
     "LastModifiedOn": 1555690626 # *Epoch Timestamp*
 }
@@ -218,7 +381,7 @@ Records are unique by AccountId+UserId.
 ```
 {
   "AccountId":  "123456789012", # AWS Account ID
-  "UserId": "123"
+  "UserId": "098765432"
   "AssignmentStatus": "Active" | "FinanceLock" | "ResetLock" | "ResetFinanceLock" | "Decommissioned"
   "CreatedOn": 1555690626 # *Epoch Timestamp*
   "LastModifiedOn": 1555690626 # *Epoch Timestamp*
@@ -231,19 +394,57 @@ Range Key: `AssignmentStatus`
 Secondary Index: UserId
 Secondary Range Key: UserId
 
+## Database Backups
+
+Redbox does not backup your DynamoDB tables by default. However, if you want to restore a DynamoDB table from a backup, we do provide a helper script in [scripts/restore_db.sh](./scripts/restore_db.sh). This script is also provided as a Github release artifact, for easy access.
+
+To restore a DynamoDB table from a backup:
+
+```
+# Grab the account table name from Terraform state
+table_name=$(cd modules && terraform output redbox_account_db_table_name)
+
+# Or, grab the assignments table name
+table_name=$(cd modules && terraform output redbox_account_assignment_db_table_name)
+
+# List available backups
+./scripts/restore_db.sh \
+  --target-table-name ${table_name} \
+  --list-backups
+  
+# Choose an backup from the output of the last command, and pass in the ARN
+./scripts/restore_db.sh \
+  --target-table-name ${table_name} \
+  --backup-arn <backup arn>
+  
+# If the table already exists, and you want to delete and
+# recreate it from a backup, pass in 
+# the --force-delete-table flag
+./scripts/restore_db.sh \
+  --target-table-name ${table_name} \
+  --backup-arn <backup arn> \
+  --force-delete-table
+```  
+
+After restoring your DynamoDB table from a backup, you should rerun `terraform apply` to ensure that your table is in sync with your Terraform configuration. 
+
 ## Reset
 
 AWS Redbox Reset will process an AWS Redbox Account to a clean and secure state.
-The Reset has 2 main procedures, clearing the resources in an account (**Nuke**).
+The Reset has 2 main procedures, clearing the resources in an account (**Nuke**)
+and reapply security monitoring (**Launchpad**).
 
 The Reset of an account is done through a CodeBuild stage in a CodePipeline.
 
 ### Nuke
 
 To clear resources from an AWS Redbox Account, [aws-nuke](https://github.com/rebuy-de/aws-nuke)
-is used to list out all nuke-able resources and remove them. The configuration
-file used to filter resources to not delete is located
-[here](cmd/codepipeline/resetpipeline/redbox-nuke-all-config-template.yml).
+is used to list out all nuke-able resources and remove them. The defualt 
+configuration file used to filter resources to not delete is located
+[here](cmd/codebuild/reset/default-nuke-config-template.yml). The 
+configuration file can also be pulled from an S3 Bucket Object via setting 
+the `RESET_NUKE_TEMPLATE_BUCKET` and `RESET_NUKE_TEMPLATE_KEY`, these are 
+default to `STUB` and are ignored.
 
 ### Alarms/Alerting
 
@@ -372,6 +573,8 @@ aws_redbox
 
 ![Account Provisioning & Decommissioning Diagram](/docs/images/provision_decom_diagram.png)
 
+Update this diagram on [LucidChart](https://www.lucidchart.com/invitations/accept/3c5d1fba-5c4f-4f2b-91c3-8de17c1b09b6).
+
 ## API Spec
 
-Redbox API Spec available via swaggerUI on github host: [API Spec](#)
+Redbox API Spec available via swaggerUI on github host: [API Spec](https://github.optum.com/pages/CommercialCloud-Team/aws_redbox/)

@@ -38,6 +38,22 @@ output "dynamodb_table_account_assignment_name" {
   value = aws_dynamodb_table.redbox_account_assignment.name
 }
 
+output "lease_added_topic_id" {
+  value = aws_sns_topic.lease_added.id
+}
+
+output "lease_added_topic_arn" {
+  value = aws_sns_topic.lease_added.arn
+}
+
+output "lease_removed_topic_id" {
+  value = aws_sns_topic.lease_removed.id
+}
+
+output "lease_removed_topic_arn" {
+  value = aws_sns_topic.lease_removed.arn
+}
+
 output "api_url" {
   value = aws_api_gateway_deployment.gateway_deployment_redbox.invoke_url
 }

@@ -9,13 +9,14 @@ import (
 	"github.com/Optum/Redbox/pkg/db"
 )
 
-// Provisioner interface for providing helper methods for provisioning a
+// Provisioner interface for providing helpfer methods for provisioning a
 // User to a Redbox Account
 type Provisioner interface {
 	FindUserActiveAssignment(string) (*db.RedboxAccountAssignment, error)
 	FindUserAssignmentWithAccount(string, string) (*db.RedboxAccountAssignment,
 		error)
-	ActivateAccountAssignment(bool, string, string) error
+	ActivateAccountAssignment(bool, string, string) (*db.RedboxAccountAssignment,
+		error)
 	RollbackProvisionAccount(bool, string, string) error
 }
 
@@ -75,10 +76,14 @@ func (prov *AccountProvision) FindUserAssignmentWithAccount(userID string,
 
 // ActivateAccountAssignment is a helper function to either create or update
 // an existing Account Assignment from a Decommissioned to an Active state.
+// Returns the assignment that has been activated - does not return any previous
+// assignments
 func (prov *AccountProvision) ActivateAccountAssignment(create bool,
-	userID string, accountID string) error {
+	userID string, accountID string) (*db.RedboxAccountAssignment, error) {
 	// Create a new Redbox Account Assignment if there doesn't exist one already
 	// else, update the existing assignment to active
+	var assgn *db.RedboxAccountAssignment
+	var err error
 	if create {
 		log.Printf("Create new Assignment for User %s and Account %s\n",
 			userID, accountID)
@@ -90,22 +95,23 @@ func (prov *AccountProvision) ActivateAccountAssignment(create bool,
 			CreatedOn:        timeNow,
 			LastModifiedOn:   timeNow,
 		}
-		err := prov.DBSvc.PutAccountAssignment(*userAssignment)
+		_, err = prov.DBSvc.PutAccountAssignment(*userAssignment) // new assignments return an empty assignment
 		// Failed to Create Assignment
 		if err != nil {
-			return err
+			return nil, err
 		}
+		assgn = userAssignment
 	} else {
 		log.Printf("Update existing Assignment for User %s and Account %s\n",
 			userID, accountID)
-		_, err := prov.DBSvc.TransitionAssignmentStatus(accountID, userID,
+		assgn, err = prov.DBSvc.TransitionAssignmentStatus(accountID, userID,
 			db.Decommissioned, db.Active)
 		// Failed to Update Assignment
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
-	return nil
+	return assgn, nil
 }
 
 // RollbackProvisionAccount will rollback database changes created during the

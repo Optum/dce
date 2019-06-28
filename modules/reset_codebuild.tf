@@ -44,14 +44,32 @@ resource "aws_codebuild_project" "reset_build" {
     }
 
     environment_variable {
-      name  = "RESET_ROLE"
-      value = var.reset_assume_role
+      name  = "RESET_ACCOUNT_ADMIN_ROLE"
+      value = var.reset_account_admin_role
       type  = "PLAINTEXT"
     }
 
     environment_variable {
-      name  = "RESET_TEMPLATE"
-      value = var.reset_config_template
+      name  = "RESET_ACCOUNT_USER_ROLE"
+      value = var.reset_account_user_role
+      type  = "PLAINTEXT"
+    }
+
+    environment_variable {
+      name  = "RESET_NUKE_TEMPLATE_DEFAULT"
+      value = var.reset_nuke_template_default
+      type  = "PLAINTEXT"
+    }
+
+    environment_variable {
+      name  = "RESET_NUKE_TEMPLATE_BUCKET"
+      value = var.reset_nuke_template_bucket
+      type  = "PLAINTEXT"
+    }
+
+    environment_variable {
+      name  = "RESET_NUKE_TEMPLATE_KEY"
+      value = var.reset_nuke_template_key
       type  = "PLAINTEXT"
     }
 
@@ -199,3 +217,21 @@ POLICY
 
 }
 
+# Cloudwatch alarm, for Reset CodeBuild failure
+resource "aws_cloudwatch_metric_alarm" "reset_failed_builds" {
+  alarm_name = "reset-codebuild-failures-${var.namespace}"
+
+  namespace   = "AWS/CodeBuild"
+  metric_name = "FailedBuilds"
+  dimensions = {
+    ProjectName = aws_codebuild_project.reset_build.name
+  }
+
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 1
+  threshold           = 1
+  period              = 60
+  statistic           = "Sum"
+
+  alarm_actions = [aws_sns_topic.alarms_topic.arn]
+}

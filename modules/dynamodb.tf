@@ -16,14 +16,6 @@ resource "aws_dynamodb_table" "redbox_account" {
     write_capacity  = 5
   }
 
-  global_secondary_index {
-    name            = "GroupId"
-    hash_key        = "GroupId"
-    projection_type = "ALL"
-    read_capacity   = 5
-    write_capacity  = 5
-  }
-
   server_side_encryption {
     enabled = true
   }
@@ -41,12 +33,6 @@ resource "aws_dynamodb_table" "redbox_account" {
   #   - NOT_READY
   attribute {
     name = "AccountStatus"
-    type = "S"
-  }
-
-  # Azure AD Group associated with the account
-  attribute {
-    name = "GroupId"
     type = "S"
   }
 

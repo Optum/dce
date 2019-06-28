@@ -5,12 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/Optum/Redbox/pkg/common"
 )
 
@@ -81,14 +82,21 @@ func (lp LaunchpadAPI) Setup(accountID string) error {
 			cleanState)
 	}
 
-	// Upload the clean state file
-	log.Printf("Applying Clean State File: %s/%s\n", lp.BackendBucket, key)
+	// Save the clean statefile temporarily
 	cleanBody, err := json.Marshal(cleanState)
 	if err != nil {
 		return err
 	}
-	reader := bytes.NewReader(cleanBody)
-	err = lp.Storage.PutObject(lp.BackendBucket, key, aws.ReadSeekCloser(reader))
+	stateFile := "/tmp/temp-statefile"
+	err = ioutil.WriteFile(stateFile, cleanBody, 0666)
+	if err != nil {
+		return err
+	}
+	defer os.Remove(stateFile)
+
+	// Upload the clean state file
+	log.Printf("Applying Clean State File: %s/%s\n", lp.BackendBucket, key)
+	err = lp.Storage.Upload(lp.BackendBucket, key, stateFile)
 	if err != nil {
 		return err
 	}

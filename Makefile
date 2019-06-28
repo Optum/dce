@@ -32,10 +32,10 @@ build:
 
 release:
 	./scripts/release.sh \
-		--site_url github.com \
-		--github_org Optum \
+		--site_url github.optum.com \
+		--github_org CommercialCloud-Team \
 		--repository aws_redbox \
-		--artifacts bin/build_artifacts.zip,bin/terraform_artifacts.zip,scripts/deploy.sh \
+		--artifacts bin/build_artifacts.zip,bin/terraform_artifacts.zip,scripts/deploy.sh,scripts/restore_db.sh \
 		--tag $(TAG)
 
 

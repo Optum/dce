@@ -62,7 +62,7 @@ type testLaunchpadAccountInput struct {
 }
 
 // TestLaunchpadAccount verifies the flow LaunchpadAccount correctly follows
-// setting up, triggering, an retrieving the status of Launchpad being applied
+// setting up, triggering, an dretrieving the status of Launchpad being applied
 // to an account
 func TestLaunchpadAccount(t *testing.T) {
 	// Construct test scenarios

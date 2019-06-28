@@ -315,7 +315,7 @@ resource "aws_cloudwatch_metric_alarm" "apigateway-alarm-latency" {
   metric_name         = "Latency"
   period              = 60
   statistic           = "Sum"
-  threshold           = 1000
+  threshold           = 10000
   alarm_actions       = [aws_sns_topic.alarms_topic.arn]
 
   dimensions = {
@@ -331,7 +331,7 @@ resource "aws_cloudwatch_metric_alarm" "apigateway-alarm-integ-latency" {
   metric_name         = "IntegrationLatency"
   period              = 60
   statistic           = "Sum"
-  threshold           = 500
+  threshold           = 10000
   alarm_actions       = [aws_sns_topic.alarms_topic.arn]
 
   dimensions = {

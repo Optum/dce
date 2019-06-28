@@ -2,7 +2,7 @@
 set -euxo pipefail
 
 # Check Go Formatting
-test -z $(go fmt ./...)
+test -z "$(go fmt ./...)"
 
 # Run Golint
 golangci-lint run --disable-all -E golint ./pkg/...

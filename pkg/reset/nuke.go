@@ -4,10 +4,10 @@ import (
 	"errors"
 	"time"
 
+	"github.com/Optum/Redbox/pkg/common"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/rebuy-de/aws-nuke/cmd"
 	"github.com/rebuy-de/aws-nuke/pkg/awsutil"
-	"github.com/Optum/Redbox/pkg/common"
 )
 
 // NukeAccountInput is the container used for the TokenService and the
@@ -58,7 +58,7 @@ func NukeAccount(input *NukeAccountInput) error {
 		SessionToken:    *assumeRoleOutput.Credentials.SessionToken,
 	}
 
-	// Create an Account with the credentials and a Nuke based
+	// Create an Account with the crdentials and a Nuke based
 	// on the new Account and NukeParameter
 	account, err := input.Nuke.NewAccount(creds)
 	if err != nil {

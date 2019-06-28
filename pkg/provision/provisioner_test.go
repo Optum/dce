@@ -239,23 +239,41 @@ func TestFindUserAssignmentWithAccount(t *testing.T) {
 // testActivateAccountAssignmentInput is the structure input used for table
 // driven testing for ActivateAccountAssignment
 type testActivateAccountAssignmentInput struct {
-	ExpectedError                   error
-	Create                          bool
-	PutAccountAssignmentError       error
-	TransitionAssignmentStatusError error
+	ExpectedAccountAssignment             *db.RedboxAccountAssignment
+	ExpectedError                         error
+	Create                                bool
+	PutAccountAssignmentAccountAssignment *db.RedboxAccountAssignment
+	PutAccountAssignmentError             error
+	TransitionAssignmentStatusAssignment  *db.RedboxAccountAssignment
+	TransitionAssignmentStatusError       error
 }
 
 // TestActivateAccountAssignment tests and verifies the flow of the helper
 // function to create or update an account assignment as active for a user
 func TestActivateAccountAssignment(t *testing.T) {
 	// Construct test scenarios
+	accountAssignment := &db.RedboxAccountAssignment{
+		AccountID:        "123",
+		UserID:           "abc",
+		AssignmentStatus: db.Active,
+	}
 	tests := []testActivateAccountAssignmentInput{
 		// Happy Path - Create
 		{
-			Create: true,
+			Create:                                true,
+			ExpectedAccountAssignment:             accountAssignment,
+			PutAccountAssignmentAccountAssignment: accountAssignment,
 		},
 		// Happy Path - Update
-		{},
+		{
+			ExpectedAccountAssignment: accountAssignment,
+			TransitionAssignmentStatusAssignment: &db.RedboxAccountAssignment{
+				AccountID:        "123",
+				UserID:           "abc",
+				AssignmentStatus: db.Active,
+				LastModifiedOn:   456,
+			},
+		},
 		// Fail PutAccountAssignment
 		{
 			ExpectedError:             errors.New("Fail Creating New Assignment"),
@@ -277,11 +295,13 @@ func TestActivateAccountAssignment(t *testing.T) {
 		mockDB := &mocks.DBer{}
 		if test.Create {
 			mockDB.On("PutAccountAssignment", mock.Anything).Return(
+				test.PutAccountAssignmentAccountAssignment,
 				test.PutAccountAssignmentError)
 		} else {
 			mockDB.On("TransitionAssignmentStatus", mock.Anything,
 				mock.Anything, mock.Anything, mock.Anything).Return(
-				nil, test.TransitionAssignmentStatusError)
+				test.TransitionAssignmentStatusAssignment,
+				test.TransitionAssignmentStatusError)
 		}
 
 		// Create the AccountProvision
@@ -290,9 +310,27 @@ func TestActivateAccountAssignment(t *testing.T) {
 		}
 
 		// Call findUserAssignmentWithAccount
-		err := prov.ActivateAccountAssignment(test.Create, user, account)
+		assgn, err := prov.ActivateAccountAssignment(test.Create, user, account)
 
 		// Assert that the expected output is correct
+		if test.ExpectedAccountAssignment != nil {
+			require.Equal(t, test.ExpectedAccountAssignment.AccountID,
+				assgn.AccountID)
+			require.Equal(t, test.ExpectedAccountAssignment.UserID, assgn.UserID)
+			require.Equal(t, test.ExpectedAccountAssignment.AssignmentStatus,
+				assgn.AssignmentStatus)
+			if test.Create {
+				require.NotEqual(t, test.ExpectedAccountAssignment.CreatedOn,
+					assgn.CreatedOn) // Should be different
+			} else {
+				require.Equal(t, test.ExpectedAccountAssignment.CreatedOn,
+					assgn.CreatedOn) // Should be the same
+			}
+			require.NotEqual(t, test.ExpectedAccountAssignment.LastModifiedOn,
+				assgn.LastModifiedOn) // Should not be 0
+		} else {
+			require.Equal(t, test.ExpectedAccountAssignment, assgn)
+		}
 		require.Equal(t, test.ExpectedError, err)
 	}
 }
