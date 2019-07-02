@@ -8,7 +8,9 @@ for i in $(ls -d cmd/lambda/*)
 do
 if [ -e $i/main.go ];then
     mod_name=`basename $i`
-    go build -v -o bin/lambda/$mod_name $i/main.go
+    cd cmd/lambda/$mod_name
+    GOARCH=amd64 GOOS=linux go build -v -o ../../../bin/lambda/$mod_name
+    cd ../../..
     zip -j --must-match \
         bin/lambda/$mod_name.zip \
         bin/lambda/$mod_name
@@ -18,13 +20,13 @@ done
 # Build Account Reset CodeBuild
 # Builds to `/bin/codebuild/reset.zip`
 cd cmd/codebuild/reset/
-go build -o ../../../bin/codebuild/reset ./...
+GOARCH=amd64 GOOS=linux go build -o ../../../bin/codebuild/reset ./...
 cd ../../../
 zip -j --must-match \
     bin/codebuild/reset.zip \
     bin/codebuild/reset \
     cmd/codebuild/reset/buildspec.yml \
-    cmd/codebuild/reset/redbox-nuke-all-config-template.yml
+    cmd/codebuild/reset/default-nuke-config-template.yml
 
 # Build Lambda/CodeBuild Artifact
 cd bin

@@ -5,6 +5,109 @@ info:
 schemes:
   - https
 paths:
+  "/accounts":
+    get:
+      summary: Lists accounts
+      produces:
+        - application/json
+      responses:
+        200:
+          description: A list of accounts
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/account"
+        403:
+          description: "Unauthorized"
+      x-amazon-apigateway-integration:
+        uri: ${accounts_lambda}
+        httpMethod: "POST"
+        type: "aws_proxy"
+        passthroughBehavior: "when_no_match"
+      security:
+        - sigv4: []
+    post:
+      summary: Add an AWS Account to the Redbox account pool
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: account
+          description: Account creation parameters
+          schema:
+            type: object
+            required:
+              - id
+              - adminRoleArn
+            properties:
+              id:
+                type: string
+                description: AWS Account ID
+              adminRoleArn:
+                type: string
+                description: |
+                  ARN for an IAM role within this AWS account. The Redbox master account will assume this IAM role to execute operations within this AWS account. This IAM role is configured by the client, and must be configured with [a Trust Relationship with the Redbox master account.](/https://docs.aws.amazon.com/IAM/latest/UserGuide/tutorial_cross-account-with-roles.html)
+      produces:
+        - application/json
+      responses:
+        201:
+          $ref: "#/definitions/account"
+        403:
+          description: "Failed to authenticate request"
+      x-amazon-apigateway-integration:
+        uri: ${accounts_lambda}
+        httpMethod: "POST"
+        type: "aws_proxy"
+        passthroughBehavior: "when_no_match"
+      security:
+        - sigv4: []
+  "/accounts/{id}":
+    get:
+      summary: Get a specific account by AccountId
+      produces:
+        - application/json
+      parameters:
+        - in: path
+          name: id
+          type: string
+          required: true
+          description: accountId for lease
+      responses:
+        200:
+          $ref: "#/definitions/account"
+        403:
+          description: "Failed to retrieve account"
+      x-amazon-apigateway-integration:
+        uri: ${accounts_lambda}
+        httpMethod: "POST"
+        type: "aws_proxy"
+        passthroughBehavior: "when_no_match"
+      security:
+        - sigv4: []
+    delete:
+      summary: Delete an account by ID.
+      parameters:
+        - in: path
+          name: id
+          type: string
+          required: true
+          description: The ID of the account to be deleted.
+      responses:
+        204:
+          description: "The account has been successfully deleted."
+        403:
+          description: "Unauthorized."
+        404:
+          description: "No account found for the given ID."
+        409:
+          description: "The account is unable to be deleted."
+      x-amazon-apigateway-integration:
+        uri: ${accounts_lambda}
+        httpMethod: "POST"
+        type: "aws_proxy"
+        passthroughBehavior: "when_no_match"
+      security:
+        - sigv4: []
   "/leases":
     post:
       summary: Creates a new lease.
@@ -25,9 +128,9 @@ paths:
         - application/json
       responses:
         201:
-          $ref: "#/definitions/assignmentId"
+          $ref: "#/definitions/assignment"
         403:
-          description: "Failed to add lease"
+          description: "Failed to authenticate request"
       x-amazon-apigateway-integration:
         uri: ${router_lambda_arn}
         httpMethod: "POST"
@@ -56,10 +159,10 @@ paths:
       produces:
         - application/json
       responses:
-        200:
+        201:
           description: "Lease successfully removed"
         403:
-          description: "Failed to remove lease"
+          description: "Failed to authenticate request"
       x-amazon-apigateway-integration:
         uri: ${router_lambda_arn}
         httpMethod: "POST"
@@ -84,9 +187,9 @@ paths:
           description: accountId of the lease to get
       responses:
         200:
-          $ref: "#/definitions/assignmentId"
+          $ref: "#/definitions/assignment"
         403:
-          description: "Failed to retrieve leases"
+          description: "Failed to authenticate request"
       x-amazon-apigateway-integration:
         uri: ${router_lambda_arn}
         httpMethod: "POST"
@@ -101,7 +204,7 @@ securityDefinitions:
     in: "header"
     x-amazon-apigateway-authtype: "awsSigv4"
 definitions:
-  assignmentId:
+  assignment:
     description: "Assignment Id"
     type: object
     properties:
@@ -112,11 +215,49 @@ definitions:
         type: string
         description: accountId of the AWS account
       assignmentStatus:
-        type: string
-        description: Active, Decommissioned
+        $ref: "#/definitions/assignmentStatus"
       createdOn:
         type: number
         description: creation date in epoch seconds
       lastModifiedOn:
         type: number
         description: date last modified in epoch seconds
+  account:
+    description: "Account Details"
+    type: object
+    properties:
+      id:
+        type: string
+        description: AWS Account ID
+      accountStatus:
+        $ref: "#/definitions/accountStatus"
+      adminRoleArn:
+        type: string
+        description: ARN for an IAM role within this AWS account. The Redbox master account will assume this IAM role to execute operations within this AWS account. This IAM role is configured by the client, and must be configured with [a Trust Relationship with the Redbox master account.](/https://docs.aws.amazon.com/IAM/latest/UserGuide/tutorial_cross-account-with-roles.html)
+      principalRoleArn:
+        type: string
+        description: ARN for an IAM role within this AWS account. This role is created by the Redbox master account, and may be assumed by principals to login to their AWS Redbox account.
+      lastModifiedOn:
+        type: integer
+        description: Epoch timestamp, when account record was last modified
+      createdOn:
+        type: integer
+        description: Epoch timestamp, when account record was created
+  accountStatus:
+    type: string
+    enum: ["Ready", "NotReady", "Assigned"]
+    description: |
+      Status of the Account.
+      "Ready": The account is clean and ready for assignment
+      "NotReady": The account is in "dirty" state, and needs to be reset before it may be assigned.
+      "Assigned": The account is assigned to a principal
+  assignmentStatus:
+    type: string
+    enum: ["Active", "Decommissioned", "FinanceLock", "ResetLock", "ResetFinanceLock"]
+    description: |
+      Status of the Assignment.
+      "Active": The principal is assigned and has access to the account
+      "Decommissioned": The principal was previously assigned to the account, but now is not.
+      "FinanceLock": The principal is assigned to the account, but has hit a budget threshold, and is locked out of the account.
+      "ResetLock": The principal is assigned to the account, but the account is being reset. The principal's access is temporarily revoked, and will be given back after the reset process is complete.
+      "ResetFinanceLock"": The principal is assigned to the account, but has been locked out for hitting a budget threshold. Additionally, the account is being reset. After reset, the principal's access will _not_ be restored, and the AssignmentStatus will be set back to `ResetLock`

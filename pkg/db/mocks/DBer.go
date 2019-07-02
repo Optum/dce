@@ -10,6 +10,20 @@ type DBer struct {
 	mock.Mock
 }
 
+// DeleteAccount provides a mock function with given fields: accountID
+func (_m *DBer) DeleteAccount(accountID string) error {
+	ret := _m.Called(accountID)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string) error); ok {
+		r0 = rf(accountID)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // FindAssignmentByUser provides a mock function with given fields: userID
 func (_m *DBer) FindAssignmentByUser(userID string) ([]*db.RedboxAccountAssignment, error) {
 	ret := _m.Called(userID)
@@ -79,6 +93,29 @@ func (_m *DBer) GetAccount(accountID string) (*db.RedboxAccount, error) {
 	return r0, r1
 }
 
+// GetAccounts provides a mock function with given fields:
+func (_m *DBer) GetAccounts() ([]*db.RedboxAccount, error) {
+	ret := _m.Called()
+
+	var r0 []*db.RedboxAccount
+	if rf, ok := ret.Get(0).(func() []*db.RedboxAccount); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*db.RedboxAccount)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func() error); ok {
+		r1 = rf()
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetAccountsForReset provides a mock function with given fields:
 func (_m *DBer) GetAccountsForReset() ([]*db.RedboxAccount, error) {
 	ret := _m.Called()
@@ -140,17 +177,26 @@ func (_m *DBer) PutAccount(account db.RedboxAccount) error {
 }
 
 // PutAccountAssignment provides a mock function with given fields: account
-func (_m *DBer) PutAccountAssignment(account db.RedboxAccountAssignment) error {
+func (_m *DBer) PutAccountAssignment(account db.RedboxAccountAssignment) (*db.RedboxAccountAssignment, error) {
 	ret := _m.Called(account)
 
-	var r0 error
-	if rf, ok := ret.Get(0).(func(db.RedboxAccountAssignment) error); ok {
+	var r0 *db.RedboxAccountAssignment
+	if rf, ok := ret.Get(0).(func(db.RedboxAccountAssignment) *db.RedboxAccountAssignment); ok {
 		r0 = rf(account)
 	} else {
-		r0 = ret.Error(0)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*db.RedboxAccountAssignment)
+		}
 	}
 
-	return r0
+	var r1 error
+	if rf, ok := ret.Get(1).(func(db.RedboxAccountAssignment) error); ok {
+		r1 = rf(account)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // TransitionAccountStatus provides a mock function with given fields: accountID, prevStatus, nextStatus

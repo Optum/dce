@@ -4,10 +4,10 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
 	"github.com/Optum/Redbox/pkg/db"
 	dbmock "github.com/Optum/Redbox/pkg/db/mocks"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 // testUpdateAssignmentInput is the structure input used for table driven

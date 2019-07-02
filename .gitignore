@@ -52,7 +52,3 @@ override.tf.json
 *.zip
 
 junit-report/
-
-# IDE and System files
-.idea
-.DS_Store

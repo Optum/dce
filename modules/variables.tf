@@ -23,14 +23,29 @@ variable "organization_id" {
   default     = "STUB"
 }
 
-variable "reset_assume_role" {
-  description = "Name of the IAM Role in each user account, that the Redbox Mgmt will assume in order to execute reset"
+variable "reset_account_admin_role" {
+  description = "Default Admin IAM Role in each user account, that the Redbox Mgmt will assume in order to execute reset. Will get filtered from nuke."
   default     = "STUB"
 }
 
-variable "reset_config_template" {
-  description = "YAML file name of the configuration template file to use."
-  default     = "redbox-nuke-all-config-template.yml"
+variable "reset_account_user_role" {
+  description = "Default User IAM Role in each user account, that the Redbox User will assume into their account. Will get filtered from nuke."
+  default     = "STUB"
+}
+
+variable "reset_nuke_template_default" {
+  description = "YAML file name of the default nuke configuration template."
+  default     = "default-nuke-config-template.yml"
+}
+
+variable "reset_nuke_template_bucket" {
+  description = "S3 bucket name containing the nuke configuration template."
+  default     = "STUB"
+}
+
+variable "reset_nuke_template_key" {
+  description = "S3 bucket object key for the nuke configuration template."
+  default     = "STUB"
 }
 
 variable "reset_build_image" {

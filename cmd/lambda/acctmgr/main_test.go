@@ -1,159 +1,175 @@
 package main
 
 import (
-	"context"
+	"encoding/json"
 	"errors"
-	"fmt"
+	"log"
 	"net/http"
 	"testing"
 
-	"github.com/Azure/go-autorest/autorest"
 	"github.com/aws/aws-lambda-go/events"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
-	azureauthmock "github.com/Optum/Redbox/pkg/authorization/mocks"
-	"github.com/Optum/Redbox/pkg/common"
+	"github.com/Optum/Redbox/pkg/api/response"
 	commock "github.com/Optum/Redbox/pkg/common/mocks"
 	"github.com/Optum/Redbox/pkg/db"
 	dbmock "github.com/Optum/Redbox/pkg/db/mocks"
 	provmock "github.com/Optum/Redbox/pkg/provision/mocks"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
-type authorizationMock struct {
-	mock.Mock
+// testCreateAPIErrorResponseInput is the structure input used for table driven
+// testing for createErrorResponse
+type testCreateAPIErrorResponseInput struct {
+	ExpectedResponse events.APIGatewayProxyResponse
+	ResponseCode     int
+	ErrResp          response.ErrorResponse
 }
 
-type databaseMock struct {
-	mock.Mock
+// TestCreateAPIErrorResponse tests and verifies the flow of the function to
+// create a proper structure Error Response
+func TestCreateAPIErrorResponse(t *testing.T) {
+	// Construct test scenarios
+	tests := []testCreateAPIErrorResponseInput{
+		// Success 1
+		{
+			ExpectedResponse: events.APIGatewayProxyResponse{
+				StatusCode: http.StatusInternalServerError,
+				Headers: map[string]string{
+					"Content-Type": "application/json",
+				},
+				Body: "{\"error\":{\"code\":\"ServerError\",\"message\":\"Server Side Error\"}}",
+			},
+			ResponseCode: http.StatusInternalServerError,
+			ErrResp: response.CreateErrorResponse("ServerError",
+				"Server Side Error"),
+		},
+		// Success 2
+		{
+			ExpectedResponse: events.APIGatewayProxyResponse{
+				StatusCode: http.StatusBadRequest,
+				Headers: map[string]string{
+					"Content-Type": "application/json",
+				},
+				Body: "{\"error\":{\"code\":\"ClientError\",\"message\":\"Client Side Error\"}}",
+			},
+			ResponseCode: http.StatusBadRequest,
+			ErrResp: response.CreateErrorResponse("ClientError",
+				"Client Side Error"),
+		},
+	}
+
+	// Iterate through each test in the list
+	for _, test := range tests {
+		actualResponse := createAPIErrorResponse(test.ResponseCode, test.ErrResp)
+		require.Equal(t, test.ExpectedResponse, actualResponse)
+	}
 }
 
-type jwtMock struct {
-	mock.Mock
+// testPublishAssignmentInput is the structure input used for table driven
+// testing for publishMessage
+type testPublishAssignmentInput struct {
+	ExpectedMessage     *string
+	ExpectedError       error
+	PublishMessageError error
 }
 
-func (m *authorizationMock) ADGroupMember(ctx context.Context, groupID *string, memberID *string, tenantID *string) (result bool, err error) {
-	if groupID != nil && memberID != nil {
-		return true, nil
+// TestPublishAssignment tests and verifies the flow of the helper function
+// publishAssignment to create and publish a message to an SNS Topic
+func TestPublishAssignment(t *testing.T) {
+	accountAssignment := &db.RedboxAccountAssignment{
+		UserID:           "abc",
+		AccountID:        "123",
+		AssignmentStatus: db.Active,
+		CreatedOn:        567,
+		LastModifiedOn:   567,
 	}
-	return false, errors.New("input Parameter Error")
-}
-
-func (m *authorizationMock) AddADGroupUser(ctx context.Context, memberID string, groupID string, tenantID string) (result autorest.Response, err error) {
-	// Ridiculous mocking going on here, just pretend everything is fine.
-	response := autorest.Response{
-		Response: &http.Response{},
+	accountAssignmentResponse :=
+		response.CreateAccountAssignmentResponse(accountAssignment)
+	accountAssignmentBytes, err :=
+		json.Marshal(accountAssignmentResponse)
+	if err != nil {
+		log.Fatalf("Failed to Marshal Account Assignment: %s", err)
 	}
-	return response, nil
-}
+	message := string(accountAssignmentBytes)
 
-func (m *authorizationMock) RemoveADGroupUser(ctx context.Context, groupID string, memberID string, tenantID string) (result autorest.Response, err error) {
-	// Ridiculous mocking going on here, just pretend everything is fine.
-	response := autorest.Response{
-		Response: &http.Response{},
-	}
-	return response, nil
-}
-
-func (m *databaseMock) UpdateAccount(id string, status string, userID string) error {
-	if id != "" && status != "" && userID != "" {
-		return nil
-	}
-	return errors.New("update failed")
-}
-
-func TestCheckGroupMembership(t *testing.T) {
-	vals := common.ClaimKey{
-		UserID:   "optum1",
-		TenantID: "tenantid1",
-		GroupID:  "7047a708-8c54-4570-9cfc-9a86e08935da",
+	// Construct test scenarios
+	tests := []testPublishAssignmentInput{
+		// Success
+		{
+			ExpectedMessage: &message,
+		},
+		// Failure
+		{
+			ExpectedError:       errors.New("Publish Message Error"),
+			PublishMessageError: errors.New("Publish Message Error"),
+		},
 	}
 
-	authorization := new(authorizationMock)
+	// Iterate through each test in the list
+	messageID := "123"
+	topic := "topicARN"
+	for _, test := range tests {
+		// Setup mocks
+		mockNotif := &commock.Notificationer{}
+		mockNotif.On("PublishMessage", mock.Anything, mock.Anything,
+			mock.Anything).Return(&messageID, test.PublishMessageError)
 
-	ctx := context.Background()
-	testChkGrpMemResult, _ := authorization.ADGroupMember(ctx, &vals.GroupID, &vals.UserID, &vals.TenantID)
+		// Call publishAssignment
+		message, err := publishAssignment(mockNotif, accountAssignment, &topic)
 
-	expectedResult := true
-	assert.Equal(t, expectedResult, testChkGrpMemResult)
-
-	response := events.APIGatewayProxyResponse{
-		StatusCode: http.StatusOK,
-		Body:       string(fmt.Sprintf("%v", testChkGrpMemResult)),
-	}
-
-	expectedResponse := events.APIGatewayProxyResponse{
-		StatusCode: http.StatusOK,
-		Body:       string(fmt.Sprintf("%v", expectedResult)),
-	}
-
-	assert.Equal(t, expectedResponse, response)
-}
-
-func TestRouter(t *testing.T) {
-	request := events.APIGatewayProxyRequest{
-		HTTPMethod: "DELETE",
-	}
-
-	var response events.APIGatewayProxyResponse
-
-	jwtMock := &commock.JWTTokenService{}
-
-	jwtMock.On("ParseJWT").Return(common.ClaimKey{
-		UserID:   "testuser1",
-		GroupID:  "testgroup1",
-		TenantID: "testtenant1",
-	})
-
-	if !(request.HTTPMethod == "GET") || !(request.HTTPMethod == "POST") || !(request.HTTPMethod == "PUT") {
-		response = events.APIGatewayProxyResponse{
-			StatusCode: http.StatusMethodNotAllowed,
-			Body:       string("Method get/post/put are only allowed"),
+		// Assert that the expected message is correct
+		if message == nil {
+			require.Equal(t, test.ExpectedMessage, message)
+		} else {
+			require.Equal(t, *test.ExpectedMessage, *message)
 		}
-	} else {
-		response = events.APIGatewayProxyResponse{
-			StatusCode: http.StatusOK,
-			Body:       string("Method get/post/put are only allowed"),
-		}
+		require.Equal(t, test.ExpectedError, err)
 	}
-
-	expectedResponse := events.APIGatewayProxyResponse{
-		StatusCode: http.StatusMethodNotAllowed,
-		Body:       string("Method get/post/put are only allowed"),
-	}
-
-	assert.Equal(t, expectedResponse, response)
 }
 
 // testProvisionAccountInput is the structure input used for table driven
 // testing for provisionAccount
 type testProvisionAccountInput struct {
 	ExpectedResponse                        events.APIGatewayProxyResponse
-	ExpectedError                           error
 	GetReadyAccountAccount                  *db.RedboxAccount
 	GetReadyAccountError                    error
 	FindUserActiveAssignmentAssignment      *db.RedboxAccountAssignment
 	FindUserActiveAssignmentError           error
 	FindUserAssignmentWithAccountAssignment *db.RedboxAccountAssignment
 	FindUserAssignmentWithAccountError      error
+	ActivateAccountAssignmentAssignment     *db.RedboxAccountAssignment
 	ActivateAccountAssignmentError          error
 	TransitionAccountStatusError            error
-	AddADGroupUserResponse                  autorest.Response
-	AddADGroupUserError                     error
+	PublishMessageMessageID                 string
+	PublishMessageError                     error
 	RollbackProvisionAccountError           error
 }
 
-// testProvisionAccount tests and verifies the flow of the function to
+// TestProvisionAccount tests and verifies the flow of the function to
 // provision an account for a user
 func TestProvisionAccount(t *testing.T) {
+	successfulAccountAssignment := &db.RedboxAccountAssignment{
+		UserID:           "abc",
+		AccountID:        "123",
+		AssignmentStatus: db.Active,
+		CreatedOn:        567,
+		LastModifiedOn:   567,
+	}
+	successfulAccountAssignmentResponse :=
+		response.CreateAccountAssignmentResponse(successfulAccountAssignment)
+	successfulAccountAssignmentBytes, err :=
+		json.Marshal(successfulAccountAssignmentResponse)
+	if err != nil {
+		log.Fatalf("Failed to Marshal Account Assignment: %s", err)
+	}
+
 	// Construct test scenarios
 	tests := []testProvisionAccountInput{
 		// Happy Path - Existing Assignment
 		{
-			ExpectedResponse: createResponse(201, "User successfully added to group "+
-				"and Redbox account manifest has been updated. Your AWS account is "+
-				"123. To login, please go to myapps.microsoft.com."),
+			ExpectedResponse: createAPIResponse(http.StatusCreated,
+				string(successfulAccountAssignmentBytes)),
 			GetReadyAccountAccount: &db.RedboxAccount{
 				ID:            "123",
 				AccountStatus: db.Ready,
@@ -164,40 +180,32 @@ func TestProvisionAccount(t *testing.T) {
 				AccountID:        "123",
 				AssignmentStatus: db.Decommissioned,
 			},
-			AddADGroupUserResponse: autorest.Response{
-				Response: &http.Response{
-					StatusCode: 204,
-				},
-			},
+			ActivateAccountAssignmentAssignment: successfulAccountAssignment,
 		},
 		// Happy Path - New Assignment
 		{
-			ExpectedResponse: createResponse(201, "User successfully added to group "+
-				"and Redbox account manifest has been updated. Your AWS account is "+
-				"123. To login, please go to myapps.microsoft.com."),
+			ExpectedResponse: createAPIResponse(http.StatusCreated,
+				string(successfulAccountAssignmentBytes)),
 			GetReadyAccountAccount: &db.RedboxAccount{
 				ID:            "123",
 				AccountStatus: db.Ready,
 			},
 			FindUserActiveAssignmentAssignment:      &db.RedboxAccountAssignment{},
 			FindUserAssignmentWithAccountAssignment: &db.RedboxAccountAssignment{},
-			AddADGroupUserResponse: autorest.Response{
-				Response: &http.Response{
-					StatusCode: 204,
-				},
-			},
+			ActivateAccountAssignmentAssignment:     successfulAccountAssignment,
 		},
 		// Error Checking Assignments
 		{
-			ExpectedResponse: createResponse(503, "Cannot verify if User has "+
-				"existing Redbox Account : Find Assignment Error"),
-			ExpectedError:                 errors.New("Find Assignment Error"),
+			ExpectedResponse: createAPIErrorResponse(http.StatusInternalServerError,
+				response.CreateErrorResponse("ServerError",
+					"Cannot verify if User has existing Redbox Account : Find Assignment Error")),
 			FindUserActiveAssignmentError: errors.New("Find Assignment Error"),
 		},
 		// User already has an active account
 		{
-			ExpectedResponse: createResponse(409, "User already has an existing Redbox: 456"),
-			ExpectedError:    errors.New("User already has an existing Redbox: 456"),
+			ExpectedResponse: createAPIErrorResponse(http.StatusConflict,
+				response.CreateErrorResponse("ClientError",
+					"User already has an existing Redbox: 456")),
 			FindUserActiveAssignmentAssignment: &db.RedboxAccountAssignment{
 				UserID:           "abc",
 				AccountID:        "456",
@@ -206,24 +214,25 @@ func TestProvisionAccount(t *testing.T) {
 		},
 		// Error Getting Ready Accounts
 		{
-			ExpectedResponse: createResponse(503, "Cannot get Available Redbox "+
-				"Accounts : Get Ready Account Error"),
-			ExpectedError:                      errors.New("Get Ready Account Error"),
+			ExpectedResponse: createAPIErrorResponse(http.StatusInternalServerError,
+				response.CreateErrorResponse("ServerError",
+					"Cannot get Available Redbox Accounts : Get Ready Account Error")),
 			FindUserActiveAssignmentAssignment: &db.RedboxAccountAssignment{},
 			GetReadyAccountError:               errors.New("Get Ready Account Error"),
 		},
 		// No ready accounts
 		{
-			ExpectedResponse:                   createResponse(503, "No Available Redbox Accounts at this moment"),
-			ExpectedError:                      errors.New("No Available Redbox Accounts at this moment"),
+			ExpectedResponse: createAPIErrorResponse(http.StatusServiceUnavailable,
+				response.CreateErrorResponse("ServerError",
+					"No Available Redbox Accounts at this moment")),
 			FindUserActiveAssignmentAssignment: &db.RedboxAccountAssignment{},
 			GetReadyAccountAccount:             nil,
 		},
 		// Error Finding User Assignment With Account
 		{
-			ExpectedResponse: createResponse(503, "Cannot get Available Redbox "+
-				"Accounts : Find User Assignment with Account Error"),
-			ExpectedError: errors.New("Find User Assignment with Account Error"),
+			ExpectedResponse: createAPIErrorResponse(http.StatusInternalServerError,
+				response.CreateErrorResponse("ServerError",
+					"Cannot get Available Redbox Accounts : Find User Assignment with Account Error")),
 			GetReadyAccountAccount: &db.RedboxAccount{
 				ID:            "123",
 				AccountStatus: db.Ready,
@@ -233,9 +242,9 @@ func TestProvisionAccount(t *testing.T) {
 		},
 		// Error Activate Account Assignment
 		{
-			ExpectedResponse: createResponse(500, "Failed to Create "+
-				"Assignment for Account : 123"),
-			ExpectedError: errors.New("Activate Account Assignment Error"),
+			ExpectedResponse: createAPIErrorResponse(http.StatusInternalServerError,
+				response.CreateErrorResponse("ServerError",
+					"Failed to Create Assignment for Account : 123")),
 			GetReadyAccountAccount: &db.RedboxAccount{
 				ID:            "123",
 				AccountStatus: db.Ready,
@@ -246,9 +255,9 @@ func TestProvisionAccount(t *testing.T) {
 		},
 		// Error Transition Account Status
 		{
-			ExpectedResponse: createResponse(500, "Failed to Create "+
-				"Assignment for Account : 123"),
-			ExpectedError: errors.New("Transition Account Status Error"),
+			ExpectedResponse: createAPIErrorResponse(http.StatusInternalServerError,
+				response.CreateErrorResponse("ServerError",
+					"Failed to Create Assignment for 123 - abc")),
 			GetReadyAccountAccount: &db.RedboxAccount{
 				ID:            "123",
 				AccountStatus: db.Ready,
@@ -259,9 +268,9 @@ func TestProvisionAccount(t *testing.T) {
 		},
 		// Error Transition Account Status Rollback
 		{
-			ExpectedResponse: createResponse(500, "Failed to Rollback "+
-				"Account Assignment for Account : 123"),
-			ExpectedError: errors.New("Rollback Provision Account Error"),
+			ExpectedResponse: createAPIErrorResponse(http.StatusInternalServerError,
+				response.CreateErrorResponse("ServerError",
+					"Failed to Rollback Account Assignment for 123 - abc")),
 			GetReadyAccountAccount: &db.RedboxAccount{
 				ID:            "123",
 				AccountStatus: db.Ready,
@@ -271,54 +280,42 @@ func TestProvisionAccount(t *testing.T) {
 			TransitionAccountStatusError:            errors.New("Transition Account Status Error"),
 			RollbackProvisionAccountError:           errors.New("Rollback Provision Account Error"),
 		},
-		// Error Add AD Group User
+		// Error Publish Message
 		{
-			ExpectedResponse: createResponse(500, "Fail to Add User abc for Account : 123"),
-			ExpectedError:    errors.New("Add AD Group User Error"),
+			ExpectedResponse: createAPIErrorResponse(http.StatusInternalServerError,
+				response.CreateErrorResponse("ServerError",
+					"Failed to Create Assignment for 123 - abc")),
 			GetReadyAccountAccount: &db.RedboxAccount{
 				ID:            "123",
 				AccountStatus: db.Ready,
 			},
 			FindUserActiveAssignmentAssignment:      &db.RedboxAccountAssignment{},
 			FindUserAssignmentWithAccountAssignment: &db.RedboxAccountAssignment{},
-			AddADGroupUserError:                     errors.New("Add AD Group User Error"),
+			ActivateAccountAssignmentAssignment:     &db.RedboxAccountAssignment{},
+			PublishMessageError:                     errors.New("Publish Message Error"),
 		},
-		// Add AD Group User Non 204 Return
+		// Error Publish Message Rollback
 		{
-			ExpectedResponse: createResponse(500, "Fail to Add User abc for Account : 123"),
+			ExpectedResponse: createAPIErrorResponse(http.StatusInternalServerError,
+				response.CreateErrorResponse("ServerError",
+					"Failed to Rollback Account Assignment for 123 - abc")),
 			GetReadyAccountAccount: &db.RedboxAccount{
 				ID:            "123",
 				AccountStatus: db.Ready,
 			},
 			FindUserActiveAssignmentAssignment:      &db.RedboxAccountAssignment{},
 			FindUserAssignmentWithAccountAssignment: &db.RedboxAccountAssignment{},
-			AddADGroupUserResponse: autorest.Response{
-				Response: &http.Response{
-					StatusCode: 500,
-				},
-			},
-		},
-		// Error Add AD Group User Rollback
-		{
-			ExpectedResponse: createResponse(500, "Failed to Rollback "+
-				"Account Assignment for Account : 123"),
-			ExpectedError: errors.New("Rollback Provision Account Error"),
-			GetReadyAccountAccount: &db.RedboxAccount{
-				ID:            "123",
-				AccountStatus: db.Ready,
-			},
-			FindUserActiveAssignmentAssignment:      &db.RedboxAccountAssignment{},
-			FindUserAssignmentWithAccountAssignment: &db.RedboxAccountAssignment{},
-			AddADGroupUserError:                     errors.New("Add AD Group User Error"),
+			ActivateAccountAssignmentAssignment:     &db.RedboxAccountAssignment{},
+			PublishMessageError:                     errors.New("Publish Message Error"),
 			RollbackProvisionAccountError:           errors.New("Rollback Provision Account Error"),
 		},
 	}
 
 	// Iterate through each test in the list
-	claimKey := common.ClaimKey{
-		UserID:   "abc",
-		TenantID: "def",
+	request := &requestBody{
+		UserID: "abc",
 	}
+	topic := "topicARN"
 	for _, test := range tests {
 		// Setup mocks
 		mockDB := &dbmock.DBer{}
@@ -337,48 +334,73 @@ func TestProvisionAccount(t *testing.T) {
 			test.FindUserAssignmentWithAccountError)
 		mockProv.On("ActivateAccountAssignment", mock.Anything,
 			mock.Anything, mock.Anything).Return(
+			test.ActivateAccountAssignmentAssignment,
 			test.ActivateAccountAssignmentError)
 		mockProv.On("RollbackProvisionAccount", mock.Anything, mock.Anything,
 			mock.Anything).Return(test.RollbackProvisionAccountError)
 
-		mockAuthor := &azureauthmock.Authorizationer{}
-		mockAuthor.On("AddADGroupUser", mock.Anything, mock.Anything,
-			mock.Anything, mock.Anything).Return(test.AddADGroupUserResponse,
-			test.AddADGroupUserError)
+		mockNotif := &commock.Notificationer{}
+		mockNotif.On("PublishMessage", mock.Anything, mock.Anything,
+			mock.Anything).Return(&test.PublishMessageMessageID,
+			test.PublishMessageError)
+		if test.FindUserActiveAssignmentError == nil &&
+			test.GetReadyAccountError == nil &&
+			test.GetReadyAccountAccount != nil &&
+			test.FindUserAssignmentWithAccountError == nil &&
+			test.TransitionAccountStatusError == nil &&
+			test.ActivateAccountAssignmentError == nil &&
+			test.RollbackProvisionAccountError == nil {
+			defer mockNotif.AssertExpectations(t)
+		}
 
 		// Call provisionAccount
-		response, err := provisionAccount(claimKey, mockDB, mockProv,
-			mockAuthor)
+		response := provisionAccount(request, mockDB, mockNotif,
+			mockProv, &topic)
 
 		// Assert that the expected output is correct
 		require.Equal(t, test.ExpectedResponse, response)
-		require.Equal(t, test.ExpectedError, err)
 	}
 }
 
 // testDecommissionAccountInput is the structure input used for table driven
 // testing for decommissionAccount
 type testDecommissionAccountInput struct {
-	ExpectedResponse                events.APIGatewayProxyResponse
-	ExpectedError                   error
-	FindAssignmentByUserAssignments []*db.RedboxAccountAssignment
-	FindAssignmentByUserError       error
-	TransitionAssignmentStatusError error
-	TransitionAccountStatusAccount  *db.RedboxAccount
-	TransitionAccountStatusError    error
-	RemoveADGroupUserResponse       autorest.Response
-	RemoveADGroupUserError          error
-	SendMessageError                error
+	ExpectedResponse                     events.APIGatewayProxyResponse
+	FindAssignmentByUserAssignments      []*db.RedboxAccountAssignment
+	FindAssignmentByUserError            error
+	TransitionAssignmentStatusAssignment *db.RedboxAccountAssignment
+	TransitionAssignmentStatusError      error
+	TransitionAccountStatusAccount       *db.RedboxAccount
+	TransitionAccountStatusError         error
+	SendMessageError                     error
+	PublishMessageMessageID              string
+	PublishMessageError                  error
 }
 
-// testDecommissionAccount tests and verifies the flow of the function to
+// TestDecommissionAccount tests and verifies the flow of the function to
 // decommission an account for a user
 func TestDecommissionAccount(t *testing.T) {
+	successfulAccountAssignment := &db.RedboxAccountAssignment{
+		UserID:           "abc",
+		AccountID:        "123",
+		AssignmentStatus: db.Decommissioned,
+		CreatedOn:        567,
+		LastModifiedOn:   567,
+	}
+	successfulAccountAssignmentResponse :=
+		response.CreateAccountAssignmentResponse(successfulAccountAssignment)
+	successfulAccountAssignmentBytes, err :=
+		json.Marshal(successfulAccountAssignmentResponse)
+	if err != nil {
+		log.Fatalf("Failed to Marshal Account Assignment: %s", err)
+	}
+
 	// Construct test scenarios
 	tests := []testDecommissionAccountInput{
 		// Happy Path
 		{
-			ExpectedResponse: createResponse(200, "AWS Redbox Decommission: User 'abc' has been removed from the account group 'ghi'."),
+			ExpectedResponse: createAPIResponse(http.StatusOK,
+				string(successfulAccountAssignmentBytes)),
 			FindAssignmentByUserAssignments: []*db.RedboxAccountAssignment{
 				&db.RedboxAccountAssignment{
 					UserID:           "abc",
@@ -386,27 +408,63 @@ func TestDecommissionAccount(t *testing.T) {
 					AssignmentStatus: db.Active,
 				},
 			},
+			TransitionAssignmentStatusAssignment: successfulAccountAssignment,
 			TransitionAccountStatusAccount: &db.RedboxAccount{
 				ID:            "123",
-				GroupID:       "ghi",
 				AccountStatus: db.Ready,
 			},
-			RemoveADGroupUserResponse: autorest.Response{
-				Response: &http.Response{
-					StatusCode: 204,
+		},
+		// Fail to find Assignment - No Assignments
+		{
+			ExpectedResponse: createAPIErrorResponse(http.StatusInternalServerError,
+				response.CreateErrorResponse("ServerError",
+					"Cannot verify if User abc has a Redbox Assignment")),
+			FindAssignmentByUserError: errors.New("Fail finding User Assignment"),
+		},
+		// Fail to find Assignment - No Active Assignments
+		{
+			ExpectedResponse: createAPIErrorResponse(http.StatusBadRequest,
+				response.CreateErrorResponse("ClientError",
+					"No active account assignments found for abc")),
+			FindAssignmentByUserAssignments: []*db.RedboxAccountAssignment{
+				&db.RedboxAccountAssignment{
+					UserID:           "abc",
+					AccountID:        "456",
+					AssignmentStatus: db.Decommissioned,
 				},
 			},
 		},
-		// Fail to find Assignment
+		// Fail to find Assignment - Assignment with Different ID
 		{
-			ExpectedResponse:          createResponse(503, "Cannot verify if User has existing Redbox Account : Fail finding User Assignment"),
-			ExpectedError:             errors.New("Fail finding User Assignment"),
-			FindAssignmentByUserError: errors.New("Fail finding User Assignment"),
+			ExpectedResponse: createAPIErrorResponse(http.StatusBadRequest,
+				response.CreateErrorResponse("ClientError",
+					"No active account assignments found for abc")),
+			FindAssignmentByUserAssignments: []*db.RedboxAccountAssignment{
+				&db.RedboxAccountAssignment{
+					UserID:           "abc",
+					AccountID:        "456",
+					AssignmentStatus: db.Active,
+				},
+			},
+		},
+		// Fail to decommission a Decommissioned Assignment
+		{
+			ExpectedResponse: createAPIErrorResponse(http.StatusBadRequest,
+				response.CreateErrorResponse("ClientError",
+					"Account Assignment is not active for abc - 123")),
+			FindAssignmentByUserAssignments: []*db.RedboxAccountAssignment{
+				&db.RedboxAccountAssignment{
+					UserID:           "abc",
+					AccountID:        "123",
+					AssignmentStatus: db.Decommissioned,
+				},
+			},
 		},
 		// Fail transition Assignment Status
 		{
-			ExpectedResponse: createResponse(500, "Failed Decommission on Account Assignment"),
-			ExpectedError:    errors.New("Fail Assignment Status"),
+			ExpectedResponse: createAPIErrorResponse(http.StatusInternalServerError,
+				response.CreateErrorResponse("ServerError",
+					"Failed Decommission on Account Assignment abc - 123")),
 			FindAssignmentByUserAssignments: []*db.RedboxAccountAssignment{
 				&db.RedboxAccountAssignment{
 					UserID:           "abc",
@@ -416,10 +474,11 @@ func TestDecommissionAccount(t *testing.T) {
 			},
 			TransitionAssignmentStatusError: errors.New("Fail Assignment Status"),
 		},
-		// Fail transition Account Status
+		// Fail tranition Account Status
 		{
-			ExpectedResponse: createResponse(500, "Failed Decommission on Account"),
-			ExpectedError:    errors.New("Fail Account Status"),
+			ExpectedResponse: createAPIErrorResponse(http.StatusInternalServerError,
+				response.CreateErrorResponse("ServerError",
+					"Failed Decommission on Account Assignment abc - 123")),
 			FindAssignmentByUserAssignments: []*db.RedboxAccountAssignment{
 				&db.RedboxAccountAssignment{
 					UserID:           "abc",
@@ -429,28 +488,11 @@ func TestDecommissionAccount(t *testing.T) {
 			},
 			TransitionAccountStatusError: errors.New("Fail Account Status"),
 		},
-		// Fail remove AD User from Group
-		{
-			ExpectedResponse: createResponse(500, "User has not been removed from group 'ghi'."),
-			ExpectedError:    errors.New("Fail Remove AD User"),
-			FindAssignmentByUserAssignments: []*db.RedboxAccountAssignment{
-				&db.RedboxAccountAssignment{
-					UserID:           "abc",
-					AccountID:        "123",
-					AssignmentStatus: db.Active,
-				},
-			},
-			TransitionAccountStatusAccount: &db.RedboxAccount{
-				ID:            "123",
-				GroupID:       "ghi",
-				AccountStatus: db.Ready,
-			},
-			RemoveADGroupUserError: errors.New("Fail Remove AD User"),
-		},
 		// Fail sending Reset Message
 		{
-			ExpectedResponse: createResponse(500, "Failed to add Account 123 to be Reset."),
-			ExpectedError:    errors.New("Fail Sending Message"),
+			ExpectedResponse: createAPIErrorResponse(http.StatusInternalServerError,
+				response.CreateErrorResponse("ServerError",
+					"Failed Decommission on Account Assignment abc - 123")),
 			FindAssignmentByUserAssignments: []*db.RedboxAccountAssignment{
 				&db.RedboxAccountAssignment{
 					UserID:           "abc",
@@ -460,25 +502,38 @@ func TestDecommissionAccount(t *testing.T) {
 			},
 			TransitionAccountStatusAccount: &db.RedboxAccount{
 				ID:            "123",
-				GroupID:       "ghi",
 				AccountStatus: db.Ready,
 			},
-			RemoveADGroupUserResponse: autorest.Response{
-				Response: &http.Response{
-					StatusCode: 204,
+			SendMessageError: errors.New("Fail Sending Message"),
+		},
+		// Error Publish Message
+		{
+			ExpectedResponse: createAPIErrorResponse(http.StatusInternalServerError,
+				response.CreateErrorResponse("ServerError",
+					"Failed Decommission on Account Assignment abc - 123")),
+			FindAssignmentByUserAssignments: []*db.RedboxAccountAssignment{
+				&db.RedboxAccountAssignment{
+					UserID:           "abc",
+					AccountID:        "123",
+					AssignmentStatus: db.Active,
 				},
 			},
-			SendMessageError: errors.New("Fail Sending Message"),
+			TransitionAccountStatusAccount: &db.RedboxAccount{
+				ID:            "123",
+				AccountStatus: db.Ready,
+			},
+			TransitionAssignmentStatusAssignment: &db.RedboxAccountAssignment{},
+			PublishMessageError:                  errors.New("Publish Message Error"),
 		},
 	}
 
 	// Iterate through each test in the list
-	claimKey := common.ClaimKey{
-		UserID:   "abc",
-		TenantID: "def",
-		GroupID:  "ghi",
+	request := &requestBody{
+		UserID:    "abc",
+		AccountID: "123",
 	}
 	queueURL := "url"
+	topic := "topicARN"
 	for _, test := range tests {
 		// Setup mocks
 		mockDB := &dbmock.DBer{}
@@ -486,27 +541,34 @@ func TestDecommissionAccount(t *testing.T) {
 			test.FindAssignmentByUserAssignments,
 			test.FindAssignmentByUserError)
 		mockDB.On("TransitionAssignmentStatus", mock.Anything, mock.Anything,
-			mock.Anything, mock.Anything).Return(nil,
+			mock.Anything, mock.Anything).Return(
+			test.TransitionAssignmentStatusAssignment,
 			test.TransitionAssignmentStatusError)
 		mockDB.On("TransitionAccountStatus", mock.Anything, mock.Anything,
 			mock.Anything).Return(test.TransitionAccountStatusAccount,
 			test.TransitionAccountStatusError)
 
-		mockAuthor := &azureauthmock.Authorizationer{}
-		mockAuthor.On("RemoveADGroupUser", mock.Anything, mock.Anything,
-			mock.Anything, mock.Anything).Return(test.RemoveADGroupUserResponse,
-			test.RemoveADGroupUserError)
-
 		mockQueue := commock.Queue{}
 		mockQueue.On("SendMessage", mock.Anything, mock.Anything).Return(
 			test.SendMessageError)
 
+		mockNotif := &commock.Notificationer{}
+		mockNotif.On("PublishMessage", mock.Anything, mock.Anything,
+			mock.Anything).Return(&test.PublishMessageMessageID,
+			test.PublishMessageError)
+		if test.FindAssignmentByUserError == nil &&
+			test.TransitionAssignmentStatusError == nil &&
+			test.TransitionAccountStatusError == nil &&
+			test.SendMessageError == nil &&
+			test.ExpectedResponse.StatusCode != 400 {
+			defer mockNotif.AssertExpectations(t)
+		}
+
 		// Call decommissionAccount
-		response, err := decommissionAccount(&claimKey, &queueURL, mockDB,
-			&mockQueue, mockAuthor)
+		response := decommissionAccount(request, &queueURL, mockDB,
+			&mockQueue, mockNotif, &topic)
 
 		// Assert that the expected output is correct
 		require.Equal(t, test.ExpectedResponse, response)
-		require.Equal(t, test.ExpectedError, err)
 	}
 }

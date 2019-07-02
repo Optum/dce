@@ -2,9 +2,9 @@ package main
 
 import (
 	"errors"
-	"github.com/stretchr/testify/require"
 	"github.com/Optum/Redbox/pkg/db"
 	"github.com/Optum/Redbox/pkg/db/mocks"
+	"github.com/stretchr/testify/require"
 	"testing"
 )
 

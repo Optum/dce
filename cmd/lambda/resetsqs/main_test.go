@@ -5,11 +5,11 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
 	commock "github.com/Optum/Redbox/pkg/common/mocks"
 	"github.com/Optum/Redbox/pkg/db"
 	dbmock "github.com/Optum/Redbox/pkg/db/mocks"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 // testTransitionFinanceLockInput is the structured input for testing the helper

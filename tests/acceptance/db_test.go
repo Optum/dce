@@ -5,13 +5,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Optum/Redbox/pkg/db"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/gruntwork-io/terratest/modules/terraform"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/Optum/Redbox/pkg/db"
 )
 
 func TestDb(t *testing.T) {
@@ -71,7 +71,6 @@ func TestDb(t *testing.T) {
 			accountNotReady := db.RedboxAccount{
 				ID:            "111",
 				AccountStatus: "NotReady",
-				GroupID:       "STUB_GROUP_ID",
 			}
 			err := dbSvc.PutAccount(accountNotReady)
 			require.Nil(t, err)
@@ -99,7 +98,6 @@ func TestDb(t *testing.T) {
 			accountNotReady := db.RedboxAccount{
 				ID:            "111",
 				AccountStatus: "NotReady",
-				GroupID:       "STUB_GROUP_ID",
 			}
 			err = dbSvc.PutAccount(accountNotReady)
 			require.Nil(t, err)
@@ -124,7 +122,6 @@ func TestDb(t *testing.T) {
 			accountNotReady := db.RedboxAccount{
 				ID:             "222",
 				AccountStatus:  "NotReady",
-				GroupID:        "STUB_GROUP_ID",
 				LastModifiedOn: timeNow,
 			}
 			err = dbSvc.PutAccount(accountNotReady)
@@ -132,7 +129,6 @@ func TestDb(t *testing.T) {
 			accountAssigned := db.RedboxAccount{
 				ID:             "333",
 				AccountStatus:  "Assigned",
-				GroupID:        "STUB_GROUP_ID",
 				LastModifiedOn: timeNow,
 			}
 			err = dbSvc.PutAccount(accountAssigned)
@@ -168,7 +164,8 @@ func TestDb(t *testing.T) {
 				CreatedOn:        timeNow,
 				LastModifiedOn:   timeNow,
 			}
-			err := dbSvc.PutAccountAssignment(assignment)
+			putAssgn, err := dbSvc.PutAccountAssignment(assignment)
+			require.Equal(t, db.RedboxAccountAssignment{}, *putAssgn) // should return an empty account assignment since its new
 			require.Nil(t, err)
 			assignmentBefore, err := dbSvc.GetAssignment(acctID, userID)
 			time.Sleep(1 * time.Second) // Ensure LastModifiedOn changes
@@ -228,7 +225,8 @@ func TestDb(t *testing.T) {
 						CreatedOn:        timeNow,
 						LastModifiedOn:   timeNow,
 					}
-					err := dbSvc.PutAccountAssignment(assignment)
+					putAssgn, err := dbSvc.PutAccountAssignment(assignment)
+					require.Equal(t, db.RedboxAccountAssignment{}, *putAssgn) // should return an empty account assignment since its new
 					require.Nil(t, err)
 
 					// Attempt to set a ResetLock on the Assignment
@@ -260,7 +258,6 @@ func TestDb(t *testing.T) {
 			timeNow := time.Now().Unix()
 			account := db.RedboxAccount{
 				ID:             acctID,
-				GroupID:        "222",
 				AccountStatus:  db.Assigned,
 				LastModifiedOn: timeNow,
 			}
@@ -317,7 +314,6 @@ func TestDb(t *testing.T) {
 					acctID := "111"
 					account := db.RedboxAccount{
 						ID:            acctID,
-						GroupID:       "222",
 						AccountStatus: status,
 					}
 					err := dbSvc.PutAccount(account)
@@ -361,7 +357,8 @@ func TestDb(t *testing.T) {
 				CreatedOn:        timeNow,
 				LastModifiedOn:   timeNow,
 			}
-			err := dbSvc.PutAccountAssignment(assignment)
+			putAssgn, err := dbSvc.PutAccountAssignment(assignment)
+			require.Equal(t, db.RedboxAccountAssignment{}, *putAssgn) // should return an empty account assignment since its new
 			require.Nil(t, err)
 
 			foundaccount, err := dbSvc.FindAssignmentsByAccount("111")
@@ -387,7 +384,8 @@ func TestDb(t *testing.T) {
 				CreatedOn:        timeNow,
 				LastModifiedOn:   timeNow,
 			}
-			err := dbSvc.PutAccountAssignment(assignment)
+			putAssgn, err := dbSvc.PutAccountAssignment(assignment)
+			require.Equal(t, db.RedboxAccountAssignment{}, *putAssgn) // should return an empty account assignment since its new
 			require.Nil(t, err)
 
 			foundassign, err := dbSvc.FindAssignmentsByAccount("111")
@@ -414,8 +412,8 @@ func TestDb(t *testing.T) {
 				UserID:           userID,
 				AssignmentStatus: status,
 			}
-			err := dbSvc.PutAccountAssignment(assignment)
-			require.Nil(t, err)
+			putAssgn, err := dbSvc.PutAccountAssignment(assignment)
+			require.Equal(t, db.RedboxAccountAssignment{}, *putAssgn) // should return an empty account assignment since its new
 
 			foundaccount, err := dbSvc.FindAssignmentByUser("222")
 
@@ -437,7 +435,8 @@ func TestDb(t *testing.T) {
 				UserID:           userID,
 				AssignmentStatus: status,
 			}
-			err := dbSvc.PutAccountAssignment(assignment)
+			putAssgn, err := dbSvc.PutAccountAssignment(assignment)
+			require.Equal(t, db.RedboxAccountAssignment{}, *putAssgn) // should return an empty account assignment since its new
 			require.Nil(t, err)
 
 			foundassign, err := dbSvc.FindAssignmentByUser("111")
@@ -446,13 +445,69 @@ func TestDb(t *testing.T) {
 			require.Nil(t, err)
 		})
 	})
+
+	t.Run("GetAccounts", func(t *testing.T) {
+		t.Run("returns a list of accounts", func(t *testing.T) {
+			defer truncateAccountTable(t, dbSvc)
+			expectedID := "1234123412"
+			account := *newAccount(expectedID, 1561382309)
+			err := dbSvc.PutAccount(account)
+			require.Nil(t, err)
+
+			accounts, err := dbSvc.GetAccounts()
+			require.Nil(t, err)
+			require.True(t, true, len(accounts) > 0)
+			require.Equal(t, accounts[0].ID, expectedID, "The ID of the returns record should match the expected ID")
+		})
+	})
+
+	t.Run("DeleteAccount", func(t *testing.T) {
+		accountID := "1234123412"
+
+		t.Run("when the account exists", func(t *testing.T) {
+			t.Run("when the account is not assigned", func(t *testing.T) {
+				defer truncateAccountTable(t, dbSvc)
+				account := *newAccount(accountID, 1561382309)
+				err := dbSvc.PutAccount(account)
+				require.Nil(t, err, "it returns no errors")
+				err = dbSvc.DeleteAccount(accountID)
+				require.Nil(t, err, "it returns no errors on delete")
+				deletedAccount, err := dbSvc.GetAccount(accountID)
+				require.Nil(t, deletedAccount, "the account is deleted")
+				require.Nil(t, err, "it returns no errors")
+			})
+
+			t.Run("when the account is assigned", func(t *testing.T) {
+				defer truncateAccountTable(t, dbSvc)
+				account := db.RedboxAccount{
+					ID:             accountID,
+					AccountStatus:  db.Assigned,
+					LastModifiedOn: 1561382309,
+				}
+				err := dbSvc.PutAccount(account)
+				require.Nil(t, err, "it should not error on delete")
+				err = dbSvc.DeleteAccount(accountID)
+				expectedErrorMessage := fmt.Sprintf("Unable to delete account \"%s\": account is assigned.", accountID)
+				require.NotNil(t, err, "it returns an error")
+				assert.IsType(t, &db.AccountAssignedError{}, err)
+				require.EqualError(t, err, expectedErrorMessage, "it has the correct error message")
+			})
+		})
+
+		t.Run("when the account does not exists", func(t *testing.T) {
+			err := dbSvc.DeleteAccount(accountID)
+			require.NotNil(t, err, "it returns an error")
+			expectedErrorMessage := fmt.Sprintf("No account found with ID \"%s\".", accountID)
+			require.EqualError(t, err, expectedErrorMessage, "it has the correct error message")
+			assert.IsType(t, &db.AccountNotFoundError{}, err)
+		})
+	})
 }
 
 func newAccount(id string, timeNow int64) *db.RedboxAccount {
 	account := db.RedboxAccount{
 		ID:             id,
 		AccountStatus:  "Ready",
-		GroupID:        "STUB_GROUP_ID",
 		LastModifiedOn: timeNow,
 	}
 	return &account
@@ -473,6 +528,10 @@ func truncateAccountTable(t *testing.T, dbSvc *db.DB) {
 		},
 	)
 	require.Nil(t, err)
+
+	if len(scanResult.Items) < 1 {
+		return
+	}
 
 	// Populate a list of `DeleteRequests` for each item we found in the table
 	var deleteRequests []*dynamodb.WriteRequest
@@ -514,6 +573,10 @@ func truncateAccountAssignmentTable(t *testing.T, dbSvc *db.DB) {
 		},
 	)
 	require.Nil(t, err)
+
+	if len(scanResult.Items) < 1 {
+		return
+	}
 
 	// Populate a list of `DeleteRequests` for each
 	// item we found in the table

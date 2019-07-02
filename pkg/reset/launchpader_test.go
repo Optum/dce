@@ -3,44 +3,23 @@ package reset
 import (
 	"bytes"
 	"errors"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"testing"
 
+	"github.com/Optum/Redbox/pkg/common/mocks"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
-// mockStorager is a mocked implementation of Storager
-type mockStorager struct {
-	mock.Mock
-}
-
-// GetObject is used for testing
-func (mock mockStorager) GetObject(bucket string, key string) (string, error) {
-	args := mock.Called(bucket, key)
-	body := args.String(0)
-	err := args.Error(1)
-	return body, err
-}
-
-// PutObject is used for testing
-func (mock mockStorager) PutObject(bucket string, key string,
-	body io.ReadSeeker) error {
-	args := mock.Called(bucket, key, body)
-	err := args.Error(0)
-	return err
-}
-
 // testLaunchpadSetupInput is the structure input used for table driven testing
 // for LaunchpadAPI.Setup
 type testLaunchpadSetupInput struct {
-	Error           error
-	GetObjectBody   string
-	GetObjectError  error
-	PutObjectError  error
-	ExpectPutObject bool
+	Error          error
+	GetObjectBody  string
+	GetObjectError error
+	UploadError    error
+	ExpectUpload   bool
 }
 
 // TestSetup verifies the flow of LaunchpadAPI.Setup is correct in that
@@ -50,59 +29,59 @@ func TestSetup(t *testing.T) {
 	tests := []testLaunchpadSetupInput{
 		// Happy Path Test
 		{
-			Error:           nil,
-			GetObjectBody:   `{"version":3,"terraform_version":"0.11.7","serial":50,"lineage":"7db5af4f-7014-377c-388e-1a9bfd7d4413","extra":[]} `,
-			GetObjectError:  nil,
-			PutObjectError:  nil,
-			ExpectPutObject: true,
+			Error:          nil,
+			GetObjectBody:  `{"version":3,"terraform_version":"0.11.7","serial":50,"lineage":"7db5af4f-7014-377c-388e-1a9bfd7d4413","extra":[]} `,
+			GetObjectError: nil,
+			UploadError:    nil,
+			ExpectUpload:   true,
 		},
 		// GetObject Failure
 		{
-			Error:           errors.New("Error : Failed to Get Object"),
-			GetObjectBody:   `{"version":3,"terraform_version":"0.11.7","serial":50,"lineage":"7db5af4f-7014-377c-388e-1a9bfd7d4413"} `,
-			GetObjectError:  errors.New("Error : Failed to Get Object"),
-			PutObjectError:  nil,
-			ExpectPutObject: false,
+			Error:          errors.New("Error : Failed to Get Object"),
+			GetObjectBody:  `{"version":3,"terraform_version":"0.11.7","serial":50,"lineage":"7db5af4f-7014-377c-388e-1a9bfd7d4413"} `,
+			GetObjectError: errors.New("Error : Failed to Get Object"),
+			UploadError:    nil,
+			ExpectUpload:   false,
 		},
 		// Invalid State File Version
 		{
-			Error:           errors.New("Error: No 'version' was found in clean state: {Version:0 TerraformVersion: Serial:0 Lineage:}"),
-			GetObjectBody:   `{} `,
-			GetObjectError:  nil,
-			PutObjectError:  nil,
-			ExpectPutObject: false,
+			Error:          errors.New("Error: No 'version' was found in clean state: {Version:0 TerraformVersion: Serial:0 Lineage:}"),
+			GetObjectBody:  `{} `,
+			GetObjectError: nil,
+			UploadError:    nil,
+			ExpectUpload:   false,
 		},
 		// Invalid State File Terraform Version
 		{
-			Error:           errors.New("Error: No 'terraform_version' was found in clean state: {Version:3 TerraformVersion: Serial:0 Lineage:}"),
-			GetObjectBody:   `{"version":3}`,
-			GetObjectError:  nil,
-			PutObjectError:  nil,
-			ExpectPutObject: false,
+			Error:          errors.New("Error: No 'terraform_version' was found in clean state: {Version:3 TerraformVersion: Serial:0 Lineage:}"),
+			GetObjectBody:  `{"version":3}`,
+			GetObjectError: nil,
+			UploadError:    nil,
+			ExpectUpload:   false,
 		},
 		// Invalid State File Serial
 		{
-			Error:           errors.New("Error: No 'serial' was found in clean state: {Version:3 TerraformVersion:0.11.7 Serial:0 Lineage:}"),
-			GetObjectBody:   `{"version":3,"terraform_version":"0.11.7"}`,
-			GetObjectError:  nil,
-			PutObjectError:  nil,
-			ExpectPutObject: false,
+			Error:          errors.New("Error: No 'serial' was found in clean state: {Version:3 TerraformVersion:0.11.7 Serial:0 Lineage:}"),
+			GetObjectBody:  `{"version":3,"terraform_version":"0.11.7"}`,
+			GetObjectError: nil,
+			UploadError:    nil,
+			ExpectUpload:   false,
 		},
 		// Invalid State File Lineage
 		{
-			Error:           errors.New("Error: No 'lineage' was found in clean state: {Version:3 TerraformVersion:0.11.7 Serial:50 Lineage:}"),
-			GetObjectBody:   `{"version":3,"terraform_version":"0.11.7","serial":50}`,
-			GetObjectError:  nil,
-			PutObjectError:  nil,
-			ExpectPutObject: false,
+			Error:          errors.New("Error: No 'lineage' was found in clean state: {Version:3 TerraformVersion:0.11.7 Serial:50 Lineage:}"),
+			GetObjectBody:  `{"version":3,"terraform_version":"0.11.7","serial":50}`,
+			GetObjectError: nil,
+			UploadError:    nil,
+			ExpectUpload:   false,
 		},
-		// PutObject Failure
+		// Upload Failure
 		{
-			Error:           errors.New("Error : Failed to Put Object"),
-			GetObjectBody:   `{"version":3,"terraform_version":"0.11.7","serial":50,"lineage":"7db5af4f-7014-377c-388e-1a9bfd7d4413"} `,
-			GetObjectError:  nil,
-			PutObjectError:  errors.New("Error : Failed to Put Object"),
-			ExpectPutObject: true,
+			Error:          errors.New("Error : Failed to Put Object"),
+			GetObjectBody:  `{"version":3,"terraform_version":"0.11.7","serial":50,"lineage":"7db5af4f-7014-377c-388e-1a9bfd7d4413"} `,
+			GetObjectError: nil,
+			UploadError:    errors.New("Error : Failed to Put Object"),
+			ExpectUpload:   true,
 		},
 	}
 
@@ -112,18 +91,18 @@ func TestSetup(t *testing.T) {
 	stateKey := "bootstrap-launchpad-111111111111/terraform.state"
 	for _, test := range tests {
 		// Set up mocks
-		storage := mockStorager{}
+		storage := mocks.Storager{}
 		storage.On("GetObject", backendBucket, stateKey).Return(
 			test.GetObjectBody, test.GetObjectError)
-		if test.ExpectPutObject {
-			storage.On("PutObject", backendBucket, stateKey,
-				mock.Anything).Return(test.PutObjectError)
+		if test.ExpectUpload {
+			storage.On("Upload", backendBucket, stateKey,
+				mock.Anything).Return(test.UploadError)
 		}
 
 		// Create the LaunchpadAPI
 		launchpad := LaunchpadAPI{
 			BackendBucket: backendBucket,
-			Storage:       storage,
+			Storage:       &storage,
 		}
 
 		// Call Setup
@@ -385,7 +364,7 @@ func TestAuthenticate(t *testing.T) {
 	}
 }
 
-// testResponse is the response structure used to test the makeAndVerifyRequst
+// testResponse is the response sturcture used to test the makeAndVerifyRequst
 type testResponse struct {
 	Name string `json:"name"`
 	Age  int    `json:"age"`

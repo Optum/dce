@@ -1,16 +1,18 @@
 package db
 
 import (
+	"errors"
 	"fmt"
+	"log"
 	"strconv"
 	"time"
 
+	"github.com/Optum/Redbox/pkg/common"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
-	"github.com/Optum/Redbox/pkg/common"
 )
 
 /*
@@ -34,8 +36,10 @@ type DBer interface {
 	GetAccount(accountID string) (*RedboxAccount, error)
 	GetReadyAccount() (*RedboxAccount, error)
 	GetAccountsForReset() ([]*RedboxAccount, error)
+	GetAccounts() ([]*RedboxAccount, error)
 	PutAccount(account RedboxAccount) error
-	PutAccountAssignment(account RedboxAccountAssignment) error
+	DeleteAccount(accountID string) error
+	PutAccountAssignment(account RedboxAccountAssignment) (*RedboxAccountAssignment, error)
 	TransitionAccountStatus(accountID string, prevStatus AccountStatus, nextStatus AccountStatus) (*RedboxAccount, error)
 	TransitionAssignmentStatus(accountID string, userID string, prevStatus AssignmentStatus, nextStatus AssignmentStatus) (*RedboxAccountAssignment, error)
 	FindAssignmentsByAccount(accountID string) ([]*RedboxAccountAssignment, error)
@@ -64,6 +68,31 @@ func (db *DB) GetAccount(accountID string) (*RedboxAccount, error) {
 	}
 
 	return unmarshalAccount(result.Item)
+}
+
+// GetAccounts returns a list of accounts from the table
+// TODO implement pagination and query support
+func (db *DB) GetAccounts() ([]*RedboxAccount, error) {
+	input := &dynamodb.ScanInput{
+		TableName: aws.String(db.AccountTableName),
+	}
+
+	// Execute and verify the query
+	resp, err := db.Client.Scan(input)
+	if err != nil {
+		return make([]*RedboxAccount, 0), err
+	}
+
+	// Return the Redbox Account
+	accounts := []*RedboxAccount{}
+	for _, r := range resp.Items {
+		n, err := unmarshalAccount(r)
+		if err != nil {
+			return nil, err
+		}
+		accounts = append(accounts, n)
+	}
+	return accounts, nil
 }
 
 // GetReadyAccount returns an available Redbox account record with a
@@ -237,19 +266,25 @@ func (db *DB) PutAccount(account RedboxAccount) error {
 }
 
 // PutAccountAssignment writes an AccountAssignment to DynamoDB
-func (db *DB) PutAccountAssignment(accountAssignment RedboxAccountAssignment) error {
+// Returns the previous AccountsAssignment if there is one - does not return
+// the assignment that was added
+func (db *DB) PutAccountAssignment(accountAssignment RedboxAccountAssignment) (
+	*RedboxAccountAssignment, error) {
 	item, err := dynamodbattribute.MarshalMap(accountAssignment)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	_, err = db.Client.PutItem(
+	result, err := db.Client.PutItem(
 		&dynamodb.PutItemInput{
 			TableName: aws.String(db.AccountAssignmentTableName),
 			Item:      item,
 		},
 	)
-	return err
+	if err != nil {
+		return nil, err
+	}
+	return unmarshalAccountAssignment(result.Attributes)
 }
 
 // TransitionAssignmentStatus updates an Assignment's status from prevStatus to nextStatus.
@@ -367,6 +402,41 @@ func (db *DB) TransitionAccountStatus(accountID string, prevStatus AccountStatus
 	}
 
 	return unmarshalAccount(result.Attributes)
+}
+
+// DeleteAccount finds a given account and deletes it if it is not of status `Assigned`.
+func (db *DB) DeleteAccount(accountID string) error {
+	account, err := db.GetAccount(accountID)
+
+	if err != nil {
+		errorMessage := fmt.Sprintf("Failed to query account \"%s\": %s.", accountID, err)
+		log.Print(errorMessage)
+		return errors.New(errorMessage)
+	}
+
+	if account == nil {
+		errorMessage := fmt.Sprintf("No account found with ID \"%s\".", accountID)
+		log.Print(errorMessage)
+		return &AccountNotFoundError{err: errorMessage}
+	}
+
+	if account.AccountStatus == Assigned {
+		errorMessage := fmt.Sprintf("Unable to delete account \"%s\": account is assigned.", accountID)
+		log.Print(errorMessage)
+		return &AccountAssignedError{err: errorMessage}
+	}
+
+	input := &dynamodb.DeleteItemInput{
+		TableName: &db.AccountTableName,
+		Key: map[string]*dynamodb.AttributeValue{
+			"Id": {
+				S: aws.String(accountID),
+			},
+		},
+	}
+
+	_, err = db.Client.DeleteItem(input)
+	return err
 }
 
 func unmarshalAccount(dbResult map[string]*dynamodb.AttributeValue) (*RedboxAccount, error) {

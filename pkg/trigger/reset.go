@@ -6,8 +6,8 @@ import (
 
 	"github.com/Optum/Redbox/pkg/db"
 
-	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/Optum/Redbox/pkg/common"
+	"github.com/aws/aws-sdk-go/service/sqs"
 )
 
 // ResetInput is the container used for the Queue and Pipeline implementations

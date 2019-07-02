@@ -8,13 +8,13 @@ import (
 
 	"github.com/stretchr/testify/mock"
 
-	"github.com/stretchr/testify/require"
 	comMocks "github.com/Optum/Redbox/pkg/common/mocks"
 	"github.com/Optum/Redbox/pkg/db"
 	dbMocks "github.com/Optum/Redbox/pkg/db/mocks"
+	"github.com/stretchr/testify/require"
 
-	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/Optum/Redbox/pkg/common"
+	"github.com/aws/aws-sdk-go/service/sqs"
 )
 
 // mockQueue will implement and mock the Queue interface for testing the Reset

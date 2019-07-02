@@ -2,8 +2,8 @@ package terraform
 
 import (
 	"encoding/json"
-	"github.com/pkg/errors"
 	"github.com/Optum/Redbox/pkg/shell"
+	"github.com/pkg/errors"
 )
 
 // Terraform implements the Terraformer interface
