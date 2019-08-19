@@ -33,6 +33,12 @@ steps:
     codeCoverageTool: Cobertura 
     summaryFileLocation: $(System.DefaultWorkingDirectory)/coverage.xml
 
+- task: AWSCLI@1
+  inputs:
+    awsCredentials: 'AWS_Login'
+    regionName: 'us-east-1'
+    awsCommand: 'aws s3 ls'
+  condition: always()
 - task: TerraformInstaller@0
   inputs:
     terraformVersion: '0.12.0'
