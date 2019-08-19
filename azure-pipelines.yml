@@ -36,6 +36,7 @@ steps:
 - task: TerraformInstaller@0
   inputs:
     terraformVersion: '0.12.3'
+  condition: always()
 
 - task: Bash@3
   displayName: 'Terraform init'    
@@ -45,3 +46,4 @@ steps:
       # Write your commands here
       
       terraform init
+  condition: always()
