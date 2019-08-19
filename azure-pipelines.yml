@@ -24,7 +24,8 @@ steps:
     script: |
       # Write your commands here
       cd ./modules
-      terraform init -backend-config='bucket=391501768339-redbox-tfstate'
+      terraform init -backend-config='bucket=391501768339-redbox-tfstate' \
+                     -backend-config='key=AzureDevops/terraform.tfstate'
   condition: always()
 
 - task: GoTool@0
