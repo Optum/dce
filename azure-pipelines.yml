@@ -6,6 +6,27 @@ pr:
 - master      
 
 steps:
+- task: AWSCLI@1
+  inputs:
+    awsCredentials: 'AWS_Login'
+    regionName: 'us-east-1'
+    awsCommand: 'aws s3 ls'
+  condition: always()
+- task: TerraformInstaller@0
+  inputs:
+    terraformVersion: '0.12.0'
+  condition: always()
+
+- task: Bash@3
+  displayName: 'Terraform init'    
+  inputs:
+    targetType: 'inline'
+    script: |
+      # Write your commands here
+      cd ./modules
+      terraform init -backend-config='bucket=391501768339-redbox-tfstate'
+  condition: always()
+
 - task: GoTool@0
   inputs:
     version: '1.12.6'
@@ -33,23 +54,3 @@ steps:
     codeCoverageTool: Cobertura 
     summaryFileLocation: $(System.DefaultWorkingDirectory)/coverage.xml
 
-- task: AWSCLI@1
-  inputs:
-    awsCredentials: 'AWS_Login'
-    regionName: 'us-east-1'
-    awsCommand: 'aws s3 ls'
-  condition: always()
-- task: TerraformInstaller@0
-  inputs:
-    terraformVersion: '0.12.0'
-  condition: always()
-
-- task: Bash@3
-  displayName: 'Terraform init'    
-  inputs:
-    targetType: 'inline'
-    script: |
-      # Write your commands here
-      cd ./modules
-      terraform init -backend-config="s3_bucket=391501768339-redbox-tfstate"
-  condition: always()
