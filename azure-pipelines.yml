@@ -32,3 +32,15 @@ steps:
   inputs:
     codeCoverageTool: Cobertura 
     summaryFileLocation: $(System.DefaultWorkingDirectory)/coverage.xml
+
+- task: TerraformInstaller@0
+  inputs:
+    terraformVersion: '0.12.3'
+
+- task: Bash@3
+  inputs:
+    targetType: 'inline'
+    script: |
+      # Write your commands here
+      
+      terraform init
