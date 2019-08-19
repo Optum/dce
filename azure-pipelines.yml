@@ -45,5 +45,5 @@ steps:
     script: |
       # Write your commands here
       cd ./modules
-      terraform init
+      terraform init -backend-config="s3_bucket=391501768339-redbox-tfstate"
   condition: always()
