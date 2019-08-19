@@ -13,8 +13,9 @@ func TestService(t *testing.T) {
 	envVars := []string{
 		"RESET_ROLE",
 		"RESET_ACCOUNT",
-		"RESET_ACCOUNT_ADMIN_ROLE",
-		"RESET_ACCOUNT_USER_ROLE",
+		"RESET_ACCOUNT_ADMIN_ROLE_NAME",
+		"RESET_ACCOUNT_PRINCIPAL_ROLE_NAME",
+		"RESET_ACCOUNT_PRINCIPAL_POLICY_NAME",
 		"RESET_NUKE_TOGGLE",
 		"RESET_NUKE_TEMPLATE_DEFAULT",
 		"RESET_NUKE_TEMPLATE_BUCKET",
@@ -39,12 +40,15 @@ func TestService(t *testing.T) {
 
 		t.Run("should configure from env vars", func(t *testing.T) {
 			svc := &service{}
+			// Make sure config isn't set elsewhere (global singleton)
+			svc.setConfig(nil)
 			config := svc.config()
 
 			// Check configs from env vars
 			require.Equal(t, "RESET_ACCOUNT_VAL", config.accountID)
-			require.Equal(t, "RESET_ACCOUNT_ADMIN_ROLE_VAL", config.accountAdminRoleName)
-			require.Equal(t, "RESET_ACCOUNT_USER_ROLE_VAL", config.accountUserRoleName)
+			require.Equal(t, "RESET_ACCOUNT_ADMIN_ROLE_NAME_VAL", config.accountAdminRoleName)
+			require.Equal(t, "RESET_ACCOUNT_PRINCIPAL_ROLE_NAME_VAL", config.accountPrincipalRoleName)
+			require.Equal(t, "RESET_ACCOUNT_PRINCIPAL_POLICY_NAME_VAL", config.accountPrincipalPolicyName)
 			require.Equal(t, "RESET_NUKE_TEMPLATE_DEFAULT_VAL", config.nukeTemplateDefault)
 			require.Equal(t, "RESET_NUKE_TEMPLATE_BUCKET_VAL", config.nukeTemplateBucket)
 			require.Equal(t, "RESET_NUKE_TEMPLATE_KEY_VAL", config.nukeTemplateKey)
@@ -54,7 +58,7 @@ func TestService(t *testing.T) {
 			require.Equal(t, "RESET_LAUNCHPAD_BACKEND_VAL", config.launchpadBackend)
 
 			// Check computed config vals
-			require.Equal(t, "arn:aws:iam::RESET_ACCOUNT_VAL:role/RESET_ACCOUNT_ADMIN_ROLE_VAL", config.accountAdminRoleARN)
+			require.Equal(t, "arn:aws:iam::RESET_ACCOUNT_VAL:role/RESET_ACCOUNT_ADMIN_ROLE_NAME_VAL", config.accountAdminRoleARN)
 
 			// Check toggle env vars
 			require.Equal(t, true, config.isNukeEnabled)

@@ -29,7 +29,7 @@ func TestProvisioner(t *testing.T) {
 			aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
 		),
 		tfOut["dynamodb_table_account_name"].(string),
-		tfOut["dynamodb_table_account_assignment_name"].(string),
+		tfOut["redbox_lease_db_table_name"].(string),
 	)
 
 	// Configure the Provisioner service
@@ -37,79 +37,91 @@ func TestProvisioner(t *testing.T) {
 		DBSvc: dbSvc,
 	}
 
-	t.Run("Activate Account Assignment", func(t *testing.T) {
-		t.Run("Should Create a New Account Assignment", func(t *testing.T) {
+	t.Run("Activate Account Lease", func(t *testing.T) {
+		t.Run("Should Create a New Account Lease", func(t *testing.T) {
 			// Cleanup table on completion
-			defer truncateAccountAssignmentTable(t, dbSvc)
+			defer truncateLeaseTable(t, dbSvc)
 
-			// Activate the below Account Assignment
+			// Activate the below Account Lease
 			acctID := "111"
-			userID := "222"
-			result, err := provSvc.ActivateAccountAssignment(true, userID,
-				acctID)
+			principalID := "222"
+			var budgetAmount float64 = 300
+			budgetCurrency := "USD"
+			budgetNotificationEmails := []string{"test@test.com"}
+			result, err := provSvc.ActivateAccount(true, principalID,
+				acctID, budgetAmount, budgetCurrency, budgetNotificationEmails)
 
-			// Verify the assignment returned
-			require.Equal(t, userID, result.UserID)
+			// Verify the lease returned
+			require.Equal(t, principalID, result.PrincipalID)
 			require.Equal(t, acctID, result.AccountID)
-			require.Equal(t, db.Active, result.AssignmentStatus)
+			require.Equal(t, db.Active, result.LeaseStatus)
 			require.NotEqual(t, 0, result.CreatedOn)
+			require.NotEqual(t, 0, result.LastModifiedOn)
 			require.NotEqual(t, 0, result.LastModifiedOn)
 			require.Nil(t, err)
 
-			// Get the assignment
-			assgnAfter, err := dbSvc.GetAssignment(acctID, userID)
+			// Get the lease
+			assgnAfter, err := dbSvc.GetLease(acctID, principalID)
 
-			// Verify the assignment exists
-			require.Equal(t, result.UserID, assgnAfter.UserID)
+			// Verify the lease exists
+			require.Equal(t, result.PrincipalID, assgnAfter.PrincipalID)
 			require.Equal(t, result.AccountID, assgnAfter.AccountID)
-			require.Equal(t, result.AssignmentStatus,
-				assgnAfter.AssignmentStatus)
+			require.Equal(t, result.LeaseStatus,
+				assgnAfter.LeaseStatus)
 			require.Equal(t, result.CreatedOn, assgnAfter.CreatedOn)
 			require.Equal(t, result.LastModifiedOn, assgnAfter.LastModifiedOn)
+			require.Equal(t, result.LeaseStatusModifiedOn, assgnAfter.LeaseStatusModifiedOn)
 			require.Nil(t, err)
 		})
 
-		t.Run("Should Transition Existing Assignment", func(t *testing.T) {
+		t.Run("Should Transition Existing Lease", func(t *testing.T) {
 			// Cleanup table on completion
-			defer truncateAccountAssignmentTable(t, dbSvc)
+			defer truncateLeaseTable(t, dbSvc)
 
-			// Put an Assignment into the table to be transitioned.
+			// Put an Lease into the table to be transitioned.
 			acctID := "111"
-			userID := "222"
+			principalID := "222"
+			var budgetAmount float64 = 300
+			budgetCurrency := "USD"
+			budgetNotificationEmails := []string{"test@test.com"}
+
 			timeNow := time.Now().Unix()
-			assgn := db.RedboxAccountAssignment{
-				AccountID:        acctID,
-				UserID:           userID,
-				AssignmentStatus: db.Active,
-				CreatedOn:        timeNow,
-				LastModifiedOn:   timeNow,
+			assgn := db.RedboxLease{
+				AccountID:             acctID,
+				PrincipalID:           principalID,
+				LeaseStatus:           db.Active,
+				CreatedOn:             timeNow,
+				LastModifiedOn:        timeNow,
+				LeaseStatusModifiedOn: timeNow,
 			}
-			putAssgn, err := dbSvc.PutAccountAssignment(assgn)
-			require.Equal(t, db.RedboxAccountAssignment{}, *putAssgn) // should return an empty account assignment since its new
+			putAssgn, err := dbSvc.PutLease(assgn)
+			require.Equal(t, db.RedboxLease{}, *putAssgn) // should return an empty account lease since its new
 			require.Nil(t, err)
 
-			// Activate the below Account Assignment
-			result, err := provSvc.ActivateAccountAssignment(true, userID,
-				acctID)
+			// Activate the below Account Lease
+			result, err := provSvc.ActivateAccount(true, principalID,
+				acctID, budgetAmount, budgetCurrency, budgetNotificationEmails)
 
-			// Verify the assignment returned
-			require.Equal(t, userID, result.UserID)
+			// Verify the lease returned
+			require.Equal(t, principalID, result.PrincipalID)
 			require.Equal(t, acctID, result.AccountID)
-			require.Equal(t, db.Active, result.AssignmentStatus)
+			require.Equal(t, db.Active, result.LeaseStatus)
 			require.NotEqual(t, 0, result.CreatedOn)
 			require.NotEqual(t, 0, result.LastModifiedOn)
+			require.NotEqual(t, 0, result.LeaseStatusModifiedOn)
 			require.Nil(t, err)
 
-			// Get the assignment
-			assgnAfter, err := dbSvc.GetAssignment(acctID, userID)
+			// Get the lease
+			assgnAfter, err := dbSvc.GetLease(acctID, principalID)
 
-			// Verify the assignment exists
-			require.Equal(t, result.UserID, assgnAfter.UserID)
+			// Verify the lease exists
+			require.Equal(t, result.PrincipalID, assgnAfter.PrincipalID)
 			require.Equal(t, result.AccountID, assgnAfter.AccountID)
-			require.Equal(t, result.AssignmentStatus,
-				assgnAfter.AssignmentStatus)
+			require.Equal(t, result.LeaseStatus,
+				assgnAfter.LeaseStatus)
 			require.Equal(t, result.CreatedOn, assgnAfter.CreatedOn)
 			require.Equal(t, result.LastModifiedOn, assgnAfter.LastModifiedOn)
+			require.Equal(t, result.LeaseStatusModifiedOn, assgnAfter.LeaseStatusModifiedOn)
 			require.Nil(t, err)
 		})
 

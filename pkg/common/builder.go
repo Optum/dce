@@ -2,6 +2,7 @@ package common
 
 import (
 	"github.com/aws/aws-sdk-go/service/codebuild"
+	"github.com/aws/aws-sdk-go/service/codebuild/codebuildiface"
 )
 
 // Builder interface requires a method to start a Build
@@ -13,7 +14,7 @@ type Builder interface {
 // CodeBuild implements the Builder interface using the AWS CodeBuild
 // Service.
 type CodeBuild struct {
-	Client *codebuild.CodeBuild
+	Client codebuildiface.CodeBuildAPI
 }
 
 // StartBuild method starts a CodeBuild Build based on the provided
@@ -21,12 +22,14 @@ type CodeBuild struct {
 func (build *CodeBuild) StartBuild(projectName *string,
 	environmentVariables map[string]string) (string, error) {
 	// Construct the EnvironmentVariablesOverride for the input
-	override := []*codebuild.EnvironmentVariable{}
-	envType := "PLAINTEXT"
+	envVars := []*codebuild.EnvironmentVariable{}
 	for key, value := range environmentVariables {
-		override = append(override, &codebuild.EnvironmentVariable{
-			Name:  &key,
-			Value: &value,
+		envType := "PLAINTEXT"
+		overrideKey := key // Need to copy so each environment variable isn't referencing the same pointer in key, value
+		overrideValue := value
+		envVars = append(envVars, &codebuild.EnvironmentVariable{
+			Name:  &overrideKey,
+			Value: &overrideValue,
 			Type:  &envType,
 		})
 	}
@@ -34,7 +37,7 @@ func (build *CodeBuild) StartBuild(projectName *string,
 	// Construct the CodeBuild Input
 	input := &codebuild.StartBuildInput{
 		ProjectName:                  projectName,
-		EnvironmentVariablesOverride: override,
+		EnvironmentVariablesOverride: envVars,
 	}
 
 	// Start the CodeBuild

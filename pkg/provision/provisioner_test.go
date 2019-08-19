@@ -11,297 +11,302 @@ import (
 	"github.com/Optum/Redbox/pkg/db/mocks"
 )
 
-// testFindUserActiveAssignmentInput is the structure input used for table
-// driven testing for FindUserActiveAssignment
-type testFindUserActiveAssignmentInput struct {
-	ExpectedError                   error
-	ExpectedAssignmentUser          string
-	ExpectedAssignmentAccount       string
-	FindAssignmentByUserAssignments []*db.RedboxAccountAssignment
-	FindAssignmentByUserError       error
-	ExpectAssignment                bool
+// testFindActiveLeaseForPrincipalInput is the structure input used for table
+// driven testing for FindActiveLeaseForPrincipal
+type testFindActiveLeaseForPrincipalInput struct {
+	ExpectedError             error
+	ExpectedLeasePrincipalID  string
+	ExpectedLeaseAccountID    string
+	FindLeaseByPrincipal      []*db.RedboxLease
+	FindLeaseByPrincipalError error
+	ExpectLease               bool
 }
 
-// TestFindUserActiveAssignment tests and verifies the flow of the helper
-// function to find any active user assignments
-func TestFindUserActiveAssignment(t *testing.T) {
+// TestFindActiveLeaseFoPrincipal tests and verifies the flow of the helper
+// function to find any active leases
+func TestFindActiveLeaseFoPrincipal(t *testing.T) {
 	// Construct test scenarios
-	tests := []testFindUserActiveAssignmentInput{
+	tests := []testFindActiveLeaseForPrincipalInput{
 		// Happy Path - Decommissioned
 		{
-			ExpectedError:             nil,
-			ExpectedAssignmentUser:    "",
-			ExpectedAssignmentAccount: "",
-			FindAssignmentByUserAssignments: []*db.RedboxAccountAssignment{
-				&db.RedboxAccountAssignment{
-					UserID:           "abc",
-					AccountID:        "123",
-					AssignmentStatus: db.Decommissioned,
+			ExpectedError:            nil,
+			ExpectedLeasePrincipalID: "",
+			ExpectedLeaseAccountID:   "",
+			FindLeaseByPrincipal: []*db.RedboxLease{
+				&db.RedboxLease{
+					PrincipalID: "abc",
+					AccountID:   "123",
+					LeaseStatus: db.Decommissioned,
 				},
 			},
-			ExpectAssignment: true,
+			ExpectLease: true,
 		},
 		// Happy Path - Active
 		{
-			ExpectedError:             nil,
-			ExpectedAssignmentUser:    "abc",
-			ExpectedAssignmentAccount: "123",
-			FindAssignmentByUserAssignments: []*db.RedboxAccountAssignment{
-				&db.RedboxAccountAssignment{
-					UserID:           "abc",
-					AccountID:        "123",
-					AssignmentStatus: db.Active,
+			ExpectedError:            nil,
+			ExpectedLeasePrincipalID: "abc",
+			ExpectedLeaseAccountID:   "123",
+			FindLeaseByPrincipal: []*db.RedboxLease{
+				&db.RedboxLease{
+					PrincipalID: "abc",
+					AccountID:   "123",
+					LeaseStatus: db.Active,
 				},
 			},
-			ExpectAssignment: true,
+			ExpectLease: true,
 		},
 		// Happy Path - FinanceLock
 		{
-			ExpectedError:             nil,
-			ExpectedAssignmentUser:    "abc",
-			ExpectedAssignmentAccount: "123",
-			FindAssignmentByUserAssignments: []*db.RedboxAccountAssignment{
-				&db.RedboxAccountAssignment{
-					UserID:           "abc",
-					AccountID:        "123",
-					AssignmentStatus: db.FinanceLock,
+			ExpectedError:            nil,
+			ExpectedLeasePrincipalID: "abc",
+			ExpectedLeaseAccountID:   "123",
+			FindLeaseByPrincipal: []*db.RedboxLease{
+				&db.RedboxLease{
+					PrincipalID: "abc",
+					AccountID:   "123",
+					LeaseStatus: db.FinanceLock,
 				},
 			},
-			ExpectAssignment: true,
+			ExpectLease: true,
 		},
 		// Happy Path - ResetLock
 		{
-			ExpectedError:             nil,
-			ExpectedAssignmentUser:    "abc",
-			ExpectedAssignmentAccount: "123",
-			FindAssignmentByUserAssignments: []*db.RedboxAccountAssignment{
-				&db.RedboxAccountAssignment{
-					UserID:           "abc",
-					AccountID:        "123",
-					AssignmentStatus: db.ResetLock,
+			ExpectedError:            nil,
+			ExpectedLeasePrincipalID: "abc",
+			ExpectedLeaseAccountID:   "123",
+			FindLeaseByPrincipal: []*db.RedboxLease{
+				&db.RedboxLease{
+					PrincipalID: "abc",
+					AccountID:   "123",
+					LeaseStatus: db.ResetLock,
 				},
 			},
-			ExpectAssignment: true,
+			ExpectLease: true,
 		},
-		// Error FindAssignmentByUser
+		// Error FindLeasesByPrincipal
 		{
-			ExpectedError:             errors.New("Error Finding Assignment"),
-			FindAssignmentByUserError: errors.New("Error Finding Assignment"),
+			ExpectedError:             errors.New("Error Finding Lease"),
+			FindLeaseByPrincipalError: errors.New("Error Finding Lease"),
 		},
 	}
 
 	// Iterate through each test in the list
-	user := "abc"
+	principalID := "abc"
 	for _, test := range tests {
 		// Setup mocks
 		mockDB := &mocks.DBer{}
-		mockDB.On("FindAssignmentByUser", mock.Anything).Return(
-			test.FindAssignmentByUserAssignments,
-			test.FindAssignmentByUserError)
+		mockDB.On("FindLeasesByPrincipal", mock.Anything).Return(
+			test.FindLeaseByPrincipal,
+			test.FindLeaseByPrincipalError)
 
 		// Create the AccountProvision
 		prov := AccountProvision{
 			DBSvc: mockDB,
 		}
 
-		// Call findUserActiveAssignment
-		assignment, err := prov.FindUserActiveAssignment(user)
+		// Call FindActiveLeaseForPrincipal
+		lease, err := prov.FindActiveLeaseForPrincipal(principalID)
 
 		// Assert that the expected output is correct
 		require.Equal(t, test.ExpectedError, err)
-		if test.ExpectAssignment {
-			require.Equal(t, test.ExpectedAssignmentUser, assignment.UserID)
-			require.Equal(t, test.ExpectedAssignmentAccount,
-				assignment.AccountID)
+		if test.ExpectLease {
+			require.Equal(t, test.ExpectedLeasePrincipalID, lease.PrincipalID)
+			require.Equal(t, test.ExpectedLeaseAccountID,
+				lease.AccountID)
 		} else {
-			require.Nil(t, assignment)
+			require.Nil(t, lease)
 		}
 	}
 }
 
-// testFindUserAssignmentWithAccountInput is the structure input used for table
-// driven testing for FindUserAssignmentWithAccount
-type testFindUserAssignmentWithAccountInput struct {
-	ExpectedError                       error
-	ExpectedAssignmentUser              string
-	ExpectedAssignmentAccount           string
-	FindAssignmentsByAccountAssignments []*db.RedboxAccountAssignment
-	FindAssignmentsByAccountError       error
-	ExpectAssignment                    bool
+// testFindLeaseWithAccountInput is the structure input used for table
+// driven testing for FindLeaseWithAccount
+type testFindLeaseWithAccountInput struct {
+	ExpectedError            error
+	ExpectedLeasePrincipalID string
+	ExpectedLeaseAccountID   string
+	FindLeasesByAccount      []*db.RedboxLease
+	FindLeasesByAccountError error
+	ExpectLease              bool
 }
 
-// TestFindUserAssignmentWithAccount tests and verifies the flow of the helper
-// function to find an assignment between a user and an account
-func TestFindUserAssignmentWithAccount(t *testing.T) {
+// TestFindLeaseWithAccount tests and verifies the flow of the helper
+// function to find an lease between a principal and an account
+func TestFindLeaseWithAccount(t *testing.T) {
 	// Construct test scenarios
-	tests := []testFindUserAssignmentWithAccountInput{
-		// Happy Path - Assignment Exists
+	tests := []testFindLeaseWithAccountInput{
+		// Happy Path - Lease Exists
 		{
-			ExpectedError:             nil,
-			ExpectedAssignmentUser:    "abc",
-			ExpectedAssignmentAccount: "123",
-			FindAssignmentsByAccountAssignments: []*db.RedboxAccountAssignment{
-				&db.RedboxAccountAssignment{
-					UserID:           "abc",
-					AccountID:        "123",
-					AssignmentStatus: db.Decommissioned,
+			ExpectedError:            nil,
+			ExpectedLeasePrincipalID: "abc",
+			ExpectedLeaseAccountID:   "123",
+			FindLeasesByAccount: []*db.RedboxLease{
+				&db.RedboxLease{
+					PrincipalID: "abc",
+					AccountID:   "123",
+					LeaseStatus: db.Decommissioned,
 				},
 			},
-			ExpectAssignment: true,
+			ExpectLease: true,
 		},
-		// Happy Path - Assignment Does Not Exist
+		// Happy Path - Lease Does Not Exist
 		{
-			ExpectedError:             nil,
-			ExpectedAssignmentUser:    "",
-			ExpectedAssignmentAccount: "",
-			FindAssignmentsByAccountAssignments: []*db.RedboxAccountAssignment{
-				&db.RedboxAccountAssignment{
-					UserID:           "def",
-					AccountID:        "123",
-					AssignmentStatus: db.Decommissioned,
+			ExpectedError:            nil,
+			ExpectedLeasePrincipalID: "",
+			ExpectedLeaseAccountID:   "",
+			FindLeasesByAccount: []*db.RedboxLease{
+				&db.RedboxLease{
+					PrincipalID: "def",
+					AccountID:   "123",
+					LeaseStatus: db.Decommissioned,
 				},
 			},
-			ExpectAssignment: true,
+			ExpectLease: true,
 		},
-		// Error FindAssignmentsByAccount
+		// Error FindLeasesByAccount
 		{
-			ExpectedError:                 errors.New("Error Finding Assignment"),
-			FindAssignmentsByAccountError: errors.New("Error Finding Assignment"),
+			ExpectedError:            errors.New("Error Finding Lease"),
+			FindLeasesByAccountError: errors.New("Error Finding Lease"),
 		},
-		// Error Account has Active Assignment
+		// Error Account has Active Lease
 		{
-			ExpectedError: errors.New("Attempt to Assign Active Account as " +
+			ExpectedError: errors.New("Attempt to lease Active Account as " +
 				"new Redbox - 123"),
-			FindAssignmentsByAccountAssignments: []*db.RedboxAccountAssignment{
-				&db.RedboxAccountAssignment{
-					UserID:           "def",
-					AccountID:        "123",
-					AssignmentStatus: db.Active,
+			FindLeasesByAccount: []*db.RedboxLease{
+				&db.RedboxLease{
+					PrincipalID: "def",
+					AccountID:   "123",
+					LeaseStatus: db.Active,
 				},
 			},
 		},
-		// Error Account has FinaceLock Assignment
+		// Error Account has FinaceLock Lease
 		{
-			ExpectedError: errors.New("Attempt to Assign Active Account as " +
+			ExpectedError: errors.New("Attempt to lease Active Account as " +
 				"new Redbox - 123"),
-			FindAssignmentsByAccountAssignments: []*db.RedboxAccountAssignment{
-				&db.RedboxAccountAssignment{
-					UserID:           "def",
-					AccountID:        "123",
-					AssignmentStatus: db.FinanceLock,
+			FindLeasesByAccount: []*db.RedboxLease{
+				&db.RedboxLease{
+					PrincipalID: "def",
+					AccountID:   "123",
+					LeaseStatus: db.FinanceLock,
 				},
 			},
 		},
-		// Error Account has ResetLock Assignment
+		// Error Account has ResetLock Lease
 		{
-			ExpectedError: errors.New("Attempt to Assign Active Account as " +
+			ExpectedError: errors.New("Attempt to lease Active Account as " +
 				"new Redbox - 123"),
-			FindAssignmentsByAccountAssignments: []*db.RedboxAccountAssignment{
-				&db.RedboxAccountAssignment{
-					UserID:           "def",
-					AccountID:        "123",
-					AssignmentStatus: db.ResetLock,
+			FindLeasesByAccount: []*db.RedboxLease{
+				&db.RedboxLease{
+					PrincipalID: "def",
+					AccountID:   "123",
+					LeaseStatus: db.ResetLock,
 				},
 			},
 		},
 	}
 
 	// Iterate through each test in the list
-	user := "abc"
-	account := "123"
+	principalID := "abc"
+	accountID := "123"
 	for _, test := range tests {
 		// Setup mocks
 		mockDB := &mocks.DBer{}
-		mockDB.On("FindAssignmentsByAccount", mock.Anything).Return(
-			test.FindAssignmentsByAccountAssignments,
-			test.FindAssignmentsByAccountError)
+		mockDB.On("FindLeasesByAccount", mock.Anything).Return(
+			test.FindLeasesByAccount,
+			test.FindLeasesByAccountError)
 
 		// Create the AccountProvision
 		prov := AccountProvision{
 			DBSvc: mockDB,
 		}
 
-		// Call findUserAssignmentWithAccount
-		assignment, err := prov.FindUserAssignmentWithAccount(user, account)
+		// Call findLeaseWithAccount
+		lease, err := prov.FindLeaseWithAccount(principalID, accountID)
 
 		// Assert that the expected output is correct
 		require.Equal(t, test.ExpectedError, err)
-		if test.ExpectAssignment {
-			require.Equal(t, test.ExpectedAssignmentUser, assignment.UserID)
-			require.Equal(t, test.ExpectedAssignmentAccount,
-				assignment.AccountID)
+		if test.ExpectLease {
+			require.Equal(t, test.ExpectedLeasePrincipalID, lease.PrincipalID)
+			require.Equal(t, test.ExpectedLeaseAccountID,
+				lease.AccountID)
 		} else {
-			require.Nil(t, assignment)
+			require.Nil(t, lease)
 		}
 	}
 }
 
-// testActivateAccountAssignmentInput is the structure input used for table
-// driven testing for ActivateAccountAssignment
-type testActivateAccountAssignmentInput struct {
-	ExpectedAccountAssignment             *db.RedboxAccountAssignment
-	ExpectedError                         error
-	Create                                bool
-	PutAccountAssignmentAccountAssignment *db.RedboxAccountAssignment
-	PutAccountAssignmentError             error
-	TransitionAssignmentStatusAssignment  *db.RedboxAccountAssignment
-	TransitionAssignmentStatusError       error
+// testActivateLeaseInput is the structure input used for table
+// driven testing for ActivateAccount
+type testActivateLeaseInput struct {
+	ExpectedLease              *db.RedboxLease
+	ExpectedError              error
+	Create                     bool
+	PutLease                   *db.RedboxLease
+	PutLeaseError              error
+	TransitionLeaseStatusLease *db.RedboxLease
+	TransitionLeaseStatusError error
 }
 
-// TestActivateAccountAssignment tests and verifies the flow of the helper
-// function to create or update an account assignment as active for a user
-func TestActivateAccountAssignment(t *testing.T) {
+// TestActivateLease tests and verifies the flow of the helper
+// function to create or update an account lease as active for a principal
+func TestActivateLease(t *testing.T) {
 	// Construct test scenarios
-	accountAssignment := &db.RedboxAccountAssignment{
-		AccountID:        "123",
-		UserID:           "abc",
-		AssignmentStatus: db.Active,
+	lease := &db.RedboxLease{
+		AccountID:   "123",
+		PrincipalID: "abc",
+		LeaseStatus: db.Active,
 	}
-	tests := []testActivateAccountAssignmentInput{
+	tests := []testActivateLeaseInput{
 		// Happy Path - Create
 		{
-			Create:                                true,
-			ExpectedAccountAssignment:             accountAssignment,
-			PutAccountAssignmentAccountAssignment: accountAssignment,
+			Create:        true,
+			ExpectedLease: lease,
+			PutLease:      lease,
 		},
 		// Happy Path - Update
 		{
-			ExpectedAccountAssignment: accountAssignment,
-			TransitionAssignmentStatusAssignment: &db.RedboxAccountAssignment{
-				AccountID:        "123",
-				UserID:           "abc",
-				AssignmentStatus: db.Active,
-				LastModifiedOn:   456,
+			ExpectedLease: lease,
+			TransitionLeaseStatusLease: &db.RedboxLease{
+				AccountID:             "123",
+				PrincipalID:           "abc",
+				LeaseStatus:           db.Active,
+				LastModifiedOn:        456,
+				LeaseStatusModifiedOn: 789,
 			},
 		},
-		// Fail PutAccountAssignment
+		// Fail PutLease
 		{
-			ExpectedError:             errors.New("Fail Creating New Assignment"),
-			Create:                    true,
-			PutAccountAssignmentError: errors.New("Fail Creating New Assignment"),
+			ExpectedError: errors.New("Fail Creating New Lease"),
+			Create:        true,
+			PutLeaseError: errors.New("Fail Creating New Lease"),
 		},
-		// Fail TransistionAssignmentStatus
+		// Fail TransistionLeaseStatus
 		{
-			ExpectedError:                   errors.New("Fail Activating Assignment"),
-			TransitionAssignmentStatusError: errors.New("Fail Activating Assignment"),
+			ExpectedError:              errors.New("Fail Activating Lease"),
+			TransitionLeaseStatusError: errors.New("Fail Activating Lease"),
 		},
 	}
 
 	// Iterate through each test in the list
-	user := "abc"
-	account := "123"
+	principalID := "abc"
+	accountID := "123"
+	var budgetAmount float64 = 300
+	budgetCurrency := "USD"
+	budgetNotificationEmails := []string{"test@test.com"}
+
 	for _, test := range tests {
 		// Setup mocks
 		mockDB := &mocks.DBer{}
 		if test.Create {
-			mockDB.On("PutAccountAssignment", mock.Anything).Return(
-				test.PutAccountAssignmentAccountAssignment,
-				test.PutAccountAssignmentError)
+			mockDB.On("PutLease", mock.Anything).Return(
+				test.PutLease,
+				test.PutLeaseError)
 		} else {
-			mockDB.On("TransitionAssignmentStatus", mock.Anything,
+			mockDB.On("TransitionLeaseStatus", mock.Anything,
 				mock.Anything, mock.Anything, mock.Anything).Return(
-				test.TransitionAssignmentStatusAssignment,
-				test.TransitionAssignmentStatusError)
+				test.TransitionLeaseStatusLease,
+				test.TransitionLeaseStatusError)
 		}
 
 		// Create the AccountProvision
@@ -309,27 +314,29 @@ func TestActivateAccountAssignment(t *testing.T) {
 			DBSvc: mockDB,
 		}
 
-		// Call findUserAssignmentWithAccount
-		assgn, err := prov.ActivateAccountAssignment(test.Create, user, account)
+		// Call findLeaseWithAccount
+		assgn, err := prov.ActivateAccount(test.Create, principalID, accountID, budgetAmount, budgetCurrency, budgetNotificationEmails)
 
 		// Assert that the expected output is correct
-		if test.ExpectedAccountAssignment != nil {
-			require.Equal(t, test.ExpectedAccountAssignment.AccountID,
+		if test.ExpectedLease != nil {
+			require.Equal(t, test.ExpectedLease.AccountID,
 				assgn.AccountID)
-			require.Equal(t, test.ExpectedAccountAssignment.UserID, assgn.UserID)
-			require.Equal(t, test.ExpectedAccountAssignment.AssignmentStatus,
-				assgn.AssignmentStatus)
+			require.Equal(t, test.ExpectedLease.PrincipalID, assgn.PrincipalID)
+			require.Equal(t, test.ExpectedLease.LeaseStatus,
+				assgn.LeaseStatus)
 			if test.Create {
-				require.NotEqual(t, test.ExpectedAccountAssignment.CreatedOn,
+				require.NotEqual(t, test.ExpectedLease.CreatedOn,
 					assgn.CreatedOn) // Should be different
 			} else {
-				require.Equal(t, test.ExpectedAccountAssignment.CreatedOn,
+				require.Equal(t, test.ExpectedLease.CreatedOn,
 					assgn.CreatedOn) // Should be the same
 			}
-			require.NotEqual(t, test.ExpectedAccountAssignment.LastModifiedOn,
+			require.NotEqual(t, test.ExpectedLease.LastModifiedOn,
 				assgn.LastModifiedOn) // Should not be 0
+			require.NotEqual(t, test.ExpectedLease.LeaseStatusModifiedOn,
+				assgn.LeaseStatusModifiedOn) // Should not be 0
 		} else {
-			require.Equal(t, test.ExpectedAccountAssignment, assgn)
+			require.Equal(t, test.ExpectedLease, assgn)
 		}
 		require.Equal(t, test.ExpectedError, err)
 	}
@@ -338,10 +345,10 @@ func TestActivateAccountAssignment(t *testing.T) {
 // testRollbackProvisionAccountInput is the structure input used for table
 // driven testing for RollbackProvisionAccount
 type testRollbackProvisionAccountInput struct {
-	ExpectedError                   error
-	TransitionAccountStatus         bool
-	TransitionAssignmentStatusError error
-	TransitionAccountStatusError    error
+	ExpectedError                error
+	TransitionAccountStatus      bool
+	TransitionLeaseStatusError   error
+	TransitionAccountStatusError error
 }
 
 // TestRollbackProvisionAccount tests and verifies the flow of the helper
@@ -349,18 +356,18 @@ type testRollbackProvisionAccountInput struct {
 func TestRollbackProvisionAccount(t *testing.T) {
 	// Construct test scenarios
 	tests := []testRollbackProvisionAccountInput{
-		// Happy Path - Only Account Assignment revert
+		// Happy Path - Only Account Lease revert
 		{},
-		// Happy Path - Account and Account Assignment revert
+		// Happy Path - Account and Account Lease revert
 		{
 			TransitionAccountStatus: true,
 		},
-		// Fail TransitionAssignmentStatus Only
+		// Fail TransitionLeaseStatus Only
 		{
-			ExpectedError:           errors.New("Fail to Revert Assignment"),
+			ExpectedError:           errors.New("Fail to Revert Lease"),
 			TransitionAccountStatus: true,
-			TransitionAssignmentStatusError: errors.New(
-				"Fail to Revert Assignment"),
+			TransitionLeaseStatusError: errors.New(
+				"Fail to Revert Lease"),
 		},
 		// Fail TransitionAccountStatus Only
 		{
@@ -372,21 +379,21 @@ func TestRollbackProvisionAccount(t *testing.T) {
 		{
 			ExpectedError:           errors.New("Fail to Revert Account"),
 			TransitionAccountStatus: true,
-			TransitionAssignmentStatusError: errors.New(
-				"Fail to Revert Assignment"),
+			TransitionLeaseStatusError: errors.New(
+				"Fail to Revert Lease"),
 			TransitionAccountStatusError: errors.New("Fail to Revert Account"),
 		},
 	}
 
 	// Iterate through each test in the list
-	user := "abc"
-	account := "123"
+	principalID := "abc"
+	accountID := "123"
 	for _, test := range tests {
 		// Setup mocks
 		mockDB := &mocks.DBer{}
-		mockDB.On("TransitionAssignmentStatus", mock.Anything,
+		mockDB.On("TransitionLeaseStatus", mock.Anything,
 			mock.Anything, mock.Anything, mock.Anything).Return(
-			nil, test.TransitionAssignmentStatusError)
+			nil, test.TransitionLeaseStatusError)
 		if test.TransitionAccountStatus {
 			mockDB.On("TransitionAccountStatus", mock.Anything,
 				mock.Anything, mock.Anything, mock.Anything).Return(
@@ -398,9 +405,9 @@ func TestRollbackProvisionAccount(t *testing.T) {
 			DBSvc: mockDB,
 		}
 
-		// Call findUserAssignmentWithAccount
-		err := prov.RollbackProvisionAccount(test.TransitionAccountStatus, user,
-			account)
+		// Call findLeaseWithAccount
+		err := prov.RollbackProvisionAccount(test.TransitionAccountStatus, principalID,
+			accountID)
 
 		// Assert that the expected output is correct
 		require.Equal(t, test.ExpectedError, err)

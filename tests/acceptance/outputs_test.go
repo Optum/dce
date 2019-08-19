@@ -22,9 +22,9 @@ func TestTerraformOutputs(t *testing.T) {
 		"redbox_account_db_table_name",
 	)
 	assert.Regexp(t,
-		regexp.MustCompile(`^RedboxAccountAssignment`),
-		tfOut["redbox_account_assignment_db_table_name"].(string),
-		"redbox_account_assignment_db_table_name",
+		regexp.MustCompile(`^RedboxLease`),
+		tfOut["redbox_lease_db_table_name"].(string),
+		"redbox_lease_db_table_name",
 	)
 	assert.Regexp(t,
 		regexp.MustCompile(`^https:\/\/sqs\.us-east-1\.amazonaws\.com\/[0-9]+\/redbox-account-reset-`),

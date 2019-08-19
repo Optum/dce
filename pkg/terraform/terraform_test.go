@@ -8,6 +8,9 @@ import (
 )
 
 func TestTerraform(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping tests in short mode. IAM role takes a while to propagate...")
+	}
 
 	t.Run("InitAndApply, Output", func(t *testing.T) {
 

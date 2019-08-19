@@ -1,7 +1,7 @@
 package reset
 
 import (
-	"errors"
+	"github.com/pkg/errors"
 	"time"
 
 	"github.com/Optum/Redbox/pkg/common"
@@ -47,7 +47,8 @@ func NukeAccount(input *NukeAccountInput) error {
 		&assumeRoleInputs,
 	)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "Failed to assume role for nuking account %s as %s",
+			input.AccountID, roleArn)
 	}
 
 	// Create a Credentials based on the aws credentials stored
@@ -62,7 +63,8 @@ func NukeAccount(input *NukeAccountInput) error {
 	// on the new Account and NukeParameter
 	account, err := input.Nuke.NewAccount(creds)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "Failed to configure account %s for aws-nuke as %s",
+			input.AccountID, roleArn)
 	}
 	nuke := cmd.NewNuke(params, *account)
 
@@ -72,14 +74,15 @@ func NukeAccount(input *NukeAccountInput) error {
 	// https://github.com/golang/go/wiki/Timeouts
 	nuke.Config, err = input.Nuke.Load(nuke.Parameters.ConfigPath)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "Failed to load nuke config at %s", nuke.Parameters.ConfigPath)
 	}
 	c := make(chan error, 1)
 	go func() { c <- input.Nuke.Run(nuke) }()
 	select {
 	case err := <-c:
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "Failed to run nuke for account %s as %s",
+				input.AccountID, roleArn)
 		}
 		return nil
 	case <-time.After(time.Minute * 60):

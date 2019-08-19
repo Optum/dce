@@ -1182,7 +1182,7 @@ func (_m *IAMAPI) CreatePolicyWithContext(_a0 context.Context, _a1 *iam.CreatePo
 	return r0, r1
 }
 
-// CreateRole provides a mock function with given fields: _a0
+// CreateRoleWithPolicy provides a mock function with given fields: _a0
 func (_m *IAMAPI) CreateRole(_a0 *iam.CreateRoleInput) (*iam.CreateRoleOutput, error) {
 	ret := _m.Called(_a0)
 

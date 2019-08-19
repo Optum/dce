@@ -15,7 +15,8 @@ locals {
   isPr = replace(var.namespace, "pr-", "") != var.namespace
 }
 
-# CodeBuild to execute Account Reset
+# CodeBuild to create Azure AD Ent App for AWS Account
+# and configure SSO
 resource "aws_codebuild_project" "reset_build" {
   name          = "redbox-reset-${var.namespace}"
   description   = "Execute Redbox Account reset for an AWS Account"
@@ -44,20 +45,30 @@ resource "aws_codebuild_project" "reset_build" {
     }
 
     environment_variable {
-      name  = "RESET_ACCOUNT_ADMIN_ROLE"
-      value = var.reset_account_admin_role
+      name = "RESET_ACCOUNT_ADMIN_ROLE_NAME"
+      // This value will be passed in by the process_reset_queue
+      // lambda, which pulls it from the Accounts DB table
+      value = "STUB"
       type  = "PLAINTEXT"
     }
 
     environment_variable {
-      name  = "RESET_ACCOUNT_USER_ROLE"
-      value = var.reset_account_user_role
+      name = "RESET_ACCOUNT_PRINCIPAL_ROLE_NAME"
+      // This value will be passed in by the process_reset_queue
+      // lambda, which pulls it from the Accounts DB table
+      value = "STUB"
+      type  = "PLAINTEXT"
+    }
+
+    environment_variable {
+      name  = "RESET_ACCOUNT_PRINCIPAL_POLICY_NAME"
+      value = local.redbox_principal_policy_name
       type  = "PLAINTEXT"
     }
 
     environment_variable {
       name  = "RESET_NUKE_TEMPLATE_DEFAULT"
-      value = var.reset_nuke_template_default
+      value = "default-nuke-config-template.yml"
       type  = "PLAINTEXT"
     }
 
@@ -80,8 +91,8 @@ resource "aws_codebuild_project" "reset_build" {
     }
 
     environment_variable {
-      name  = "ASSIGNMENT_DB"
-      value = aws_dynamodb_table.redbox_account_assignment.id
+      name  = "LEASE_DB"
+      value = aws_dynamodb_table.redbox_lease.id
       type  = "PLAINTEXT"
     }
 
@@ -229,7 +240,7 @@ resource "aws_cloudwatch_metric_alarm" "reset_failed_builds" {
 
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = 1
-  threshold           = 1
+  threshold           = 0
   period              = 60
   statistic           = "Sum"
 

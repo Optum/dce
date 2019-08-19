@@ -1,9 +1,8 @@
 package tests
 
 import (
+	"github.com/stretchr/testify/require"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/endpoints"
@@ -32,8 +31,8 @@ func TestArtifactsBucket(t *testing.T) {
 				Bucket: &bucketName,
 			},
 		)
-		assert.Nil(t, err)
-		assert.Equal(t,
+		require.Nil(t, err)
+		require.Equal(t,
 			*encryptionOutput.ServerSideEncryptionConfiguration.Rules[0].ApplyServerSideEncryptionByDefault.SSEAlgorithm,
 			"AES256",
 			"Artifacts bucket should be encrypted by default",
@@ -46,13 +45,13 @@ func TestArtifactsBucket(t *testing.T) {
 				Bucket: &bucketName,
 			},
 		)
-		assert.Nil(t, err)
-		assert.Equal(t,
+		require.Nil(t, err)
+		require.Equal(t,
 			*loggingOutput.LoggingEnabled.TargetBucket,
 			bucketName,
 			"Target log bucket should be itself",
 		)
-		assert.Equal(t,
+		require.Equal(t,
 			*loggingOutput.LoggingEnabled.TargetPrefix,
 			"/logs",
 			"Should log to the /logs prefix",
@@ -65,8 +64,8 @@ func TestArtifactsBucket(t *testing.T) {
 				Bucket: &bucketName,
 			},
 		)
-		assert.Nil(t, err)
-		assert.Equal(t, *versioningOutput.Status, "Enabled")
+		require.Nil(t, err)
+		require.Equal(t, *versioningOutput.Status, "Enabled")
 	})
 
 }

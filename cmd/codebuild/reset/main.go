@@ -7,9 +7,13 @@ import (
 	"io/ioutil"
 	"log"
 
+	"github.com/pkg/errors"
+
 	"github.com/Optum/Redbox/pkg/db"
 	"github.com/Optum/Redbox/pkg/reset"
 	"github.com/avast/retry-go"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/athena"
 )
 
 // main will run through the reset process for an account which involves using
@@ -26,6 +30,25 @@ func main() {
 			"mode.")
 	}
 
+	// Delete Athena resources
+	log.Println("Starting Athena nuking")
+	if config.isNukeEnabled {
+		awsSession := svc.awsSession()
+		tokenService := svc.tokenService()
+		roleArn := "arn:aws:iam::" + config.accountID + ":role/" + config.accountAdminRoleName
+		athenaCreds := tokenService.NewCredentials(awsSession, roleArn)
+		athenaClient := athena.New(awsSession, &aws.Config{
+			Credentials: athenaCreds,
+		})
+		athenaReset := &reset.AthenaReset{
+			Client: athenaClient,
+		}
+		err := reset.DeleteAthenaResources(athenaReset)
+		if err != nil {
+			log.Fatalf("Failed to execute aws-nuke athena on account %s: %s\n", config.accountID, err)
+		}
+	}
+
 	// Execute aws-nuke, to delete all resources from the account
 	err := nukeAccount(
 		svc,
@@ -33,7 +56,7 @@ func main() {
 		config.isNukeEnabled == false,
 	)
 	if err != nil {
-		log.Fatalf("%s  :  %s\n", config.accountID, err)
+		log.Fatalf("Failed to execute aws-nuke on account %s: %s\n", config.accountID, err)
 	}
 	log.Printf("%s  :  Nuke Success\n", config.accountID)
 
@@ -60,49 +83,61 @@ func main() {
 		}
 		err := reset.LaunchpadAccount(&launchpadAccountInput)
 		if err != nil {
-			log.Fatalf("%s  :  %s\n", config.accountID, err)
+			log.Fatalf("Failed to execute Launchpad against account %s: %s", config.accountID, err)
 		}
 	} else {
 		log.Println("INFO: Launchpad is set as toggled off and cannot set " +
 			" back the state of a Redbox Account.")
 	}
 
-	// Update the DB with Account/Assignment statuses
+	// Update the DB with Account/Lease statuses
 	err = updateDBPostReset(svc.db(), config.accountID)
 	if err != nil {
-		log.Fatalf("%s  :  %s\n", config.accountID, err)
+		log.Fatalf("Failed to update the DB post-reset for account %s:  %s", config.accountID, err)
 	}
 }
 
-// updateDBPostReset changes any assignments for the Account
+// updateDBPostReset changes any leases for the Account
 // from "Status=ResetLock" to "Status=Active"
 // Also, if the account was set as "Status=NotReady",
 // will update to "Status=Ready"
 func updateDBPostReset(dbSvc db.DBer, accountID string) error {
-	// Find any assignment for the Account
-	assignments, err := dbSvc.FindAssignmentsByAccount(accountID)
+	// Find any lease for the Account
+	leases, err := dbSvc.FindLeasesByAccount(accountID)
 	if err != nil {
 		return err
 	}
 
-	// For any Assignments with Status=ResetLock,
+	// For any Leases with Status=ResetLock,
 	// change the status back to "Active"
-	for _, assgn := range assignments {
-		// Only consider ResetLock'd assignments
-		if assgn.AssignmentStatus != db.ResetLock {
-			continue
+	// And For any Leases with Status=ResetFinanceLock,
+	// change the status back to "FinanceLock"
+	for _, assgn := range leases {
+		// Only consider ResetLock'd leases
+		if assgn.LeaseStatus == db.ResetLock {
+			// Set Status from ResetLock to Active
+			log.Printf("Setting Lease Status from ResetLock to Active: %s - %s",
+				accountID, assgn.PrincipalID)
+			_, err := dbSvc.TransitionLeaseStatus(
+				accountID, assgn.PrincipalID,
+				db.ResetLock, db.Active,
+			)
+			if err != nil {
+				return err
+			}
+		} else if assgn.LeaseStatus == db.ResetFinanceLock {
+			// Set Status from ResetFinanceLock to FinanceLock
+			log.Printf("Setting Lease Status from ResetFinanceLock to FinanceLock: %s - %s",
+				accountID, assgn.PrincipalID)
+			_, err := dbSvc.TransitionLeaseStatus(
+				accountID, assgn.PrincipalID,
+				db.ResetFinanceLock, db.FinanceLock,
+			)
+			if err != nil {
+				return err
+			}
 		}
 
-		// Set Status=ResetLock
-		log.Printf("Setting Assignment Status from ResetLock to Active: %s - %s",
-			accountID, assgn.UserID)
-		_, err := dbSvc.TransitionAssignmentStatus(
-			accountID, assgn.UserID,
-			db.ResetLock, db.Active,
-		)
-		if err != nil {
-			return err
-		}
 	}
 
 	// If the Account.Status=NotReady, change it back to Status=Ready
@@ -162,37 +197,40 @@ func generateNukeConfig(svc *service) (string, error) {
 
 	// Verify the nuke template configuration to download file from s3 or to
 	// use the default
-	var template string
+	var templateFile string
 	if config.nukeTemplateBucket != "STUB" && config.nukeTemplateKey != "STUB" {
 		log.Printf("Using Nuke Configuration from S3: %s/%s",
 			config.nukeTemplateBucket, config.nukeTemplateKey)
 
 		// Download the file from S3
-		template = fmt.Sprintf("/tmp/nuke-config-template-%s.yml",
+		templateFile = fmt.Sprintf("/tmp/nuke-config-template-%s.yml",
 			config.accountID)
-		err := svc._s3Service().Download(config.nukeTemplateBucket,
-			config.nukeTemplateKey, template)
+		err := svc.s3Service().Download(config.nukeTemplateBucket,
+			config.nukeTemplateKey, templateFile)
 		if err != nil {
-			return "", err
+			return "", errors.Wrapf(err, "Failed to download nuke template at s3://%s/%s to %s",
+				config.nukeTemplateBucket, config.nukeTemplateKey, templateFile)
 		}
 	} else {
 		log.Printf("Using Default Nuke Configuration: %s",
 			config.nukeTemplateDefault)
 
 		// Use default template
-		template = config.nukeTemplateDefault
+		templateFile = config.nukeTemplateDefault
 	}
 
 	// Generate the configuration of the yaml file using the template file
 	// provided and substituting necessary phrases.
 	subs := map[string]string{
-		"{{id}}":         config.accountID,
-		"{{admin_role}}": config.accountAdminRoleName,
-		"{{user_role}}":  config.accountUserRoleName,
+		"{{id}}":               config.accountID,
+		"{{admin_role}}":       config.accountAdminRoleName,
+		"{{principal_role}}":   config.accountPrincipalRoleName,
+		"{{principal_policy}}": config.accountPrincipalPolicyName,
 	}
-	modConfig, err := reset.GenerateConfig(template, subs)
+	modConfig, err := reset.GenerateConfig(templateFile, subs)
 	if err != nil {
-		log.Fatalf("%s  :  %s\n", config.accountID, err)
+		log.Fatalf("Failed to generate nuke config for acount %s using template %s: %s",
+			config.accountID, templateFile, err)
 	}
 	log.Println(string(modConfig))
 	configFile := fmt.Sprintf("/tmp/nuke-config-%s.yml", config.accountID)
