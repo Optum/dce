@@ -38,6 +38,7 @@ steps:
     terraformVersion: '0.12.3'
 
 - task: Bash@3
+  displayName: 'Terraform init'    
   inputs:
     targetType: 'inline'
     script: |
