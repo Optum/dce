@@ -44,6 +44,6 @@ steps:
     targetType: 'inline'
     script: |
       # Write your commands here
-      
+      cd ./modules
       terraform init
   condition: always()
