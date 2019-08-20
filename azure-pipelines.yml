@@ -44,7 +44,7 @@ steps:
     provider: 'aws'
     command: 'apply'
     workingDirectory: './modules'
-    commandOptions: 'namespace=''test'''
+    commandOptions: '-var="namespace=AzureDevops0820"'
     environmentServiceNameAWS: 'AWS_Terraform_Connection'
 
 - task: GoTool@0
