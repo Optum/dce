@@ -7,13 +7,6 @@ pr:
 
 steps:
 
-- bash: echo This is a script that could use $SYSTEM_ACCESSTOKEN
-  env:
-    SYSTEM_ACCESSTOKEN: $(System.AccessToken)
-- powershell: Write-Host "This is a script that could use $env:SYSTEM_ACCESSTOKEN"
-  env:
-    SYSTEM_ACCESSTOKEN: $(System.AccessToken)
-
 - task: UsePythonVersion@0
   inputs:
     versionSpec: '3.x'
@@ -24,7 +17,7 @@ steps:
   displayName: 'Add AWS CLI'
   inputs:
     script: |
-      echo $(PRNUMBER)
+      echo '$(System.PullRequest.PullRequestNumber)'
       pip install awscli
 - task: AWSCLI@1
   inputs:
