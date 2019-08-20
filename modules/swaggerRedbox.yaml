@@ -120,15 +120,26 @@ paths:
           schema:
             type: object
             required:
-              - userId
+              - principalId
+              - budgetAmount
+              - budgetCurrency
+              - budgetNotificationEmails
             properties:
-              userId:
+              principalId:
                 type: string
+              budgetAmount:
+                type: number
+              budgetCurrency:
+                type: string
+              budgetNotificationEmails:
+                type: array
+                items:
+                  type: string   
       produces:
         - application/json
       responses:
         201:
-          $ref: "#/definitions/assignment"
+          $ref: "#/definitions/lease"
         403:
           description: "Failed to authenticate request"
       x-amazon-apigateway-integration:
@@ -149,10 +160,10 @@ paths:
           schema:
             type: object
             required:
-              - userId
+              - principalId
               - accountId
             properties:
-              userId:
+              principalId:
                 type: string
               accountId:
                 type: string
@@ -171,15 +182,15 @@ paths:
       security:
         - sigv4: []
     get:
-      summary: Get a lease by userId and accountId [NOT IMPLEMENTED]
+      summary: Get a lease by principalId and accountId [NOT IMPLEMENTED]
       produces:
         - application/json
       parameters:
         - in: path
-          name: userId
+          name: principalId
           type: string
           required: true
-          description: userId of the lease to get
+          description: principalId of the lease to get
         - in: path
           name: accountId
           type: string
@@ -187,7 +198,7 @@ paths:
           description: accountId of the lease to get
       responses:
         200:
-          $ref: "#/definitions/assignment"
+          $ref: "#/definitions/lease"
         403:
           description: "Failed to authenticate request"
       x-amazon-apigateway-integration:
@@ -204,24 +215,38 @@ securityDefinitions:
     in: "header"
     x-amazon-apigateway-authtype: "awsSigv4"
 definitions:
-  assignment:
-    description: "Assignment Id"
+  lease:
+    description: "Lease Id"
     type: object
     properties:
-      userId:
+      principalId:
         type: string
-        description: userId of the lease to get
+        description: principalId of the lease to get
       accountId:
         type: string
         description: accountId of the AWS account
-      assignmentStatus:
-        $ref: "#/definitions/assignmentStatus"
+      leaseStatus:
+        $ref: "#/definitions/leaseStatus"
       createdOn:
         type: number
         description: creation date in epoch seconds
       lastModifiedOn:
         type: number
         description: date last modified in epoch seconds
+      budgetAmount:
+        type: number
+        description: budget amount
+      budgetCurrency:
+        type: string
+        description: budget currency
+      budgetNotificationEmails:
+        type: array
+        items:
+          type: string
+        description: budget notification emails
+      leaseStatusModifiedOn:
+        type: number
+        description: date lease status was last modified in epoch seconds
   account:
     description: "Account Details"
     type: object
@@ -243,21 +268,31 @@ definitions:
       createdOn:
         type: integer
         description: Epoch timestamp, when account record was created
+      metadata:
+        type: object
+        description: Any organization specific data pertaining to the account that needs to be persisted
   accountStatus:
     type: string
-    enum: ["Ready", "NotReady", "Assigned"]
+    enum: ["Ready", "NotReady", "Leased"]
     description: |
       Status of the Account.
-      "Ready": The account is clean and ready for assignment
-      "NotReady": The account is in "dirty" state, and needs to be reset before it may be assigned.
-      "Assigned": The account is assigned to a principal
-  assignmentStatus:
+      "Ready": The account is clean and ready for lease
+      "NotReady": The account is in "dirty" state, and needs to be reset before it may be leased.
+      "Leased": The account is leased to a principal
+  leaseStatus:
     type: string
-    enum: ["Active", "Decommissioned", "FinanceLock", "ResetLock", "ResetFinanceLock"]
+    enum:
+      [
+        "Active",
+        "Decommissioned",
+        "FinanceLock",
+        "ResetLock",
+        "ResetFinanceLock",
+      ]
     description: |
-      Status of the Assignment.
-      "Active": The principal is assigned and has access to the account
-      "Decommissioned": The principal was previously assigned to the account, but now is not.
-      "FinanceLock": The principal is assigned to the account, but has hit a budget threshold, and is locked out of the account.
-      "ResetLock": The principal is assigned to the account, but the account is being reset. The principal's access is temporarily revoked, and will be given back after the reset process is complete.
-      "ResetFinanceLock"": The principal is assigned to the account, but has been locked out for hitting a budget threshold. Additionally, the account is being reset. After reset, the principal's access will _not_ be restored, and the AssignmentStatus will be set back to `ResetLock`
+      Status of the Lease.
+      "Active": The principal is leased and has access to the account
+      "Decommissioned": The principal was previously leased to the account, but now is not.
+      "FinanceLock": The principal is leased to the account, but has hit a budget threshold, and is locked out of the account.
+      "ResetLock": The principal is leased to the account, but the account is being reset. The principal's access is temporarily revoked, and will be given back after the reset process is complete.
+      "ResetFinanceLock"": The principal is leased to the account, but has been locked out for hitting a budget threshold. Additionally, the account is being reset. After reset, the principal's access will _not_ be restored, and the LeaseStatus will be set back to `ResetLock`

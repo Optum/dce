@@ -1,19 +1,111 @@
 ## _next_
 
-- Update nuke implementation for `cmd/codebuild/reset` 
-  - Add functionality to pull a configuration yaml file from an S3 Bucket Object
-  to use for nuke. 
+- Added Athena resources reset
+- Bugfix: In populate_reset_queue lambda, change status from ResetFinanceLock to Active
+
+## v0.13.0
+
+- **BREAKING** Remove Optum-specific rules from the default aws-nuke config.
+- **BREAKING** Disable `aws-nuke` by default.  
+- Add outputs for DynDB table ARNs
+
+**v0.13.0 Migration Notes**
+
+This release removes a number of Optum-specific configurations from the default aws-nuke YAML configuration. If you want to keep these configurations in your implementation of Redbox, you will need to specify an _override_ nuke config as part of Optum's deployment of Redbox.
+
+To specify a override nuke config, upload your own YAML file to an S3 bucket, and specify the S3 location using the `reset_nuke_template_bucket` and `reset_nuke_template_key` Terraform variables.
+
+This release also disables `aws-nuke` by default, to prevent accidental destruction of critical AWS account resources. To re-enable `aws-nuke`, set the `reset_nuke_toggle` Terraform variable to `"true"`. 
+
+See [README.md for details](./README.md#configuring-aws-nuke) on aws-nuke configuration
+
+
+## v0.12.3
+
+- Added EKS services to allowed services in policy file, redboxprincipal.go
+- Added publish_locks lambda
+- Adds a metadata property to the account object
+
+## v0.12.2
+
+- Tag issue, updating to 0.12.2
+- Updates nuke whitelist to preserve beta user role policy attachments.
+
+## v0.12.0
+
+- Add SES terraform to enable email from Redbox App for notifications.
+- Add budget fields to /leases endpoints
+- Cost Explorer spend aggregation service
+- Set -up SES Notification for budgets
+- Handle "lease-locked" / "lease-unlock" SNS, to add/remove user from AD group
+- Budget Checker lambda
+- Add `GET /leases` endpoint
+
+## v0.11.1
+
+- Add budget fields to API `/leases` endpoint
+
+- Remove `RedboxAccountAssignment` DyanmoDB table
+  - This table was deprecated in v0.10.0, and no longer referenced in AWS Redbox code
+- Add `lease-locked` and `lease-unlocked` SNS topics
+  - _NOTE:_ No messages are currently being published to these topics. We are supplying them now in advance of further implementation work, so that consumers can start on integration work.
+
+## v0.11.0
+
+- **BREAKING** Add **required** budget fields to API `/leases` endpoint
+
+
+- Add local functional testing deployment method via Makefile
+  - Target "make deploy_local" utilizes scripts/deploy_local terraform to build S3 backend
+  - Target "make destroy_local" utilizes scripts/deploy_local terraform and modules/ terraform to destroy environment
+- Add LeaseStatusModifiedOn field to Leases DB table
+  - includes migration script to add field to existing DB records - scripts/addLeaseStatusModifiedOn
+- Fix failed reset builds, caused by failing to assume the accounts `adminRoleArn`
+- Fix nuke config, to properly remove policy attachments
+
+## v0.10.0
+
+**BREAKING**
+
+- Rename `Principal` --> `User`; `Assignment` --> `Lease`. Includes:
+  - Create new `RedboxLease` table, migrate data from `RedboxAccountAssignment` table
+    - Note that in this release, both tables exist in order to allow for migrations. The `RedboxAccountAssignment` is deprecated, and will destroyed in a subsequent release.
+  - Rename lamdba functions
+  - Refactor code to use new terminology
+  - Update API `/leases` endpoints, to use `"principalId"` instead of `"userId"`
+
+## v0.9.2
+
+- Do not nuke AWS*{{id}}\Service or AWS*{{id}}\Read Roles during reset
+- Fix CloudWatch alarms to notify after a single failed CodeBuild/Lambda execution
+
+## v0.9.1
+
+- Add terraform outputs for "account-created" and "account-deleted" SNS topics
+
+## v0.9.0
+
+- Add a `DELETE /accounts/{id}` endpoint
+  - Removes account from account pool
+  - Publishes _account-deleted_ SNS message
+  - Delete the IAM Role for the Redbox principal
+  - Queues account for reset
+- Add `POST /accounts` endpoint"
+  - Adds accounts to account pool
+  - Publishes _account-created_ SNS message
+  - Creates an IAM Role for the Redbox Principal
+  - Queues account for reset (initial cleanup)
+- Update nuke implementation for `cmd/codebuild/reset`
+  - Add functionality to pull a configuration yaml file from an S3 Bucket Object to use for nuke.
   - Add filters for the Account's Admin and User Role in nuke.
   - Rename environment variables used for for nuke.
-- Update Storager interface and S3 implementation
+- Update `Storager` interface and S3 implementation
   - Add `Download` function for downloading an S3 Bucket Object for locally
   - Add acceptance tests for S3 implementation
-- Adds a `DELETE /accounts/{id}` endpoint
-- Add `POST /accounts` endpoint, to add new AWS accounts to the pool
 
 ## v0.8.0
 
-- Updated scripts/migration/v0.7.0_remove_group_id.go to remove Limit to Update clause
+- Updated scripts/migration/v0.7.0_remove_git group_id.go to remove Limit to Update clause
 - Add CloudWatch alarm for reset failures (CodeBuild)
 - Add `GET /accounts` resource and lambda
 - Add `Get /accounts/{id}` endpoint to above
@@ -36,8 +128,8 @@
   published to and be consumed by implementers.
 - acctmgr
   - Remove usage of JWT, the body of the request should
-    contain the `userId` in json form that is used as the requestor's
-    `UserID`.
+    contain the `principalId` in json form that is used as the requestor's
+    `PrincipalID`.
   - Sends the create/updated Assignment to the respecitve SNS
     Topic.
   - Response messages are in JSON form. If the request was

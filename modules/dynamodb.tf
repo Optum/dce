@@ -28,7 +28,7 @@ resource "aws_dynamodb_table" "redbox_account" {
 
   # Status of the Account
   # May be one of:
-  #   - ASSIGNED
+  #   - LEASED
   #   - READY
   #   - NOT_READY
   attribute {
@@ -44,12 +44,12 @@ resource "aws_dynamodb_table" "redbox_account" {
   */
 }
 
-resource "aws_dynamodb_table" "redbox_account_assignment" {
-  name             = "RedboxAccountAssignment${title(var.namespace)}"
+resource "aws_dynamodb_table" "redbox_lease" {
+  name             = "RedboxLease${title(var.namespace)}"
   read_capacity    = 5
   write_capacity   = 5
   hash_key         = "AccountId"
-  range_key        = "UserId"
+  range_key        = "PrincipalId"
   stream_enabled   = true
   stream_view_type = "NEW_AND_OLD_IMAGES"
 
@@ -58,16 +58,16 @@ resource "aws_dynamodb_table" "redbox_account_assignment" {
   }
 
   global_secondary_index {
-    name            = "UserId"
-    hash_key        = "UserId"
+    name            = "PrincipalId"
+    hash_key        = "PrincipalId"
     projection_type = "ALL"
     read_capacity   = 5
     write_capacity  = 5
   }
 
   global_secondary_index {
-    name            = "AssignmentStatus"
-    hash_key        = "AssignmentStatus"
+    name            = "LeaseStatus"
+    hash_key        = "LeaseStatus"
     projection_type = "ALL"
     read_capacity   = 5
     write_capacity  = 5
@@ -79,20 +79,20 @@ resource "aws_dynamodb_table" "redbox_account_assignment" {
     type = "S"
   }
 
-  # Assignment status.
+  # Lease status.
   # May be one of:
   # - ACTIVE
   # - FINANCE_LOCK
   # - RESET_LOCK
   # - DECOMMISSIONED
   attribute {
-    name = "AssignmentStatus"
+    name = "LeaseStatus"
     type = "S"
   }
 
-  # User ID
+  # Principal ID
   attribute {
-    name = "UserId"
+    name = "PrincipalId"
     type = "S"
   }
 
@@ -101,6 +101,6 @@ resource "aws_dynamodb_table" "redbox_account_assignment" {
   Other attributes:
     - CreatedOn (Integer, epoch timestamps)
     - LastModifiedOn (Integer, epoch timestamps)
+    - LeaseStatusModifiedOn (Integer, epoch timestamps)
   */
 }
-

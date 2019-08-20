@@ -2,7 +2,8 @@
 set -euxo pipefail
 
 # Check Go Formatting
-test -z "$(go fmt ./...)"
+gofmtout=$(go fmt ./...)
+test -z "${gofmtout}"
 
 # Run Golint
 golangci-lint run --disable-all -E golint ./pkg/...
@@ -13,4 +14,12 @@ golangci-lint run --disable-all -E golint ./tests/...
 terraform fmt -check=true ./modules/
 
 # Run tflint
-tflint --deep --error-with-issues modules
+cd modules
+function moveBackBackend {
+  mv ./backend.tf{.bak,} || true
+}
+trap moveBackBackend EXIT
+# Move backend.tf, so we can tf init in a CI environment
+mv -f ./backend.tf{,.bak} || true
+terraform init
+tflint --deep --error-with-issues ./

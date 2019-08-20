@@ -2,6 +2,8 @@ package reset
 
 import (
 	"errors"
+	"github.com/Optum/Redbox/pkg/common"
+	"github.com/stretchr/testify/require"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws/client"
@@ -10,11 +12,12 @@ import (
 	"github.com/rebuy-de/aws-nuke/cmd"
 	"github.com/rebuy-de/aws-nuke/pkg/awsutil"
 	"github.com/rebuy-de/aws-nuke/pkg/config"
-	"github.com/stretchr/testify/assert"
 )
 
 // mockTokenService is a mocked implementation of TokenService
-type mockTokenService struct{}
+type mockTokenService struct {
+	common.TokenService
+}
 
 // AssumeRole returns a mocked *sts.AssumeRoleOutput
 func (token mockTokenService) AssumeRole(input *sts.AssumeRoleInput) (
@@ -84,8 +87,8 @@ func (nuke mockNukeService) Run(cmd *cmd.Nuke) error {
 
 // testNukeAccountInput is the testing infrastructure used to test NukeAccount
 type testNukeAccountInput struct {
-	Input *NukeAccountInput
-	Error error
+	Input         *NukeAccountInput
+	ExpectedError string
 }
 
 // TestNuke verifies that the Nuke works as intended with the provided Nuke
@@ -103,7 +106,6 @@ func TestNukeAccount(t *testing.T) {
 				Token:      mockTokenService{},
 				Nuke:       mockNukeService{},
 			},
-			Error: nil,
 		},
 		// AssumeRole error
 		{
@@ -115,7 +117,7 @@ func TestNukeAccount(t *testing.T) {
 				Token:      mockTokenService{},
 				Nuke:       mockNukeService{},
 			},
-			Error: errors.New("Error: Failed to Assume Role"),
+			ExpectedError: "Error: Failed to Assume Role",
 		},
 		// NewAccount error
 		{
@@ -127,7 +129,7 @@ func TestNukeAccount(t *testing.T) {
 				Token:      mockTokenService{},
 				Nuke:       mockNukeService{},
 			},
-			Error: errors.New("Error: Failed to create a New Account"),
+			ExpectedError: "Error: Failed to create a New Account",
 		},
 		// Load error
 		{
@@ -139,7 +141,7 @@ func TestNukeAccount(t *testing.T) {
 				Token:      mockTokenService{},
 				Nuke:       mockNukeService{},
 			},
-			Error: errors.New("Error: Failed to Load Configuration"),
+			ExpectedError: "Error: Failed to Load Configuration",
 		},
 		// Run error
 		{
@@ -151,7 +153,7 @@ func TestNukeAccount(t *testing.T) {
 				Token:      mockTokenService{},
 				Nuke:       mockNukeService{},
 			},
-			Error: errors.New("Error: Failed to Run"),
+			ExpectedError: "Error: Failed to Run",
 		},
 	}
 
@@ -161,6 +163,11 @@ func TestNukeAccount(t *testing.T) {
 		err := NukeAccount(test.Input)
 
 		// Assert that error is expected correctly
-		assert.Equal(t, err, test.Error)
+		if test.ExpectedError == "" {
+			require.Nil(t, err)
+		} else {
+			require.NotNil(t, err)
+			require.Regexp(t, test.ExpectedError, err.Error())
+		}
 	}
 }

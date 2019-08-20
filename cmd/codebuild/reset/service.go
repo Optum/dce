@@ -38,10 +38,11 @@ type service struct {
 }
 
 type serviceConfig struct {
-	accountID            string
-	accountUserRoleName  string
-	accountAdminRoleName string
-	accountAdminRoleARN  string
+	accountID                  string
+	accountPrincipalRoleName   string
+	accountPrincipalPolicyName string
+	accountAdminRoleName       string
+	accountAdminRoleARN        string
 
 	isNukeEnabled       bool
 	nukeTemplateDefault string
@@ -59,13 +60,14 @@ func (svc *service) config() *serviceConfig {
 	if _config != nil {
 		return _config
 	}
-	accountAdminRoleName := common.RequireEnv("RESET_ACCOUNT_ADMIN_ROLE")
+	accountAdminRoleName := common.RequireEnv("RESET_ACCOUNT_ADMIN_ROLE_NAME")
 	accountID := common.RequireEnv("RESET_ACCOUNT")
 	_config = &serviceConfig{
-		accountID:            accountID,
-		accountUserRoleName:  common.RequireEnv("RESET_ACCOUNT_USER_ROLE"),
-		accountAdminRoleName: accountAdminRoleName,
-		accountAdminRoleARN:  "arn:aws:iam::" + accountID + ":role/" + accountAdminRoleName,
+		accountID:                  accountID,
+		accountPrincipalRoleName:   common.RequireEnv("RESET_ACCOUNT_PRINCIPAL_ROLE_NAME"),
+		accountPrincipalPolicyName: common.RequireEnv("RESET_ACCOUNT_PRINCIPAL_POLICY_NAME"),
+		accountAdminRoleName:       accountAdminRoleName,
+		accountAdminRoleARN:        "arn:aws:iam::" + accountID + ":role/" + accountAdminRoleName,
 
 		isNukeEnabled:       os.Getenv("RESET_NUKE_TOGGLE") != "false",
 		nukeTemplateDefault: common.RequireEnv("RESET_NUKE_TEMPLATE_DEFAULT"),
@@ -79,6 +81,12 @@ func (svc *service) config() *serviceConfig {
 		launchpadBackend:       common.RequireEnv("RESET_LAUNCHPAD_BACKEND"),
 	}
 	return _config
+}
+
+// setConfig overrides the configuration used by the service struct.
+// should only be used for testing
+func (svc *service) setConfig(config *serviceConfig) {
+	_config = config
 }
 
 func (svc *service) awsSession() *session.Session {
@@ -113,7 +121,7 @@ func (svc *service) ssmService() *common.SSM {
 	return _ssmService
 }
 
-func (svc *service) _s3Service() *common.S3 {
+func (svc *service) s3Service() *common.S3 {
 	if _s3Service == nil {
 		_s3Service = &common.S3{
 			Client:  s3.New(svc.awsSession()),
@@ -135,11 +143,11 @@ func (svc *service) launchpadAPI() *reset.LaunchpadAPI {
 	ssmService := svc.ssmService()
 	clientID, err := ssmService.GetParameter(&keyID)
 	if err != nil {
-		log.Fatalf("%s  :  %s\n", config.accountID, err)
+		log.Fatalf("Failed to load SSM param at %s: %s", keyID, err)
 	}
 	clientSecret, err := ssmService.GetParameter(&keySecret)
 	if err != nil {
-		log.Fatalf("%s  :  %s\n", config.accountID, err)
+		log.Fatalf("Failed to load SSM param at %s: %s", keySecret, err)
 	}
 
 	// Create the Storage service under the assumed role
@@ -183,7 +191,7 @@ func (svc *service) db() *db.DB {
 	}
 	_db, err := db.NewFromEnv()
 	if err != nil {
-		log.Fatalf("%s  :  %s\n", svc.config().accountID, err)
+		log.Fatalf("Failed to initialize DB Service:  %s", err)
 	}
 	return _db
 }

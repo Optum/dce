@@ -16,27 +16,27 @@ func TestAccountsRouter(t *testing.T) {
 	require.True(t, true, "Placeholder assertion")
 
 	t.Run("When handling a GET /accounts request", func(t *testing.T) {
-		mockGetAccountsController := mocks.Controller{}
-		mockGetAccountsController.On("Call", mock.Anything, mock.Anything).Return(response.CreateAPIResponse(200, "Hello World"), nil)
+		mockListController := mocks.Controller{}
+		mockListController.On("Call", mock.Anything, mock.Anything).Return(response.CreateAPIResponse(200, "Hello World"), nil)
 		mockRequest := events.APIGatewayProxyRequest{HTTPMethod: http.MethodGet, Path: "/accounts"}
 
 		router := Router{
-			GetAccountsController: &mockGetAccountsController,
+			ListController: &mockListController,
 		}
 
 		result, err := router.route(context.TODO(), &mockRequest)
 		require.Nil(t, err)
 
-		require.Equal(t, "Hello World", result.Body, "it calls GetAccountsController")
+		require.Equal(t, "Hello World", result.Body, "it calls ListController")
 	})
 
 	t.Run("When handling a GET /accounts/{id} request", func(t *testing.T) {
-		mockGetAccountsController := mocks.Controller{}
-		mockGetAccountsController.On("Call", mock.Anything, mock.Anything).Return(response.CreateAPIResponse(200, "Hello World"), nil)
+		mockGetController := mocks.Controller{}
+		mockGetController.On("Call", mock.Anything, mock.Anything).Return(response.CreateAPIResponse(200, "Hello World"), nil)
 		mockRequest := events.APIGatewayProxyRequest{HTTPMethod: http.MethodGet, Path: "/accounts/123456789"}
 
 		router := Router{
-			GetAccountByIDController: &mockGetAccountsController,
+			GetController: &mockGetController,
 		}
 
 		result, err := router.route(context.TODO(), &mockRequest)
@@ -46,12 +46,12 @@ func TestAccountsRouter(t *testing.T) {
 	})
 
 	t.Run("When handling a DELETE /accounts/{id} request", func(t *testing.T) {
-		mockGetAccountsController := mocks.Controller{}
-		mockGetAccountsController.On("Call", mock.Anything, mock.Anything).Return(response.CreateAPIResponse(204, "Goodbye World"), nil)
+		mockDeleteController := mocks.Controller{}
+		mockDeleteController.On("Call", mock.Anything, mock.Anything).Return(response.CreateAPIResponse(204, "Goodbye World"), nil)
 		mockRequest := events.APIGatewayProxyRequest{HTTPMethod: http.MethodDelete, Path: "/accounts/123456789"}
 
 		router := Router{
-			DeleteAccountController: &mockGetAccountsController,
+			DeleteController: &mockDeleteController,
 		}
 
 		result, err := router.route(context.TODO(), &mockRequest)
@@ -64,7 +64,7 @@ func TestAccountsRouter(t *testing.T) {
 	t.Run("When handling an unsupported endpoint", func(t *testing.T) {
 		mockRequest := events.APIGatewayProxyRequest{HTTPMethod: http.MethodGet, Path: "/unsupported"}
 		router := Router{
-			GetAccountsController: &mocks.Controller{},
+			ListController: &mocks.Controller{},
 		}
 
 		result, err := router.route(context.TODO(), &mockRequest)

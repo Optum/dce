@@ -1,10 +1,21 @@
 #!/bin/bash
 set -euxo pipefail
 
+# Accept a Lambda names as the first argument,
+# to only build a single lambda
+set +u
+lambda_target=${1}
+if [[ -z ${lambda_target} ]]; then
+  lambda_dirs=$(ls -d cmd/lambda/*)
+else
+  lambda_dirs=$(ls -d cmd/lambda/${lambda_target})
+fi
+set -u
+
 # Build all Lambda functions
 # Looks for `/cmd/lambda/<name>/main.go`
 # and packages into `/bin/lambda/<name>.zip`
-for i in $(ls -d cmd/lambda/*)
+for i in ${lambda_dirs}
 do
 if [ -e $i/main.go ];then
     mod_name=`basename $i`

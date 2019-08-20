@@ -46,7 +46,7 @@ type LaunchpadStateFile struct {
 }
 
 // Setup implementation to reset any existing Terraform Statefiles created by
-// Launchpad. This applies an empty state file with just a version assignment
+// Launchpad. This applies an empty state file with just a version lease
 func (lp LaunchpadAPI) Setup(accountID string) error {
 	// Get the Current State File
 	key := fmt.Sprintf("bootstrap-launchpad-%s/terraform.state", accountID)

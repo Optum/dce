@@ -3,6 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/Optum/Redbox/pkg/rolemanager"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/iam"
 	"log"
 	"net/http"
 	"strings"
@@ -22,26 +25,35 @@ import (
 
 // Router structure holds AccountController instance for request
 type Router struct {
-	GetAccountsController    api.Controller
-	DeleteAccountController  api.Controller
-	GetAccountByIDController api.Controller
-	CreateAccountController  api.Controller
+	ListController   api.Controller
+	DeleteController api.Controller
+	GetController    api.Controller
+	CreateController api.Controller
 }
 
 func (router *Router) route(ctx context.Context, req *events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	var res events.APIGatewayProxyResponse
+	var err error
 	switch {
 	case req.HTTPMethod == http.MethodGet && strings.Compare(req.Path, "/accounts") == 0:
-		return router.GetAccountsController.Call(ctx, req)
+		res, err = router.ListController.Call(ctx, req)
 	case req.HTTPMethod == http.MethodGet && strings.Contains(req.Path, "/accounts/"):
-		return router.GetAccountByIDController.Call(ctx, req)
+		res, err = router.GetController.Call(ctx, req)
 	case req.HTTPMethod == http.MethodDelete && strings.Contains(req.Path, "/accounts/"):
-		return router.DeleteAccountController.Call(ctx, req)
+		res, err = router.DeleteController.Call(ctx, req)
 	case req.HTTPMethod == http.MethodPost && strings.Compare(req.Path, "/accounts") == 0:
-		return router.CreateAccountController.Call(ctx, req)
+		res, err = router.CreateController.Call(ctx, req)
 	default:
-		return response.CreateAPIErrorResponse(http.StatusNotFound, response.CreateErrorResponse(
-			"NotFound", "Not found")), nil
+		return response.NotFoundError(), nil
 	}
+
+	// Handle errors returned by controllers
+	if err != nil {
+		log.Printf("Controller error: %s", err)
+		return response.ServerError(), nil
+	}
+
+	return res, nil
 }
 
 func main() {
@@ -54,17 +66,40 @@ func main() {
 
 	// Configure the Router + Controllers
 	router := &Router{
-		GetAccountsController:    getAccountsController{Dao: dao},
-		GetAccountByIDController: getAccountByIDController{Dao: dao},
-		DeleteAccountController:  deleteAccountController{Dao: dao},
-		CreateAccountController: createAccountController{
+		ListController: listController{Dao: dao},
+		GetController:  getController{Dao: dao},
+		DeleteController: deleteController{
 			Dao:                    dao,
 			Queue:                  queue,
 			ResetQueueURL:          common.RequireEnv("RESET_SQS_URL"),
 			SNS:                    snsSvc,
-			AccountCreatedTopicArn: common.RequireEnv("ACCOUNT_CREATED_TOPIC_ARN"),
-			AWSSession:             *awsSession,
+			AccountDeletedTopicArn: common.RequireEnv("ACCOUNT_DELETED_TOPIC_ARN"),
 			TokenService:           tokenSvc,
+			AWSSession:             *awsSession,
+			RoleManager:            &rolemanager.IAMRoleManager{},
+			PrincipalRoleName:      common.RequireEnv("PRINCIPAL_ROLE_NAME"),
+			PrincipalPolicyName:    common.RequireEnv("PRINCIPAL_POLICY_NAME"),
+		},
+		CreateController: createController{
+			Dao:                         dao,
+			Queue:                       queue,
+			ResetQueueURL:               common.RequireEnv("RESET_SQS_URL"),
+			SNS:                         snsSvc,
+			AccountCreatedTopicArn:      common.RequireEnv("ACCOUNT_CREATED_TOPIC_ARN"),
+			AWSSession:                  *awsSession,
+			TokenService:                tokenSvc,
+			RoleManager:                 &rolemanager.IAMRoleManager{},
+			PrincipalRoleName:           common.RequireEnv("PRINCIPAL_ROLE_NAME"),
+			PrincipalPolicyName:         common.RequireEnv("PRINCIPAL_POLICY_NAME"),
+			PrincipalIAMDenyTags:        strings.Split(common.RequireEnv("PRINCIPAL_IAM_DENY_TAGS"), ","),
+			PrincipalMaxSessionDuration: int64(common.RequireEnvInt("PRINCIPAL_MAX_SESSION_DURATION")),
+			Tags: []*iam.Tag{
+				{Key: aws.String("Terraform"), Value: aws.String("False")},
+				{Key: aws.String("Source"), Value: aws.String("github.com/Optum/Redbox//cmd/lambda/accounts")},
+				{Key: aws.String("Environment"), Value: aws.String(common.RequireEnv("TAG_ENVIRONMENT"))},
+				{Key: aws.String("Contact"), Value: aws.String(common.RequireEnv("TAG_CONTACT"))},
+				{Key: aws.String("AppName"), Value: aws.String(common.RequireEnv("TAG_APP_NAME"))},
+			},
 		},
 	}
 

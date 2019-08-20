@@ -11,35 +11,21 @@ type DBer struct {
 }
 
 // DeleteAccount provides a mock function with given fields: accountID
-func (_m *DBer) DeleteAccount(accountID string) error {
+func (_m *DBer) DeleteAccount(accountID string) (*db.RedboxAccount, error) {
 	ret := _m.Called(accountID)
 
-	var r0 error
-	if rf, ok := ret.Get(0).(func(string) error); ok {
+	var r0 *db.RedboxAccount
+	if rf, ok := ret.Get(0).(func(string) *db.RedboxAccount); ok {
 		r0 = rf(accountID)
 	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// FindAssignmentByUser provides a mock function with given fields: userID
-func (_m *DBer) FindAssignmentByUser(userID string) ([]*db.RedboxAccountAssignment, error) {
-	ret := _m.Called(userID)
-
-	var r0 []*db.RedboxAccountAssignment
-	if rf, ok := ret.Get(0).(func(string) []*db.RedboxAccountAssignment); ok {
-		r0 = rf(userID)
-	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]*db.RedboxAccountAssignment)
+			r0 = ret.Get(0).(*db.RedboxAccount)
 		}
 	}
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(string) error); ok {
-		r1 = rf(userID)
+		r1 = rf(accountID)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -47,22 +33,114 @@ func (_m *DBer) FindAssignmentByUser(userID string) ([]*db.RedboxAccountAssignme
 	return r0, r1
 }
 
-// FindAssignmentsByAccount provides a mock function with given fields: accountID
-func (_m *DBer) FindAssignmentsByAccount(accountID string) ([]*db.RedboxAccountAssignment, error) {
+// FindAccountsByPrincipalID provides a mock function with given fields: principalID
+func (_m *DBer) FindAccountsByPrincipalID(principalID string) ([]*db.RedboxAccount, error) {
+	ret := _m.Called(principalID)
+
+	var r0 []*db.RedboxAccount
+	if rf, ok := ret.Get(0).(func(string) []*db.RedboxAccount); ok {
+		r0 = rf(principalID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*db.RedboxAccount)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(principalID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// FindAccountsByStatus provides a mock function with given fields: status
+func (_m *DBer) FindAccountsByStatus(status db.AccountStatus) ([]*db.RedboxAccount, error) {
+	ret := _m.Called(status)
+
+	var r0 []*db.RedboxAccount
+	if rf, ok := ret.Get(0).(func(db.AccountStatus) []*db.RedboxAccount); ok {
+		r0 = rf(status)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*db.RedboxAccount)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(db.AccountStatus) error); ok {
+		r1 = rf(status)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// FindLeasesByAccount provides a mock function with given fields: accountID
+func (_m *DBer) FindLeasesByAccount(accountID string) ([]*db.RedboxLease, error) {
 	ret := _m.Called(accountID)
 
-	var r0 []*db.RedboxAccountAssignment
-	if rf, ok := ret.Get(0).(func(string) []*db.RedboxAccountAssignment); ok {
+	var r0 []*db.RedboxLease
+	if rf, ok := ret.Get(0).(func(string) []*db.RedboxLease); ok {
 		r0 = rf(accountID)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]*db.RedboxAccountAssignment)
+			r0 = ret.Get(0).([]*db.RedboxLease)
 		}
 	}
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(string) error); ok {
 		r1 = rf(accountID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// FindLeasesByPrincipal provides a mock function with given fields: principalID
+func (_m *DBer) FindLeasesByPrincipal(principalID string) ([]*db.RedboxLease, error) {
+	ret := _m.Called(principalID)
+
+	var r0 []*db.RedboxLease
+	if rf, ok := ret.Get(0).(func(string) []*db.RedboxLease); ok {
+		r0 = rf(principalID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*db.RedboxLease)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(principalID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// FindLeasesByStatus provides a mock function with given fields: status
+func (_m *DBer) FindLeasesByStatus(status db.LeaseStatus) ([]*db.RedboxLease, error) {
+	ret := _m.Called(status)
+
+	var r0 []*db.RedboxLease
+	if rf, ok := ret.Get(0).(func(db.LeaseStatus) []*db.RedboxLease); ok {
+		r0 = rf(status)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*db.RedboxLease)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(db.LeaseStatus) error); ok {
+		r1 = rf(status)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -176,21 +254,21 @@ func (_m *DBer) PutAccount(account db.RedboxAccount) error {
 	return r0
 }
 
-// PutAccountAssignment provides a mock function with given fields: account
-func (_m *DBer) PutAccountAssignment(account db.RedboxAccountAssignment) (*db.RedboxAccountAssignment, error) {
+// PutLease provides a mock function with given fields: account
+func (_m *DBer) PutLease(account db.RedboxLease) (*db.RedboxLease, error) {
 	ret := _m.Called(account)
 
-	var r0 *db.RedboxAccountAssignment
-	if rf, ok := ret.Get(0).(func(db.RedboxAccountAssignment) *db.RedboxAccountAssignment); ok {
+	var r0 *db.RedboxLease
+	if rf, ok := ret.Get(0).(func(db.RedboxLease) *db.RedboxLease); ok {
 		r0 = rf(account)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*db.RedboxAccountAssignment)
+			r0 = ret.Get(0).(*db.RedboxLease)
 		}
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(db.RedboxAccountAssignment) error); ok {
+	if rf, ok := ret.Get(1).(func(db.RedboxLease) error); ok {
 		r1 = rf(account)
 	} else {
 		r1 = ret.Error(1)
@@ -222,25 +300,39 @@ func (_m *DBer) TransitionAccountStatus(accountID string, prevStatus db.AccountS
 	return r0, r1
 }
 
-// TransitionAssignmentStatus provides a mock function with given fields: accountID, userID, prevStatus, nextStatus
-func (_m *DBer) TransitionAssignmentStatus(accountID string, userID string, prevStatus db.AssignmentStatus, nextStatus db.AssignmentStatus) (*db.RedboxAccountAssignment, error) {
-	ret := _m.Called(accountID, userID, prevStatus, nextStatus)
+// TransitionLeaseStatus provides a mock function with given fields: accountID, principalID, prevStatus, nextStatus
+func (_m *DBer) TransitionLeaseStatus(accountID string, principalID string, prevStatus db.LeaseStatus, nextStatus db.LeaseStatus) (*db.RedboxLease, error) {
+	ret := _m.Called(accountID, principalID, prevStatus, nextStatus)
 
-	var r0 *db.RedboxAccountAssignment
-	if rf, ok := ret.Get(0).(func(string, string, db.AssignmentStatus, db.AssignmentStatus) *db.RedboxAccountAssignment); ok {
-		r0 = rf(accountID, userID, prevStatus, nextStatus)
+	var r0 *db.RedboxLease
+	if rf, ok := ret.Get(0).(func(string, string, db.LeaseStatus, db.LeaseStatus) *db.RedboxLease); ok {
+		r0 = rf(accountID, principalID, prevStatus, nextStatus)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*db.RedboxAccountAssignment)
+			r0 = ret.Get(0).(*db.RedboxLease)
 		}
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(string, string, db.AssignmentStatus, db.AssignmentStatus) error); ok {
-		r1 = rf(accountID, userID, prevStatus, nextStatus)
+	if rf, ok := ret.Get(1).(func(string, string, db.LeaseStatus, db.LeaseStatus) error); ok {
+		r1 = rf(accountID, principalID, prevStatus, nextStatus)
 	} else {
 		r1 = ret.Error(1)
 	}
 
 	return r0, r1
+}
+
+// UpdateMetadata provides a mock function with given fields: accountID, metadata
+func (_m *DBer) UpdateMetadata(accountID string, metadata map[string]interface{}) error {
+	ret := _m.Called(accountID, metadata)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, map[string]interface{}) error); ok {
+		r0 = rf(accountID, metadata)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
 }
