@@ -12,7 +12,7 @@ steps:
     addToPath: true
     architecture: 'x64'
 
-- task: CmdLine@2
+- task: AWSCLI@2
   inputs:
     script: 'pip install awscli'
 - task: AWSCLI@1
