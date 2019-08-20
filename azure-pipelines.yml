@@ -39,7 +39,7 @@ steps:
     workingDirectory: './modules'
     backendServiceAWS: 'AWS_Terraform_Connection'
     backendAWSBucketName: '391501768339-redbox-tfstate'
-    backendAWSKey: 'pr-876/terraform.tfstate'
+    backendAWSKey: 'pr-$(System.PullRequest.PullRequestNumber)/terraform.tfstate'
 
 - task: TerraformTaskV1@0
   displayName: 'terraform apply'
@@ -47,7 +47,7 @@ steps:
     provider: 'aws'
     command: 'apply'
     workingDirectory: './modules'
-    commandOptions: '-var="namespace=pr-876" -var="budget_notification_from_email=Test@Test.com"'
+    commandOptions: '-var="namespace=pr-$(System.PullRequest.PullRequestNumber)" -var="budget_notification_from_email=Test@Test.com"'
     environmentServiceNameAWS: 'AWS_Terraform_Connection'
 
 - task: GoTool@0
