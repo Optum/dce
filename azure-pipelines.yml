@@ -7,7 +7,7 @@ pr:
 
 steps:
 
-- bash: echo This is a script that maps System.PullRequest.PullRequestNumber into the pipeline using a variable
+- bash: echo $PRNUMBER
   env:
     PRNUMBER: $(System.PullRequest.PullRequestNumber)
 
