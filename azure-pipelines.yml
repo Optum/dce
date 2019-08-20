@@ -29,22 +29,22 @@ steps:
   condition: always()
 
 - task: TerraformTaskV1@0
+  displayName: 'terraform init'
   inputs:
     provider: 'aws'
     command: 'init'
+    workingDirectory: './modules'
     backendServiceAWS: 'AWS_Terraform_Connection'
     backendAWSBucketName: '391501768339-redbox-tfstate'
-    backendAWSKey: 'AzureDevops/terraform.tfstate'
-- task: Bash@3
-  displayName: 'Terraform init'    
+    backendAWSKey: 'AzureDevops/terraform.tfstate''
+
+- task: TerraformTaskV1@0
+  displayName: 'terraform apply'
   inputs:
-    targetType: 'inline'
-    script: |
-      # Write your commands here
-      cd ./modules
-      terraform init -backend-config='bucket=391501768339-redbox-tfstate' \
-                     -backend-config='key=AzureDevops/terraform.tfstate'
-  condition: always()
+    provider: 'aws'
+    command: 'apply'
+    workingDirectory: './modules'
+    environmentServiceNameAWS: 'AWS_Terraform_Connection'
 
 - task: GoTool@0
   inputs:
