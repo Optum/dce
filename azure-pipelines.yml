@@ -57,3 +57,13 @@ steps:
     workingDirectory: './modules'
     commandOptions: '-var="namespace=pr-$(System.PullRequest.PullRequestNumber)" -var="budget_notification_from_email=Test@Test.com"'
     environmentServiceNameAWS: 'AWS_Terraform_Connection'
+
+- task: ManualIntervention@8
+  inputs:
+    instructions: 'Are you ok with Terraform destroy?'
+- task: TerraformTaskV1@0
+  inputs:
+    provider: 'aws'
+    command: 'destroy'
+    workingDirectory: './modules'
+    environmentServiceNameAWS: 'AWS_Terraform_Connection'
