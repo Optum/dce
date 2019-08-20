@@ -21,10 +21,6 @@ steps:
     ./scripts/install_ci.sh
   displayName: 'Set up Golang CI Tools'
 
-#- script: |
-#    make lint
-#  displayName: 'Run lint'    
-
 - script: |
     ./scripts/test.sh
   displayName: 'Run Tests'
