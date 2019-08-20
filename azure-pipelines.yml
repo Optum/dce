@@ -17,7 +17,7 @@ steps:
   displayName: 'Add AWS CLI'
   inputs:
     script: |
-      echo '$(System.PullRequest.PullRequestNumber)'
+      echo $(System.PullRequest.PullRequestNumber)
       pip install awscli
 - task: AWSCLI@1
   inputs:
