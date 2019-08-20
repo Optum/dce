@@ -59,6 +59,7 @@ steps:
     environmentServiceNameAWS: 'AWS_Terraform_Connection'
 
 - task: TerraformTaskV1@0
+  displayName: 'terraform destroy'
   inputs:
     provider: 'aws'
     command: 'destroy'
