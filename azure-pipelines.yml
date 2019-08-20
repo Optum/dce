@@ -29,6 +29,10 @@ steps:
     ./scripts/test.sh
   displayName: 'Run Tests'
 
+- script: |
+    make build
+  displayName: 'Make build'    
+
 - task: PublishTestResults@2
   inputs:
     testRunner: JUnit
