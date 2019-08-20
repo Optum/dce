@@ -28,6 +28,13 @@ steps:
     terraformVersion: '0.12.0'
   condition: always()
 
+- task: TerraformTaskV1@0
+  inputs:
+    provider: 'aws'
+    command: 'init'
+    backendServiceAWS: 'AWS_Terraform_Connection'
+    backendAWSBucketName: '391501768339-redbox-tfstate'
+    backendAWSKey: 'AzureDevops/terraform.tfstate'
 - task: Bash@3
   displayName: 'Terraform init'    
   inputs:
