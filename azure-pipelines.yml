@@ -11,6 +11,10 @@ steps:
     versionSpec: '3.x'
     addToPath: true
     architecture: 'x64'
+
+- task: CmdLine@2
+  inputs:
+    script: 'pip install awscli'
 - task: AWSCLI@1
   inputs:
     awsCredentials: 'AWS_Login'
