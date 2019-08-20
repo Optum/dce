@@ -7,30 +7,37 @@ pr:
 
 steps:
 
-- task: UsePythonVersion@0
-  displayName: 'Use Python version 3'
-  inputs:
-    versionSpec: '3.x'
-    addToPath: true
-    architecture: 'x64'
-
-- task: CmdLine@2
-  displayName: 'Add AWS CLI'
-  inputs:
-    script: |
-      echo $(System.PullRequest.PullRequestNumber)
-      pip install awscli
-- task: AWSCLI@1
-  inputs:
-    awsCredentials: 'AWS_Login'
-    regionName: 'us-east-1'
-    awsCommand: 's3'
-    awsSubCommand: 'ls'
-  condition: always()
 - task: TerraformInstaller@0
   inputs:
     terraformVersion: '0.12.0'
   condition: always()
+
+- task: GoTool@0
+  inputs:
+    version: '1.12.6'
+  displayName: 'Set up the Go workspace'
+
+- script: |
+    ./scripts/install_ci.sh
+  displayName: 'Set up Golang CI Tools'
+
+#- script: |
+#    make lint
+#  displayName: 'Run lint'    
+
+- script: |
+    ./scripts/test.sh
+  displayName: 'Run Tests'
+
+- task: PublishTestResults@2
+  inputs:
+    testRunner: JUnit
+    testResultsFiles: $(System.DefaultWorkingDirectory)/junit-report/report.xml
+
+- task: PublishCodeCoverageResults@1
+  inputs:
+    codeCoverageTool: Cobertura 
+    summaryFileLocation: $(System.DefaultWorkingDirectory)/coverage.xml
 
 - task: TerraformTaskV1@0
   displayName: 'terraform init'
@@ -50,31 +57,3 @@ steps:
     workingDirectory: './modules'
     commandOptions: '-var="namespace=pr-$(System.PullRequest.PullRequestNumber)" -var="budget_notification_from_email=Test@Test.com"'
     environmentServiceNameAWS: 'AWS_Terraform_Connection'
-
-- task: GoTool@0
-  inputs:
-    version: '1.12.6'
-  displayName: 'Set up the Go workspace'
-
-- script: |
-    ./scripts/install_ci.sh
-  displayName: 'Set up Golang CI Tools'
-
-- script: |
-    make lint
-  displayName: 'Run lint'    
-
-- script: |
-    ./scripts/test.sh
-  displayName: 'Run Tests'
-
-- task: PublishTestResults@2
-  inputs:
-    testRunner: JUnit
-    testResultsFiles: $(System.DefaultWorkingDirectory)/junit-report/report.xml
-
-- task: PublishCodeCoverageResults@1
-  inputs:
-    codeCoverageTool: Cobertura 
-    summaryFileLocation: $(System.DefaultWorkingDirectory)/coverage.xml
-
