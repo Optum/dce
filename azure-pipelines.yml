@@ -19,7 +19,7 @@ steps:
   inputs:
     awsCredentials: 'AWS_Login'
     regionName: 'us-east-1'
-    awsCommand: 'aws s3'
+    awsCommand: 's3'
     awsSubCommand: 'ls'
   condition: always()
 - task: TerraformInstaller@0
