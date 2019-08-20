@@ -44,7 +44,7 @@ steps:
     provider: 'aws'
     command: 'apply'
     workingDirectory: './modules'
-    commandOptions: '-var="namespace=AzureDevops0820" -var="budget_notification_from_email=Test@Test.com"'
+    commandOptions: '-var="namespace=pr-782" -var="budget_notification_from_email=Test@Test.com"'
     environmentServiceNameAWS: 'AWS_Terraform_Connection'
 
 - task: GoTool@0
