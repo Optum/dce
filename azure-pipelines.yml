@@ -7,7 +7,7 @@ pr:
 
 steps:
 
-- bash: echo System.TeamProject
+- bash: echo $System.TeamProject
   env:
     PRNUMBER: $(System.PullRequest.PullRequestNumber)
 
