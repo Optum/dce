@@ -44,6 +44,7 @@ steps:
     provider: 'aws'
     command: 'apply'
     workingDirectory: './modules'
+    commandOptions: 'namespace=''test'''
     environmentServiceNameAWS: 'AWS_Terraform_Connection'
 
 - task: GoTool@0
