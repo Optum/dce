@@ -36,7 +36,7 @@ steps:
     workingDirectory: './modules'
     backendServiceAWS: 'AWS_Terraform_Connection'
     backendAWSBucketName: '391501768339-redbox-tfstate'
-    backendAWSKey: 'AzureDevops/terraform.tfstate''
+    backendAWSKey: 'AzureDevops/terraform.tfstate'
 
 - task: TerraformTaskV1@0
   displayName: 'terraform apply'
