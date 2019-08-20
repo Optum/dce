@@ -32,7 +32,7 @@ steps:
 - task: PublishTestResults@2
   inputs:
     testRunner: JUnit
-    testResultsFiles: $(System.DefaultWorkingDirectory)/junit-report/report.xml
+    testResultsFiles: $(System.DefaultWorkingDirectory)/junit-report/*.xml
 
 - task: PublishCodeCoverageResults@1
   inputs:
@@ -55,7 +55,7 @@ steps:
     provider: 'aws'
     command: 'apply'
     workingDirectory: './modules'
-    commandOptions: '-var="namespace=pr-$(System.PullRequest.PullRequestNumber)" -var="budget_notification_from_email=Test@Test.com"'
+    commandOptions: '-var="namespace=pr-$(System.PullRequest.PullRequestNumber)" -var="budget_notification_from_email=$NOTIFY_EMAIL"'
     environmentServiceNameAWS: 'AWS_Terraform_Connection'
 
 - task: TerraformTaskV1@0
