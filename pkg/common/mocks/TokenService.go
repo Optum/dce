@@ -2,6 +2,7 @@
 
 package mocks
 
+import awsiface "github.com/Optum/Redbox/pkg/awsiface"
 import client "github.com/aws/aws-sdk-go/aws/client"
 
 import credentials "github.com/aws/aws-sdk-go/aws/credentials"
@@ -50,4 +51,27 @@ func (_m *TokenService) NewCredentials(_a0 client.ConfigProvider, _a1 string) *c
 	}
 
 	return r0
+}
+
+// NewSession provides a mock function with given fields: baseSession, roleArn
+func (_m *TokenService) NewSession(baseSession awsiface.AwsSession, roleArn string) (awsiface.AwsSession, error) {
+	ret := _m.Called(baseSession, roleArn)
+
+	var r0 awsiface.AwsSession
+	if rf, ok := ret.Get(0).(func(awsiface.AwsSession, string) awsiface.AwsSession); ok {
+		r0 = rf(baseSession, roleArn)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(awsiface.AwsSession)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(awsiface.AwsSession, string) error); ok {
+		r1 = rf(baseSession, roleArn)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }

@@ -12,14 +12,14 @@ data "template_file" "aws_redbox_api_swagger" {
   template = file("${path.module}/swaggerRedbox.yaml")
 
   vars = {
-    router_lambda_arn = aws_lambda_function.acctmgr.invoke_arn
+    router_lambda_arn = aws_lambda_function.leases.invoke_arn
     accounts_lambda   = aws_lambda_function.accounts_lambda.invoke_arn
     namespace         = "AWS_Redbox-${var.namespace}"
   }
 }
 
 resource "aws_lambda_permission" "allow_api_gateway" {
-  function_name = aws_lambda_function.acctmgr.arn
+  function_name = aws_lambda_function.leases.arn
   statement_id  = "AllowExecutionFromApiGateway"
   action        = "lambda:InvokeFunction"
   principal     = "apigateway.amazonaws.com"

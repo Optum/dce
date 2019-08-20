@@ -30,6 +30,9 @@ test_functional:
 build:
 	./scripts/build.sh
 
+generate:
+	go generate ./...
+
 release:
 	./scripts/release.sh \
 		--site_url github.optum.com \
@@ -39,13 +42,11 @@ release:
 		--tag $(TAG)
 
 
-deploy_local:
-	cd modules && terraform init \
-	&& terraform apply -input=false -auto-approve -var-file=local_terraform.tfvars
+deploy_local: build
+	./scripts/deploy_local/deploy_local_build.sh
 
 destroy_local:
-	cd modules && terraform init \
-	&& terraform destroy -force -var-file=local_terraform.tfvars
+	./scripts/deploy_local/destroy_local_build.sh
 
 install:
 	go install 

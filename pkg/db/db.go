@@ -26,8 +26,8 @@ type DB struct {
 	Client *dynamodb.DynamoDB
 	// Name of the RedboxAccount table
 	AccountTableName string
-	// Name of the RedboxAccountAssignment table
-	AccountAssignmentTableName string
+	// Name of the RedboxLease table
+	LeaseTableName string
 }
 
 // The DBer interface includes all methods used by the DB struct to interact with
@@ -37,13 +37,17 @@ type DBer interface {
 	GetReadyAccount() (*RedboxAccount, error)
 	GetAccountsForReset() ([]*RedboxAccount, error)
 	GetAccounts() ([]*RedboxAccount, error)
+	FindAccountsByStatus(status AccountStatus) ([]*RedboxAccount, error)
+	FindAccountsByPrincipalID(principalID string) ([]*RedboxAccount, error)
 	PutAccount(account RedboxAccount) error
-	DeleteAccount(accountID string) error
-	PutAccountAssignment(account RedboxAccountAssignment) (*RedboxAccountAssignment, error)
+	DeleteAccount(accountID string) (*RedboxAccount, error)
+	PutLease(account RedboxLease) (*RedboxLease, error)
 	TransitionAccountStatus(accountID string, prevStatus AccountStatus, nextStatus AccountStatus) (*RedboxAccount, error)
-	TransitionAssignmentStatus(accountID string, userID string, prevStatus AssignmentStatus, nextStatus AssignmentStatus) (*RedboxAccountAssignment, error)
-	FindAssignmentsByAccount(accountID string) ([]*RedboxAccountAssignment, error)
-	FindAssignmentByUser(userID string) ([]*RedboxAccountAssignment, error)
+	TransitionLeaseStatus(accountID string, principalID string, prevStatus LeaseStatus, nextStatus LeaseStatus) (*RedboxLease, error)
+	FindLeasesByAccount(accountID string) ([]*RedboxLease, error)
+	FindLeasesByPrincipal(principalID string) ([]*RedboxLease, error)
+	FindLeasesByStatus(status LeaseStatus) ([]*RedboxLease, error)
+	UpdateMetadata(accountID string, metadata map[string]interface{}) error
 }
 
 // GetAccount returns a Redbox account record corresponding to an accountID
@@ -156,19 +160,75 @@ func (db *DB) GetAccountsForReset() ([]*RedboxAccount, error) {
 	return redboxes, nil
 }
 
-// GetAssignment retrieves a AccountAssignment for the
-// given accountID and userID
-func (db *DB) GetAssignment(accountID string, userID string) (*RedboxAccountAssignment, error) {
+func (db *DB) FindAccountsByStatus(status AccountStatus) ([]*RedboxAccount, error) {
+	res, err := db.Client.Query(&dynamodb.QueryInput{
+		TableName: aws.String(db.AccountTableName),
+		IndexName: aws.String("AccountStatus"),
+		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+			":status": {
+				S: aws.String(string(status)),
+			},
+		},
+		KeyConditionExpression: aws.String("AccountStatus = :status"),
+	})
+
+	accounts := []*RedboxAccount{}
+
+	if err != nil {
+		return accounts, err
+	}
+
+	for _, item := range res.Items {
+		acct, err := unmarshalAccount(item)
+		if err != nil {
+			return accounts, err
+		}
+		accounts = append(accounts, acct)
+	}
+
+	return accounts, nil
+}
+func (db *DB) FindAccountsByPrincipalID(principalID string) ([]*RedboxAccount, error) {
+	res, err := db.Client.Query(&dynamodb.QueryInput{
+		TableName: aws.String(db.AccountTableName),
+		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+			":pid": {
+				S: aws.String(string(principalID)),
+			},
+		},
+		KeyConditionExpression: aws.String("PrincipalId = :pid"),
+	})
+
+	accounts := []*RedboxAccount{}
+
+	if err != nil {
+		return accounts, err
+	}
+
+	for _, item := range res.Items {
+		acct, err := unmarshalAccount(item)
+		if err != nil {
+			return accounts, err
+		}
+		accounts = append(accounts, acct)
+	}
+
+	return accounts, nil
+}
+
+// GetLease retrieves a Lease for the
+// given accountID and principalID
+func (db *DB) GetLease(accountID string, principalID string) (*RedboxLease, error) {
 	result, err := db.Client.GetItem(
 		&dynamodb.GetItemInput{
-			TableName: aws.String(db.AccountAssignmentTableName),
+			TableName: aws.String(db.LeaseTableName),
 			Key: map[string]*dynamodb.AttributeValue{
 				"AccountId": {
 
 					S: aws.String(accountID),
 				},
-				"UserId": {
-					S: aws.String(userID),
+				"PrincipalId": {
+					S: aws.String(principalID),
 				},
 			},
 		},
@@ -182,11 +242,11 @@ func (db *DB) GetAssignment(accountID string, userID string) (*RedboxAccountAssi
 		return nil, nil
 	}
 
-	return unmarshalAccountAssignment(result.Item)
+	return unmarshalLease(result.Item)
 }
 
-// FindAssignmentsByAccount finds assignment values for a given accountID
-func (db *DB) FindAssignmentsByAccount(accountID string) ([]*RedboxAccountAssignment, error) {
+// FindLeasesByAccount finds lease values for a given accountID
+func (db *DB) FindLeasesByAccount(accountID string) ([]*RedboxLease, error) {
 	input := &dynamodb.QueryInput{
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
 			":a1": {
@@ -194,7 +254,7 @@ func (db *DB) FindAssignmentsByAccount(accountID string) ([]*RedboxAccountAssign
 			},
 		},
 		KeyConditionExpression: aws.String("AccountId = :a1"),
-		TableName:              aws.String(db.AccountAssignmentTableName),
+		TableName:              aws.String(db.LeaseTableName),
 	}
 
 	resp, err := db.Client.Query(input)
@@ -202,9 +262,9 @@ func (db *DB) FindAssignmentsByAccount(accountID string) ([]*RedboxAccountAssign
 		return nil, err
 	}
 
-	var redboxes []*RedboxAccountAssignment
+	var redboxes []*RedboxLease
 	for _, r := range resp.Items {
-		n, err := unmarshalAccountAssignment(r)
+		n, err := unmarshalLease(r)
 		if err != nil {
 			return nil, err
 		}
@@ -214,17 +274,17 @@ func (db *DB) FindAssignmentsByAccount(accountID string) ([]*RedboxAccountAssign
 	return redboxes, nil
 }
 
-//FindAssignmentByUser finds assigned accounts for a given UserID
-func (db *DB) FindAssignmentByUser(userID string) ([]*RedboxAccountAssignment, error) {
+//FindLeasesByPrincipal finds leased accounts for a given principalID
+func (db *DB) FindLeasesByPrincipal(principalID string) ([]*RedboxLease, error) {
 	input := &dynamodb.QueryInput{
-		IndexName: aws.String("UserId"),
+		IndexName: aws.String("PrincipalId"),
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
 			":u1": {
-				S: aws.String(userID),
+				S: aws.String(principalID),
 			},
 		},
-		KeyConditionExpression: aws.String("UserId = :u1"),
-		TableName:              aws.String(db.AccountAssignmentTableName),
+		KeyConditionExpression: aws.String("PrincipalId = :u1"),
+		TableName:              aws.String(db.LeaseTableName),
 	}
 
 	resp, err := db.Client.Query(input)
@@ -237,9 +297,9 @@ func (db *DB) FindAssignmentByUser(userID string) ([]*RedboxAccountAssignment, e
 
 	fmt.Println(resp)
 
-	var redboxes []*RedboxAccountAssignment
+	var redboxes []*RedboxLease
 	for _, r := range resp.Items {
-		n, err := unmarshalAccountAssignment(r)
+		n, err := unmarshalLease(r)
 		if err != nil {
 			return nil, err
 		}
@@ -247,6 +307,35 @@ func (db *DB) FindAssignmentByUser(userID string) ([]*RedboxAccountAssignment, e
 	}
 
 	return redboxes, nil
+}
+
+func (db *DB) FindLeasesByStatus(status LeaseStatus) ([]*RedboxLease, error) {
+	res, err := db.Client.Query(&dynamodb.QueryInput{
+		IndexName: aws.String("LeaseStatus"),
+		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+			":status": {
+				S: aws.String(string(status)),
+			},
+		},
+		KeyConditionExpression: aws.String("LeaseStatus = :status"),
+		TableName:              aws.String(db.LeaseTableName),
+	})
+
+	leases := []*RedboxLease{}
+
+	if err != nil {
+		return leases, err
+	}
+
+	for _, item := range res.Items {
+		lease, err := unmarshalLease(item)
+		if err != nil {
+			return leases, err
+		}
+		leases = append(leases, lease)
+	}
+
+	return leases, nil
 }
 
 // PutAccount stores a Redbox account in DynamoDB
@@ -265,53 +354,53 @@ func (db *DB) PutAccount(account RedboxAccount) error {
 	return err
 }
 
-// PutAccountAssignment writes an AccountAssignment to DynamoDB
-// Returns the previous AccountsAssignment if there is one - does not return
-// the assignment that was added
-func (db *DB) PutAccountAssignment(accountAssignment RedboxAccountAssignment) (
-	*RedboxAccountAssignment, error) {
-	item, err := dynamodbattribute.MarshalMap(accountAssignment)
+// PutLease writes an Lease to DynamoDB
+// Returns the previous AccountsLease if there is one - does not return
+// the lease that was added
+func (db *DB) PutLease(lease RedboxLease) (
+	*RedboxLease, error) {
+	item, err := dynamodbattribute.MarshalMap(lease)
 	if err != nil {
 		return nil, err
 	}
 
 	result, err := db.Client.PutItem(
 		&dynamodb.PutItemInput{
-			TableName: aws.String(db.AccountAssignmentTableName),
+			TableName: aws.String(db.LeaseTableName),
 			Item:      item,
 		},
 	)
 	if err != nil {
 		return nil, err
 	}
-	return unmarshalAccountAssignment(result.Attributes)
+	return unmarshalLease(result.Attributes)
 }
 
-// TransitionAssignmentStatus updates an Assignment's status from prevStatus to nextStatus.
-// Will fail if the Assignment was not previously set to `prevStatus`
+// TransitionLeaseStatus updates a lease's status from prevStatus to nextStatus.
+// Will fail if the Lease was not previously set to `prevStatus`
 //
 // For example, to set a ResetLock on an account, you could call:
-//		db.TransitionAssignmentStatus(accountId, userId, Active, ResetLock)
+//		db.TransitionLeaseStatus(accountId, principalID, Active, ResetLock)
 //
 // And to unlock the account:
-//		db.TransitionAssignmentStatus(accountId, userId, ResetLock, Active)
-func (db *DB) TransitionAssignmentStatus(accountID string, userID string, prevStatus AssignmentStatus, nextStatus AssignmentStatus) (*RedboxAccountAssignment, error) {
+//		db.TransitionLeaseStatus(accountId, principalID, ResetLock, Active)
+func (db *DB) TransitionLeaseStatus(accountID string, principalID string, prevStatus LeaseStatus, nextStatus LeaseStatus) (*RedboxLease, error) {
 	result, err := db.Client.UpdateItem(
 		&dynamodb.UpdateItemInput{
-			// Query in Assignment Table
-			TableName: aws.String(db.AccountAssignmentTableName),
-			// Find Assignment for the requested accountId
+			// Query in Lease Table
+			TableName: aws.String(db.LeaseTableName),
+			// Find Lease for the requested accountId
 			Key: map[string]*dynamodb.AttributeValue{
 				"AccountId": {
 					S: aws.String(accountID),
 				},
-				"UserId": {
-					S: aws.String(userID),
+				"PrincipalId": {
+					S: aws.String(principalID),
 				},
 			},
 			// Set Status="Active"
-			UpdateExpression: aws.String("set AssignmentStatus=:nextStatus, " +
-				"LastModifiedOn=:lastModifiedOn"),
+			UpdateExpression: aws.String("set LeaseStatus=:nextStatus, " +
+				"LastModifiedOn=:lastModifiedOn, " + "LeaseStatusModifiedOn=:leaseStatusModifiedOn"),
 			ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
 				":prevStatus": {
 					S: aws.String(string(prevStatus)),
@@ -322,9 +411,12 @@ func (db *DB) TransitionAssignmentStatus(accountID string, userID string, prevSt
 				":lastModifiedOn": {
 					N: aws.String(strconv.FormatInt(time.Now().Unix(), 10)),
 				},
+				":leaseStatusModifiedOn": {
+					N: aws.String(strconv.FormatInt(time.Now().Unix(), 10)),
+				},
 			},
 			// Only update locked records
-			ConditionExpression: aws.String("AssignmentStatus = :prevStatus"),
+			ConditionExpression: aws.String("LeaseStatus = :prevStatus"),
 			// Return the updated record
 			ReturnValues: aws.String("ALL_NEW"),
 		},
@@ -334,11 +426,11 @@ func (db *DB) TransitionAssignmentStatus(accountID string, userID string, prevSt
 			if aerr.Code() == "ConditionalCheckFailedException" {
 				return nil, &StatusTransitionError{
 					fmt.Sprintf(
-						"unable to update assignment status from \"%v\" to \"%v\" for %v/%v: no assignment exists with Status=\"%v\"",
+						"unable to update lease status from \"%v\" to \"%v\" for %v/%v: no lease exists with Status=\"%v\"",
 						prevStatus,
 						nextStatus,
 						accountID,
-						userID,
+						principalID,
 						prevStatus,
 					),
 				}
@@ -347,7 +439,7 @@ func (db *DB) TransitionAssignmentStatus(accountID string, userID string, prevSt
 		return nil, err
 	}
 
-	return unmarshalAccountAssignment(result.Attributes)
+	return unmarshalLease(result.Attributes)
 }
 
 // TransitionAccountStatus updates account status for a given accountID and
@@ -355,7 +447,7 @@ func (db *DB) TransitionAssignmentStatus(accountID string, userID string, prevSt
 func (db *DB) TransitionAccountStatus(accountID string, prevStatus AccountStatus, nextStatus AccountStatus) (*RedboxAccount, error) {
 	result, err := db.Client.UpdateItem(
 		&dynamodb.UpdateItemInput{
-			// Query in Assignment Table
+			// Query in Lease Table
 			TableName: aws.String(db.AccountTableName),
 			// Find Account for the requested accountId
 			Key: map[string]*dynamodb.AttributeValue{
@@ -404,26 +496,26 @@ func (db *DB) TransitionAccountStatus(accountID string, prevStatus AccountStatus
 	return unmarshalAccount(result.Attributes)
 }
 
-// DeleteAccount finds a given account and deletes it if it is not of status `Assigned`.
-func (db *DB) DeleteAccount(accountID string) error {
+// DeleteAccount finds a given account and deletes it if it is not of status `Leased`. Returns the account.
+func (db *DB) DeleteAccount(accountID string) (*RedboxAccount, error) {
 	account, err := db.GetAccount(accountID)
 
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed to query account \"%s\": %s.", accountID, err)
 		log.Print(errorMessage)
-		return errors.New(errorMessage)
+		return nil, errors.New(errorMessage)
 	}
 
 	if account == nil {
 		errorMessage := fmt.Sprintf("No account found with ID \"%s\".", accountID)
 		log.Print(errorMessage)
-		return &AccountNotFoundError{err: errorMessage}
+		return nil, &AccountNotFoundError{err: errorMessage}
 	}
 
-	if account.AccountStatus == Assigned {
-		errorMessage := fmt.Sprintf("Unable to delete account \"%s\": account is assigned.", accountID)
+	if account.AccountStatus == Leased {
+		errorMessage := fmt.Sprintf("Unable to delete account \"%s\": account is leased.", accountID)
 		log.Print(errorMessage)
-		return &AccountAssignedError{err: errorMessage}
+		return account, &AccountLeasedError{err: errorMessage}
 	}
 
 	input := &dynamodb.DeleteItemInput{
@@ -436,7 +528,43 @@ func (db *DB) DeleteAccount(accountID string) error {
 	}
 
 	_, err = db.Client.DeleteItem(input)
-	return err
+	return account, err
+}
+
+// UpdateMetadata updates the metadata field of an account, overwriting the old value completely with a new one
+func (db *DB) UpdateMetadata(accountID string, metadata map[string]interface{}) error {
+	serialized, err := dynamodbattribute.Marshal(metadata)
+
+	if err != nil {
+		log.Printf("Failed to marshall metadata map for updating account %s: %s", accountID, err)
+		return err
+	}
+
+	_, err = db.Client.UpdateItem(
+		&dynamodb.UpdateItemInput{
+			TableName: aws.String(db.AccountTableName),
+			Key: map[string]*dynamodb.AttributeValue{
+				"Id": {
+					S: aws.String(accountID),
+				},
+			},
+			UpdateExpression: aws.String("set Metadata=:metadata, " +
+				"LastModifiedOn=:lastModifiedOn"),
+			ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+				":metadata": serialized,
+				":lastModifiedOn": {
+					N: aws.String(strconv.FormatInt(time.Now().Unix(), 10)),
+				},
+			},
+		},
+	)
+
+	if err != nil {
+		log.Printf("Failed to execute metadata update for account %s: %s", accountID, err)
+		return err
+	}
+
+	return nil
 }
 
 func unmarshalAccount(dbResult map[string]*dynamodb.AttributeValue) (*RedboxAccount, error) {
@@ -450,14 +578,14 @@ func unmarshalAccount(dbResult map[string]*dynamodb.AttributeValue) (*RedboxAcco
 	return &redboxAccount, nil
 }
 
-func unmarshalAccountAssignment(dbResult map[string]*dynamodb.AttributeValue) (*RedboxAccountAssignment, error) {
-	redboxAssignment := RedboxAccountAssignment{}
-	err := dynamodbattribute.UnmarshalMap(dbResult, &redboxAssignment)
+func unmarshalLease(dbResult map[string]*dynamodb.AttributeValue) (*RedboxLease, error) {
+	redboxLease := RedboxLease{}
+	err := dynamodbattribute.UnmarshalMap(dbResult, &redboxLease)
 	if err != nil {
 		return nil, err
 	}
 
-	return &redboxAssignment, nil
+	return &redboxLease, nil
 }
 
 // New creates a new DB Service struct,
@@ -468,11 +596,11 @@ func unmarshalAccountAssignment(dbResult map[string]*dynamodb.AttributeValue) (*
 //
 // Elsewhere, you should generally use `db.NewFromEnv()`
 //
-func New(client *dynamodb.DynamoDB, accountTableName string, accountAssignmentTableName string) *DB {
+func New(client *dynamodb.DynamoDB, accountTableName string, leaseTableName string) *DB {
 	return &DB{
-		Client:                     client,
-		AccountTableName:           accountTableName,
-		AccountAssignmentTableName: accountAssignmentTableName,
+		Client:           client,
+		AccountTableName: accountTableName,
+		LeaseTableName:   leaseTableName,
 	}
 }
 
@@ -482,7 +610,7 @@ Requires env vars for:
 
 - AWS_CURRENT_REGION
 - ACCOUNT_DB
-- ASSIGNMENT_DB
+- LEASE_DB
 */
 func NewFromEnv() (*DB, error) {
 	awsSession, err := session.NewSession()
@@ -495,6 +623,6 @@ func NewFromEnv() (*DB, error) {
 			aws.NewConfig().WithRegion(common.RequireEnv("AWS_CURRENT_REGION")),
 		),
 		common.RequireEnv("ACCOUNT_DB"),
-		common.RequireEnv("ASSIGNMENT_DB"),
+		common.RequireEnv("LEASE_DB"),
 	), nil
 }

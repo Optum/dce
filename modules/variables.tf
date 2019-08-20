@@ -9,8 +9,9 @@ variable "global_tags" {
 
   default = {
     Terraform = "True"
-    Project   = "AWS Redbox Management"
+    AppName   = "AWS Redbox Management"
     Source    = "github.com/Optum/Redbox//modules"
+    Contact   = "CommercialCloudRedboxTeam_DL@ds.uhc.com"
   }
 }
 
@@ -23,28 +24,13 @@ variable "organization_id" {
   default     = "STUB"
 }
 
-variable "reset_account_admin_role" {
-  description = "Default Admin IAM Role in each user account, that the Redbox Mgmt will assume in order to execute reset. Will get filtered from nuke."
-  default     = "STUB"
-}
-
-variable "reset_account_user_role" {
-  description = "Default User IAM Role in each user account, that the Redbox User will assume into their account. Will get filtered from nuke."
-  default     = "STUB"
-}
-
-variable "reset_nuke_template_default" {
-  description = "YAML file name of the default nuke configuration template."
-  default     = "default-nuke-config-template.yml"
-}
-
 variable "reset_nuke_template_bucket" {
-  description = "S3 bucket name containing the nuke configuration template."
+  description = "S3 bucket name containing the nuke configuration template. Use this to override the default nuke configuration."
   default     = "STUB"
 }
 
 variable "reset_nuke_template_key" {
-  description = "S3 bucket object key for the nuke configuration template."
+  description = "S3 bucket object key for the nuke configuration template. Use this to override the default nuke configuration."
   default     = "STUB"
 }
 
@@ -70,7 +56,7 @@ variable "reset_image_pull_creds" {
 
 variable "reset_nuke_toggle" {
   description = "Indicator to set Nuke to not delete any resources. Use 'false' to indicate a Dry Run. NOTE: Cannot change Account status with this toggled off."
-  default     = "true"
+  default     = "false"
 }
 
 variable "reset_launchpad_toggle" {
@@ -103,3 +89,73 @@ variable "weekly_reset_cron_expression" {
   default     = "cron(0 5 ? * SUN *)" // Runs 5am GMT on Sunday / 12am on Sunday Morning
 }
 
+variable "principal_iam_deny_tags" {
+  type        = list(string)
+  description = "IAM Redbox principal roles will be denied access to resources with these tags leased"
+  default     = ["Redbox"]
+}
+
+variable "check_budget_schedule_expression" {
+  default     = "rate(6 hours)"
+  description = "How often to check budgets for all active leases"
+}
+variable "check_budget_enabled" {
+  type        = bool
+  default     = true
+  description = "If false, budgets will not be checked"
+}
+variable "budget_notification_from_email" {
+  type = string
+}
+
+variable "budget_notification_bcc_emails" {
+  type        = list(string)
+  description = "Budget notifications emails will be bcc-d to these addresses"
+  default     = []
+}
+
+variable "budget_notification_template_html" {
+  type        = string
+  description = "HTML template for budget notification emails"
+  default     = <<TMPL
+<p>
+{{if .IsOverBudget}}
+AWS Redbox Lease for principal {{.Lease.PrincipalID}} in AWS Account {{.Lease.AccountID}}
+has exceeded its budget of $${{.Lease.BudgetAmount}}. Actual spend is $${{.ActualSpend}}
+{{else}}
+AWS Redbox Lease for principal {{.Lease.PrincipalID}} in AWS Account {{.Lease.AccountID}}
+has exceeded the {{.ThresholdPercentile}}% threshold limit for its budget of $${{.Lease.BudgetAmount}}.
+Actual spend is $${{.ActualSpend}}
+{{end}}
+</p>
+TMPL
+}
+
+variable "budget_notification_template_text" {
+  type = string
+  description = "Text template for budget notification emails"
+  default = <<TMPL
+{{if .IsOverBudget}}
+AWS Redbox Lease for principal {{.Lease.PrincipalID}} in AWS Account {{.Lease.AccountID}}
+has exceeded its budget of $${{.Lease.BudgetAmount}}. Actual spend is $${{.ActualSpend}}
+{{else}}
+AWS Redbox Lease for principal {{.Lease.PrincipalID}} in AWS Account {{.Lease.AccountID}}
+has exceeded the {{.ThresholdPercentile}}% threshold limit for its budget of $${{.Lease.BudgetAmount}}.
+Actual spend is $${{.ActualSpend}}
+{{end}}
+TMPL
+}
+
+variable "budget_notification_template_subject" {
+  type        = string
+  description = "Template for budget notification email subject"
+  default     = <<SUBJ
+AWS Redbox Lease {{if .IsOverBudget}}over budget{{else}}at {{.ThresholdPercentile}}% of budget{{end}} [{{.Lease.AccountID}}]
+SUBJ
+}
+
+variable "budget_notification_threshold_percentiles" {
+  type = list(number)
+  description = "Thresholds (percentiles) at which notification emails will be sent to Redbox users."
+  default = [75, 100]
+}

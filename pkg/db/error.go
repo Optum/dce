@@ -1,7 +1,7 @@
 package db
 
 // StatusTransitionError means that we failed to transition
-// an Account or Assignment from one status to another,
+// an Account or Lease from one status to another,
 // likely because the prevStatus condition was not met
 type StatusTransitionError struct {
 	err string
@@ -11,12 +11,12 @@ func (e *StatusTransitionError) Error() string {
 	return e.err
 }
 
-// AccountAssignedError is returned when a consumer attempts to delete an account that is currently at status Assigned
-type AccountAssignedError struct {
+// AccountLeasedError is returned when a consumer attempts to delete an account that is currently at status Leased
+type AccountLeasedError struct {
 	err string
 }
 
-func (e *AccountAssignedError) Error() string {
+func (e *AccountLeasedError) Error() string {
 	return e.err
 }
 

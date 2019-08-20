@@ -3,15 +3,8 @@ set -euxo pipefail
 
 mkdir -p junit-report
 
-# Run tests
-go test -v -coverprofile=coverage.txt -covermode count \
-  ./pkg/...  ./cmd/... 2>&1 | \
-  tee test.output.txt | \
-  go-junit-report -set-exit-code > junit-report/report.xml
+# Run Unit Tests for 'pkg'
+go test -v ./pkg/... 2>&1 | go-junit-report > junit-report/pkg.xml
 
-# Echo Test Output
-cat test.output.txt
-
-# Convert coverate to xml and html
-gocov convert coverage.txt > coverage.json
-gocov-xml < coverage.json > coverage.xml
+# Run Unit Tests for 'cmd'
+go test -v ./cmd/... 2>&1 | go-junit-report > junit-report/cmd.xml

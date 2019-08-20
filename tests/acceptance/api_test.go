@@ -4,11 +4,15 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/Optum/Redbox/pkg/api/response"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
+
+	"github.com/aws/aws-sdk-go/aws/arn"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/client"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -42,12 +46,12 @@ func TestApi(t *testing.T) {
 			aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
 		),
 		tfOut["dynamodb_table_account_name"].(string),
-		tfOut["dynamodb_table_account_assignment_name"].(string),
+		tfOut["redbox_lease_db_table_name"].(string),
 	)
 
 	// Cleanup tables, to start out
 	truncateAccountTable(t, dbSvc)
-	truncateAccountAssignmentTable(t, dbSvc)
+	truncateLeaseTable(t, dbSvc)
 
 	t.Run("Authentication", func(t *testing.T) {
 
@@ -176,11 +180,11 @@ func TestApi(t *testing.T) {
 
 		t.Run("Should be able to provision and decommission", func(t *testing.T) {
 			defer truncateAccountTable(t, dbSvc)
-			defer truncateAccountAssignmentTable(t, dbSvc)
+			defer truncateLeaseTable(t, dbSvc)
 
 			// Create an Account Entry
 			acctID := "123"
-			userID := "user"
+			principalID := "user"
 			timeNow := time.Now().Unix()
 			err := dbSvc.PutAccount(db.RedboxAccount{
 				ID:             acctID,
@@ -191,7 +195,7 @@ func TestApi(t *testing.T) {
 
 			// Create the Provision Request Body
 			body := leaseRequest{
-				UserID: userID,
+				PrincipalID: principalID,
 			}
 
 			// Send an API request
@@ -208,17 +212,18 @@ func TestApi(t *testing.T) {
 			data := parseResponseJSON(t, resp)
 
 			// Verify provisioned response json
-			require.Equal(t, userID, data["userId"].(string))
+			require.Equal(t, principalID, data["principalId"].(string))
 			require.Equal(t, acctID, data["accountId"].(string))
 			require.Equal(t, string(db.Active),
-				data["assignmentStatus"].(string))
+				data["leaseStatus"].(string))
 			require.NotNil(t, data["createdOn"])
 			require.NotNil(t, data["lastModifiedOn"])
+			require.NotNil(t, data["leaseStatusModifiedOn"])
 
 			// Create the Decommission Request Body
 			body = leaseRequest{
-				UserID:    userID,
-				AccountID: acctID,
+				PrincipalID: principalID,
+				AccountID:   acctID,
 			}
 
 			// Send an API request
@@ -235,12 +240,13 @@ func TestApi(t *testing.T) {
 			data = parseResponseJSON(t, resp)
 
 			// Verify provisioned response json
-			require.Equal(t, userID, data["userId"].(string))
+			require.Equal(t, principalID, data["principalId"].(string))
 			require.Equal(t, acctID, data["accountId"].(string))
 			require.Equal(t, string(db.Decommissioned),
-				data["assignmentStatus"].(string))
+				data["leaseStatus"].(string))
 			require.NotNil(t, data["createdOn"])
 			require.NotNil(t, data["lastModifiedOn"])
+			require.NotNil(t, data["leaseStatusModifiedOn"])
 
 		})
 
@@ -267,9 +273,9 @@ func TestApi(t *testing.T) {
 
 		t.Run("Should not be able to provision with no available accounts", func(t *testing.T) {
 			// Create the Provision Request Body
-			userID := "user"
+			principalID := "user"
 			body := leaseRequest{
-				UserID: userID,
+				PrincipalID: principalID,
 			}
 
 			// Send an API request
@@ -295,32 +301,33 @@ func TestApi(t *testing.T) {
 
 		t.Run("Should not be able to provision with an existing account", func(t *testing.T) {
 			defer truncateAccountTable(t, dbSvc)
-			defer truncateAccountAssignmentTable(t, dbSvc)
+			defer truncateLeaseTable(t, dbSvc)
 
 			// Create an Account Entry
 			acctID := "123"
-			userID := "user"
+			principalID := "user"
 			timeNow := time.Now().Unix()
 			err := dbSvc.PutAccount(db.RedboxAccount{
 				ID:             acctID,
-				AccountStatus:  db.Assigned,
+				AccountStatus:  db.Leased,
 				LastModifiedOn: timeNow,
 			})
 			require.Nil(t, err)
 
-			// Create an Assignment Entry
-			_, err = dbSvc.PutAccountAssignment(db.RedboxAccountAssignment{
-				UserID:           userID,
-				AccountID:        acctID,
-				AssignmentStatus: db.Active,
-				CreatedOn:        timeNow,
-				LastModifiedOn:   timeNow,
+			// Create an Lease Entry
+			_, err = dbSvc.PutLease(db.RedboxLease{
+				PrincipalID:           principalID,
+				AccountID:             acctID,
+				LeaseStatus:           db.Active,
+				CreatedOn:             timeNow,
+				LastModifiedOn:        timeNow,
+				LeaseStatusModifiedOn: timeNow,
 			})
 			require.Nil(t, err)
 
 			// Create the Provision Request Body
 			body := leaseRequest{
-				UserID: userID,
+				PrincipalID: principalID,
 			}
 
 			// Send an API request
@@ -340,7 +347,7 @@ func TestApi(t *testing.T) {
 			// Get nested json in response json
 			errResp := data["error"].(map[string]interface{})
 			require.Equal(t, "ClientError", errResp["code"].(string))
-			require.Equal(t, "User already has an existing Redbox: 123",
+			require.Equal(t, "Principal already has an existing Redbox: 123",
 				errResp["message"].(string))
 		})
 
@@ -365,13 +372,13 @@ func TestApi(t *testing.T) {
 				err["message"].(string))
 		})
 
-		t.Run("Should not be able to decommission with no assignments", func(t *testing.T) {
+		t.Run("Should not be able to decommission with no leases", func(t *testing.T) {
 			// Create the Provision Request Body
-			userID := "user"
+			principalID := "user"
 			acctID := "123"
 			body := leaseRequest{
-				UserID:    userID,
-				AccountID: acctID,
+				PrincipalID: principalID,
+				AccountID:   acctID,
 			}
 
 			// Send an API request
@@ -391,37 +398,38 @@ func TestApi(t *testing.T) {
 			// Get nested json in response json
 			err := data["error"].(map[string]interface{})
 			require.Equal(t, "ClientError", err["code"].(string))
-			require.Equal(t, "No account assignments found for user",
+			require.Equal(t, "No account leases found for user",
 				err["message"].(string))
 		})
 
 		t.Run("Should not be able to decommission with wrong account", func(t *testing.T) {
 			// Create an Account Entry
 			acctID := "123"
-			userID := "user"
+			principalID := "user"
 			timeNow := time.Now().Unix()
 			err := dbSvc.PutAccount(db.RedboxAccount{
 				ID:             acctID,
-				AccountStatus:  db.Assigned,
+				AccountStatus:  db.Leased,
 				LastModifiedOn: timeNow,
 			})
 			require.Nil(t, err)
 
-			// Create an Assignment Entry
-			_, err = dbSvc.PutAccountAssignment(db.RedboxAccountAssignment{
-				UserID:           userID,
-				AccountID:        acctID,
-				AssignmentStatus: db.Active,
-				CreatedOn:        timeNow,
-				LastModifiedOn:   timeNow,
+			// Create an Lease Entry
+			_, err = dbSvc.PutLease(db.RedboxLease{
+				PrincipalID:           principalID,
+				AccountID:             acctID,
+				LeaseStatus:           db.Active,
+				CreatedOn:             timeNow,
+				LastModifiedOn:        timeNow,
+				LeaseStatusModifiedOn: timeNow,
 			})
 			require.Nil(t, err)
 
 			// Create the Provision Request Body
 			wrongAcctID := "456"
 			body := leaseRequest{
-				UserID:    userID,
-				AccountID: wrongAcctID,
+				PrincipalID: principalID,
+				AccountID:   wrongAcctID,
 			}
 
 			// Send an API request
@@ -441,14 +449,14 @@ func TestApi(t *testing.T) {
 			// Get nested json in response json
 			errResp := data["error"].(map[string]interface{})
 			require.Equal(t, "ClientError", errResp["code"].(string))
-			require.Equal(t, "No active account assignments found for user",
+			require.Equal(t, "No active account leases found for user",
 				errResp["message"].(string))
 		})
 
 		t.Run("Should not be able to decommission with decommissioned account", func(t *testing.T) {
 			// Create an Account Entry
 			acctID := "123"
-			userID := "user"
+			principalID := "user"
 			timeNow := time.Now().Unix()
 			err := dbSvc.PutAccount(db.RedboxAccount{
 				ID:             acctID,
@@ -457,20 +465,21 @@ func TestApi(t *testing.T) {
 			})
 			require.Nil(t, err)
 
-			// Create an Assignment Entry
-			_, err = dbSvc.PutAccountAssignment(db.RedboxAccountAssignment{
-				UserID:           userID,
-				AccountID:        acctID,
-				AssignmentStatus: db.Decommissioned,
-				CreatedOn:        timeNow,
-				LastModifiedOn:   timeNow,
+			// Create an Lease Entry
+			_, err = dbSvc.PutLease(db.RedboxLease{
+				PrincipalID:           principalID,
+				AccountID:             acctID,
+				LeaseStatus:           db.Decommissioned,
+				CreatedOn:             timeNow,
+				LastModifiedOn:        timeNow,
+				LeaseStatusModifiedOn: timeNow,
 			})
 			require.Nil(t, err)
 
 			// Create the Provision Request Body
 			body := leaseRequest{
-				UserID:    userID,
-				AccountID: acctID,
+				PrincipalID: principalID,
+				AccountID:   acctID,
 			}
 
 			// Send an API request
@@ -490,195 +499,243 @@ func TestApi(t *testing.T) {
 			// Get nested json in response json
 			errResp := data["error"].(map[string]interface{})
 			require.Equal(t, "ClientError", errResp["code"].(string))
-			require.Equal(t, "Account Assignment is not active for user - 123",
+			require.Equal(t, "Account Lease is not active for user - 123",
 				errResp["message"].(string))
 		})
 
 	})
 
-	t.Run("Get Accounts", func(t *testing.T) {
+	t.Run("Account Creation Deletion Flow", func(t *testing.T) {
+		// Make sure the DB is clean
+		truncateDBTables(t, dbSvc)
 
-		t.Run("returns a list of accounts", func(t *testing.T) {
-			defer truncateAccountTable(t, dbSvc)
+		// Create an adminRole for the account
+		adminRoleRes := createAdminRole(t, awsSession)
+		accountID := adminRoleRes.accountID
+		adminRoleArn := adminRoleRes.adminRoleArn
 
-			expectedID := "234523456"
-			account := *newAccount(expectedID, 1561382513)
-			err := dbSvc.PutAccount(account)
-			require.Nil(t, err)
+		// Cleanup the DB when we'ree done
+		defer truncateDBTables(t, dbSvc)
 
-			resp := apiRequest(t, &apiRequestInput{
-				method: "GET",
-				url:    apiURL + "/accounts",
-			})
-
-			accounts := parseResponseArrayJSON(t, resp)
-			require.True(t, true, len(*accounts) > 0)
-			require.Equal(t, (*accounts)[0].ID, expectedID, "The ID of the returns record should match the expected ID")
-		})
-
-	})
-
-	t.Run("Get Account By ID", func(t *testing.T) {
-
-		t.Run("returns an account by ID", func(t *testing.T) {
-			defer truncateAccountTable(t, dbSvc)
-
-			expectedID := "234523456"
-			account := *newAccount(expectedID, 1561382513)
-			err := dbSvc.PutAccount(account)
-			require.Nil(t, err)
-
-			resp := apiRequest(t, &apiRequestInput{
-				method: "GET",
-				url:    apiURL + "/accounts/234523456",
-			})
-
-			parseAccount := parseResponseJSON(t, resp)
-			require.True(t, true, len(parseAccount) > 0)
-			require.Equal(t, 200, resp.StatusCode)
-			require.Equal(t, expectedID, parseAccount["id"], "The ID of the returned record should match the expected ID")
-		})
-
-	})
-
-	t.Run("Create Account", func(t *testing.T) {
-		if testing.Short() {
-			t.Skip("Skipping tests in short mode. IAM role takes a while to propagate...")
-		}
-
-		// Lookup the current AWS Account ID
-		currentAccountID := aws2.GetAccountId(t)
-
-		// Create an Admin Role that can be assumed
-		// within this account
-		iamSvc := iam.New(awsSession)
-		assumeRolePolicy := fmt.Sprintf(`{
-			"Version": "2012-10-17",
-			"Statement": [
-				{
-					"Effect": "Allow",
-					"Principal": {
-					"AWS": "arn:aws:iam::%s:root"
-					},
-					"Action": "sts:AssumeRole",
-					"Condition": {}
-				}
-			]
-		}`, currentAccountID)
-		roleName := "redbox-api-test-admin-role-" + fmt.Sprintf("%v", time.Now().Unix())
-		roleRes, err := iamSvc.CreateRole(&iam.CreateRoleInput{
-			AssumeRolePolicyDocument: aws.String(assumeRolePolicy),
-			Path:                     aws.String("/"),
-			RoleName:                 aws.String(roleName),
-		})
-		require.Nil(t, err)
-		adminRoleArn := *roleRes.Role.Arn
-
-		// IAM Role takes a while to propagate....
-		time.Sleep(10 * time.Second)
-
-		// Cleanup: Delete the admin role
-		defer func() {
-			_, err = iamSvc.DeleteRole(&iam.DeleteRoleInput{
-				RoleName: aws.String(roleName),
-			})
-			require.Nil(t, err)
-		}()
-
-		t.Run("Creates an account", func(t *testing.T) {
-			// Cleanup the accounts table when we're done
-			defer truncateAccountTable(t, dbSvc)
+		t.Run("STEP: Create Account", func(t *testing.T) {
 
 			// Add the current account to the account pool
-			apiRes := apiRequest(t, &apiRequestInput{
+			createAccountRes := apiRequest(t, &apiRequestInput{
 				method: "POST",
 				url:    apiURL + "/accounts",
 				json: createAccountRequest{
-					ID:           currentAccountID,
+					ID:           accountID,
 					AdminRoleArn: adminRoleArn,
 				},
 			})
 
 			// Check the response
-			require.Equal(t, apiRes.StatusCode, 201)
-			resJSON := parseResponseJSON(t, apiRes)
-			require.Equal(t, currentAccountID, resJSON["id"])
-			require.Equal(t, "NotReady", resJSON["accountStatus"])
-			require.Equal(t, adminRoleArn, resJSON["adminRoleArn"])
-			require.True(t, resJSON["lastModifiedOn"].(float64) > 1561518000)
-			require.True(t, resJSON["createdOn"].(float64) > 1561518000)
+			require.Equal(t, createAccountRes.StatusCode, 201)
+			postResJSON := parseResponseJSON(t, createAccountRes)
+			require.Equal(t, accountID, postResJSON["id"])
+			require.Equal(t, "NotReady", postResJSON["accountStatus"])
+			require.Equal(t, adminRoleArn, postResJSON["adminRoleArn"])
+			expectedPrincipalRoleArn := fmt.Sprintf("arn:aws:iam::%s:role/%s", accountID, tfOut["redbox_principal_role_name"])
+			require.Equal(t, expectedPrincipalRoleArn, postResJSON["principalRoleArn"])
+			require.True(t, postResJSON["lastModifiedOn"].(float64) > 1561518000)
+			require.True(t, postResJSON["createdOn"].(float64) > 1561518000)
 
 			// Check that the account is added to the DB
-			dbAccount, err := dbSvc.GetAccount(currentAccountID)
+			dbAccount, err := dbSvc.GetAccount(accountID)
 			require.Nil(t, err)
-			require.Equal(t, dbAccount, &db.RedboxAccount{
-				ID:             currentAccountID,
-				AccountStatus:  "NotReady",
-				LastModifiedOn: int64(resJSON["lastModifiedOn"].(float64)),
-				CreatedOn:      int64(resJSON["createdOn"].(float64)),
-				AdminRoleArn:   adminRoleArn,
+			require.Equal(t, &db.RedboxAccount{
+				ID:               accountID,
+				AccountStatus:    "NotReady",
+				LastModifiedOn:   int64(postResJSON["lastModifiedOn"].(float64)),
+				CreatedOn:        int64(postResJSON["createdOn"].(float64)),
+				AdminRoleArn:     adminRoleArn,
+				PrincipalRoleArn: expectedPrincipalRoleArn,
+			}, dbAccount)
+
+			// Check that the IAM Principal Role was created
+			// Lookup the principal IAM Role
+			iamSvc := iam.New(awsSession)
+			roleArn, err := arn.Parse(postResJSON["principalRoleArn"].(string))
+			require.Nil(t, err)
+			roleName := strings.Split(roleArn.Resource, "/")[1]
+			_, err = iamSvc.GetRole(&iam.GetRoleInput{
+				RoleName: aws.String(roleName),
+			})
+			require.Nil(t, err)
+
+			// Check the Role policies
+			res, err := iamSvc.ListAttachedRolePolicies(&iam.ListAttachedRolePoliciesInput{
+				RoleName: aws.String(roleName),
+			})
+			require.Nil(t, err)
+			require.Len(t, res.AttachedPolicies, 1)
+			principalPolicyArn := res.AttachedPolicies[0].PolicyArn
+
+			t.Run("STEP: Get Account by ID", func(t *testing.T) {
+				// Send GET /accounts/id
+				getRes := apiRequest(t, &apiRequestInput{
+					method: "GET",
+					url:    apiURL + "/accounts/" + accountID,
+				})
+
+				// Check the GET /accounts response
+				require.Equal(t, getRes.StatusCode, 200)
+				getResJSON := getRes.json.(map[string]interface{})
+				require.Equal(t, accountID, getResJSON["id"])
+				require.Equal(t, "NotReady", getResJSON["accountStatus"])
+				require.Equal(t, adminRoleArn, getResJSON["adminRoleArn"])
+				expectedPrincipalRoleArn := fmt.Sprintf("arn:aws:iam::%s:role/%s", accountID, tfOut["redbox_principal_role_name"])
+				require.Equal(t, expectedPrincipalRoleArn, getResJSON["principalRoleArn"])
+				require.True(t, getResJSON["lastModifiedOn"].(float64) > 1561518000)
+				require.True(t, getResJSON["createdOn"].(float64) > 1561518000)
 			})
 
-			// Check that we can retrieve the account via the API
-			apiRes = apiRequest(t, &apiRequestInput{
-				method: "GET",
-				url:    apiURL + "/accounts/" + currentAccountID,
+			t.Run("STEP: List Accounts", func(t *testing.T) {
+				// Send GET /accounts
+				listRes := apiRequest(t, &apiRequestInput{
+					method: "GET",
+					url:    apiURL + "/accounts",
+				})
+
+				// Check the response
+				require.Equal(t, listRes.StatusCode, 200)
+				listResJSON := parseResponseArrayJSON(t, listRes)
+				accountJSON := listResJSON[0]
+				require.Equal(t, accountID, accountJSON["id"])
+				require.Equal(t, "NotReady", accountJSON["accountStatus"])
+				require.Equal(t, adminRoleArn, accountJSON["adminRoleArn"])
+				expectedPrincipalRoleArn := fmt.Sprintf("arn:aws:iam::%s:role/%s", accountID, tfOut["redbox_principal_role_name"])
+				require.Equal(t, expectedPrincipalRoleArn, accountJSON["principalRoleArn"])
+				require.True(t, accountJSON["lastModifiedOn"].(float64) > 1561518000)
+				require.True(t, accountJSON["createdOn"].(float64) > 1561518000)
 			})
-			require.Equal(t, apiRes.StatusCode, 200)
-			resJSON = parseResponseJSON(t, apiRes)
-			require.Equal(t, currentAccountID, resJSON["id"])
-			require.Equal(t, "NotReady", resJSON["accountStatus"])
-			require.True(t, resJSON["lastModifiedOn"].(float64) > 1561518000)
-			require.True(t, resJSON["createdOn"].(float64) > 1561518000)
-			require.Equal(t, adminRoleArn, resJSON["adminRoleArn"])
+
+			t.Run("STEP: Create Lease", func(t *testing.T) {
+				// Account is being reset, so it's not marked as "Ready".
+				// Update the DB to be ready, so we can create a lease
+				_, err := dbSvc.TransitionAccountStatus(accountID, db.NotReady, db.Ready)
+				require.Nil(t, err)
+
+				var budgetAmount float64 = 300
+				var budgetNotificationEmails = []string{"test@test.com"}
+
+				// Request a lease
+				res := apiRequest(t, &apiRequestInput{
+					method: "POST",
+					url:    apiURL + "/leases",
+					json: struct {
+						PrincipalID              string   `json:"principalId"`
+						BudgetAmount             float64  `json:"budgetAmount"`
+						BudgetCurrency           string   `json:"budgetCurrency"`
+						BudgetNotificationEmails []string `json:"budgetNotificationEmails"`
+					}{
+						PrincipalID:              "test-user",
+						BudgetAmount:             budgetAmount,
+						BudgetCurrency:           "USD",
+						BudgetNotificationEmails: budgetNotificationEmails,
+					},
+				})
+
+				require.Equal(t, 201, res.StatusCode)
+				resJSON := parseResponseJSON(t, res)
+
+				s := make([]interface{}, len(budgetNotificationEmails))
+				for i, v := range budgetNotificationEmails {
+					s[i] = v
+				}
+
+				require.Equal(t, "test-user", resJSON["principalId"])
+				require.Equal(t, accountID, resJSON["accountId"])
+				require.Equal(t, "Active", resJSON["leaseStatus"])
+				require.NotNil(t, resJSON["createdOn"])
+				require.NotNil(t, resJSON["lastModifiedOn"])
+				require.Equal(t, budgetAmount, resJSON["budgetAmount"])
+				require.Equal(t, "USD", resJSON["budgetCurrency"])
+				require.Equal(t, s, resJSON["budgetNotificationEmails"])
+				require.NotNil(t, resJSON["leaseStatusModifiedOn"])
+
+				// Check the lease is in the DB
+				// (since we dont' yet have a GET /leases endpoint
+				lease, err := dbSvc.GetLease(accountID, "test-user")
+				require.Nil(t, err)
+				require.Equal(t, "test-user", lease.PrincipalID)
+				require.Equal(t, accountID, lease.AccountID)
+
+				t.Run("STEP: Delete Account (with Lease)", func(t *testing.T) {
+					// Request a lease
+					res := apiRequest(t, &apiRequestInput{
+						method: "DELETE",
+						url:    apiURL + "/accounts/" + accountID,
+						json: struct {
+							PrincipalID string `json:"principalId"`
+						}{
+							PrincipalID: "test-user",
+						},
+					})
+
+					require.Equal(t, 409, res.StatusCode)
+				})
+
+				t.Run("STEP: Delete Lease", func(t *testing.T) {
+					// Delete the lease
+					res := apiRequest(t, &apiRequestInput{
+						method: "DELETE",
+						url:    apiURL + "/leases",
+						json: struct {
+							PrincipalID string `json:"principalId"`
+							AccountID   string `json:"accountId"`
+						}{
+							PrincipalID: "test-user",
+							AccountID:   accountID,
+						},
+					})
+
+					require.Equal(t, 200, res.StatusCode)
+
+					// Check the lease is decommissioned
+					// (since we dont' yet have a GET /leases endpoint
+					lease, err := dbSvc.GetLease(accountID, "test-user")
+					require.Nil(t, err)
+					require.Equal(t, db.Decommissioned, lease.LeaseStatus)
+
+					t.Run("STEP: Delete Account", func(t *testing.T) {
+						// Delete the account
+						res := apiRequest(t, &apiRequestInput{
+							method: "DELETE",
+							url:    apiURL + "/accounts/" + accountID,
+						})
+						require.Equal(t, 204, res.StatusCode)
+
+						// Attempt to get the deleted account (should 404)
+						getRes := apiRequest(t, &apiRequestInput{
+							method: "GET",
+							url:    apiURL + "/accounts/" + accountID,
+						})
+						require.Equal(t, 404, getRes.StatusCode)
+
+						// Check that the Principal Role was deleted
+						_, err = iamSvc.GetRole(&iam.GetRoleInput{
+							RoleName: aws.String(roleName),
+						})
+						require.NotNil(t, err)
+						require.Equal(t, iam.ErrCodeNoSuchEntityException, err.(awserr.Error).Code())
+
+						// Check that the Principal Policy was deleted
+						_, err = iamSvc.GetPolicy(&iam.GetPolicyInput{
+							PolicyArn: principalPolicyArn,
+						})
+						require.NotNil(t, err)
+						require.Equal(t, iam.ErrCodeNoSuchEntityException, err.(awserr.Error).Code())
+					})
+				})
+
+			})
+
 		})
 
 	})
 
 	t.Run("Delete Account", func(t *testing.T) {
-		accountID := "1234523456"
-
-		t.Run("when the account exists", func(t *testing.T) {
-			t.Run("when the account is not assigned", func(t *testing.T) {
-				defer truncateAccountTable(t, dbSvc)
-				account := *newAccount(accountID, 1561382513)
-				err := dbSvc.PutAccount(account)
-				require.Nil(t, err)
-
-				resp := apiRequest(t, &apiRequestInput{
-					method: "DELETE",
-					url:    apiURL + "/accounts/1234523456",
-				})
-
-				require.Equal(t, http.StatusNoContent, resp.StatusCode, "it returns a 204")
-
-				foundAccount, err := dbSvc.GetAccount(accountID)
-				require.Nil(t, err)
-				require.Nil(t, foundAccount, "the account no longer exists")
-			})
-
-			t.Run("when the account is assigned", func(t *testing.T) {
-				defer truncateAccountTable(t, dbSvc)
-				account := db.RedboxAccount{
-					ID:             accountID,
-					AccountStatus:  db.Assigned,
-					LastModifiedOn: 1561382309,
-				}
-				err := dbSvc.PutAccount(account)
-				require.Nil(t, err)
-
-				resp := apiRequest(t, &apiRequestInput{
-					method: "DELETE",
-					url:    apiURL + "/accounts/1234523456",
-				})
-
-				require.Equal(t, http.StatusConflict, resp.StatusCode, "it returns a 409")
-
-				foundAccount, err := dbSvc.GetAccount(accountID)
-				require.Nil(t, err)
-				require.NotNil(t, foundAccount, "the account still exists")
-			})
-		})
 
 		t.Run("when the account does not exists", func(t *testing.T) {
 			resp := apiRequest(t, &apiRequestInput{
@@ -688,12 +745,13 @@ func TestApi(t *testing.T) {
 
 			require.Equal(t, http.StatusNotFound, resp.StatusCode, "it returns a 404")
 		})
+
 	})
 }
 
 type leaseRequest struct {
-	UserID    string `json:"userId"`
-	AccountID string `json:"accountId"`
+	PrincipalID string `json:"principalId"`
+	AccountID   string `json:"accountId"`
 }
 
 type createAccountRequest struct {
@@ -709,7 +767,12 @@ type apiRequestInput struct {
 	json   interface{}
 }
 
-func apiRequest(t *testing.T, input *apiRequestInput) *http.Response {
+type apiResponse struct {
+	http.Response
+	json interface{}
+}
+
+func apiRequest(t *testing.T, input *apiRequestInput) *apiResponse {
 	// Set defaults
 	if input.creds == nil {
 		input.creds = credentials.NewChainCredentials([]credentials.Provider{
@@ -754,29 +817,91 @@ func apiRequest(t *testing.T, input *apiRequestInput) *http.Response {
 	resp, err := httpClient.Do(req)
 	require.Nil(t, err)
 
-	return resp
-}
-
-func parseResponseJSON(t *testing.T, resp *http.Response) map[string]interface{} {
+	// Parse the JSON response
+	apiResp := &apiResponse{
+		Response: *resp,
+	}
 	defer resp.Body.Close()
-	var data map[string]interface{}
+	var data interface{}
 
 	body, err := ioutil.ReadAll(resp.Body)
 	require.Nil(t, err)
 
 	err = json.Unmarshal([]byte(body), &data)
-	require.Nil(t, err)
+	if err == nil {
+		apiResp.json = data
+	}
 
-	return data
+	return apiResp
 }
 
-func parseResponseArrayJSON(t *testing.T, resp *http.Response) *[]response.AccountResponse {
-	defer resp.Body.Close()
-	data := &[]response.AccountResponse{}
-	body, err := ioutil.ReadAll(resp.Body)
-	require.Nil(t, err)
-	err = json.Unmarshal([]byte(body), data)
-	require.Nil(t, err, fmt.Sprintf("Unmarshalling response failed: %s; %s", body, err))
+func parseResponseJSON(t *testing.T, resp *apiResponse) map[string]interface{} {
+	require.NotNil(t, resp.json)
+	return resp.json.(map[string]interface{})
+}
 
-	return data
+func parseResponseArrayJSON(t *testing.T, resp *apiResponse) []map[string]interface{} {
+	require.NotNil(t, resp.json)
+
+	// Go doesn't allow you to cast directly to []map[string]interface{}
+	// so we need to mess around here a bit.
+	// This might be relevant: https://stackoverflow.com/questions/38579485/golang-convert-slices-into-map
+	respJSON := resp.json.([]interface{})
+
+	arrJSON := []map[string]interface{}{}
+	for _, obj := range respJSON {
+		arrJSON = append(arrJSON, obj.(map[string]interface{}))
+	}
+
+	return arrJSON
+}
+
+type createAdminRoleOutput struct {
+	accountID    string
+	adminRoleArn string
+}
+
+func createAdminRole(t *testing.T, awsSession client.ConfigProvider) *createAdminRoleOutput {
+	currentAccountID := aws2.GetAccountId(t)
+
+	// Create an Admin Role that can be assumed
+	// within this account
+	iamSvc := iam.New(awsSession)
+	assumeRolePolicy := fmt.Sprintf(`{
+			"Version": "2012-10-17",
+			"Statement": [
+				{
+					"Effect": "Allow",
+					"Principal": {
+					"AWS": "arn:aws:iam::%s:root"
+					},
+					"Action": "sts:AssumeRole",
+					"Condition": {}
+				}
+			]
+		}`, currentAccountID)
+	adminRoleName := "redbox-api-test-admin-role-" + fmt.Sprintf("%v", time.Now().Unix())
+	roleRes, err := iamSvc.CreateRole(&iam.CreateRoleInput{
+		AssumeRolePolicyDocument: aws.String(assumeRolePolicy),
+		Path:                     aws.String("/"),
+		RoleName:                 aws.String(adminRoleName),
+	})
+	require.Nil(t, err)
+	adminRoleArn := *roleRes.Role.Arn
+
+	// Give the Admin Role Permission to create other IAM Roles
+	// (so it can create a role for the Redbox principal)
+	_, err = iamSvc.AttachRolePolicy(&iam.AttachRolePolicyInput{
+		RoleName:  aws.String(adminRoleName),
+		PolicyArn: aws.String("arn:aws:iam::aws:policy/IAMFullAccess"),
+	})
+	require.Nil(t, err)
+
+	// IAM Role takes a while to propagate....
+	time.Sleep(10 * time.Second)
+
+	return &createAdminRoleOutput{
+		adminRoleArn: adminRoleArn,
+		accountID:    currentAccountID,
+	}
 }

@@ -9,11 +9,11 @@ resource "aws_sqs_queue" "account_reset" {
 # Queries DB for all accounts
 # where `status != "READY"`, and adds
 # them to an SQS reset queue
-resource "aws_lambda_function" "global_reset_enqueue" {
-  function_name = "resetsqs-${var.namespace}"
+resource "aws_lambda_function" "populate_reset_queue" {
+  function_name = "populate_reset_queue-${var.namespace}"
   description   = "Enqueue all active Redbox accounts to be reset."
   runtime       = "go1.x"
-  handler       = "resetsqs"
+  handler       = "populate_reset_queue"
   role          = aws_iam_role.redbox_lambda_execution.arn
   timeout       = 300
 
@@ -35,7 +35,7 @@ resource "aws_lambda_function" "global_reset_enqueue" {
       ICP_REGION         = var.aws_region
       RESET_SQS_URL      = aws_sqs_queue.account_reset.id
       ACCOUNT_DB         = aws_dynamodb_table.redbox_account.id
-      ASSIGNMENT_DB      = aws_dynamodb_table.redbox_account_assignment.id
+      LEASE_DB           = aws_dynamodb_table.redbox_lease.id
       AWS_CURRENT_REGION = var.aws_region
     }
   }
@@ -54,13 +54,13 @@ resource "aws_cloudwatch_event_rule" "weekly_reset" {
 resource "aws_cloudwatch_event_target" "weekly_reset" {
   rule      = aws_cloudwatch_event_rule.weekly_reset.name
   target_id = "redbox_global_reset_${var.namespace}"
-  arn       = aws_lambda_function.global_reset_enqueue.arn
+  arn       = aws_lambda_function.populate_reset_queue.arn
 }
 
 resource "aws_lambda_permission" "allow_cloudwatch_weekly_reset" {
   statement_id  = "AllowCloudWatchWeeklyReset${title(var.namespace)}"
   action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.global_reset_enqueue.function_name
+  function_name = aws_lambda_function.populate_reset_queue.function_name
   principal     = "events.amazonaws.com"
   source_arn    = aws_cloudwatch_event_rule.weekly_reset.arn
 }
@@ -68,10 +68,10 @@ resource "aws_lambda_permission" "allow_cloudwatch_weekly_reset" {
 # Lambda function to execute account reset
 # Will poll SQS on a schedule, and execute a CodePipline
 # for each account that needs to be reset
-resource "aws_lambda_function" "execute_reset" {
-  function_name = "resettrigger-${var.namespace}"
+resource "aws_lambda_function" "process_reset_queue" {
+  function_name = "process_reset_queue-${var.namespace}"
   role          = aws_iam_role.redbox_lambda_execution.arn
-  handler       = "resettrigger"
+  handler       = "process_reset_queue"
   runtime       = "go1.x"
   timeout       = 300
 
@@ -81,7 +81,7 @@ resource "aws_lambda_function" "execute_reset" {
       RESET_BUILD_NAME   = aws_codebuild_project.reset_build.id
       RESET_SQS_URL      = aws_sqs_queue.account_reset.id
       ACCOUNT_DB         = aws_dynamodb_table.redbox_account.id
-      ASSIGNMENT_DB      = aws_dynamodb_table.redbox_account_assignment.id
+      LEASE_DB           = aws_dynamodb_table.redbox_lease.id
       AWS_CURRENT_REGION = var.aws_region
     }
   }
@@ -111,13 +111,13 @@ resource "aws_cloudwatch_event_rule" "poll_sqs_reset" {
 resource "aws_cloudwatch_event_target" "poll_sqs_reset" {
   rule      = aws_cloudwatch_event_rule.poll_sqs_reset.name
   target_id = "redbox-poll-reset-queue-${var.namespace}"
-  arn       = aws_lambda_function.execute_reset.arn
+  arn       = aws_lambda_function.process_reset_queue.arn
 }
 
 resource "aws_lambda_permission" "allow_cloudwatch_poll_sqs_reset" {
   statement_id  = "AllowCloudWatchPollSchedule${title(var.namespace)}"
   action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.execute_reset.function_name
+  function_name = aws_lambda_function.process_reset_queue.function_name
   principal     = "events.amazonaws.com"
   source_arn    = aws_cloudwatch_event_rule.poll_sqs_reset.arn
 }
