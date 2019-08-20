@@ -12,7 +12,8 @@ steps:
     addToPath: true
     architecture: 'x64'
 
-- task: AWSCLI@2
+- task: CmdLine@2
+  displayName: 'Add AWS CLI'
   inputs:
     script: 'pip install awscli'
 - task: AWSCLI@1
