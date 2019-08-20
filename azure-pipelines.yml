@@ -15,7 +15,9 @@ steps:
 - task: CmdLine@2
   displayName: 'Add AWS CLI'
   inputs:
-    script: 'pip install awscli'
+    script: |
+      echo $(System.PullRequest.PullRequestNumber)
+      pip install awscli
 - task: AWSCLI@1
   inputs:
     awsCredentials: 'AWS_Login'
@@ -36,7 +38,7 @@ steps:
     workingDirectory: './modules'
     backendServiceAWS: 'AWS_Terraform_Connection'
     backendAWSBucketName: '391501768339-redbox-tfstate'
-    backendAWSKey: 'AzureDevops/terraform.tfstate'
+    backendAWSKey: 'pr-87/terraform.tfstate'
 
 - task: TerraformTaskV1@0
   displayName: 'terraform apply'
@@ -44,7 +46,7 @@ steps:
     provider: 'aws'
     command: 'apply'
     workingDirectory: './modules'
-    commandOptions: '-var="namespace=pr-$(System.PullRequest.PullRequestNumber)" -var="budget_notification_from_email=Test@Test.com"'
+    commandOptions: '-var="namespace=pr-87" -var="budget_notification_from_email=Test@Test.com"'
     environmentServiceNameAWS: 'AWS_Terraform_Connection'
 
 - task: GoTool@0
