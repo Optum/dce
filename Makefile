@@ -33,15 +33,6 @@ build:
 generate:
 	go generate ./...
 
-release:
-	./scripts/release.sh \
-		--site_url github.optum.com \
-		--github_org CommercialCloud-Team \
-		--repository aws_redbox \
-		--artifacts bin/build_artifacts.zip,bin/terraform_artifacts.zip,scripts/deploy.sh,scripts/restore_db.sh \
-		--tag $(TAG)
-
-
 deploy_local: build
 	./scripts/deploy_local/deploy_local_build.sh
 

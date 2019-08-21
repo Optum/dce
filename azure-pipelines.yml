@@ -1,4 +1,3 @@
-
 pool:
   vmImage: 'Ubuntu 16.04'
 
@@ -6,7 +5,7 @@ trigger:
   - master
 
 pr:
-- master      
+  - master
 
 steps:
 
@@ -37,12 +36,12 @@ steps:
   displayName: 'Set up Golang CI Tools'
 
 - script: |
-    ./scripts/test.sh
+    make test
   displayName: 'Run Tests'
 
 - script: |
     make build
-  displayName: 'Make build'    
+  displayName: 'Make build'
 
 - task: PublishTestResults@2
   inputs:
@@ -51,7 +50,7 @@ steps:
 
 - task: PublishCodeCoverageResults@1
   inputs:
-    codeCoverageTool: Cobertura 
+    codeCoverageTool: Cobertura
     summaryFileLocation: $(System.DefaultWorkingDirectory)/coverage.xml
 
 - task: TerraformTaskV1@0
@@ -104,3 +103,16 @@ steps:
     workingDirectory: './modules'
     commandOptions: '-var="namespace=pr-$(System.PullRequest.PullRequestNumber)" -var="budget_notification_from_email=$(NOTIFY_EMAIL)"'
     environmentServiceNameAWS: 'AWS_Terraform_Connection'
+
+# Publish a Github Release for tagged commits
+# See https://docs.microsoft.com/en-us/azure/devops/pipelines/tasks/utility/github-release?view=azure-devops
+- task: GithubRelease@0
+  displayName: 'Create GitHub Release'
+  inputs:
+    gitHubConnection: Github
+    repositoryName: Optum/Redbox
+    assets: |
+      $(Build.SourcesDirectory)/bin/build_artifacts.zip
+      $(Build.SourcesDirectory)/bin/terraform_artifacts.zip
+      $(Build.SourcesDirectory)/scripts/deploy.sh
+      $(Build.SourcesDirectory)/scripts/restore_db.sh
