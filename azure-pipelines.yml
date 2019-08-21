@@ -6,52 +6,63 @@ pr:
 - master      
 
 steps:
-- task: AWSCLI@1
-  inputs:
-    awsCredentials: 'AWS_Login'
-    regionName: 'us-east-1'
-    awsCommand: 'aws s3 ls'
-  condition: always()
+
 - task: TerraformInstaller@0
   inputs:
     terraformVersion: '0.12.0'
   condition: always()
 
-- task: Bash@3
-  displayName: 'Terraform init'    
+# - task: GoTool@0
+#   inputs:
+#     version: '1.12.6'
+#   displayName: 'Set up the Go workspace'
+
+# - script: |
+#     ./scripts/install_ci.sh
+#   displayName: 'Set up Golang CI Tools'
+
+# - script: |
+#     ./scripts/test.sh
+#   displayName: 'Run Tests'
+
+# - script: |
+#     make build
+#   displayName: 'Make build'    
+
+# - task: PublishTestResults@2
+#   inputs:
+#     testRunner: JUnit
+#     testResultsFiles: $(System.DefaultWorkingDirectory)/junit-report/*.xml
+
+# - task: PublishCodeCoverageResults@1
+#   inputs:
+#     codeCoverageTool: Cobertura 
+#     summaryFileLocation: $(System.DefaultWorkingDirectory)/coverage.xml
+
+- task: TerraformTaskV1@0
+  displayName: 'terraform init'
   inputs:
-    targetType: 'inline'
-    script: |
-      # Write your commands here
-      cd ./modules
-      terraform init -backend-config='bucket=391501768339-redbox-tfstate' \
-                     -backend-config='key=AzureDevops/terraform.tfstate'
-  condition: always()
+    provider: 'aws'
+    command: 'init'
+    workingDirectory: './modules'
+    backendServiceAWS: 'AWS_Terraform_Connection'
+    backendAWSBucketName: '$(BACKEND_AWS_BUCKET_NAME)'
+    backendAWSKey: 'pr-$(System.PullRequest.PullRequestNumber)/terraform.tfstate'
 
-- task: GoTool@0
+- task: TerraformTaskV1@0
+  displayName: 'terraform apply'
   inputs:
-    version: '1.12.6'
-  displayName: 'Set up the Go workspace'
+    provider: 'aws'
+    command: 'apply'
+    workingDirectory: './modules'
+    commandOptions: '-var="namespace=pr-$(System.PullRequest.PullRequestNumber)" -var="budget_notification_from_email=$(NOTIFY_EMAIL)"'
+    environmentServiceNameAWS: 'AWS_Terraform_Connection'
 
-- script: |
-    ./scripts/install_ci.sh
-  displayName: 'Set up Golang CI Tools'
-
-- script: |
-    make lint
-  displayName: 'Run lint'    
-
-- script: |
-    ./scripts/test.sh
-  displayName: 'Run Tests'
-
-- task: PublishTestResults@2
+- task: TerraformTaskV1@0
+  displayName: 'terraform destroy'
   inputs:
-    testRunner: JUnit
-    testResultsFiles: $(System.DefaultWorkingDirectory)/junit-report/report.xml
-
-- task: PublishCodeCoverageResults@1
-  inputs:
-    codeCoverageTool: Cobertura 
-    summaryFileLocation: $(System.DefaultWorkingDirectory)/coverage.xml
-
+    provider: 'aws'
+    command: 'destroy'
+    workingDirectory: './modules'
+    commandOptions: '-var="namespace=pr-$(System.PullRequest.PullRequestNumber)" -var="budget_notification_from_email=$(NOTIFY_EMAIL)"'
+    environmentServiceNameAWS: 'AWS_Terraform_Connection'
