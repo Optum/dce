@@ -18,19 +18,19 @@ steps:
     script: 'pip install awscli'
   displayName: 'Install awscli' 
 
-- task: AWSCLI@1
-  inputs:
-    awsCredentials: 'AWS_Login'
-    regionName: 'us-east-1'
-    awsCommand: 'configure'
-    awsSubCommand: 'set'
-    awsArguments: 'profile azuredevops'
-  condition: always()
-  displayName: 'AWS login and set profile'
+# - task: AWSCLI@1
+#   inputs:
+#     awsCredentials: 'AWS_Login'
+#     regionName: 'us-east-1'
+#     awsCommand: 'configure'
+#     awsSubCommand: 'set'
+#     awsArguments: 'profile azuredevops'
+#   condition: always()
+#   displayName: 'AWS login and set profile'
 
-- script: |
-    aws configure list
-  displayName: 'aws configure list'
+# - script: |
+#     aws configure list
+#   displayName: 'aws configure list'
 
 - task: TerraformInstaller@0
   inputs:
@@ -84,12 +84,20 @@ steps:
     commandOptions: '-var="namespace=pr-$(System.PullRequest.PullRequestNumber)" -var="budget_notification_from_email=$(NOTIFY_EMAIL)"'
     environmentServiceNameAWS: 'AWS_Terraform_Connection'
 
-- script: |
-    ./scripts/deploy.sh \
-        ./bin/build_artifacts.zip \
-        'pr-$(System.PullRequest.PullRequestNumber)' \
-        '$(ARTIFACTS_BUCKET_NAME)-pr-$(System.PullRequest.PullRequestNumber)'
-  displayName: 'Deploy artifacts'
+# - script: |
+#     ./scripts/deploy.sh \
+#         ./bin/build_artifacts.zip \
+#         'pr-$(System.PullRequest.PullRequestNumber)' \
+#         '$(ARTIFACTS_BUCKET_NAME)-pr-$(System.PullRequest.PullRequestNumber)'
+#   displayName: 'Deploy artifacts'
+
+- task: AWSShellScript@1
+  inputs:
+    awsCredentials: 'AWS_Login'
+    regionName: 'us-east-1'
+    arguments: './bin/build_artifacts.zip' 'pr-$(System.PullRequest.PullRequestNumber)' '$(ARTIFACTS_BUCKET_NAME)-pr-$(System.PullRequest.PullRequestNumber)'
+    scriptType: 'filePath'
+    filePath: './scripts/deploy.sh'
 
 - script: |
     make test_functional
