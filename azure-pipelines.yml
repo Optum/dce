@@ -1,6 +1,9 @@
 pool:
   vmImage: 'Ubuntu 16.04'
 
+trigger:
+  - master
+
 pr:
   - master
 
