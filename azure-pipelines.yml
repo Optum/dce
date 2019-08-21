@@ -67,6 +67,7 @@ steps:
     command: 'destroy'
     workingDirectory: './modules'
     commandOptions: '-var="namespace=pr-$(System.PullRequest.PullRequestNumber)" -var="budget_notification_from_email=$(NOTIFY_EMAIL)"'
+    environmentServiceNameAWS: 'AWS_Terraform_Connection'
 
 # Publish a Github Release for tagged commits
 # See https://docs.microsoft.com/en-us/azure/devops/pipelines/tasks/utility/github-release?view=azure-devops
