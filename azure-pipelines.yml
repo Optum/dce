@@ -25,7 +25,7 @@ steps:
     awsCommand: 'configure'
     awsSubCommand: 'set profile azuredevops'
   condition: always()
-  displayName: 'AWS login'
+  displayName: 'AWS login and set profile'
 
 - script: |
     aws configure list
