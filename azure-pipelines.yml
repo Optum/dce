@@ -1,9 +1,11 @@
-
 pool:
   vmImage: 'Ubuntu 16.04'
 
+trigger:
+  - master
+
 pr:
-- master      
+  - master
 
 steps:
 
@@ -12,32 +14,32 @@ steps:
     terraformVersion: '0.12.0'
   condition: always()
 
-# - task: GoTool@0
-#   inputs:
-#     version: '1.12.6'
-#   displayName: 'Set up the Go workspace'
+- task: GoTool@0
+  inputs:
+    version: '1.12.6'
+  displayName: 'Set up the Go workspace'
 
-# - script: |
-#     ./scripts/install_ci.sh
-#   displayName: 'Set up Golang CI Tools'
+- script: |
+    ./scripts/install_ci.sh
+  displayName: 'Set up Golang CI Tools'
 
-# - script: |
-#     ./scripts/test.sh
-#   displayName: 'Run Tests'
+- script: |
+    make test
+  displayName: 'Run Tests'
 
-# - script: |
-#     make build
-#   displayName: 'Make build'    
+- script: |
+    make build
+  displayName: 'Make build'
 
-# - task: PublishTestResults@2
-#   inputs:
-#     testRunner: JUnit
-#     testResultsFiles: $(System.DefaultWorkingDirectory)/junit-report/*.xml
+- task: PublishTestResults@2
+  inputs:
+    testRunner: JUnit
+    testResultsFiles: $(System.DefaultWorkingDirectory)/junit-report/*.xml
 
-# - task: PublishCodeCoverageResults@1
-#   inputs:
-#     codeCoverageTool: Cobertura 
-#     summaryFileLocation: $(System.DefaultWorkingDirectory)/coverage.xml
+- task: PublishCodeCoverageResults@1
+  inputs:
+    codeCoverageTool: Cobertura
+    summaryFileLocation: $(System.DefaultWorkingDirectory)/coverage.xml
 
 - task: TerraformTaskV1@0
   displayName: 'terraform init'
@@ -66,3 +68,16 @@ steps:
     workingDirectory: './modules'
     commandOptions: '-var="namespace=pr-$(System.PullRequest.PullRequestNumber)" -var="budget_notification_from_email=$(NOTIFY_EMAIL)"'
     environmentServiceNameAWS: 'AWS_Terraform_Connection'
+
+# Publish a Github Release for tagged commits
+# See https://docs.microsoft.com/en-us/azure/devops/pipelines/tasks/utility/github-release?view=azure-devops
+- task: GithubRelease@0
+  displayName: 'Create GitHub Release'
+  inputs:
+    gitHubConnection: Github
+    repositoryName: Optum/Redbox
+    assets: |
+      $(Build.SourcesDirectory)/bin/build_artifacts.zip
+      $(Build.SourcesDirectory)/bin/terraform_artifacts.zip
+      $(Build.SourcesDirectory)/scripts/deploy.sh
+      $(Build.SourcesDirectory)/scripts/restore_db.sh
