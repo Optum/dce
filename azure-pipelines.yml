@@ -39,6 +39,9 @@ steps:
 #     codeCoverageTool: Cobertura 
 #     summaryFileLocation: $(System.DefaultWorkingDirectory)/coverage.xml
 
+- task: ManualIntervention@8
+  inputs:
+    instructions: 'YeS?'
 - task: TerraformTaskV1@0
   displayName: 'terraform init'
   inputs:
@@ -57,6 +60,7 @@ steps:
     workingDirectory: './modules'
     commandOptions: '-var="namespace=pr-$(System.PullRequest.PullRequestNumber)" -var="budget_notification_from_email=$(NOTIFY_EMAIL)"'
     environmentServiceNameAWS: 'AWS_Terraform_Connection'
+
 
 - task: TerraformTaskV1@0
   displayName: 'terraform destroy'
