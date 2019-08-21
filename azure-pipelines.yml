@@ -18,20 +18,6 @@ steps:
     script: 'pip install awscli'
   displayName: 'Install awscli' 
 
-# - task: AWSCLI@1
-#   inputs:
-#     awsCredentials: 'AWS_Login'
-#     regionName: 'us-east-1'
-#     awsCommand: 'configure'
-#     awsSubCommand: 'set'
-#     awsArguments: 'profile azuredevops'
-#   condition: always()
-#   displayName: 'AWS login and set profile'
-
-# - script: |
-#     aws configure list
-#   displayName: 'aws configure list'
-
 - task: TerraformInstaller@0
   inputs:
     terraformVersion: '0.12.0'
@@ -95,10 +81,9 @@ steps:
   inputs:
     awsCredentials: 'AWS_Login'
     regionName: 'us-east-1'
-    arguments: './bin/build_artifacts.zip ''pr-$(System.PullRequest.PullRequestNumber)''  ''$(ARTIFACTS_BUCKET_NAME)-pr-$(System.PullRequest.PullRequestNumber)'''
+    arguments: './bin/build_artifacts.zip pr-$(System.PullRequest.PullRequestNumber)  $(ARTIFACTS_BUCKET_NAME)-pr-$(System.PullRequest.PullRequestNumber)'
     scriptType: 'filePath'
     filePath: './scripts/deploy.sh'
-
 
 - script: |
     make test_functional
