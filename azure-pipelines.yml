@@ -59,12 +59,12 @@ steps:
     environmentServiceNameAWS: 'AWS_Terraform_Connection'
 
 - script: |
-    ./scripts/test.sh
     ./scripts/deploy.sh \
         ./bin/build_artifacts.zip \
-        $(tfOutputs.redbox.namespace.value) \
-        $(tfOutputs.redbox.artifacts_bucket_name.value)
-  displayName: 'Run functional tests'
+        'pr-$(System.PullRequest.PullRequestNumber)' \
+        '$($ARTIFACTS_BUCKET_NAME)-pr-$(System.PullRequest.PullRequestNumber)'
+  displayName: 'Deploy artifacts'
+
 
 - task: TerraformTaskV1@0
   displayName: 'terraform destroy'
