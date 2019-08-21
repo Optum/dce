@@ -39,14 +39,6 @@ steps:
 #     codeCoverageTool: Cobertura 
 #     summaryFileLocation: $(System.DefaultWorkingDirectory)/coverage.xml
 
-- task: Bash@3
-  inputs:
-    targetType: 'inline'
-    script: |
-      # Write your commands here
-      
-      echo $(BACKEND_AWS_BUCKET_NAME)
-
 - task: TerraformTaskV1@0
   displayName: 'terraform init'
   inputs:
@@ -72,4 +64,5 @@ steps:
     provider: 'aws'
     command: 'destroy'
     workingDirectory: './modules'
+    commandOptions: '-var="namespace=pr-$(System.PullRequest.PullRequestNumber)" -var="budget_notification_from_email=$(NOTIFY_EMAIL)"'
     environmentServiceNameAWS: 'AWS_Terraform_Connection'
