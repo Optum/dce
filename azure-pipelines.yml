@@ -7,10 +7,16 @@ pr:
 
 steps:
 
+- task: CmdLine@2
+  inputs:
+    script: 'pip install awscli'
+  displayName: 'Install awscli' 
+
 - task: TerraformInstaller@0
   inputs:
     terraformVersion: '0.12.0'
   condition: always()
+  displayName: 'Install Terraform' 
 
 # - task: GoTool@0
 #   inputs:
