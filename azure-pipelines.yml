@@ -95,9 +95,10 @@ steps:
   inputs:
     awsCredentials: 'AWS_Login'
     regionName: 'us-east-1'
-    arguments: './bin/build_artifacts.zip' 'pr-$(System.PullRequest.PullRequestNumber)' '$(ARTIFACTS_BUCKET_NAME)-pr-$(System.PullRequest.PullRequestNumber)'
+    arguments: './bin/build_artifacts.zip ''pr-$(System.PullRequest.PullRequestNumber)''  ''$(ARTIFACTS_BUCKET_NAME)-pr-$(System.PullRequest.PullRequestNumber)'''
     scriptType: 'filePath'
     filePath: './scripts/deploy.sh'
+
 
 - script: |
     make test_functional
