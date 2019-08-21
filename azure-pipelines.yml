@@ -12,32 +12,32 @@ steps:
     terraformVersion: '0.12.0'
   condition: always()
 
-- task: GoTool@0
-  inputs:
-    version: '1.12.6'
-  displayName: 'Set up the Go workspace'
+# - task: GoTool@0
+#   inputs:
+#     version: '1.12.6'
+#   displayName: 'Set up the Go workspace'
 
-- script: |
-    ./scripts/install_ci.sh
-  displayName: 'Set up Golang CI Tools'
+# - script: |
+#     ./scripts/install_ci.sh
+#   displayName: 'Set up Golang CI Tools'
 
-- script: |
-    ./scripts/test.sh
-  displayName: 'Run Tests'
+# - script: |
+#     ./scripts/test.sh
+#   displayName: 'Run Tests'
 
-- script: |
-    make build
-  displayName: 'Make build'    
+# - script: |
+#     make build
+#   displayName: 'Make build'    
 
-- task: PublishTestResults@2
-  inputs:
-    testRunner: JUnit
-    testResultsFiles: $(System.DefaultWorkingDirectory)/junit-report/*.xml
+# - task: PublishTestResults@2
+#   inputs:
+#     testRunner: JUnit
+#     testResultsFiles: $(System.DefaultWorkingDirectory)/junit-report/*.xml
 
-- task: PublishCodeCoverageResults@1
-  inputs:
-    codeCoverageTool: Cobertura 
-    summaryFileLocation: $(System.DefaultWorkingDirectory)/coverage.xml
+# - task: PublishCodeCoverageResults@1
+#   inputs:
+#     codeCoverageTool: Cobertura 
+#     summaryFileLocation: $(System.DefaultWorkingDirectory)/coverage.xml
 
 - task: TerraformTaskV1@0
   displayName: 'terraform init'
