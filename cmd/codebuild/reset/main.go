@@ -14,6 +14,7 @@ import (
 	"github.com/avast/retry-go"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/athena"
+	"github.com/aws/aws-sdk-go/service/rds"
 )
 
 // main will run through the reset process for an account which involves using
@@ -30,12 +31,31 @@ func main() {
 			"mode.")
 	}
 
-	// Delete Athena resources
-	log.Println("Starting Athena nuking")
+	// Delete RDS automated backups
 	if config.isNukeEnabled {
+		log.Println("RDS backup nuke")
 		awsSession := svc.awsSession()
 		tokenService := svc.tokenService()
 		roleArn := "arn:aws:iam::" + config.accountID + ":role/" + config.accountAdminRoleName
+		rdsCreds := tokenService.NewCredentials(awsSession, roleArn)
+		rdsSession, err := tokenService.NewSession(awsSession, roleArn)
+		if err != nil {
+			log.Fatalf("Failed to create rds session %s: %s\n", config.accountID, err)
+		}
+		rdsClient := rds.New(rdsSession, &aws.Config{
+			Credentials: rdsCreds,
+		})
+		rdsReset := reset.RdsReset{
+			Client: rdsClient,
+		}
+		err = reset.DeleteRdsBackups(rdsReset)
+		if err != nil {
+			log.Fatalf("Failed to execute aws-nuke RDS backup on account %s: %s\n", config.accountID, err)
+		}
+
+		// Delete Athena resources
+		log.Println("Starting Athena nuking")
+
 		athenaCreds := tokenService.NewCredentials(awsSession, roleArn)
 		athenaClient := athena.New(awsSession, &aws.Config{
 			Credentials: athenaCreds,
@@ -43,7 +63,7 @@ func main() {
 		athenaReset := &reset.AthenaReset{
 			Client: athenaClient,
 		}
-		err := reset.DeleteAthenaResources(athenaReset)
+		err = reset.DeleteAthenaResources(athenaReset)
 		if err != nil {
 			log.Fatalf("Failed to execute aws-nuke athena on account %s: %s\n", config.accountID, err)
 		}

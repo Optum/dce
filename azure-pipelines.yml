@@ -28,8 +28,7 @@ steps:
 - task: TerraformInstaller@0
   inputs:
     terraformVersion: '0.12.0'
-  condition: always()
-  displayName: 'Install Terraform' 
+  displayName: 'Install Terraform'
 
 # Install GO
 - task: GoTool@0

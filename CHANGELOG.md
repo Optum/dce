@@ -1,5 +1,6 @@
-## _next_
+## v0.14.0
 
+- Added rds backup delete to nuke
 - Added Athena resources reset
 - Bugfix: In populate_reset_queue lambda, change status from ResetFinanceLock to Active
 
@@ -23,8 +24,11 @@ See [README.md for details](./README.md#configuring-aws-nuke) on aws-nuke config
 ## v0.12.3
 
 - Added EKS services to allowed services in policy file, redboxprincipal.go
+- Audited alarms and Added API gateway 4XX alarm
+- Adds a metadata property to the account object
 - Added publish_locks lambda
 - Adds a metadata property to the account object
+
 
 ## v0.12.2
 
