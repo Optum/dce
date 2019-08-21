@@ -82,6 +82,10 @@ steps:
     make test_functional
   displayName: 'Run functional tests'
 
+- task: PublishTestResults@2
+  inputs:
+    testRunner: JUnit
+    testResultsFiles: $(System.DefaultWorkingDirectory)/junit-report/*.xml
 - task: TerraformTaskV1@0
   displayName: 'terraform destroy'
   inputs:
