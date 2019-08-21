@@ -25,9 +25,9 @@ steps:
 #     ./scripts/test.sh
 #   displayName: 'Run Tests'
 
-# - script: |
-#     make build
-#   displayName: 'Make build'    
+- script: |
+    make build
+  displayName: 'Make build'    
 
 # - task: PublishTestResults@2
 #   inputs:
@@ -62,9 +62,12 @@ steps:
     ./scripts/deploy.sh \
         ./bin/build_artifacts.zip \
         'pr-$(System.PullRequest.PullRequestNumber)' \
-        '$($ARTIFACTS_BUCKET_NAME)-pr-$(System.PullRequest.PullRequestNumber)'
+        '$(ARTIFACTS_BUCKET_NAME)-pr-$(System.PullRequest.PullRequestNumber)'
   displayName: 'Deploy artifacts'
 
+- script: |
+    make test_functional
+  displayName: 'Run functional tests'
 
 - task: TerraformTaskV1@0
   displayName: 'terraform destroy'
