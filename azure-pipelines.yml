@@ -54,7 +54,7 @@ steps:
     command: 'init'
     workingDirectory: './modules'
     backendServiceAWS: 'AWS_Terraform_Connection'
-    backendAWSBucketName: $BACKENDAWSBUCKETNAME
+    backendAWSBucketName: '$BACKENDAWSBUCKETNAME'
     backendAWSKey: 'pr-$(System.PullRequest.PullRequestNumber)/terraform.tfstate'
 
 - task: TerraformTaskV1@0
