@@ -33,6 +33,9 @@ func TestDb(t *testing.T) {
 		tfOut["redbox_lease_db_table_name"].(string),
 	)
 
+	// Truncate tables, to make sure we're starting off clean
+	truncateDBTables(t, dbSvc)
+
 	t.Run("GetAccount / PutAccount", func(t *testing.T) {
 		t.Run("Should retrieve an Account by Id", func(t *testing.T) {
 			// Cleanup table on completion
