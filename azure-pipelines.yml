@@ -78,15 +78,21 @@ steps:
     scriptType: 'filePath'
     filePath: './scripts/deploy.sh'
 
-- script: |
-    make test_functional
-  displayName: 'Run functional tests'
+- task: AWSShellScript@1
+  displayName: "Functional Tests"
+  inputs:
+    awsCredentials: 'AWS_Login'
+    regionName: 'us-east-1'
+    scriptType: 'inline'
+    inlineScript: |
+      make test_functional
 
 - task: PublishTestResults@2
   inputs:
     testRunner: JUnit
     testResultsFiles: $(System.DefaultWorkingDirectory)/junit-report/*.xml
   condition: always()
+
 - task: TerraformTaskV1@0
   displayName: 'terraform destroy'
   inputs:
