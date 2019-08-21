@@ -22,8 +22,8 @@ steps:
   inputs:
     awsCredentials: 'AWS_Login'
     regionName: 'us-east-1'
-    awsCommand: 's3'
-    awsSubCommand: 'ls'
+    awsCommand: 'configure'
+    awsSubCommand: '--profile azuredevops'
   condition: always()
   displayName: 'AWS login'
 
