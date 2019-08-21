@@ -1,46 +1,58 @@
 pool:
   vmImage: 'Ubuntu 16.04'
 
+# Run builds on `master` branch
 trigger:
   - master
 
+# Run builds for PRs against `master`
 pr:
   - master
 
 steps:
 
+# Setup Python
+- task: UsePythonVersion@0
+  inputs:
+    versionSpec: '3.x'
+    addToPath: true
+    architecture: 'x64'
+
+# Install AWS ClI tool
+- task: CmdLine@2
+  inputs:
+    script: 'pip install awscli'
+  displayName: 'Install awscli' 
+
+# Install Terraform
 - task: TerraformInstaller@0
   inputs:
     terraformVersion: '0.12.0'
   condition: always()
+  displayName: 'Install Terraform' 
 
+# Install GO
 - task: GoTool@0
   inputs:
     version: '1.12.6'
   displayName: 'Set up the Go workspace'
 
+# Install tools needed for CI environment
 - script: |
     ./scripts/install_ci.sh
   displayName: 'Set up Golang CI Tools'
 
+# Unit Tests
 - script: |
     make test
-  displayName: 'Run Tests'
+  displayName: 'Unit Tests'
 
+# Build Go packages
 - script: |
     make build
-  displayName: 'Make build'
+  displayName: 'Build'
 
-- task: PublishTestResults@2
-  inputs:
-    testRunner: JUnit
-    testResultsFiles: $(System.DefaultWorkingDirectory)/junit-report/*.xml
-
-- task: PublishCodeCoverageResults@1
-  inputs:
-    codeCoverageTool: Cobertura
-    summaryFileLocation: $(System.DefaultWorkingDirectory)/coverage.xml
-
+# terraform init
 - task: TerraformTaskV1@0
   displayName: 'terraform init'
   inputs:
@@ -51,6 +63,7 @@ steps:
     backendAWSBucketName: '$(BACKEND_AWS_BUCKET_NAME)'
     backendAWSKey: 'pr-$(System.PullRequest.PullRequestNumber)/terraform.tfstate'
 
+# terraform apply
 - task: TerraformTaskV1@0
   displayName: 'terraform apply'
   inputs:
@@ -60,6 +73,41 @@ steps:
     commandOptions: '-var="namespace=pr-$(System.PullRequest.PullRequestNumber)" -var="budget_notification_from_email=$(NOTIFY_EMAIL)"'
     environmentServiceNameAWS: 'AWS_Terraform_Connection'
 
+# Deploy Application Code to AWS
+- task: AWSShellScript@1
+  displayName: 'Deploy Application Code'
+  inputs:
+    awsCredentials: 'AWS_Login'
+    regionName: 'us-east-1'
+    arguments: './bin/build_artifacts.zip pr-$(System.PullRequest.PullRequestNumber)  $(ARTIFACTS_BUCKET_NAME)-pr-$(System.PullRequest.PullRequestNumber)'
+    scriptType: 'filePath'
+    filePath: './scripts/deploy.sh'
+
+# Functional Tests
+- task: AWSShellScript@1
+  displayName: "Functional Tests"
+  inputs:
+    awsCredentials: 'AWS_Login'
+    regionName: 'us-east-1'
+    scriptType: 'inline'
+    inlineScript: |
+      make test_functional
+
+# Publish junit test results (for unit and functional tests)
+- task: PublishTestResults@2
+  inputs:
+    testRunner: JUnit
+    testResultsFiles: $(System.DefaultWorkingDirectory)/junit-report/*.xml
+  condition: always()
+
+# Publish code coverage results
+- task: PublishCodeCoverageResults@1
+  inputs:
+    codeCoverageTool: Cobertura
+    summaryFileLocation: $(System.DefaultWorkingDirectory)/coverage.xml
+  condition: always()
+
+# terraform destroy
 - task: TerraformTaskV1@0
   displayName: 'terraform destroy'
   inputs:

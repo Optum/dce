@@ -1,6 +1,9 @@
 #!/bin/bash
 set -euxo pipefail
 
+export GOARCH=amd64 GOOS=linux CGO_ENABLED=0
+
+
 # Accept a Lambda names as the first argument,
 # to only build a single lambda
 set +u
