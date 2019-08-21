@@ -25,6 +25,11 @@ steps:
     awsCommand: 's3'
     awsSubCommand: 'ls'
   condition: always()
+  displayName: 'AWS login'
+
+- script: |
+    aws configure list
+  displayName: 'aws configure list'
 
 - task: TerraformInstaller@0
   inputs:
