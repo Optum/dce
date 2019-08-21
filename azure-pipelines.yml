@@ -45,7 +45,7 @@ steps:
     script: |
       # Write your commands here
       
-      echo $BACKENDAWSBUCKETNAME
+      echo $(BACKEND_AWS_BUCKET_NAME)
 
 - task: TerraformTaskV1@0
   displayName: 'terraform init'
@@ -54,7 +54,7 @@ steps:
     command: 'init'
     workingDirectory: './modules'
     backendServiceAWS: 'AWS_Terraform_Connection'
-    backendAWSBucketName: '$BACKENDAWSBUCKETNAME'
+    backendAWSBucketName: '$(BACKEND_AWS_BUCKET_NAME)'
     backendAWSKey: 'pr-$(System.PullRequest.PullRequestNumber)/terraform.tfstate'
 
 - task: TerraformTaskV1@0
