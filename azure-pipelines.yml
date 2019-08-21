@@ -62,8 +62,8 @@ steps:
     ./scripts/test.sh
     ./scripts/deploy.sh \
         ./bin/build_artifacts.zip \
-        ${tfOutputs.redbox.namespace.value} \
-        ${tfOutputs.redbox.artifacts_bucket_name.value}
+        $(tfOutputs.redbox.namespace.value) \
+        $(tfOutputs.redbox.artifacts_bucket_name.value)
   displayName: 'Run functional tests'
 
 - task: TerraformTaskV1@0
