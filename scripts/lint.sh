@@ -11,7 +11,7 @@ golangci-lint run --disable-all -E golint ./cmd/...
 golangci-lint run --disable-all -E golint ./tests/...
 
 # Check terraform formatting
-terraform fmt -check=true ./modules/
+terraform fmt -check -recursive ./modules/
 
 # Run tflint
 cd modules
@@ -22,4 +22,4 @@ trap moveBackBackend EXIT
 # Move backend.tf, so we can tf init in a CI environment
 mv -f ./backend.tf{,.bak} || true
 terraform init
-tflint --deep --error-with-issues ./
+tflint --deep ./

@@ -82,10 +82,10 @@ POLICY
 }
 
 resource "aws_dynamodb_table" "local_terraform_state_lock" {
-  name = "Terraform-State-Backend-${var.namespace}"
-  read_capacity = 1
+  name           = "Terraform-State-Backend-${var.namespace}"
+  read_capacity  = 1
   write_capacity = 1
-  hash_key = "LockID"
+  hash_key       = "LockID"
 
   attribute {
     name = "LockID"

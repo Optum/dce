@@ -62,10 +62,10 @@ POLICY
 
 // Run the fan-out-check-budget lambda on a timer (cloudwatch event)
 module "dbbackup_lambda_schedule" {
-  source = "./cloudwatch_event"
-  name = "fan_out_check_budget-${var.namespace}"
+  source              = "./cloudwatch_event"
+  name                = "fan_out_check_budget-${var.namespace}"
   lambda_function_arn = module.fan_out_check_budget_lambda.arn
   schedule_expression = var.check_budget_schedule_expression
-  description = "Initiates the budget check lambda. Invokes a check-budget lamdba for each active lease"
-  enabled = var.check_budget_enabled
+  description         = "Initiates the budget check lambda. Invokes a check-budget lamdba for each active lease"
+  enabled             = var.check_budget_enabled
 }
