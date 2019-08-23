@@ -16,7 +16,7 @@ pr:
   - master
 
 variables:
-  namespace: $[ System.PullRequest.PullRequestNumber ]
+  namespace: ${{ System.PullRequest.PullRequestNumber }}
 
 steps:
   - script: |
