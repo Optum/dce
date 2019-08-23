@@ -15,9 +15,6 @@ trigger:
 pr:
   - master
 
-variables:
-  namespace: ${{ System.PullRequest.PullRequestNumber }}
-
 steps:
   - script: |
       echo "PR: $(System.PullRequest.PullRequestNumber)"
