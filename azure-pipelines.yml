@@ -1,9 +1,15 @@
 pool:
   vmImage: 'Ubuntu 16.04'
 
-# Run builds on `master` branch
 trigger:
-  - master
+  # Do not build branches
+  branches:
+    exclude:
+      - "*"
+  # Run build on tagged versions
+  tags:
+    include:
+      - "v*"
 
 # Run builds for PRs against `master`
 pr:
