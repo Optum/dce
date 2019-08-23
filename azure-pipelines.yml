@@ -15,8 +15,8 @@ trigger:
 pr:
   - master
 
-variables:
-  namespace: $[coalesce($(System.PullRequest.PullRequestNumber), $(Build.SourceBranchName))]
+#variables:
+#  namespace: $[coalesce($(System.PullRequest.PullRequestNumber), $(Build.SourceBranchName))]
 
 steps:
   - script: |
