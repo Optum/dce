@@ -60,7 +60,8 @@ steps:
 # May be referenced as an env var (eg. "${NAMESPACE}")
 # Or as a pipeline variable (eg. "$(namespace)")
 - script: |
-    NS_PR="pr-$(System.PullRequest.PullRequestNumber)"
+    PR_NUMBER="$(System.PullRequest.PullRequestNumber)"
+    NS_PR="pr-${PR_NUMBER}"
     # This is the branch name, or the git tag name
     NS_BRANCH_OR_TAG="$(Build.SourceBranchName)"
     # Namespace is `pr-123` (for PRs)
@@ -70,6 +71,7 @@ steps:
     # Set the namespace as a Azure Pipeline variable
     # See https://docs.microsoft.com/en-us/azure/devops/pipelines/process/variables?view=azure-devops&tabs=yaml%2Cbatch#set-in-script
     echo "##vso[task.setvariable variable=namespace]${NS}"
+  displayName: "Configure Namespace"
 
 # terraform init
 - task: TerraformTaskV1@0
