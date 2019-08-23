@@ -30,7 +30,10 @@ steps:
       NS="${PR:-BR}"
       echo "NS bash var: $NS"
 
-      echo "##vso[task.setvariable variable=NS]${NS}"
-
-      echo "NS pipeline var: $(variables.NS)"
+      echo "##vso[task.setvariable variable=namespace]${NS}"
     displayName: 'Test'
+  - script: |
+      echo "NS env var is: ${NAMESPACE}"
+      echo "NS var is $(namespace)"
+      echo "NS var is $(variables.namespace)"
+    displayName: 'Test2'
