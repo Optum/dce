@@ -15,8 +15,8 @@ trigger:
 pr:
   - master
 
-#variables:
-#  namespace: $[coalesce($(System.PullRequest.PullRequestNumber), $(Build.SourceBranchName))]
+variables:
+  namespace: $[ System.PullRequest.PullRequestNumber ]
 
 steps:
   - script: |
@@ -24,4 +24,4 @@ steps:
       echo "Source branch: $(Build.SourceBranchName)"
       echo "Source branch name: $(Build.SourceBranchName)"
       echo "Namespace: $(namespace)"
-    displayName: 'Unit Tests'
+    displayName: 'Test'
