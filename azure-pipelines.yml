@@ -17,8 +17,20 @@ pr:
 
 steps:
   - script: |
+
+
+
       echo "PR: $(System.PullRequest.PullRequestNumber)"
       echo "Source branch: $(Build.SourceBranchName)"
       echo "Source branch name: $(Build.SourceBranchName)"
-      echo "Coalesce: ${'$(System.PullRequest.PullRequestNumber)':'$(Build.SourceBranchName)'}"
+
+
+      PR="$(System.PullRequest.PullRequestNumber)"
+      BR="$(Build.SourceBranchName)"
+      NS="${PR:-BR}"
+      echo "$NS"
+
+      echo "##vso[task.setvariable variable=NS]${NS}"
+
+      echo "NS var: $(NS)"
     displayName: 'Test'
