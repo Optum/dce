@@ -27,7 +27,7 @@ steps:
 
       PR="$(System.PullRequest.PullRequestNumber)"
       BR="$(Build.SourceBranchName)"
-      NS="${PR:-BR}"
+      NS="${PR:-${BR}}"
       echo "NS bash var: $NS"
 
       echo "##vso[task.setvariable variable=namespace]${NS}"
