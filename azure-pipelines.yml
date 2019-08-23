@@ -16,8 +16,7 @@ pr:
   - master
 
 variables:
-
-  namespace: $[coalesce(System.PullRequest.PullRequestNumber, Build.SourceBranchName)]
+  namespace: $[coalesce($(System.PullRequest.PullRequestNumber), $(Build.SourceBranchName))]
 
 steps:
   - script: |
