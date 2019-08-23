@@ -64,8 +64,11 @@ steps:
     # This is the branch name, or the git tag name
     NS_BRANCH_OR_TAG="$(Build.SourceBranchName)"
 
+    # TODO tag name can't be namespace, AWS doesn't like
+    # it as a resource name.
+    # If it's a tagged version, just call it `release` or something
     if [[ -z ${PR_NUMBER} ]]; then
-      NS="${NS_BRANCH_OR_TAG}"
+      NS="release"
     else
       NS="pr-${PR_NUMBER}"
     fi
