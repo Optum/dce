@@ -20,5 +20,5 @@ steps:
       echo "PR: $(System.PullRequest.PullRequestNumber)"
       echo "Source branch: $(Build.SourceBranchName)"
       echo "Source branch name: $(Build.SourceBranchName)"
-      echo "Namespace: $(namespace)"
+      echo "Coalesce: $(coalesce(System.PullRequest.PullRequestNumber, Build.SourceBranchName))"
     displayName: 'Test'
