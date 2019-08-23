@@ -61,12 +61,16 @@ steps:
 # Or as a pipeline variable (eg. "$(namespace)")
 - script: |
     PR_NUMBER="$(System.PullRequest.PullRequestNumber)"
-    NS_PR="pr-${PR_NUMBER}"
     # This is the branch name, or the git tag name
     NS_BRANCH_OR_TAG="$(Build.SourceBranchName)"
-    # Namespace is `pr-123` (for PRs)
-    # Or `v1.2.3` for release tags
-    NS="${NS_PR:-${NS_BRANCH_OR_TAG}}"
+
+    if [[ -z ${PR_NUMBER} ]]; then
+      NS="${NS_BRANCH_OR_TAG}"
+    else
+      NS="pr-${PR_NUMBER}"
+    fi
+
+    echo "Namespace is ${NS}"
 
     # Set the namespace as a Azure Pipeline variable
     # See https://docs.microsoft.com/en-us/azure/devops/pipelines/process/variables?view=azure-devops&tabs=yaml%2Cbatch#set-in-script
