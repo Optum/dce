@@ -16,23 +16,135 @@ pr:
   - master
 
 steps:
-  - script: |
+# Setup Python
+- task: UsePythonVersion@0
+  inputs:
+    versionSpec: '3.x'
+    addToPath: true
+    architecture: 'x64'
 
+# Install AWS ClI tool
+- task: CmdLine@2
+  inputs:
+    script: 'pip install awscli'
+  displayName: 'Install awscli'
 
+# Install Terraform
+- task: TerraformInstaller@0
+  inputs:
+    terraformVersion: '0.12.0'
+  displayName: 'Install Terraform'
 
-      echo "PR: $(System.PullRequest.PullRequestNumber)"
-      echo "Source branch: $(Build.SourceBranchName)"
-      echo "Source branch name: $(Build.SourceBranchName)"
+# Install GO
+- task: GoTool@0
+  inputs:
+    version: '1.12.6'
+  displayName: 'Set up the Go workspace'
 
+# Install tools needed for CI environment
+- script: |
+    ./scripts/install_ci.sh
+  displayName: 'Set up Golang CI Tools'
 
-      PR="$(System.PullRequest.PullRequestNumber)"
-      BR="$(Build.SourceBranchName)"
-      NS="${PR:-${BR}}"
-      echo "NS bash var: $NS"
+# Unit Tests
+- script: |
+    make test
+  displayName: 'Unit Tests'
 
-      echo "##vso[task.setvariable variable=namespace]${NS}"
-    displayName: 'Test'
-  - script: |
-      echo "NS env var is: ${NAMESPACE}"
-      echo "NS var is $(namespace)"
-    displayName: 'Test2'
+# Build Go packages
+- script: |
+    make build
+  displayName: 'Build'
+
+# Configure the namespace used by Terraform
+# May be referenced as an env var (eg. "${NAMESPACE}")
+# Or as a pipeline variable (eg. "$(namespace)")
+- script: |
+    NS_PR="pr-$(System.PullRequest.PullRequestNumber)"
+    # This is the branch name, or the git tag name
+    NS_BRANCH_OR_TAG="$(Build.SourceBranchName)"
+    # Namespace is `pr-123` (for PRs)
+    # Or `v1.2.3` for release tags
+    NS="${NS_PR:-${NS_BRANCH_OR_TAG}}"
+
+    # Set the namespace as a Azure Pipeline variable
+    # See https://docs.microsoft.com/en-us/azure/devops/pipelines/process/variables?view=azure-devops&tabs=yaml%2Cbatch#set-in-script
+    echo "##vso[task.setvariable variable=namespace]${NS}"
+
+# terraform init
+- task: TerraformTaskV1@0
+  displayName: 'terraform init'
+  inputs:
+    provider: 'aws'
+    command: 'init'
+    workingDirectory: './modules'
+    backendServiceAWS: 'AWS_Terraform_Connection'
+    backendAWSBucketName: '$(BACKEND_AWS_BUCKET_NAME)'
+    backendAWSKey: '$(namespace)/terraform.tfstate'
+
+# terraform apply
+- task: TerraformTaskV1@0
+  displayName: 'terraform apply'
+  inputs:
+    provider: 'aws'
+    command: 'apply'
+    workingDirectory: './modules'
+    commandOptions: '-var="namespace=$(namespace)" -var="budget_notification_from_email=$(NOTIFY_EMAIL)"'
+    environmentServiceNameAWS: 'AWS_Terraform_Connection'
+
+# Deploy Application Code to AWS
+- task: AWSShellScript@1
+  displayName: 'Deploy Application Code'
+  inputs:
+    awsCredentials: 'AWS_Login'
+    regionName: 'us-east-1'
+    arguments: './bin/build_artifacts.zip $(namespace)  $(ARTIFACTS_BUCKET_NAME)-$(namespace)'
+    scriptType: 'filePath'
+    filePath: './scripts/deploy.sh'
+
+# Functional Tests
+- task: AWSShellScript@1
+  displayName: "Functional Tests"
+  inputs:
+    awsCredentials: 'AWS_Login'
+    regionName: 'us-east-1'
+    scriptType: 'inline'
+    inlineScript: |
+      make test_functional
+
+# Publish junit test results (for unit and functional tests)
+- task: PublishTestResults@2
+  inputs:
+    testRunner: JUnit
+    testResultsFiles: $(System.DefaultWorkingDirectory)/junit-report/*.xml
+  condition: always()
+
+# Publish code coverage results
+- task: PublishCodeCoverageResults@1
+  inputs:
+    codeCoverageTool: Cobertura
+    summaryFileLocation: $(System.DefaultWorkingDirectory)/coverage.xml
+  condition: always()
+
+# terraform destroy
+- task: TerraformTaskV1@0
+  displayName: 'terraform destroy'
+  inputs:
+    provider: 'aws'
+    command: 'destroy'
+    workingDirectory: './modules'
+    commandOptions: '-var="namespace=$(namespace)" -var="budget_notification_from_email=$(NOTIFY_EMAIL)"'
+    environmentServiceNameAWS: 'AWS_Terraform_Connection'
+
+# Publish a Github Release for tagged commits
+# See https://docs.microsoft.com/en-us/azure/devops/pipelines/tasks/utility/github-release?view=azure-devops
+- task: GithubRelease@0
+  displayName: 'Create GitHub Release'
+  inputs:
+    gitHubConnection: Github
+    repositoryName: Optum/Redbox
+    assets: |
+      $(Build.SourcesDirectory)/bin/build_artifacts.zip
+      $(Build.SourcesDirectory)/bin/terraform_artifacts.zip
+      $(Build.SourcesDirectory)/scripts/deploy.sh
+      $(Build.SourcesDirectory)/scripts/restore_db.sh
