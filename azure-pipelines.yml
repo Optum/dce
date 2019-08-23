@@ -28,9 +28,9 @@ steps:
       PR="$(System.PullRequest.PullRequestNumber)"
       BR="$(Build.SourceBranchName)"
       NS="${PR:-BR}"
-      echo "$NS"
+      echo "NS bash var: $NS"
 
       echo "##vso[task.setvariable variable=NS]${NS}"
 
-      echo "NS var: $(NS)"
+      echo "NS pipeline var: $(variables.NS)"
     displayName: 'Test'
