@@ -35,5 +35,4 @@ steps:
   - script: |
       echo "NS env var is: ${NAMESPACE}"
       echo "NS var is $(namespace)"
-      echo "NS var is $(variables.namespace)"
     displayName: 'Test2'
