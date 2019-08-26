@@ -159,3 +159,9 @@ variable "budget_notification_threshold_percentiles" {
   description = "Thresholds (percentiles) at which notification emails will be sent to Redbox users."
   default     = [75, 100]
 }
+
+variable "redbox_principal_policy" {
+  type = string
+  description = "Location of file with the policy used for the RedBox Principal Account"
+  default = "fixtures/policies/redbox_principal_policy.tmpl"
+}

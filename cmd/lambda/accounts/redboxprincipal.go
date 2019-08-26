@@ -3,13 +3,16 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"strings"
 	"text/template"
 
 	"github.com/Optum/Redbox/pkg/db"
 	"github.com/Optum/Redbox/pkg/rolemanager"
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/iam"
+	"github.com/aws/aws-sdk-go/service/s3"
 )
 
 func (c createController) createPrincipalRole(account db.RedboxAccount) (*rolemanager.CreateRoleWithPolicyOutput, error) {
@@ -83,176 +86,24 @@ type redboxPrincipalPolicyInput struct {
 func redboxPrincipalPolicy(input redboxPrincipalPolicyInput) (string, error) {
 	// Compile a template for the policy
 	if policyTemplate == nil {
+		sess := session.New()
+		s3Client := s3.New(sess, aws.NewConfig().WithRegion(os.Getenv("AWS_CURRENT_REGION")))
+
+		bucket := os.Getenv("ARTIFACTS_BUCKET")
+		key := "fixtures/policies/redbox_principal_policy.tmpl"
+		buff, err := downloadS3Data(s3Client, bucket, key)
+
 		tmpl := template.New("redboxPrincipalPolicy")
 
 		// Add `StringsJoin` function to template
 		// See https://stackoverflow.com/a/42724991
 		tmpl = tmpl.Funcs(template.FuncMap{"StringsJoin": strings.Join})
 
-		tmpl, err := tmpl.Parse(`
-{
-    "Version": "2012-10-17",
-    "Statement": [
-      {
-        "Sid": "DoNotModifySelf",
-        "Effect": "Deny",
-        "NotAction": [
-          "iam:GetPolicy",
-          "iam:GetPolicyVersion",
-          "iam:GetRole",
-          "iam:GetRolePolicy",
-          "iam:ListRoles",
-          "iam:ListRolePolicies",
-          "iam:ListAttachedRolePolicies",
-          "iam:ListRoleTags",
-          "iam:ListPoliciesGrantingServiceAccess",
-          "iam:ListEntitiesForPolicy",
-          "iam:ListPolicyVersions",
-          "iam:GenerateServiceLastAccessedDetails"
-        ],
-        "Resource": [
-          "{{.PrincipalPolicyArn}}",
-          "{{.PrincipalRoleArn}}",
-          "{{.AdminRoleArn}}" 
-        ]
-      },
-      {
-        "Sid": "DenyTaggedResourcesAWS",
-        "Effect": "Deny",
-        "Action": "*",
-        "Resource": "*",
-        "Condition": {
-          "StringEquals": {
-            "aws:ResourceTag/AppName": [
-              "{{ StringsJoin .PrincipalIAMDenyTags "\", \"" }}"
-            ]
-          }
-        }
-      },
-      {
-        "Sid": "DenyIAM",
-        "Effect": "Deny",
-        "Action": [
-          "iam:DeactivateMFADevice",
-          "iam:CreateGroup",
-          "iam:DeleteGroup",
-          "iam:UpdateUser",
-          "iam:UpdateGroup",
-          "iam:CreateRoleWithPolicy",
-          "iam:DeleteUser",
-          "iam:CreateSAMLProvider",
-          "iam:CreateUser",
-          "iam:RemoveUserFromGroup",
-          "iam:AddUserToGroup",
-          "iam:UpdateAccountPasswordPolicy",
-          "iam:DeleteVirtualMFADevice",
-          "iam:EnableMFADevice",
-          "iam:CreateAccountAlias",
-          "iam:DeleteAccountAlias",
-          "iam:UpdateSAMLProvider",
-          "iam:ChangePassword",
-          "iam:DeleteSAMLProvider"
-        ],
-        "Resource": "*"
-      },
-      {
-        "Sid": "ViewBillingAndBudgets",
-        "Effect": "Allow",
-        "Action": [
-          "aws-portal:ViewBilling",
-          "aws-portal:ViewUsage",
-          "budgets:ViewBudget"
-        ],
-        "Resource": "*"
-      },
-      {
-        "Sid": "AllowedServices",
-        "Effect": "Allow",
-        "Action": [
-          "acm:*",
-          "apigateway:*",
-          "appstream:*",
-          "autoscaling:*",
-          "batch:*",
-          "cloud9:*",
-          "clouddirectory:*",
-          "cloudformation:*",
-          "cloudfront:*",
-          "cloudhsm:*",
-          "cloudsearch:*",
-          "cloudtrail:*",
-          "cloudwatch:*",
-          "codebuild:*",
-          "codecommit:*", 
-          "codedeploy:*", 
-          "codepipeline:*",
-          "codestar:*",
-          "cognito-identity:*",
-          "cognito-idp:*",
-          "cognito-sync:*",
-          "config:*",
-          "datapipeline:*",
-          "devicefarm:*",
-          "dynamodb:*",
-          "ec2:*",
-          "ecs:*",
-          "elasticfilesystem:*",
-          "elasticloadbalancing:*",
-          "elasticmapreduce:*",
-          "elasticbeanstalk:*",
-          "elastictranscoder:*",
-          "elasticache:*",
-          "eks:*",
-          "fsx:*",
-          "firehose:*",
-          "glue:*",
-          "iam:*",
-          "iot:*",
-          "kms:*",
-          "kinesis:*",
-          "lambda:*",
-          "mq:*",
-          "machinelearning:*",
-          "mediaconvert:*",
-          "mediapackage:*",
-          "mediastore:*",
-          "opsworks:*",
-          "rds:*",
-          "redshift:*",
-          "rekognition:*",
-          "resource-groups:*",
-          "route53:*",
-          "s3:*",
-          "sns:*",
-          "sqs:*",
-          "ssm:*",
-          "sagemaker:*",
-          "secretsmanager:*",
-          "servicecatalog:*",
-          "storagegateway:*",
-          "waf:*",
-          "waf-regional:*",
-          "workspaces:*",
-          "a4b:*",
-          "comprehend:*"
-        ],
-        "Resource": "*",
-        "Condition": {
-          "StringEquals": {
-            "aws:RequestedRegion": [
-              "us-east-1",
-              "us-west-1"
-            ]
-          }
-        }
-      }
-    ]
-  }
-	`)
+		templParsed, err := tmpl.Parse(string(buff))
 		if err != nil {
 			return "", err
 		}
-		policyTemplate = tmpl
+		policyTemplate = templParsed
 	}
 
 	// Render template

@@ -17,6 +17,7 @@ resource "aws_lambda_function" "accounts_lambda" {
       NAMESPACE                      = var.namespace
       AWS_CURRENT_REGION             = var.aws_region
       ACCOUNT_DB                     = aws_dynamodb_table.redbox_account.id
+      ARTIFACTS_BUCKET               = aws_s3_bucket.artifacts.id
       LEASE_DB                       = aws_dynamodb_table.redbox_lease.id
       RESET_SQS_URL                  = aws_sqs_queue.account_reset.id
       ACCOUNT_CREATED_TOPIC_ARN      = aws_sns_topic.account_created.arn
