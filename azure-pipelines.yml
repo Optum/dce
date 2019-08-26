@@ -78,7 +78,7 @@ steps:
     # Set the namespace as a Azure Pipeline variable
     # See https://docs.microsoft.com/en-us/azure/devops/pipelines/process/variables?view=azure-devops&tabs=yaml%2Cbatch#set-in-script
     echo "##vso[task.setvariable variable=namespace]${NS}"
-  displayName: "Configure Namespace"
+  displayName: "Configure AWS Namespace"
 
 # terraform init
 - task: TerraformTaskV1@0
