@@ -48,7 +48,7 @@ resource "aws_s3_bucket" "local_tfstate" {
   # Send S3 access logs for this bucket to itself
   logging {
     target_bucket = "${data.aws_caller_identity.current.account_id}-local-tfstate-${var.namespace}"
-    target_prefix = "/logs"
+    target_prefix = "logs/"
   }
 
   tags = var.global_tags
@@ -82,10 +82,10 @@ POLICY
 }
 
 resource "aws_dynamodb_table" "local_terraform_state_lock" {
-  name = "Terraform-State-Backend-${var.namespace}"
-  read_capacity = 1
+  name           = "Terraform-State-Backend-${var.namespace}"
+  read_capacity  = 1
   write_capacity = 1
-  hash_key = "LockID"
+  hash_key       = "LockID"
 
   attribute {
     name = "LockID"
