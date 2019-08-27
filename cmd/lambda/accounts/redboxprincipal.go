@@ -90,7 +90,7 @@ func redboxPrincipalPolicy(input redboxPrincipalPolicyInput) (string, error) {
 		s3Client := s3.New(sess, aws.NewConfig().WithRegion(os.Getenv("AWS_CURRENT_REGION")))
 
 		bucket := os.Getenv("ARTIFACTS_BUCKET")
-		key := "fixtures/policies/redbox_principal_policy.tmpl"
+		key := os.Getenv("REDBOX_PRINCIPAL_POLICY_S3_KEY")
 		buff, err := downloadS3Data(s3Client, bucket, key)
 
 		tmpl := template.New("redboxPrincipalPolicy")
