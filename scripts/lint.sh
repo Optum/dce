@@ -22,4 +22,4 @@ trap moveBackBackend EXIT
 # Move backend.tf, so we can tf init in a CI environment
 mv -f ./backend.tf{,.bak} || true
 terraform init
-tflint --deep ./
+tflint --deep --error-with-issues ./
