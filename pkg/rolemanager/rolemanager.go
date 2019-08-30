@@ -2,12 +2,12 @@ package rolemanager
 
 import (
 	"fmt"
+	"log"
+
 	"github.com/Optum/Redbox/pkg/awsiface"
 	errors2 "github.com/Optum/Redbox/pkg/errors"
 	"github.com/aws/aws-sdk-go/aws/arn"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/iam"
-	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
 )
@@ -206,16 +206,4 @@ func (rm *IAMRoleManager) deletePolicyWithVersion(policyArn string) error {
 		PolicyArn: aws.String(policyArn),
 	})
 	return err
-}
-
-func isAWSAlreadyExistsError(err error) bool {
-	aerr, ok := err.(awserr.Error)
-	if ok {
-		switch aerr.Code() {
-		case iam.ErrCodeEntityAlreadyExistsException:
-			return true
-		}
-	}
-
-	return false
 }

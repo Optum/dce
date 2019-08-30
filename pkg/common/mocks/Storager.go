@@ -44,6 +44,27 @@ func (_m *Storager) GetObject(bucket string, key string) (string, error) {
 	return r0, r1
 }
 
+// GetTemplateObject provides a mock function with given fields: bucket, key, input
+func (_m *Storager) GetTemplateObject(bucket string, key string, input interface{}) (string, error) {
+	ret := _m.Called(bucket, key, input)
+
+	var r0 string
+	if rf, ok := ret.Get(0).(func(string, string, interface{}) string); ok {
+		r0 = rf(bucket, key, input)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string, string, interface{}) error); ok {
+		r1 = rf(bucket, key, input)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // Upload provides a mock function with given fields: bucket, key, filepath
 func (_m *Storager) Upload(bucket string, key string, filepath string) error {
 	ret := _m.Called(bucket, key, filepath)

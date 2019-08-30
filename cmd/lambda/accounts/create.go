@@ -4,12 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/Optum/Redbox/pkg/rolemanager"
-	"github.com/aws/aws-sdk-go/service/iam"
 	"log"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/Optum/Redbox/pkg/rolemanager"
+	"github.com/aws/aws-sdk-go/service/iam"
 
 	"github.com/Optum/Redbox/pkg/api/response"
 	"github.com/Optum/Redbox/pkg/common"
@@ -28,6 +29,7 @@ type createController struct {
 	AccountCreatedTopicArn      string
 	AWSSession                  session.Session
 	TokenService                common.TokenService
+	StoragerService             common.Storager
 	RoleManager                 rolemanager.RoleManager
 	PrincipalRoleName           string
 	PrincipalPolicyName         string
@@ -36,7 +38,9 @@ type createController struct {
 	// to resources with these tags leased
 	PrincipalIAMDenyTags []string
 	// Tags to apply to AWS resources created by this controller
-	Tags []*iam.Tag
+	Tags                 []*iam.Tag
+	ArtifactsBucket      string
+	PrincipalPolicyS3Key string
 }
 
 // Call - Function to validate the account request to add into the pool and

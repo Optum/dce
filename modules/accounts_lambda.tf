@@ -29,7 +29,7 @@ resource "aws_lambda_function" "accounts_lambda" {
       TAG_ENVIRONMENT                = var.namespace == "prod" ? "PROD" : "NON-PROD"
       TAG_CONTACT                    = lookup(var.global_tags, "Contact")
       TAG_APP_NAME                   = lookup(var.global_tags, "AppName")
-      REDBOX_PRINCIPAL_POLICY_S3_KEY = aws_s3_bucket_object.redbox_principal_policy.key
+      PRINCIPAL_POLICY_S3_KEY        = aws_s3_bucket_object.redbox_principal_policy.key
     }
   }
 
