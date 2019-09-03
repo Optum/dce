@@ -1,3 +1,8 @@
+## vNext
+
+- Added variable for specifying an IAM policy template (GO Template)
+- Update IAM Policy for the principal every time the account is unlocked
+
 ## v0.14.0
 
 - Added rds backup delete to nuke

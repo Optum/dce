@@ -88,23 +88,27 @@ func (rm *IAMRoleManager) CreateRoleWithPolicy(input *CreateRoleWithPolicyInput)
 	accountID := roleArnObj.AccountID
 
 	// Create the policy
-	_, err = rm.IAM.CreatePolicy(&iam.CreatePolicyInput{
-		Description:    aws.String(input.PolicyDescription),
-		PolicyDocument: aws.String(input.PolicyDocument),
-		PolicyName:     aws.String(input.PolicyName),
+	pm := IAMPolicyManager{}
+	pm.SetIAMClient(rm.IAM)
+	policyArn := arn.ARN{}
+	policyArn, err = arn.Parse(fmt.Sprintf("arn:aws:iam::%s:policy/%s", accountID, input.PolicyName))
+	if err != nil {
+		return nil, err
+	}
+	policyArnString := policyArn.String()
+	err = pm.MergePolicy(&MergePolicyInput{
+		PolicyArn:         policyArn,
+		PolicyName:        input.PolicyName,
+		PolicyDocument:    input.PolicyDocument,
+		PolicyDescription: input.PolicyDescription,
 	})
 	if err != nil {
-		if isAWSAlreadyExistsError(err) && input.IgnoreAlreadyExistsErrors {
-			log.Print(err.Error() + " (Ignoring)")
-		} else {
-			return nil, err
-		}
+		return nil, err
 	}
 
 	// Attach the policy to the role
-	policyArn := aws.String(fmt.Sprintf("arn:aws:iam::%s:policy/%s", accountID, input.PolicyName))
 	_, err = rm.IAM.AttachRolePolicy(&iam.AttachRolePolicyInput{
-		PolicyArn: policyArn,
+		PolicyArn: &policyArnString,
 		RoleName:  aws.String(input.RoleName),
 	})
 	if err != nil {
@@ -119,7 +123,7 @@ func (rm *IAMRoleManager) CreateRoleWithPolicy(input *CreateRoleWithPolicyInput)
 		RoleName:   input.RoleName,
 		RoleArn:    *roleArn,
 		PolicyName: input.PolicyName,
-		PolicyArn:  *policyArn,
+		PolicyArn:  policyArnString,
 	}, nil
 }
 
