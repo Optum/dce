@@ -93,12 +93,13 @@ func (c createController) Call(ctx context.Context, req *events.APIGatewayProxyR
 	}
 
 	// Create an IAM Role for the Redbox principal (end-user) to login to
-	createRolRes, err := c.createPrincipalRole(account)
+	createRolRes, policyHash, err := c.createPrincipalRole(account)
 	if err != nil {
 		log.Printf("failed to create principal role for %s: %s", request.ID, err)
 		return response.ServerError(), nil
 	}
 	account.PrincipalRoleArn = createRolRes.RoleArn
+	account.PrincipalPolicyHash = policyHash
 
 	// Write the Account to the DB
 	err = c.Dao.PutAccount(account)

@@ -16,7 +16,7 @@ import (
 // based on the provided S3 Object Input
 type Storager interface {
 	GetObject(bucket string, key string) (string, error)
-	GetTemplateObject(bucket string, key string, input interface{}) (string, error)
+	GetTemplateObject(bucket string, key string, input interface{}) (string, string, error)
 	Upload(bucket string, key string, filepath string) error
 	Download(bukcet string, key string, filepath string) error
 }
@@ -51,11 +51,35 @@ func (stor S3) GetObject(bucket string, key string) (string, error) {
 	return object, nil
 }
 
+// GetObjectWithETag returns a string output based on the results of the retrieval
+// of an existing object from S3
+func (stor S3) GetObjectWithETag(bucket string, key string) (string, string, error) {
+	// Retrieve the S3 Object
+	getInput := s3.GetObjectInput{
+		Bucket: &bucket,
+		Key:    &key,
+	}
+	getOutput, err := stor.Client.GetObject(&getInput)
+	if err != nil {
+		return "", "", err
+	}
+
+	// Convert to string
+	buf := new(bytes.Buffer)
+	_, err = buf.ReadFrom(getOutput.Body)
+	if err != nil {
+		return "", "", err
+	}
+	object := buf.String()
+
+	return object, *getOutput.ETag, nil
+}
+
 // GetTemplateObject returns a string output based on the results of the retrieval
 // of an existing object from S3
-func (stor S3) GetTemplateObject(bucket string, key string, input interface{}) (string, error) {
+func (stor S3) GetTemplateObject(bucket string, key string, input interface{}) (string, string, error) {
 	// Retrieve the S3 Object
-	templateString, err := stor.GetObject(bucket, key)
+	templateString, templateETag, err := stor.GetObjectWithETag(bucket, key)
 
 	tmpl := template.New(key)
 
@@ -65,14 +89,14 @@ func (stor S3) GetTemplateObject(bucket string, key string, input interface{}) (
 
 	templParsed, err := tmpl.Parse(templateString)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
 	// Render template
 	buf := &bytes.Buffer{}
 	err1 := templParsed.Execute(buf, input)
 
-	return strings.TrimSpace(buf.String()), err1
+	return strings.TrimSpace(buf.String()), templateETag, err1
 }
 
 // Upload puts an object to the provided S3 bucket based on the body provided

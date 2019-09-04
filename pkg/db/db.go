@@ -13,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
+	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
 )
 
 /*
@@ -48,6 +49,7 @@ type DBer interface {
 	FindLeasesByPrincipal(principalID string) ([]*RedboxLease, error)
 	FindLeasesByStatus(status LeaseStatus) ([]*RedboxLease, error)
 	UpdateMetadata(accountID string, metadata map[string]interface{}) error
+	UpdateAccountPrincipalPolicyHash(accountID string, prevHash string, nextHash string) (*RedboxAccount, error)
 }
 
 // GetAccount returns a Redbox account record corresponding to an accountID
@@ -489,6 +491,72 @@ func (db *DB) TransitionAccountStatus(accountID string, prevStatus AccountStatus
 					),
 				}
 			}
+		}
+		return nil, err
+	}
+
+	return unmarshalAccount(result.Attributes)
+}
+
+// UpdateAccountPrincipalPolicyHash updates hash representing the
+// current version of the Principal IAM Policy applied to the acount
+func (db *DB) UpdateAccountPrincipalPolicyHash(accountID string, prevHash string, nextHash string) (*RedboxAccount, error) {
+
+	conditionExpression := expression.ConditionBuilder{}
+	if prevHash != "" {
+		log.Printf("Using Condition where PrincipalPolicyHash equals '%s'", prevHash)
+		conditionExpression = expression.Name("PrincipalPolicyHash").Equal(expression.Value(prevHash))
+	} else {
+		log.Printf("Using Condition where PrincipalPolicyHash does not exists")
+		conditionExpression = expression.AttributeNotExists(expression.Name("PrincipalPolicyHash"))
+	}
+	updateExpression, _ := expression.NewBuilder().WithCondition(
+		conditionExpression,
+	).WithUpdate(
+		expression.Set(
+			expression.Name("PrincipalPolicyHash"),
+			expression.Value(nextHash),
+		).Set(
+			expression.Name("LastModifiedOn"),
+			expression.Value(strconv.FormatInt(time.Now().Unix(), 10)),
+		),
+	).Build()
+
+	result, err := db.Client.UpdateItem(
+		&dynamodb.UpdateItemInput{
+			// Query in Lease Table
+			TableName: aws.String(db.AccountTableName),
+			// Find Account for the requested accountId
+			Key: map[string]*dynamodb.AttributeValue{
+				"Id": {
+					S: aws.String(accountID),
+				},
+			},
+			ExpressionAttributeNames:  updateExpression.Names(),
+			ExpressionAttributeValues: updateExpression.Values(),
+			// Set PrincipalPolicyHash=nextHash
+			UpdateExpression: updateExpression.Update(),
+			// Only update records where the previousHash matches
+			ConditionExpression: updateExpression.Condition(),
+			// Return the updated record
+			ReturnValues: aws.String("ALL_NEW"),
+		},
+	)
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			if aerr.Code() == "ConditionalCheckFailedException" {
+				return nil, &StatusTransitionError{
+					fmt.Sprintf(
+						"unable to update Principal Policy hash from \"%v\" to \"%v\" "+
+							"for account %v: no account exists with PrincipalPolicyHash=\"%v\"",
+						prevHash,
+						nextHash,
+						accountID,
+						prevHash,
+					),
+				}
+			}
+			return nil, err
 		}
 		return nil, err
 	}

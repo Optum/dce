@@ -69,17 +69,18 @@ func handler(ctx context.Context, snsEvent events.SNSEvent) error {
 }
 
 type processRecordInput struct {
-	AccountID            string
-	DbSvc                db.DBer
-	StoragerSvc          common.Storager
-	TokenSvc             common.TokenService
-	AwsSession           awsiface.AwsSession
-	RoleManager          rolemanager.PolicyManager
-	PrincipalRoleName    string
-	PrincipalPolicyName  string
-	PrincipalIAMDenyTags []string
-	PolicyBucket         string
-	PolicyBucketKey      string
+	AccountID               string
+	DbSvc                   db.DBer
+	StoragerSvc             common.Storager
+	TokenSvc                common.TokenService
+	AwsSession              awsiface.AwsSession
+	RoleManager             rolemanager.PolicyManager
+	PrincipalRoleName       string
+	PrincipalPolicyName     string
+	PrincipalIAMDenyTags    []string
+	PrevPrincipalPolicyHash string
+	PolicyBucket            string
+	PolicyBucketKey         string
 }
 
 func processRecord(input processRecordInput) error {
@@ -99,13 +100,17 @@ func processRecord(input processRecordInput) error {
 		return err
 	}
 
-	policy, err := input.StoragerSvc.GetTemplateObject(input.PolicyBucket, input.PolicyBucketKey, getPolicyInput{
+	policy, policyHash, err := input.StoragerSvc.GetTemplateObject(input.PolicyBucket, input.PolicyBucketKey, getPolicyInput{
 		PrincipalPolicyArn:   principalPolicyArn.String(),
 		PrincipalRoleArn:     fmt.Sprintf("arn:aws:iam::%s:role/%s", input.AccountID, input.PrincipalRoleName),
 		PrincipalIAMDenyTags: input.PrincipalIAMDenyTags,
 		AdminRoleArn:         accountRes.AdminRoleArn,
 	})
 
+	if policyHash == accountRes.PrincipalPolicyHash {
+		log.Printf("Policy already matches.  Not updating '%s'", principalPolicyArn.String())
+		return nil
+	}
 	// Assume role into the new Redbox account
 	accountSession, err := input.TokenSvc.NewSession(input.AwsSession, accountRes.AdminRoleArn)
 	if err != nil {
@@ -114,13 +119,26 @@ func processRecord(input processRecordInput) error {
 	}
 	iamSvc := iam.New(accountSession)
 
-	// Create the Role + Policy
+	// Update the Policy
 	input.RoleManager.SetIAMClient(iamSvc)
-	return input.RoleManager.MergePolicy(&rolemanager.MergePolicyInput{
+	log.Printf("Update policy '%s' to hash '%s' from '%s'.", principalPolicyArn.String(), accountRes.PrincipalPolicyHash, policyHash)
+	err = input.RoleManager.MergePolicy(&rolemanager.MergePolicyInput{
 		PolicyName:     input.PrincipalPolicyName,
 		PolicyArn:      principalPolicyArn,
 		PolicyDocument: policy,
 	})
+	if err != nil {
+		log.Printf("Failed updating the policy '%s': %s", principalPolicyArn.String(), err)
+		return err
+	}
+
+	log.Printf("Update account '%s' resource record.  Policy Hash from '%s' to '%s'", input.AccountID, accountRes.PrincipalPolicyHash, policyHash)
+	_, err = input.DbSvc.UpdateAccountPrincipalPolicyHash(input.AccountID, input.PrevPrincipalPolicyHash, policyHash)
+	if err != nil {
+		log.Printf("Failed to update account '%s' resource record.  Policy Hash from '%s' to '%s': %s",
+			input.AccountID, accountRes.PrincipalPolicyHash, policyHash, err)
+	}
+	return err
 }
 
 type getPolicyInput struct {

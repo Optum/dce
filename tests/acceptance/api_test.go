@@ -544,12 +544,13 @@ func TestApi(t *testing.T) {
 			dbAccount, err := dbSvc.GetAccount(accountID)
 			require.Nil(t, err)
 			require.Equal(t, &db.RedboxAccount{
-				ID:               accountID,
-				AccountStatus:    "NotReady",
-				LastModifiedOn:   int64(postResJSON["lastModifiedOn"].(float64)),
-				CreatedOn:        int64(postResJSON["createdOn"].(float64)),
-				AdminRoleArn:     adminRoleArn,
-				PrincipalRoleArn: expectedPrincipalRoleArn,
+				ID:                  accountID,
+				AccountStatus:       "NotReady",
+				LastModifiedOn:      int64(postResJSON["lastModifiedOn"].(float64)),
+				CreatedOn:           int64(postResJSON["createdOn"].(float64)),
+				AdminRoleArn:        adminRoleArn,
+				PrincipalRoleArn:    expectedPrincipalRoleArn,
+				PrincipalPolicyHash: "\"76807b34385a7bc4cf758c71071e2697\"",
 			}, dbAccount)
 
 			// Check that the IAM Principal Role was created

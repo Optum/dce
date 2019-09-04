@@ -18,11 +18,12 @@ import (
 //	dbAccount := db.RedboxAccount{...}
 //	accountRes := response.AccountResponse(dbAccount)
 type AccountResponse struct {
-	ID               string                 `json:"id"`
-	AccountStatus    db.AccountStatus       `json:"accountStatus"`
-	LastModifiedOn   int64                  `json:"lastModifiedOn"`
-	CreatedOn        int64                  `json:"createdOn"`
-	AdminRoleArn     string                 `json:"adminRoleArn"`     // Assumed by the Redbox master account, to manage this user account
-	PrincipalRoleArn string                 `json:"principalRoleArn"` // Assumed by principal users of Redbox
-	Metadata         map[string]interface{} `json:"metadata"`
+	ID                  string                 `json:"id"`
+	AccountStatus       db.AccountStatus       `json:"accountStatus"`
+	LastModifiedOn      int64                  `json:"lastModifiedOn"`
+	CreatedOn           int64                  `json:"createdOn"`
+	AdminRoleArn        string                 `json:"adminRoleArn"`        // Assumed by the Redbox master account, to manage this user account
+	PrincipalRoleArn    string                 `json:"principalRoleArn"`    // Assumed by principal users of Redbox
+	PrincipalPolicyHash string                 `json:"principalPolicyHash"` // The policy used by the PrincipalRoleArn
+	Metadata            map[string]interface{} `json:"metadata"`
 }

@@ -500,7 +500,7 @@ func StoragerMock() common.Storager {
 	storagerMock := &commonMocks.Storager{}
 
 	storagerMock.On("GetTemplateObject", mock.Anything, mock.Anything, mock.Anything).
-		Return("", nil)
+		Return("", "", nil)
 
 	return storagerMock
 }

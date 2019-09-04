@@ -2,13 +2,14 @@ package db
 
 // RedboxAccount is a type corresponding to a RedboxAccount table record
 type RedboxAccount struct {
-	ID               string                 `json:"Id"`             // AWS Account ID
-	AccountStatus    AccountStatus          `json:"AccountStatus"`  // Status of the AWS Account
-	LastModifiedOn   int64                  `json:"LastModifiedOn"` // Last Modified Epoch Timestamp
-	CreatedOn        int64                  `json:"CreatedOn"`
-	AdminRoleArn     string                 `json:"AdminRoleArn"`     // Assumed by the Redbox master account, to manage this user account
-	PrincipalRoleArn string                 `json:"PrincipalRoleArn"` // Assumed by principal users of Redbox
-	Metadata         map[string]interface{} `json:"Metadata"`         // Any org specific metadata pertaining to the account
+	ID                  string                 `json:"Id"`             // AWS Account ID
+	AccountStatus       AccountStatus          `json:"AccountStatus"`  // Status of the AWS Account
+	LastModifiedOn      int64                  `json:"LastModifiedOn"` // Last Modified Epoch Timestamp
+	CreatedOn           int64                  `json:"CreatedOn"`
+	AdminRoleArn        string                 `json:"AdminRoleArn"`        // Assumed by the Redbox master account, to manage this user account
+	PrincipalRoleArn    string                 `json:"PrincipalRoleArn"`    // Assumed by principal users of Redbox
+	PrincipalPolicyHash string                 `json:"PrincipalPolicyHash"` // The the hash of the policy version deployed
+	Metadata            map[string]interface{} `json:"Metadata"`            // Any org specific metadata pertaining to the account
 }
 
 // RedboxLease is a type corresponding to a RedboxLease

@@ -27,6 +27,7 @@ type testUpdateRedboxPrincipalPolicy struct {
 	TransitionLeaseStatusError error
 	PrincipalPolicyName        string
 	PrincipalRoleName          string
+	PrincipalPolicyHash        string
 	PrincipalIAMDenyTags       []string
 	StoragerPolicy             string
 	StoragerError              error
@@ -35,7 +36,7 @@ type testUpdateRedboxPrincipalPolicy struct {
 func TestUpdateRedboxPrincipalPolicy(t *testing.T) {
 
 	tests := []testUpdateRedboxPrincipalPolicy{
-		// Happy Path FinanceLock
+		// Happy Path Update Principal Policy
 		{
 			GetAccountResult: &db.RedboxAccount{
 				ID:           "123456789012",
@@ -43,6 +44,20 @@ func TestUpdateRedboxPrincipalPolicy(t *testing.T) {
 			},
 			PrincipalPolicyName:  "RedboxPrincipalPolicy",
 			PrincipalRoleName:    "RedboxPrincipalRole",
+			PrincipalPolicyHash:  "aHash",
+			PrincipalIAMDenyTags: []string{"Redbox"},
+			StoragerPolicy:       "{\"Test\" : \"Policy\"}",
+		},
+		// Same hash exists don't update.
+		{
+			GetAccountResult: &db.RedboxAccount{
+				ID:                  "123456789012",
+				AdminRoleArn:        "arn:aws:iam::123456789012:role/RedBoxAdminRole",
+				PrincipalPolicyHash: "aHash",
+			},
+			PrincipalPolicyName:  "RedboxPrincipalPolicy",
+			PrincipalRoleName:    "RedboxPrincipalRole",
+			PrincipalPolicyHash:  "aHash",
 			PrincipalIAMDenyTags: []string{"Redbox"},
 			StoragerPolicy:       "{\"Test\" : \"Policy\"}",
 		},
@@ -55,6 +70,11 @@ func TestUpdateRedboxPrincipalPolicy(t *testing.T) {
 		mockDB.On("GetAccount", mock.Anything).Return(
 			test.GetAccountResult,
 			test.GetAccountError)
+		mockDB.On("UpdateAccountPrincipalPolicyHash",
+			test.GetAccountResult.ID,
+			test.GetAccountResult.PrincipalPolicyHash,
+			test.PrincipalPolicyHash,
+		).Return(nil, nil)
 		mockS3 := &commonmock.Storager{}
 		mockS3.On("GetTemplateObject", mock.Anything, mock.Anything, getPolicyInput{
 			PrincipalPolicyArn:   fmt.Sprintf("arn:aws:iam::%s:policy/%s", test.GetAccountResult.ID, test.PrincipalPolicyName),
@@ -63,26 +83,31 @@ func TestUpdateRedboxPrincipalPolicy(t *testing.T) {
 			AdminRoleArn:         test.GetAccountResult.AdminRoleArn,
 		}).Return(
 			test.StoragerPolicy,
+			test.PrincipalPolicyHash,
 			test.StoragerError,
 		)
-		mockAdminRoleSession := &awsMocks.AwsSession{}
-		mockAdminRoleSession.On("ClientConfig", mock.Anything).Return(client.Config{
-			Config: &aws.Config{},
-		})
-		mockToken := &commonmock.TokenService{}
-		mockToken.On("NewSession", mock.Anything, test.GetAccountResult.AdminRoleArn).
-			Return(mockAdminRoleSession, nil)
-		mockToken.On("AssumeRole", mock.Anything).Return(nil, nil)
-		mockSession := &awsMocks.AwsSession{}
 
+		mockAdminRoleSession := &awsMocks.AwsSession{}
+		mockToken := &commonmock.TokenService{}
 		mockRoleManager := &roleMock.PolicyManager{}
-		mockRoleManager.On("SetIAMClient", mock.Anything).Return()
-		policyArn, _ := arn.Parse(fmt.Sprintf("arn:aws:iam::%s:policy/%s", test.GetAccountResult.ID, test.PrincipalPolicyName))
-		mockRoleManager.On("MergePolicy", &rolemanager.MergePolicyInput{
-			PolicyArn:      policyArn,
-			PolicyName:     test.PrincipalPolicyName,
-			PolicyDocument: test.StoragerPolicy,
-		}).Return(nil)
+		mockSession := &awsMocks.AwsSession{}
+		if test.PrincipalPolicyHash != test.GetAccountResult.PrincipalPolicyHash {
+			mockAdminRoleSession.On("ClientConfig", mock.Anything).Return(client.Config{
+				Config: &aws.Config{},
+			})
+			mockToken.On("NewSession", mock.Anything, test.GetAccountResult.AdminRoleArn).
+				Return(mockAdminRoleSession, nil)
+			mockToken.On("AssumeRole", mock.Anything).Return(nil, nil)
+
+			mockRoleManager.On("SetIAMClient", mock.Anything).Return()
+			policyArn, _ := arn.Parse(fmt.Sprintf("arn:aws:iam::%s:policy/%s", test.GetAccountResult.ID, test.PrincipalPolicyName))
+			mockRoleManager.On("MergePolicy", &rolemanager.MergePolicyInput{
+				PolicyArn:      policyArn,
+				PolicyName:     test.PrincipalPolicyName,
+				PolicyDocument: test.StoragerPolicy,
+			}).Return(nil)
+
+		}
 
 		// Call transitionFinanceLock
 		err := processRecord(processRecordInput{
