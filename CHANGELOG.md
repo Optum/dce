@@ -1,3 +1,7 @@
+## vNext
+
+- Added dynamodb budget_cache
+
 ## v0.15.0
 
 - Added variable for specifying an IAM policy template (GO Template)
