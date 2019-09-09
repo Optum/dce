@@ -18,7 +18,7 @@ import (
 )
 
 // main will run through the reset process for an account which involves using
-// aws-nuke and reapplying Launchpad via an API
+// aws-nuke
 func main() {
 	// Initialize a service container
 	svc := &service{}
@@ -79,36 +79,6 @@ func main() {
 		log.Fatalf("Failed to execute aws-nuke on account %s: %s\n", config.accountID, err)
 	}
 	log.Printf("%s  :  Nuke Success\n", config.accountID)
-
-	// Run Launchpad Setup
-	// Recreates a clean TF state file in the account, so Launchpad can run
-	// We only do this if aws-nuke ran, and deleted LP's TF state file
-	if config.isNukeEnabled {
-		log.Printf("Launchpad Setup for %s\n", config.accountID)
-		err = svc.launchpadAPI().Setup(config.accountID)
-		if err != nil {
-			log.Fatalf("%s : Could not Setup Launchpad - %s", config.accountID, err)
-		}
-		log.Printf("Launchpad Setup Success for %s\n", config.accountID)
-	}
-
-	// Initiate Launchpad and wait for final status
-	if config.isLaunchpadEnabled {
-		// Call LaunchpadAccount
-		launchpadAccountInput := reset.LaunchpadAccountInput{
-			Launchpad:     svc.launchpadAPI(),
-			AccountID:     config.accountID,
-			MasterAccount: config.launchpadMasterAccount,
-			WaitSeconds:   30,
-		}
-		err := reset.LaunchpadAccount(&launchpadAccountInput)
-		if err != nil {
-			log.Fatalf("Failed to execute Launchpad against account %s: %s", config.accountID, err)
-		}
-	} else {
-		log.Println("INFO: Launchpad is set as toggled off and cannot set " +
-			" back the state of a Redbox Account.")
-	}
 
 	// Update the DB with Account/Lease statuses
 	err = updateDBPostReset(svc.db(), config.accountID)

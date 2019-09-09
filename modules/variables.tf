@@ -59,31 +59,6 @@ variable "reset_nuke_toggle" {
   default     = "false"
 }
 
-variable "reset_launchpad_toggle" {
-  description = "Indicator to set Launchpad to not be applied. Use 'false' to indicate a Dry Run. NOTE: Cannot change Account status with this toggled off."
-  default     = "true"
-}
-
-variable "reset_launchpad_base_endpoint" {
-  description = "The Base URL of the Launchpad API Endpoint to apply Launchpad to an Account after a Reset."
-  default     = "STUB"
-}
-
-variable "reset_launchpad_auth_endpoint" {
-  description = "The URL of to retrieve an OAUTH token to be used with the Launchpad API."
-  default     = "STUB"
-}
-
-variable "reset_launchpad_master_account" {
-  description = "The Master Account Name of the AWS Account to reapply Launchpad under."
-  default     = "POC"
-}
-
-variable "reset_launchpad_backend" {
-  description = "The S3 Bucket name that contains the Terraform State files for the Account to be reset. These files will be remoeved."
-  default     = "STUB"
-}
-
 variable "weekly_reset_cron_expression" {
   description = "The Weekly Reset Cron Expression used with CloudWatch to enqueue accounts for Reset."
   default     = "cron(0 5 ? * SUN *)" // Runs 5am GMT on Sunday / 12am on Sunday Morning
