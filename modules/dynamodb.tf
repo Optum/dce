@@ -104,3 +104,60 @@ resource "aws_dynamodb_table" "redbox_lease" {
     - LeaseStatusModifiedOn (Integer, epoch timestamps)
   */
 }
+
+resource "aws_dynamodb_table" "budget_cache" {
+  name             = "BudgetCache${title(var.namespace)}"
+  read_capacity    = 5
+  write_capacity   = 5
+  hash_key         = "StartDate"
+  range_key        = "PrincipalId"
+  stream_enabled   = true
+  stream_view_type = "NEW_AND_OLD_IMAGES"
+
+  server_side_encryption {
+    enabled = true
+  }
+
+  # User Principal ID
+  attribute {
+    name = "PrincipalId"
+    type = "S"
+  }
+
+  # AWS Account ID
+  attribute {
+    name = "AccountId"
+    type = "S"
+  }
+
+  # AWS usage cost amount
+  attribute {
+    name = "CostAmount"
+    type = "N"
+  }
+
+  # AWS usage cost currency
+  attribute {
+    name = "CostCurrency"
+    type = "S"
+  }
+
+  # AWS usage cost amount for start date as epoch timestamp
+  attribute {
+    name = "StartDate"
+    type = "N"
+  }
+
+  # AWS usage cost amount for end date as epoch timestamp
+  attribute {
+    name = "EndDate"
+    type = "N"
+  }
+
+  ttl {
+    attribute_name = "TimeToExist"
+    enabled        = true
+  }
+
+  tags = var.global_tags
+}
