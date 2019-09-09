@@ -1,4 +1,4 @@
-module "update-redbox-principal-policy" {
+module "update_redbox_principal_policy" {
   source          = "./lambda"
   name            = "update_redbox_principal_policy-${var.namespace}"
   namespace       = var.namespace
@@ -25,22 +25,22 @@ module "update-redbox-principal-policy" {
   }
 }
 
-resource "aws_sns_topic_subscription" "update-redbox-principal-policy" {
+resource "aws_sns_topic_subscription" "update_redbox_principal_policy" {
   topic_arn = aws_sns_topic.lease_unlocked.arn
   protocol  = "lambda"
-  endpoint  = module.update-redbox-principal-policy.arn
+  endpoint  = module.update_redbox_principal_policy.arn
 }
 
-resource "aws_lambda_permission" "update-redbox-principal-policy" {
+resource "aws_lambda_permission" "update_redbox_principal_policy" {
   statement_id  = "AllowExecutionFromSNS"
   action        = "lambda:InvokeFunction"
-  function_name = module.update-redbox-principal-policy.name
+  function_name = module.update_redbox_principal_policy.name
   principal     = "sns.amazonaws.com"
   source_arn    = aws_sns_topic.lease_unlocked.arn
 }
 
-resource "aws_iam_role_policy" "update-redbox-principal-policy" {
-  role   = module.update-redbox-principal-policy.execution_role_name
+resource "aws_iam_role_policy" "update_redbox_principal_policy" {
+  role   = module.update_redbox_principal_policy.execution_role_name
   policy = <<POLICY
 {
   "Version": "2012-10-17",

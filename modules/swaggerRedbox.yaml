@@ -134,7 +134,7 @@ paths:
               budgetNotificationEmails:
                 type: array
                 items:
-                  type: string   
+                  type: string
       produces:
         - application/json
       responses:
@@ -262,6 +262,9 @@ definitions:
       principalRoleArn:
         type: string
         description: ARN for an IAM role within this AWS account. This role is created by the Redbox master account, and may be assumed by principals to login to their AWS Redbox account.
+      principalPolicyHash:
+        type: string
+        description: The S3 object ETag used to apply the Principal IAM Policy within this AWS account.  This policy is created by the Redbox master account, and is assumed by people with access to principalRoleArn.
       lastModifiedOn:
         type: integer
         description: Epoch timestamp, when account record was last modified

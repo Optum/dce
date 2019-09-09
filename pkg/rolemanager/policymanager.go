@@ -58,14 +58,23 @@ func (rm *IAMPolicyManager) MergePolicy(input *MergePolicyInput) error {
 	}
 
 	// Prune old versions of the policy.  Making sure we have room for one more policy version
-	rm.PrunePolicyVersions(input.PolicyArn.String())
+	err = rm.PrunePolicyVersions(input.PolicyArn.String())
+	if err != nil {
+		log.Printf("Found an issue pruning versions for policy '%s': %s", input.PolicyArn.String(), err)
+		return err
+	}
 
 	// Create a new Policy Version and set as default
-	rm.IAM.CreatePolicyVersion(&iam.CreatePolicyVersionInput{
+	_, err = rm.IAM.CreatePolicyVersion(&iam.CreatePolicyVersionInput{
 		PolicyArn:      aws.String(input.PolicyArn.String()),
 		PolicyDocument: aws.String(input.PolicyDocument),
 		SetAsDefault:   aws.Bool(true),
 	})
+	if err != nil {
+		log.Printf("Found an issue creating a new policy version for policy '%s': %s", input.PolicyArn.String(), err)
+		return err
+	}
+
 	return nil
 }
 
