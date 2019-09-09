@@ -1,4 +1,4 @@
-## vNext
+## v0.15.0
 
 - Added variable for specifying an IAM policy template (GO Template)
 - Update IAM Policy for the principal every time the account is unlocked
