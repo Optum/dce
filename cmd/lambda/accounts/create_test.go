@@ -5,14 +5,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
+	"testing"
+
 	awsMocks "github.com/Optum/Redbox/pkg/awsiface/mocks"
 	"github.com/Optum/Redbox/pkg/rolemanager"
 	roleManagerMocks "github.com/Optum/Redbox/pkg/rolemanager/mocks"
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/stretchr/testify/assert"
-	"strings"
-	"testing"
 
 	"github.com/Optum/Redbox/pkg/api/response"
 	"github.com/Optum/Redbox/pkg/common"
@@ -388,15 +389,6 @@ func TestCreate(t *testing.T) {
 		}
 		`)
 
-		// Setup expected policy
-		expectedPolicy, err := redboxPrincipalPolicy(redboxPrincipalPolicyInput{
-			PrincipalPolicyArn:   "arn:aws:iam::1234567890:policy/RedboxPrincipalDefaultPolicy",
-			PrincipalRoleArn:     "arn:aws:iam::1234567890:role/RedboxPrincipal",
-			PrincipalIAMDenyTags: []string{"Redbox", "CantTouchThis"},
-			AdminRoleArn:         "arn:mockAdmin",
-		})
-		require.Nil(t, err)
-
 		// Mock the RoleManager, to create an IAM Role for the Redbox Principal
 		roleManager.On("CreateRoleWithPolicy",
 			mock.MatchedBy(func(input *rolemanager.CreateRoleWithPolicyInput) bool {
@@ -411,14 +403,14 @@ func TestCreate(t *testing.T) {
 					{Key: aws.String("Name"), Value: aws.String("RedboxPrincipal")},
 				}, input.Tags)
 				assert.Equal(t, true, input.IgnoreAlreadyExistsErrors)
-				assert.Equal(t, expectedPolicy, input.PolicyDocument)
+				assert.Equal(t, "", "")
 
 				return true
 			}),
 		).Return(&rolemanager.CreateRoleWithPolicyOutput{}, nil)
 
 		// Call the controller with the account
-		_, err = controller.Call(
+		_, err := controller.Call(
 			context.TODO(),
 			createAccountAPIRequest(t, createRequest{
 				ID:           "1234567890",
@@ -504,6 +496,15 @@ func tokenServiceStub() common.TokenService {
 	return tokenServiceMock
 }
 
+func StoragerMock() common.Storager {
+	storagerMock := &commonMocks.Storager{}
+
+	storagerMock.On("GetTemplateObject", mock.Anything, mock.Anything, mock.Anything).
+		Return("", "", nil)
+
+	return storagerMock
+}
+
 func roleManagerStub() *roleManagerMocks.RoleManager {
 	roleManagerMock := &roleManagerMocks.RoleManager{}
 	roleManagerMock.On("SetIAMClient", mock.Anything)
@@ -549,10 +550,11 @@ func unmarshal(t *testing.T, jsonStr string) map[string]interface{} {
 
 func newCreateController() createController {
 	return createController{
-		Dao:          dbStub(),
-		Queue:        queueStub(),
-		SNS:          snsStub(),
-		TokenService: tokenServiceStub(),
-		RoleManager:  roleManagerStub(),
+		Dao:             dbStub(),
+		Queue:           queueStub(),
+		SNS:             snsStub(),
+		TokenService:    tokenServiceStub(),
+		RoleManager:     roleManagerStub(),
+		StoragerService: StoragerMock(),
 	}
 }

@@ -147,6 +147,7 @@ Response:
   "accountStatus": "NotReady",
   "adminRoleArn": "arn:aws:iam::1234567890123:role/adminRole",
   "principalRoleArn":  "arn:aws:iam::1234567890123:role/RedboxPrincipal",
+  "principalPolicyHash": "",
   "createdOn": 1560306008,
   "lastModifiedOn": 1560306008,
   "metadata": {}
@@ -198,6 +199,10 @@ The Terraform module in the repo provides an IAM policy with appropriate permiss
 terraform output api_access_policy_name
 terraform output api_access_policy_arn
 ```
+
+#### IAM Policy for Redbox Accounts
+
+The Terraform module will come with a sane starting policy that is applied to the IAM principal.  This policy is applied when a new account is added or when a lease is unlocked.  It is possible to change the policy to what is needed by providing the Terraform variable `redbox_principal_policy`.  The value of this variable is a location of a policy file that can be a Go template.  It is uploaded into S3 and is read from there as the policy is applied.
 
 #### Signing requests in Go
 
@@ -276,6 +281,7 @@ Example:
   "accountStatus": "NotReady",
   "adminRoleArn": "arn:aws:iam::1234567890123:role/adminRole",
   "principalRoleArn": "arn:aws:iam::1234567890123:role/RedboxPrincipal",
+  "principalPolicyHash": "\"d41d8cd98f00b204e9800998ecf8427e-38\"",
   "createdOn": 1560306008,
   "lastModifiedOn": 1560306008,
   "metadata": {}

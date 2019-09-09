@@ -2,13 +2,14 @@ package rolemanager
 
 import (
 	"errors"
+	"testing"
+
 	"github.com/Optum/Redbox/pkg/awsiface/mocks"
 	errors2 "github.com/Optum/Redbox/pkg/errors"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestCreateRoleWithPolicy(t *testing.T) {
@@ -175,7 +176,13 @@ func TestCreateRoleWithPolicy(t *testing.T) {
 
 		// Mock iam.CreatePolicy() to return error
 		mockIAM.On("CreatePolicy", mock.Anything).
-			Return(nil, AwsAlreadyExistsError{})
+			Return(&iam.CreatePolicyOutput{
+				Policy: &iam.Policy{
+					Arn: aws.String("arn:aws:iam::123456789012:policy/TestPolicy"),
+				},
+			},
+				nil,
+			)
 
 		// Mock iam.AttachRolePolicy() to return an error
 		mockIAM.On("AttachRolePolicy", &iam.AttachRolePolicyInput{

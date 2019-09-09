@@ -15,6 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/costexplorer/costexploreriface"
 	"github.com/aws/aws-sdk-go/service/iam/iamiface"
 	"github.com/aws/aws-sdk-go/service/lambda/lambdaiface"
+	"github.com/aws/aws-sdk-go/service/s3/s3iface"
 	"github.com/aws/aws-sdk-go/service/ses/sesiface"
 	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
 )
@@ -33,6 +34,10 @@ type SESAPI interface {
 
 type SQSAPI interface {
 	sqsiface.SQSAPI
+}
+
+type S3API interface {
+	s3iface.S3API
 }
 
 type AwsSession interface {

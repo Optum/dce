@@ -11,7 +11,7 @@ golangci-lint run --disable-all -E golint ./cmd/...
 golangci-lint run --disable-all -E golint ./tests/...
 
 # Check terraform formatting
-terraform fmt -check -recursive ./modules/
+terraform fmt -diff -check -recursive ./modules/
 
 # Run tflint
 cd modules

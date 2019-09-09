@@ -3,12 +3,15 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/Optum/Redbox/pkg/rolemanager"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/iam"
 	"log"
 	"net/http"
 	"strings"
+
+	"github.com/Optum/Redbox/pkg/rolemanager"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/iam"
+	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 
 	"github.com/Optum/Redbox/pkg/common"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -63,6 +66,10 @@ func main() {
 	queue := common.SQSQueue{Client: sqs.New(awsSession)}
 	snsSvc := &common.SNS{Client: sns.New(awsSession)}
 	tokenSvc := common.STS{Client: sts.New(awsSession)}
+	storageSvc := &common.S3{
+		Client:  s3.New(awsSession),
+		Manager: s3manager.NewDownloader(awsSession),
+	}
 
 	// Configure the Router + Controllers
 	router := &Router{
@@ -88,11 +95,14 @@ func main() {
 			AccountCreatedTopicArn:      common.RequireEnv("ACCOUNT_CREATED_TOPIC_ARN"),
 			AWSSession:                  *awsSession,
 			TokenService:                tokenSvc,
+			StoragerService:             storageSvc,
 			RoleManager:                 &rolemanager.IAMRoleManager{},
 			PrincipalRoleName:           common.RequireEnv("PRINCIPAL_ROLE_NAME"),
 			PrincipalPolicyName:         common.RequireEnv("PRINCIPAL_POLICY_NAME"),
 			PrincipalIAMDenyTags:        strings.Split(common.RequireEnv("PRINCIPAL_IAM_DENY_TAGS"), ","),
 			PrincipalMaxSessionDuration: int64(common.RequireEnvInt("PRINCIPAL_MAX_SESSION_DURATION")),
+			ArtifactsBucket:             common.RequireEnv("ARTIFACTS_BUCKET"),
+			PrincipalPolicyS3Key:        common.RequireEnv("PRINCIPAL_POLICY_S3_KEY"),
 			Tags: []*iam.Tag{
 				{Key: aws.String("Terraform"), Value: aws.String("False")},
 				{Key: aws.String("Source"), Value: aws.String("github.com/Optum/Redbox//cmd/lambda/accounts")},
