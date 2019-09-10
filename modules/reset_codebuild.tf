@@ -118,6 +118,12 @@ resource "aws_codebuild_project" "reset_build" {
       value = local.isPr ? "true" : "false"
       type  = "PLAINTEXT"
     }
+
+    environment_variable {
+      name  = "RESET_COMPLETE_TOPIC_ARN"
+      value = aws_sns_topic.reset_complete.arn
+      type  = "PLAINTEXT"
+    }
   }
 
   tags = var.global_tags
@@ -174,7 +180,8 @@ resource "aws_iam_role_policy" "codebuild_reset" {
         "dynamodb:GetItem",
         "dynamodb:Scan",
         "dynamodb:Query",
-        "dynamodb:UpdateItem"
+        "dynamodb:UpdateItem",
+        "sns:Publish"
       ]
     },
     {
@@ -214,4 +221,10 @@ resource "aws_cloudwatch_metric_alarm" "reset_failed_builds" {
   statistic           = "Sum"
 
   alarm_actions = [aws_sns_topic.alarms_topic.arn]
+}
+
+
+resource "aws_sns_topic" "reset_complete" {
+  name = "redbox-reset-complete-${var.namespace}"
+  tags = var.global_tags
 }

@@ -82,6 +82,10 @@ output "lease_unlocked_topic_arn" {
   value = aws_sns_topic.lease_unlocked.arn
 }
 
+output "reset_complete_topic_arn" {
+  value = aws_sns_topic.reset_complete.arn
+}
+
 output "account_created_topic_id" {
   value = aws_sns_topic.account_created.id
 }

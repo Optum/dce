@@ -1,3 +1,6 @@
+## vNext
+
+- Deprecate Launchpad from here
 
 ## v0.16.0
 

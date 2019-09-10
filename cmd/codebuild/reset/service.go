@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/aws/aws-sdk-go/service/sts"
 )
@@ -21,6 +22,7 @@ var (
 	_tokenService *common.STS
 	_ssmService   *common.SSM
 	_s3Service    *common.S3
+	_snsService   *common.SNS
 	_db           *db.DB
 )
 
@@ -122,4 +124,14 @@ func (svc *service) db() *db.DB {
 		log.Fatalf("Failed to initialize DB Service:  %s", err)
 	}
 	return _db
+}
+
+func (svc *service) snsService() *common.SNS {
+	if _snsService == nil {
+		_snsService = &common.SNS{
+			Client: sns.New(svc.awsSession()),
+		}
+	}
+
+	return _snsService
 }
