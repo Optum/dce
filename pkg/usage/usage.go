@@ -1,6 +1,7 @@
 package usage
 
 import (
+	"strconv"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -23,13 +24,12 @@ type DB struct {
 
 // Usage item
 type Usage struct {
-	PrincipalID  string
-	AccountID    string
-	StartDate    time.Time
-	EndDate      time.Time
-	CostAmount   string
-	CostCurrency string
-	BodyText     string
+	PrincipalID  string  `json:"PrincipalId"`  // User Principal ID
+	AccountID    string  `json:"AccountId"`    // AWS Account ID
+	StartDate    int64   `json:"StartDate"`    // Usage start date Epoch Timestamp
+	EndDate      int64   `json:"EndDate"`      // Usage ends date Epoch Timestamp
+	CostAmount   float64 `json:"CostAmount"`   // Cost Amount for given period
+	CostCurrency string  `json:"CostCurrency"` // Cost currency
 }
 
 // The DBer interface includes all methods used by the DB struct to interact with
@@ -53,4 +53,67 @@ func (db *DB) PutUsage(input Usage) error {
 		},
 	)
 	return err
+}
+
+// GetUsageByDaterange returns usage amount for all leases
+func (db *DB) GetUsageByDaterange(startDate int, days int) ([]*Usage, error) {
+
+	scanOutput := make([]*dynamodb.ScanOutput, days)
+
+	for i := 1; i <= days; i++ {
+		// Build the query input parameters
+		params := &dynamodb.ScanInput{
+			TableName: aws.String(db.UsageTableName),
+			ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+				":StartDate": {
+					N: aws.String(strconv.Itoa(startDate)),
+				},
+			},
+			FilterExpression: aws.String("AccountStatus <> :acctstatus"),
+		}
+
+		// Make the DynamoDB Query API call
+		// Warning: this could potentially be an expensive operation if the
+		// database size becomes too big for the key/value nature of DynamoDB!
+		resp, err := db.Client.Scan(params)
+		if err != nil {
+			return nil, err
+		}
+		scanOutput[i] = resp
+		startDate = startDate + 86400
+	}
+
+	usages := []*Usage{}
+	for i := 1; i <= days; i++ {
+		// Create the array of Usage records
+		for _, r := range scanOutput[i].Items {
+			n, err := unmarshalUsageRecord(r)
+			if err != nil {
+				return nil, err
+			}
+			usages = append(usages, n)
+		}
+	}
+
+	return usages, nil
+}
+
+// New creates a new usage DB Service struct,
+// with all the necessary fields configured.
+func New(client *dynamodb.DynamoDB, usageTableName string) *DB {
+	return &DB{
+		Client:         client,
+		UsageTableName: usageTableName,
+	}
+}
+
+func unmarshalUsageRecord(dbResult map[string]*dynamodb.AttributeValue) (*Usage, error) {
+	usageRecord := Usage{}
+	err := dynamodbattribute.UnmarshalMap(dbResult, &usageRecord)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &usageRecord, nil
 }
