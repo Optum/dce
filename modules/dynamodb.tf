@@ -124,33 +124,9 @@ resource "aws_dynamodb_table" "usage_cache" {
     type = "S"
   }
 
-  # AWS Account ID
-  attribute {
-    name = "AccountId"
-    type = "S"
-  }
-
-  # AWS usage cost amount
-  attribute {
-    name = "CostAmount"
-    type = "N"
-  }
-
-  # AWS usage cost currency
-  attribute {
-    name = "CostCurrency"
-    type = "S"
-  }
-
   # AWS usage cost amount for start date as epoch timestamp
   attribute {
     name = "StartDate"
-    type = "N"
-  }
-
-  # AWS usage cost amount for end date as epoch timestamp
-  attribute {
-    name = "EndDate"
     type = "N"
   }
 
