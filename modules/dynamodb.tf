@@ -105,8 +105,8 @@ resource "aws_dynamodb_table" "redbox_lease" {
   */
 }
 
-resource "aws_dynamodb_table" "budget_cache" {
-  name             = "BudgetCache${title(var.namespace)}"
+resource "aws_dynamodb_table" "usage_cache" {
+  name             = "UsageCache${title(var.namespace)}"
   read_capacity    = 5
   write_capacity   = 5
   hash_key         = "StartDate"
