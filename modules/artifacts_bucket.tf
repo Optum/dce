@@ -1,3 +1,8 @@
+locals {
+  redbox_principal_policy = var.redbox_principal_policy == "" ? "${path.module}/fixtures/policies/redbox_principal_policy.tmpl" : var.redbox_principal_policy
+}
+
+
 # Configure an S3 Bucket to hold artifacts
 # (eg. application code deployments, etc.)
 resource "aws_s3_bucket" "artifacts" {
@@ -62,6 +67,6 @@ POLICY
 resource "aws_s3_bucket_object" "redbox_principal_policy" {
   bucket = aws_s3_bucket.artifacts.id
   key    = "fixtures/policies/redbox_principal_policy.tmpl"
-  source = var.redbox_principal_policy
-  etag   = "${filemd5(var.redbox_principal_policy)}"
+  source = local.redbox_principal_policy
+  etag   = "${filemd5(local.redbox_principal_policy)}"
 }

@@ -163,5 +163,5 @@ variable "budget_notification_threshold_percentiles" {
 variable "redbox_principal_policy" {
   type        = string
   description = "Location of file with the policy used for the RedBox Principal Account"
-  default     = "fixtures/policies/redbox_principal_policy.tmpl"
+  default     = ""
 }
