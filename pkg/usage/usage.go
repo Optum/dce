@@ -81,6 +81,32 @@ func (db *DB) GetUsageByDaterange(startDate int, days int) ([]*Usage, error) {
 			return nil, err
 		}
 		scanOutput = append(scanOutput, resp)
+
+		// pagination
+		for len(resp.LastEvaluatedKey) > 0 {
+			queryInput = &dynamodb.QueryInput{
+				TableName:         aws.String(db.UsageTableName),
+				ExclusiveStartKey: resp.LastEvaluatedKey,
+				KeyConditions: map[string]*dynamodb.Condition{
+					"StartDate": {
+						ComparisonOperator: aws.String("EQ"),
+						AttributeValueList: []*dynamodb.AttributeValue{
+							{
+								N: aws.String(strconv.Itoa(startDate)),
+							},
+						},
+					},
+				},
+			}
+
+			var resp, err = db.Client.Query(queryInput)
+			if err != nil {
+				return nil, err
+			}
+
+			scanOutput = append(scanOutput, resp)
+		}
+
 		startDate = startDate + 86400
 	}
 
