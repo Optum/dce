@@ -26,8 +26,8 @@ type DB struct {
 type Usage struct {
 	PrincipalID  string  `json:"PrincipalId"`  // User Principal ID
 	AccountID    string  `json:"AccountId"`    // AWS Account ID
-	StartDate    int64   `json:"StartDate"`    // Usage start date Epoch Timestamp
-	EndDate      int64   `json:"EndDate"`      // Usage ends date Epoch Timestamp
+	StartDate    int     `json:"StartDate"`    // Usage start date Epoch Timestamp
+	EndDate      int     `json:"EndDate"`      // Usage ends date Epoch Timestamp
 	CostAmount   float64 `json:"CostAmount"`   // Cost Amount for given period
 	CostCurrency string  `json:"CostCurrency"` // Cost currency
 }
@@ -58,28 +58,29 @@ func (db *DB) PutUsage(input Usage) error {
 // GetUsageByDaterange returns usage amount for all leases
 func (db *DB) GetUsageByDaterange(startDate int, days int) ([]*Usage, error) {
 
-	scanOutput := make([]*dynamodb.ScanOutput, days)
+	scanOutput := make([]*dynamodb.QueryOutput, days)
 
 	for i := 1; i <= days; i++ {
-		// Build the query input parameters
-		params := &dynamodb.ScanInput{
+
+		var queryInput = &dynamodb.QueryInput{
 			TableName: aws.String(db.UsageTableName),
-			ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-				":StartDate": {
-					N: aws.String(strconv.Itoa(startDate)),
+			KeyConditions: map[string]*dynamodb.Condition{
+				"StartDate": {
+					ComparisonOperator: aws.String("EQ"),
+					AttributeValueList: []*dynamodb.AttributeValue{
+						{
+							N: aws.String(strconv.Itoa(startDate)),
+						},
+					},
 				},
 			},
-			FilterExpression: aws.String("AccountStatus <> :acctstatus"),
 		}
 
-		// Make the DynamoDB Query API call
-		// Warning: this could potentially be an expensive operation if the
-		// database size becomes too big for the key/value nature of DynamoDB!
-		resp, err := db.Client.Scan(params)
+		var resp, err = db.Client.Query(queryInput)
 		if err != nil {
 			return nil, err
 		}
-		scanOutput[i] = resp
+		scanOutput = append(scanOutput, resp)
 		startDate = startDate + 86400
 	}
 
