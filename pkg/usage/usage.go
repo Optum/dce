@@ -30,6 +30,7 @@ type Usage struct {
 	EndDate      int     `json:"EndDate"`      // Usage ends date Epoch Timestamp
 	CostAmount   float64 `json:"CostAmount"`   // Cost Amount for given period
 	CostCurrency string  `json:"CostCurrency"` // Cost currency
+	TimeToExist  int     `json:"TimeToExist"`  // ttl attribute
 }
 
 // The DBer interface includes all methods used by the DB struct to interact with
