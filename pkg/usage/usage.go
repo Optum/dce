@@ -56,28 +56,15 @@ func (db *DB) PutUsage(input Usage) error {
 	return err
 }
 
-// GetUsageByDaterange returns usage amount for all leases
+// GetUsageByDaterange returns usage amount for all leases starting from startDate to input days
+// startDate is epoch Unix date
 func (db *DB) GetUsageByDaterange(startDate int, days int) ([]*Usage, error) {
 
 	scanOutput := make([]*dynamodb.QueryOutput, days)
 
 	for i := 1; i <= days; i++ {
 
-		var queryInput = &dynamodb.QueryInput{
-			TableName: aws.String(db.UsageTableName),
-			KeyConditions: map[string]*dynamodb.Condition{
-				"StartDate": {
-					ComparisonOperator: aws.String("EQ"),
-					AttributeValueList: []*dynamodb.AttributeValue{
-						{
-							N: aws.String(strconv.Itoa(startDate)),
-						},
-					},
-				},
-			},
-		}
-
-		var resp, err = db.Client.Query(queryInput)
+		var resp, err = db.Client.Query(getQueryInput(db.UsageTableName, startDate, nil))
 		if err != nil {
 			return nil, err
 		}
@@ -85,26 +72,10 @@ func (db *DB) GetUsageByDaterange(startDate int, days int) ([]*Usage, error) {
 
 		// pagination
 		for len(resp.LastEvaluatedKey) > 0 {
-			queryInput = &dynamodb.QueryInput{
-				TableName:         aws.String(db.UsageTableName),
-				ExclusiveStartKey: resp.LastEvaluatedKey,
-				KeyConditions: map[string]*dynamodb.Condition{
-					"StartDate": {
-						ComparisonOperator: aws.String("EQ"),
-						AttributeValueList: []*dynamodb.AttributeValue{
-							{
-								N: aws.String(strconv.Itoa(startDate)),
-							},
-						},
-					},
-				},
-			}
-
-			var resp, err = db.Client.Query(queryInput)
+			var resp, err = db.Client.Query(getQueryInput(db.UsageTableName, startDate, resp.LastEvaluatedKey))
 			if err != nil {
 				return nil, err
 			}
-
 			scanOutput = append(scanOutput, resp)
 		}
 
@@ -112,7 +83,8 @@ func (db *DB) GetUsageByDaterange(startDate int, days int) ([]*Usage, error) {
 	}
 
 	usages := []*Usage{}
-	for i := 1; i <= days; i++ {
+	for i := 1; i <= len(scanOutput); i++ {
+
 		// Create the array of Usage records
 		for _, r := range scanOutput[i].Items {
 			n, err := unmarshalUsageRecord(r)
@@ -144,4 +116,22 @@ func unmarshalUsageRecord(dbResult map[string]*dynamodb.AttributeValue) (*Usage,
 	}
 
 	return &usageRecord, nil
+}
+
+func getQueryInput(tableName string, startDate int, startKey map[string]*dynamodb.AttributeValue) *dynamodb.QueryInput {
+
+	return &dynamodb.QueryInput{
+		TableName:         aws.String(tableName),
+		ExclusiveStartKey: startKey,
+		KeyConditions: map[string]*dynamodb.Condition{
+			"StartDate": {
+				ComparisonOperator: aws.String("EQ"),
+				AttributeValueList: []*dynamodb.AttributeValue{
+					{
+						N: aws.String(strconv.Itoa(startDate)),
+					},
+				},
+			},
+		},
+	}
 }
