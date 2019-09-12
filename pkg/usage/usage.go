@@ -83,10 +83,10 @@ func (db *DB) GetUsageByDaterange(startDate int, days int) ([]*Usage, error) {
 	}
 
 	usages := []*Usage{}
-	for i := 1; i <= len(scanOutput); i++ {
+	for _, s := range scanOutput {
 
 		// Create the array of Usage records
-		for _, r := range scanOutput[i].Items {
+		for _, r := range s.Items {
 			n, err := unmarshalUsageRecord(r)
 			if err != nil {
 				return nil, err
