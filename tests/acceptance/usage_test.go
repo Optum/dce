@@ -2,6 +2,7 @@ package tests
 
 import (
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"testing"
@@ -85,7 +86,26 @@ func TestUsageDb(t *testing.T) {
 		actualUsages, err := dbSvc.GetUsageByDaterange(startDate, days)
 		require.Nil(t, err)
 		fmt.Println(&actualUsages)
-		require.Equal(t, &expectedUsages, &actualUsages)
+
+		sort.Slice(expectedUsages, func(i, j int) bool {
+			if expectedUsages[i].StartDate < expectedUsages[j].StartDate {
+				return true
+			}
+			if expectedUsages[i].StartDate > expectedUsages[j].StartDate {
+				return false
+			}
+			return expectedUsages[i].PrincipalID < expectedUsages[j].PrincipalID
+		})
+		sort.Slice(actualUsages, func(i, j int) bool {
+			if actualUsages[i].StartDate < actualUsages[j].StartDate {
+				return true
+			}
+			if actualUsages[i].StartDate > actualUsages[j].StartDate {
+				return false
+			}
+			return actualUsages[i].PrincipalID < actualUsages[j].PrincipalID
+		})
+		require.Equal(t, expectedUsages, actualUsages)
 	})
 
 }
