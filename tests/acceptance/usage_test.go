@@ -107,11 +107,11 @@ func TestUsageDb(t *testing.T) {
 		})
 
 		for _, eUsage := range expectedUsages {
-			fmt.Printf("Actual: %v\n", eUsage)
+			fmt.Printf("Actual: %v\n", *eUsage)
 		}
 
 		for _, aUsage := range actualUsages {
-			fmt.Printf("Actual: %v\n", aUsage)
+			fmt.Printf("Actual: %v\n", *aUsage)
 		}
 
 		require.Equal(t, expectedUsages, actualUsages)
