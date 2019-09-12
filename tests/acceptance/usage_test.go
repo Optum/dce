@@ -43,7 +43,7 @@ func TestUsageDb(t *testing.T) {
 
 		// Create mock usages
 		expectedUsages := []*usage.Usage{}
-		for a := 1; a <= 10; a++ {
+		for a := 1; a <= 2; a++ {
 
 			startDate := 1564790400
 			endDate := 1564876799
@@ -58,7 +58,7 @@ func TestUsageDb(t *testing.T) {
 			testAccountID = append(testAccountID, "Acct")
 			testAccountID = append(testAccountID, strconv.Itoa(a))
 
-			for i := 1; i <= 30; i++ {
+			for i := 1; i <= 3; i++ {
 
 				input := usage.Usage{
 					PrincipalID:  strings.Join(testPrinciplaID, ""),
@@ -105,6 +105,7 @@ func TestUsageDb(t *testing.T) {
 			}
 			return actualUsages[i].PrincipalID < actualUsages[j].PrincipalID
 		})
+		fmt.Printf("Actual: %s\n", actualUsages)
 		require.Equal(t, expectedUsages, actualUsages)
 	})
 
