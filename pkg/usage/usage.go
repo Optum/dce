@@ -60,7 +60,7 @@ func (db *DB) PutUsage(input Usage) error {
 // startDate is epoch Unix date
 func (db *DB) GetUsageByDaterange(startDate int, days int) ([]*Usage, error) {
 
-	scanOutput := make([]*dynamodb.QueryOutput, days)
+	scanOutput := make([]*dynamodb.QueryOutput, 0)
 
 	for i := 1; i <= days; i++ {
 
