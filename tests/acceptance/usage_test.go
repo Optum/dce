@@ -71,9 +71,7 @@ func TestUsageDb(t *testing.T) {
 				}
 				err = dbSvc.PutUsage(input)
 				require.Nil(t, err)
-				if startDate >= 1564790400 || startDate <= 1564876800 {
-					expectedUsages = append(expectedUsages, &input)
-				}
+				expectedUsages = append(expectedUsages, &input)
 
 				startDate = startDate + 86400
 				endDate = endDate + 86400
@@ -82,7 +80,7 @@ func TestUsageDb(t *testing.T) {
 
 		// GetUsageByDaterange for startDate 1564790400 and 2-days.
 		startDate := 1564790400
-		days := 2
+		days := 3
 		actualUsages, err := dbSvc.GetUsageByDaterange(startDate, days)
 		require.Nil(t, err)
 		fmt.Println(&actualUsages)
@@ -107,7 +105,7 @@ func TestUsageDb(t *testing.T) {
 		})
 
 		for _, eUsage := range expectedUsages {
-			fmt.Printf("Actual: %v\n", *eUsage)
+			fmt.Printf("Expected: %v\n", *eUsage)
 		}
 
 		for _, aUsage := range actualUsages {
