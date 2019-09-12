@@ -1,6 +1,12 @@
+
 ## vNext
 
 - Added dynamodb budget_cache
+
+## v0.15.1
+
+- Fixed an issue where the IAM policy wasn't being pulled from the module
+
 
 ## v0.15.0
 
