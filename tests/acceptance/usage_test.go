@@ -32,12 +32,12 @@ func TestUsageDb(t *testing.T) {
 	)
 
 	// Truncate tables, to make sure we're starting off clean
-	truncateUsageTable(t, dbSvc)
+	//truncateUsageTable(t, dbSvc)
 
 	t.Run("PutUsage / GetUsageByDaterange", func(t *testing.T) {
 
 		// Cleanup table on completion
-		defer truncateUsageTable(t, dbSvc)
+		//defer truncateUsageTable(t, dbSvc)
 
 		// Create mock usages
 		expectedUsages := []*usage.Usage{}
@@ -69,7 +69,7 @@ func TestUsageDb(t *testing.T) {
 				}
 				err = dbSvc.PutUsage(input)
 				require.Nil(t, err)
-				if startDate >= 1564790400 || startDate <= 1564876799 {
+				if startDate >= 1564790400 || startDate <= 1564876800 {
 					expectedUsages = append(expectedUsages, &input)
 				}
 
