@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 	"testing"
@@ -83,7 +84,8 @@ func TestUsageDb(t *testing.T) {
 		days := 2
 		actualUsages, err := dbSvc.GetUsageByDaterange(startDate, days)
 		require.Nil(t, err)
-		require.Equal(t, expectedUsages, actualUsages)
+		fmt.Println(&actualUsages)
+		require.Equal(t, &expectedUsages, &actualUsages)
 	})
 
 }
