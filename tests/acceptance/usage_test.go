@@ -105,7 +105,15 @@ func TestUsageDb(t *testing.T) {
 			}
 			return actualUsages[i].PrincipalID < actualUsages[j].PrincipalID
 		})
-		fmt.Printf("Actual: %s\n", actualUsages)
+
+		for _, eUsage := range expectedUsages {
+			fmt.Printf("Actual: %v\n", eUsage)
+		}
+
+		for _, aUsage := range actualUsages {
+			fmt.Printf("Actual: %v\n", aUsage)
+		}
+
 		require.Equal(t, expectedUsages, actualUsages)
 	})
 
