@@ -122,3 +122,7 @@ output "redbox_principal_role_name" {
 output "redbox_principal_policy_name" {
   value = local.redbox_principal_policy_name
 }
+
+output "usage_cache_table_name" {
+  value = aws_dynamodb_table.usage_cache.name
+}
