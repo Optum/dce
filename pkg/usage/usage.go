@@ -1,6 +1,8 @@
 package usage
 
 import (
+	"fmt"
+	"log"
 	"strconv"
 	"time"
 
@@ -26,24 +28,26 @@ type DB struct {
 type Usage struct {
 	PrincipalID  string  `json:"PrincipalId"`  // User Principal ID
 	AccountID    string  `json:"AccountId"`    // AWS Account ID
-	StartDate    int     `json:"StartDate"`    // Usage start date Epoch Timestamp
-	EndDate      int     `json:"EndDate"`      // Usage ends date Epoch Timestamp
+	StartDate    int64   `json:"StartDate"`    // Usage start date Epoch Timestamp
+	EndDate      int64   `json:"EndDate"`      // Usage ends date Epoch Timestamp
 	CostAmount   float64 `json:"CostAmount"`   // Cost Amount for given period
 	CostCurrency string  `json:"CostCurrency"` // Cost currency
-	TimeToExist  int     `json:"TimeToExist"`  // ttl attribute
+	TimeToLive   int64   `json:"TimeToLive"`   // ttl attribute
 }
 
 // The DBer interface includes all methods used by the DB struct to interact with
 // Usage DynamoDB. This is useful if we want to mock the DB service.
 type DBer interface {
 	PutUsage(input Usage) error
-	GetUsageByDaterange(startDate time.Time, endDate time.Time) ([]*Usage, error)
+	GetUsageByDateRange(startDate time.Time, days int) ([]*Usage, error)
 }
 
 // PutUsage adds an item to Usage DB
 func (db *DB) PutUsage(input Usage) error {
 	item, err := dynamodbattribute.MarshalMap(input)
 	if err != nil {
+		errorMessage := fmt.Sprintf("Failed to add usage record for start date \"%s\" and PrincipalID: %s.", input.StartDate, input.PrincipalID, err)
+		log.Print(errorMessage)
 		return err
 	}
 
@@ -56,9 +60,9 @@ func (db *DB) PutUsage(input Usage) error {
 	return err
 }
 
-// GetUsageByDaterange returns usage amount for all leases starting from startDate to input days
+// GetUsageByDateRange returns usage amount for all leases starting from startDate to input days
 // startDate is epoch Unix date
-func (db *DB) GetUsageByDaterange(startDate int, days int) ([]*Usage, error) {
+func (db *DB) GetUsageByDateRange(startDate time.Time, days int) ([]*Usage, error) {
 
 	scanOutput := make([]*dynamodb.QueryOutput, 0)
 
@@ -66,6 +70,8 @@ func (db *DB) GetUsageByDaterange(startDate int, days int) ([]*Usage, error) {
 
 		var resp, err = db.Client.Query(getQueryInput(db.UsageTableName, startDate, nil))
 		if err != nil {
+			errorMessage := fmt.Sprintf("Failed to query usage record for start date \"%s\": %s.", startDate, err)
+			log.Print(errorMessage)
 			return nil, err
 		}
 		scanOutput = append(scanOutput, resp)
@@ -74,12 +80,15 @@ func (db *DB) GetUsageByDaterange(startDate int, days int) ([]*Usage, error) {
 		for len(resp.LastEvaluatedKey) > 0 {
 			var resp, err = db.Client.Query(getQueryInput(db.UsageTableName, startDate, resp.LastEvaluatedKey))
 			if err != nil {
+				errorMessage := fmt.Sprintf("Failed to query usage record for start date \"%s\": %s.", startDate, err)
+				log.Print(errorMessage)
 				return nil, err
 			}
 			scanOutput = append(scanOutput, resp)
 		}
 
-		startDate = startDate + 86400
+		// increment startdate by a day
+		startDate = startDate.AddDate(0, 0, 1)
 	}
 
 	usages := []*Usage{}
@@ -112,13 +121,15 @@ func unmarshalUsageRecord(dbResult map[string]*dynamodb.AttributeValue) (*Usage,
 	err := dynamodbattribute.UnmarshalMap(dbResult, &usageRecord)
 
 	if err != nil {
+		errorMessage := fmt.Sprintf("Failed to unmarshal usage record \"%v\": %s.", dbResult, err)
+		log.Print(errorMessage)
 		return nil, err
 	}
 
 	return &usageRecord, nil
 }
 
-func getQueryInput(tableName string, startDate int, startKey map[string]*dynamodb.AttributeValue) *dynamodb.QueryInput {
+func getQueryInput(tableName string, startDate time.Time, startKey map[string]*dynamodb.AttributeValue) *dynamodb.QueryInput {
 
 	return &dynamodb.QueryInput{
 		TableName:         aws.String(tableName),
@@ -128,7 +139,7 @@ func getQueryInput(tableName string, startDate int, startKey map[string]*dynamod
 				ComparisonOperator: aws.String("EQ"),
 				AttributeValueList: []*dynamodb.AttributeValue{
 					{
-						N: aws.String(strconv.Itoa(startDate)),
+						N: aws.String(strconv.FormatInt(startDate.Unix(), 10)),
 					},
 				},
 			},

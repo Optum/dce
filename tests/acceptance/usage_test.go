@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/Optum/Redbox/pkg/usage"
 	"github.com/aws/aws-sdk-go/aws"
@@ -33,21 +34,30 @@ func TestUsageDb(t *testing.T) {
 		tfOut["usage_cache_table_name"].(string),
 	)
 
+	// ttl is set to 3-days
+	const ttl int = 3
+
 	// Truncate tables, to make sure we're starting off clean
 	//truncateUsageTable(t, dbSvc)
 
-	t.Run("PutUsage / GetUsageByDaterange", func(t *testing.T) {
+	t.Run("PutUsage / GetUsageByDateRange", func(t *testing.T) {
 
 		// Cleanup table on completion
 		//defer truncateUsageTable(t, dbSvc)
+
+		// Setup usage dates
+		currentTime := time.Now()
+		testStartDate := time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 0, 0, 0, 0, time.UTC).AddDate(0, -1, 0)
+		testEndDate := time.Date(testStartDate.Year(), testStartDate.Month(), testStartDate.Day(), 23, 59, 59, 0, time.UTC)
 
 		// Create mock usages
 		expectedUsages := []*usage.Usage{}
 		for a := 1; a <= 2; a++ {
 
-			startDate := 1564790400
-			endDate := 1564876799
-			ttl := startDate + (86400 * 3)
+			startDate := testStartDate
+			endDate := testEndDate
+
+			timeToLive := startDate.AddDate(0, 0, ttl)
 
 			var testPrinciplaID []string
 			var testAccountID []string
@@ -63,25 +73,24 @@ func TestUsageDb(t *testing.T) {
 				input := usage.Usage{
 					PrincipalID:  strings.Join(testPrinciplaID, ""),
 					AccountID:    strings.Join(testAccountID, ""),
-					StartDate:    startDate,
-					EndDate:      endDate,
+					StartDate:    startDate.Unix(),
+					EndDate:      endDate.Unix(),
 					CostAmount:   23.00,
 					CostCurrency: "USD",
-					TimeToExist:  ttl,
+					TimeToLive:   timeToLive.Unix(),
 				}
 				err = dbSvc.PutUsage(input)
 				require.Nil(t, err)
 				expectedUsages = append(expectedUsages, &input)
 
-				startDate = startDate + 86400
-				endDate = endDate + 86400
+				startDate = startDate.AddDate(0, 0, 1)
+				endDate = endDate.AddDate(0, 0, 1)
 			}
 		}
 
-		// GetUsageByDaterange for startDate 1564790400 and 2-days.
-		startDate := 1564790400
+		// GetUsageByDateRange for testStartDate and 2-days.
 		days := 3
-		actualUsages, err := dbSvc.GetUsageByDaterange(startDate, days)
+		actualUsages, err := dbSvc.GetUsageByDateRange(testStartDate, days)
 		require.Nil(t, err)
 		fmt.Println(&actualUsages)
 

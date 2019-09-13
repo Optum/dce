@@ -130,8 +130,9 @@ resource "aws_dynamodb_table" "usage_cache" {
     type = "N"
   }
 
+  # TTL enabled attribute
   ttl {
-    attribute_name = "TimeToExist"
+    attribute_name = "TimeToLive"
     enabled        = true
   }
 
