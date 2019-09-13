@@ -46,7 +46,7 @@ type DBer interface {
 func (db *DB) PutUsage(input Usage) error {
 	item, err := dynamodbattribute.MarshalMap(input)
 	if err != nil {
-		errorMessage := fmt.Sprintf("Failed to add usage record for start date \"%s\" and PrincipalID: %s.", input.StartDate, input.PrincipalID, err)
+		errorMessage := fmt.Sprintf("Failed to add usage record for start date \"%d\" and PrincipalID \"%s\": %s.", input.StartDate, input.PrincipalID, err)
 		log.Print(errorMessage)
 		return err
 	}
