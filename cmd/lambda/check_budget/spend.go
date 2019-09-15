@@ -1,14 +1,18 @@
 package main
 
 import (
+	"log"
+	"math"
+	"time"
+
 	"github.com/Optum/Redbox/pkg/awsiface"
 	"github.com/Optum/Redbox/pkg/budget"
 	"github.com/Optum/Redbox/pkg/common"
 	"github.com/Optum/Redbox/pkg/db"
+	"github.com/Optum/Redbox/pkg/usage"
 	"github.com/aws/aws-sdk-go/service/costexplorer"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/pkg/errors"
-	"log"
-	"time"
 )
 
 type calculateSpendInput struct {
@@ -32,23 +36,61 @@ func calculateSpend(input *calculateSpendInput) (float64, error) {
 		costexplorer.New(assumedSession),
 	)
 
+	//Get usage for current date and add it to Usage cache db
+
+	currentTime := time.Now()
+	usageStartTime := time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 0, 0, 0, 0, time.UTC)
+	usageEndTime := time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 23, 59, 59, 0, time.UTC)
+
+	costAmount, err := input.budgetSvc.CalculateTotalSpend(usageStartTime, usageEndTime)
+
+	if err != nil {
+		return 0, errors.Wrapf(err, "Failed to calculate spend for account %s", input.lease.AccountID)
+	}
+
+	// Set Timetolive to one month from StartDate
+	usageItem := usage.Usage{
+		StartDate:    usageStartTime.Unix(),
+		EndDate:      usageEndTime.Unix(),
+		PrincipalID:  input.lease.PrincipalID,
+		AccountID:    input.account.ID,
+		CostAmount:   costAmount,
+		CostCurrency: "USD",
+		TimeToLive:   usageStartTime.AddDate(0, 1, 0).Unix(),
+	}
+
+	usageSvc := usage.New(
+		dynamodb.New(assumedSession),
+		common.RequireEnv("USAGE_CACHE_DB"),
+	)
+	usageSvc.PutUsage(usageItem)
+
 	// Budget period starts last time the lease was reset.
 	// We can look at the `leaseStatusModifiedOn` to know
 	// when the lease status changed from `ResetLock` --> `Active`
 	budgetStartTime := time.Unix(input.lease.LeaseStatusModifiedOn, 0)
-	// CostExplorer's `endTime` arg is exclusive_. So if we want
-	// the budget to include today's spend, we need the end time to be tomorrow.
-	budgetEndTime := time.Now().Add(time.Hour * 24)
+	// budget's `endTime` is set to yesterday
+	budgetEndTime := usageEndTime.AddDate(0, 0, -1)
 
-	log.Printf("Calculating spend for lease %s @ %s for period %s to %s...",
+	diffDays := int(math.Round(budgetEndTime.Sub(budgetEndTime).Hours() / 24))
+
+	log.Printf("Retrieving usage for lease %s @ %s for period %s to %s...",
 		input.lease.PrincipalID, input.lease.AccountID,
 		budgetStartTime.Format("2006-01-02"), budgetEndTime.Format("2006-01-02"),
 	)
 
-	// Query CostExplorer, and calculate total spend in the account
-	spend, err := input.budgetSvc.CalculateTotalSpend(budgetStartTime, budgetEndTime)
+	// Query Usage cache DB
+	usages, err := usageSvc.GetUsageByDateRange(budgetStartTime, diffDays)
 	if err != nil {
-		return 0, errors.Wrapf(err, "Failed to calculate spend for account %s", input.lease.AccountID)
+		return 0, errors.Wrapf(err, "Failed to retrieve usage for account %s", input.lease.AccountID)
+	}
+
+	// DynDB is eventually consistent. Pull cache DB for SUN-->yesterday, then add the known value for today
+	spend := costAmount
+	for _, usage := range usages {
+		if usage.PrincipalID == input.lease.PrincipalID && usage.AccountID == input.lease.AccountID {
+			spend = spend + usage.CostAmount
+		}
 	}
 
 	log.Printf("Lease for %s @ %s has spent $%.2f of their $%.2f budget",
