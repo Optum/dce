@@ -2,6 +2,7 @@
 ## vNext
 
 - Added dynamodb budget_cache
+- Modify budget lambdas to write to caching db
 
 ## v0.15.1
 
