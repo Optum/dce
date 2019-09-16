@@ -34,6 +34,7 @@ module "check_budget_lambda" {
     AWS_CURRENT_REGION                        = var.aws_region
     ACCOUNT_DB                                = aws_dynamodb_table.redbox_account.id
     LEASE_DB                                  = aws_dynamodb_table.redbox_lease.id
+    USAGE_CACHE_DB                            = aws_dynamodb_table.usage_cache.id
     RESET_QUEUE_URL                           = aws_sqs_queue.account_reset.id
     LEASE_LOCKED_TOPIC_ARN                    = aws_sns_topic.lease_locked.arn
     BUDGET_NOTIFICATION_FROM_EMAIL            = var.budget_notification_from_email
@@ -62,10 +63,10 @@ POLICY
 
 // Run the fan-out-check-budget lambda on a timer (cloudwatch event)
 module "dbbackup_lambda_schedule" {
-  source              = "./cloudwatch_event"
-  name                = "fan_out_check_budget-${var.namespace}"
+  source = "./cloudwatch_event"
+  name = "fan_out_check_budget-${var.namespace}"
   lambda_function_arn = module.fan_out_check_budget_lambda.arn
   schedule_expression = var.check_budget_schedule_expression
-  description         = "Initiates the budget check lambda. Invokes a check-budget lamdba for each active lease"
-  enabled             = var.check_budget_enabled
+  description = "Initiates the budget check lambda. Invokes a check-budget lamdba for each active lease"
+  enabled = var.check_budget_enabled
 }
