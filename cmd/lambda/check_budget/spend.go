@@ -11,7 +11,6 @@ import (
 	"github.com/Optum/Redbox/pkg/db"
 	"github.com/Optum/Redbox/pkg/usage"
 	"github.com/aws/aws-sdk-go/service/costexplorer"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/pkg/errors"
 )
 
@@ -20,6 +19,7 @@ type calculateSpendInput struct {
 	lease      *db.RedboxLease
 	tokenSvc   common.TokenService
 	budgetSvc  budget.Service
+	usageSvc   usage.Service
 	awsSession awsiface.AwsSession
 }
 
@@ -37,13 +37,11 @@ func calculateSpend(input *calculateSpendInput) (float64, error) {
 	)
 
 	//Get usage for current date and add it to Usage cache db
-
 	currentTime := time.Now()
 	usageStartTime := time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 0, 0, 0, 0, time.UTC)
 	usageEndTime := time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 23, 59, 59, 0, time.UTC)
 
 	costAmount, err := input.budgetSvc.CalculateTotalSpend(usageStartTime, usageEndTime)
-
 	if err != nil {
 		return 0, errors.Wrapf(err, "Failed to calculate spend for account %s", input.lease.AccountID)
 	}
@@ -59,11 +57,7 @@ func calculateSpend(input *calculateSpendInput) (float64, error) {
 		TimeToLive:   usageStartTime.AddDate(0, 1, 0).Unix(),
 	}
 
-	usageSvc := usage.New(
-		dynamodb.New(assumedSession),
-		common.RequireEnv("USAGE_CACHE_DB"),
-	)
-	usageSvc.PutUsage(usageItem)
+	input.usageSvc.PutUsage(usageItem)
 
 	// Budget period starts last time the lease was reset.
 	// We can look at the `leaseStatusModifiedOn` to know
@@ -80,7 +74,7 @@ func calculateSpend(input *calculateSpendInput) (float64, error) {
 	)
 
 	// Query Usage cache DB
-	usages, err := usageSvc.GetUsageByDateRange(budgetStartTime, diffDays)
+	usages, err := input.usageSvc.GetUsageByDateRange(budgetStartTime, diffDays)
 	if err != nil {
 		return 0, errors.Wrapf(err, "Failed to retrieve usage for account %s", input.lease.AccountID)
 	}

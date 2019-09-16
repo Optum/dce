@@ -3,12 +3,15 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
+
 	"github.com/Optum/Redbox/pkg/awsiface"
 	"github.com/Optum/Redbox/pkg/budget"
 	"github.com/Optum/Redbox/pkg/common"
 	"github.com/Optum/Redbox/pkg/db"
 	"github.com/Optum/Redbox/pkg/email"
 	multierrors "github.com/Optum/Redbox/pkg/errors"
+	"github.com/Optum/Redbox/pkg/usage"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -17,7 +20,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/pkg/errors"
-	"log"
 )
 
 func main() {
@@ -42,12 +44,18 @@ func main() {
 		stsSvc := sts.New(awsSession)
 		tokenSvc := &common.STS{Client: stsSvc}
 
+		usageSvc, err := usage.NewFromEnv()
+		if err != nil {
+			log.Fatalf("Failed to configure Usage service %s", err)
+		}
+
 		err = lambdaHandler(&lambdaHandlerInput{
 			dbSvc:                                  dbSvc,
 			lease:                                  lease,
 			awsSession:                             awsSession,
 			tokenSvc:                               tokenSvc,
 			budgetSvc:                              &budget.AWSBudgetService{},
+			usageSvc:                               usageSvc,
 			sqsSvc:                                 sqs.New(awsSession),
 			resetQueueURL:                          common.RequireEnv("RESET_QUEUE_URL"),
 			snsSvc:                                 &common.SNS{Client: sns.New(awsSession)},
@@ -90,6 +98,7 @@ type lambdaHandlerInput struct {
 	awsSession                             awsiface.AwsSession
 	tokenSvc                               common.TokenService
 	budgetSvc                              budget.Service
+	usageSvc                               usage.Service
 	snsSvc                                 common.Notificationer
 	leaseLockedTopicArn                    string
 	sqsSvc                                 awsiface.SQSAPI
@@ -123,6 +132,7 @@ func lambdaHandler(input *lambdaHandlerInput) error {
 		lease:      input.lease,
 		tokenSvc:   input.tokenSvc,
 		budgetSvc:  input.budgetSvc,
+		usageSvc:   input.usageSvc,
 		awsSession: input.awsSession,
 	})
 	if err != nil {

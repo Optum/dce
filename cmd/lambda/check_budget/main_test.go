@@ -2,6 +2,10 @@ package main
 
 import (
 	"errors"
+	"strings"
+	"testing"
+	"time"
+
 	awsMocks "github.com/Optum/Redbox/pkg/awsiface/mocks"
 	budgetMocks "github.com/Optum/Redbox/pkg/budget/mocks"
 	"github.com/Optum/Redbox/pkg/common"
@@ -10,14 +14,12 @@ import (
 	dbMocks "github.com/Optum/Redbox/pkg/db/mocks"
 	"github.com/Optum/Redbox/pkg/email"
 	emailMocks "github.com/Optum/Redbox/pkg/email/mocks"
+	"github.com/Optum/Redbox/pkg/usage"
+	usageMocks "github.com/Optum/Redbox/pkg/usage/mocks"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sqs"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"strings"
-	"testing"
-	"time"
 )
 
 func TestCheckBudget(t *testing.T) {
@@ -85,6 +87,7 @@ has exceeded its budget of $100. Actual spend is $150
 		dbSvc := &dbMocks.DBer{}
 		tokenSvc := &commonMocks.TokenService{}
 		budgetSvc := &budgetMocks.Service{}
+		usageSvc := &usageMocks.Service{}
 		snsSvc := &commonMocks.Notificationer{}
 		sqsSvc := &awsMocks.SQSAPI{}
 		emailSvc := &emailMocks.Service{}
@@ -102,6 +105,7 @@ has exceeded its budget of $100. Actual spend is $150
 			awsSession:                             &awsMocks.AwsSession{},
 			tokenSvc:                               tokenSvc,
 			budgetSvc:                              budgetSvc,
+			usageSvc:                               usageSvc,
 			snsSvc:                                 snsSvc,
 			leaseLockedTopicArn:                    "lease-locked",
 			sqsSvc:                                 sqsSvc,
@@ -128,20 +132,26 @@ has exceeded its budget of $100. Actual spend is $150
 		// Mock the BudgetService, actualSpend=150 (over budget)
 		// Should use assumed role
 		budgetSvc.On("SetCostExplorer", mock.Anything)
+		currentTime := time.Now()
 		budgetSvc.On("CalculateTotalSpend",
-			// Start time should be Lease.LeaseStatusModifiedOn
-			// (which should match when it became active)
-			time.Unix(100, 0),
-			// End time should be ~tomorrow
-			// (CostExplorer endTime is exclusive,
-			//  so if we want costs for today, then endTime=tomorrow)
-			mock.MatchedBy(func(endTime time.Time) bool {
-				tomorrow := time.Now().Add(time.Hour * 24).Unix()
-				assert.InDelta(t, tomorrow, endTime.Unix(), 2,
-					"End time should be tomorrow")
-				return true
-			}),
+			time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 0, 0, 0, 0, time.UTC),
+			time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 23, 59, 59, 0, time.UTC),
 		).Return(test.actualSpend, nil)
+
+		// Mock Usage service
+		inputUsage := usage.Usage{
+			PrincipalID:  "test-user",
+			AccountID:    "",
+			StartDate:    1568592000,
+			EndDate:      1568678399,
+			CostAmount:   test.actualSpend,
+			CostCurrency: "USD",
+			TimeToLive:   1571184000,
+		}
+
+		budgetStartTime := time.Unix(input.lease.LeaseStatusModifiedOn, 0)
+		usageSvc.On("PutUsage", inputUsage).Return(nil)
+		usageSvc.On("GetUsageByDateRange", budgetStartTime, 0).Return(nil, nil)
 
 		// Should transition from "Active" --> "FinanceLock"
 		if test.shouldTransitionLeaseStatus {
