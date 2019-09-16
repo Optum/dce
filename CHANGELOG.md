@@ -2,6 +2,7 @@
 ## vNext
 
 - Added dynamodb budget_cache
+- Fix an issue where the LastModifiedOn property was getting set to a string
 
 ## v0.15.1
 

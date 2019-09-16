@@ -69,18 +69,17 @@ func handler(ctx context.Context, snsEvent events.SNSEvent) error {
 }
 
 type processRecordInput struct {
-	AccountID               string
-	DbSvc                   db.DBer
-	StoragerSvc             common.Storager
-	TokenSvc                common.TokenService
-	AwsSession              awsiface.AwsSession
-	RoleManager             rolemanager.PolicyManager
-	PrincipalRoleName       string
-	PrincipalPolicyName     string
-	PrincipalIAMDenyTags    []string
-	PrevPrincipalPolicyHash string
-	PolicyBucket            string
-	PolicyBucketKey         string
+	AccountID            string
+	DbSvc                db.DBer
+	StoragerSvc          common.Storager
+	TokenSvc             common.TokenService
+	AwsSession           awsiface.AwsSession
+	RoleManager          rolemanager.PolicyManager
+	PrincipalRoleName    string
+	PrincipalPolicyName  string
+	PrincipalIAMDenyTags []string
+	PolicyBucket         string
+	PolicyBucketKey      string
 }
 
 func processRecord(input processRecordInput) error {
@@ -133,7 +132,7 @@ func processRecord(input processRecordInput) error {
 	}
 
 	log.Printf("Update account '%s' resource record.  Policy Hash from '%s' to '%s'", input.AccountID, accountRes.PrincipalPolicyHash, policyHash)
-	_, err = input.DbSvc.UpdateAccountPrincipalPolicyHash(input.AccountID, input.PrevPrincipalPolicyHash, policyHash)
+	_, err = input.DbSvc.UpdateAccountPrincipalPolicyHash(input.AccountID, accountRes.PrincipalPolicyHash, policyHash)
 	if err != nil {
 		log.Printf("Failed to update account '%s' resource record.  Policy Hash from '%s' to '%s': %s",
 			input.AccountID, accountRes.PrincipalPolicyHash, policyHash, err)

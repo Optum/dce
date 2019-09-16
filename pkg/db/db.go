@@ -518,7 +518,7 @@ func (db *DB) UpdateAccountPrincipalPolicyHash(accountID string, prevHash string
 			expression.Value(nextHash),
 		).Set(
 			expression.Name("LastModifiedOn"),
-			expression.Value(strconv.FormatInt(time.Now().Unix(), 10)),
+			expression.Value(time.Now().Unix()),
 		),
 	).Build()
 
