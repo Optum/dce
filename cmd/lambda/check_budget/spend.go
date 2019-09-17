@@ -66,7 +66,7 @@ func calculateSpend(input *calculateSpendInput) (float64, error) {
 	// budget's `endTime` is set to yesterday
 	budgetEndTime := usageEndTime.AddDate(0, 0, -1)
 
-	diffDays := int(math.Round(budgetEndTime.Sub(budgetEndTime).Hours() / 24))
+	diffDays := int(math.Round(budgetEndTime.Sub(budgetStartTime).Hours() / 24))
 
 	log.Printf("Retrieving usage for lease %s @ %s for period %s to %s...",
 		input.lease.PrincipalID, input.lease.AccountID,
