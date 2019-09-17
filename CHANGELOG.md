@@ -1,13 +1,15 @@
-
 ## vNext
 
-- Added dynamodb budget_cache
 - Modify budget lambdas to write to caching db
+
+## v0.16.0
+
+- Added dynamodb usage_cache
+- Fix an issue where the LastModifiedOn property was getting set to a string
 
 ## v0.15.1
 
 - Fixed an issue where the IAM policy wasn't being pulled from the module
-
 
 ## v0.15.0
 
