@@ -133,20 +133,22 @@ has exceeded its budget of $100. Actual spend is $150
 		// Should use assumed role
 		budgetSvc.On("SetCostExplorer", mock.Anything)
 		currentTime := time.Now()
+		startDate := time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 0, 0, 0, 0, time.UTC)
+		endDate := time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 23, 59, 59, 0, time.UTC)
 		budgetSvc.On("CalculateTotalSpend",
-			time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 0, 0, 0, 0, time.UTC),
-			time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 23, 59, 59, 0, time.UTC),
+			startDate,
+			endDate,
 		).Return(test.actualSpend, nil)
 
 		// Mock Usage service
 		inputUsage := usage.Usage{
 			PrincipalID:  "test-user",
 			AccountID:    "",
-			StartDate:    1568592000,
-			EndDate:      1568678399,
+			StartDate:    startDate.Unix(),
+			EndDate:      endDate.Unix(),
 			CostAmount:   test.actualSpend,
 			CostCurrency: "USD",
-			TimeToLive:   1571184000,
+			TimeToLive:   startDate.AddDate(0, 1, 0).Unix(),
 		}
 
 		budgetStartTime := time.Unix(input.lease.LeaseStatusModifiedOn, 0)
