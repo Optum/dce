@@ -199,6 +199,33 @@ func TestDb(t *testing.T) {
 		require.NotNil(t, "TODO")
 	})
 
+	t.Run("UpdateIamPolicyHash", func(t *testing.T) {
+		t.Run("Create IAM Policy Hash from blank and still get account", func(t *testing.T) {
+			require.NotNil(t, "TODO")
+		})
+
+		t.Run("Create IAM Policy Hash from value and still get account", func(t *testing.T) {
+			defer truncateLeaseTable(t, dbSvc)
+
+			// Create some accounts in the DB
+			for _, acct := range []db.RedboxAccount{
+				{ID: "1", AccountStatus: db.Ready, PrincipalPolicyHash: "\"PreviousHash\""},
+				{ID: "2", AccountStatus: db.Leased},
+			} {
+				err := dbSvc.PutAccount(acct)
+				require.Nil(t, err)
+			}
+
+			// Find ready accounts
+			res, err := dbSvc.UpdateAccountPrincipalPolicyHash("1", "\"PreviousHash\"", "\"NextHash\"")
+			require.Nil(t, err)
+			require.Equal(t, res.PrincipalPolicyHash, "\"NextHash\"")
+
+			res, err = dbSvc.GetAccount("1")
+			require.Nil(t, err)
+		})
+	})
+
 	t.Run("TransitionLeaseStatus", func(t *testing.T) {
 
 		t.Run("Should transition from one state to another", func(t *testing.T) {
