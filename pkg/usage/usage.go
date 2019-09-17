@@ -6,7 +6,9 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/Optum/Redbox/pkg/common"
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 )
@@ -35,9 +37,9 @@ type Usage struct {
 	TimeToLive   int64   `json:"TimeToLive"`   // ttl attribute
 }
 
-// The DBer interface includes all methods used by the DB struct to interact with
+// The Service interface includes all methods used by the DB struct to interact with
 // Usage DynamoDB. This is useful if we want to mock the DB service.
-type DBer interface {
+type Service interface {
 	PutUsage(input Usage) error
 	GetUsageByDateRange(startDate time.Time, days int) ([]*Usage, error)
 }
@@ -114,6 +116,27 @@ func New(client *dynamodb.DynamoDB, usageTableName string) *DB {
 		Client:         client,
 		UsageTableName: usageTableName,
 	}
+}
+
+/*
+NewFromEnv creates a DB instance configured from environment variables.
+Requires env vars for:
+
+- AWS_CURRENT_REGION
+- USAGE_CACHE_DB
+*/
+func NewFromEnv() (*DB, error) {
+	awsSession, err := session.NewSession()
+	if err != nil {
+		return nil, err
+	}
+	return New(
+		dynamodb.New(
+			awsSession,
+			aws.NewConfig().WithRegion(common.RequireEnv("AWS_CURRENT_REGION")),
+		),
+		common.RequireEnv("USAGE_CACHE_DB"),
+	), nil
 }
 
 func unmarshalUsageRecord(dbResult map[string]*dynamodb.AttributeValue) (*Usage, error) {

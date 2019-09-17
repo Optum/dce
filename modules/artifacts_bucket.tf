@@ -66,7 +66,7 @@ POLICY
 
 resource "aws_s3_bucket_object" "redbox_principal_policy" {
   bucket = aws_s3_bucket.artifacts.id
-  key    = "fixtures/policies/redbox_principal_policy.tmpl"
+  key = "fixtures/policies/redbox_principal_policy.tmpl"
   source = local.redbox_principal_policy
-  etag   = "${filemd5(local.redbox_principal_policy)}"
+  etag = "${filemd5(local.redbox_principal_policy)}"
 }

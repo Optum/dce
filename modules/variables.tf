@@ -132,9 +132,9 @@ TMPL
 }
 
 variable "budget_notification_template_text" {
-  type        = string
+  type = string
   description = "Text template for budget notification emails"
-  default     = <<TMPL
+  default = <<TMPL
 {{if .IsOverBudget}}
 AWS Redbox Lease for principal {{.Lease.PrincipalID}} in AWS Account {{.Lease.AccountID}}
 has exceeded its budget of $${{.Lease.BudgetAmount}}. Actual spend is $${{.ActualSpend}}
@@ -155,13 +155,13 @@ SUBJ
 }
 
 variable "budget_notification_threshold_percentiles" {
-  type        = list(number)
+  type = list(number)
   description = "Thresholds (percentiles) at which notification emails will be sent to Redbox users."
-  default     = [75, 100]
+  default = [75, 100]
 }
 
 variable "redbox_principal_policy" {
-  type        = string
+  type = string
   description = "Location of file with the policy used for the RedBox Principal Account"
-  default     = ""
+  default = ""
 }

@@ -1,3 +1,6 @@
+## vNext
+
+- Modify budget lambdas to write to caching db
 
 ## v0.16.0
 
