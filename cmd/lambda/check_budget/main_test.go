@@ -153,7 +153,7 @@ has exceeded its budget of $100. Actual spend is $150
 
 		budgetStartTime := time.Unix(input.lease.LeaseStatusModifiedOn, 0)
 		usageSvc.On("PutUsage", inputUsage).Return(nil)
-		usageSvc.On("GetUsageByDateRange", budgetStartTime, 0).Return(nil, nil)
+		usageSvc.On("GetUsageByDateRange", budgetStartTime, mock.Anything).Return(nil, nil)
 
 		// Should transition from "Active" --> "FinanceLock"
 		if test.shouldTransitionLeaseStatus {
