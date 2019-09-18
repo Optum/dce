@@ -65,7 +65,7 @@ func calculateSpend(input *calculateSpendInput) (float64, error) {
 	// when the lease status changed from `ResetLock` --> `Active`
 	budgetStartTime := time.Unix(input.lease.LeaseStatusModifiedOn, 0)
 	// budget's `endTime` is set to yesterday
-	budgetEndTime := usageEndTime.AddDate(0, 0, -1)
+	budgetEndTime := usageStartTime
 
 	diffDays := int(math.Round(budgetEndTime.Sub(budgetStartTime).Hours() / 24))
 
