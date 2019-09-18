@@ -41,7 +41,7 @@ func calculateSpend(input *calculateSpendInput) (float64, error) {
 	usageStartTime := time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 0, 0, 0, 0, time.UTC)
 	usageEndTime := time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 23, 59, 59, 0, time.UTC)
 
-	log.Printf("usageStart: %i and usageEnd :%i", usageStartTime, usageEndTime)
+	log.Printf("usageStart: %d and usageEnd :%d", usageStartTime.Unix(), usageEndTime.Unix())
 	costAmount, err := input.budgetSvc.CalculateTotalSpend(usageStartTime, usageEndTime)
 	if err != nil {
 		return 0, errors.Wrapf(err, "Failed to calculate spend for account %s", input.lease.AccountID)
