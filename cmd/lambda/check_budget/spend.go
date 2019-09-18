@@ -70,6 +70,10 @@ func calculateSpend(input *calculateSpendInput) (float64, error) {
 	budgetEndTime := usageStartTime
 
 	diffDays := int(math.Round(budgetEndTime.Sub(budgetStartTime).Hours() / 24))
+
+	if diffDays == 0 {
+		diffDays = 1
+	}
 	log.Printf("diff days: %d", diffDays)
 
 	log.Printf("Retrieving usage for lease %s @ %s for period %s to %s...",
