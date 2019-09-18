@@ -20,11 +20,6 @@ func TestService(t *testing.T) {
 		"RESET_NUKE_TEMPLATE_DEFAULT",
 		"RESET_NUKE_TEMPLATE_BUCKET",
 		"RESET_NUKE_TEMPLATE_KEY",
-		"RESET_LAUNCHPAD_TOGGLE",
-		"RESET_LAUNCHPAD_BASE_ENDPOINT",
-		"RESET_LAUNCHPAD_AUTH_ENDPOINT",
-		"RESET_LAUNCHPAD_MASTER_ACCOUNT",
-		"RESET_LAUNCHPAD_BACKEND",
 	}
 	for _, envKey := range envVars {
 		err := os.Setenv(envKey, envKey+"_VAL")
@@ -33,8 +28,6 @@ func TestService(t *testing.T) {
 
 	// Set toggle env vars
 	err := os.Setenv("RESET_NUKE_TOGGLE", "true")
-	require.Nil(t, err)
-	err = os.Setenv("RESET_LAUNCHPAD_TOGGLE", "false")
 	require.Nil(t, err)
 	t.Run("getConfig", func(t *testing.T) {
 
@@ -52,17 +45,12 @@ func TestService(t *testing.T) {
 			require.Equal(t, "RESET_NUKE_TEMPLATE_DEFAULT_VAL", config.nukeTemplateDefault)
 			require.Equal(t, "RESET_NUKE_TEMPLATE_BUCKET_VAL", config.nukeTemplateBucket)
 			require.Equal(t, "RESET_NUKE_TEMPLATE_KEY_VAL", config.nukeTemplateKey)
-			require.Equal(t, "RESET_LAUNCHPAD_BASE_ENDPOINT_VAL", config.launchpadBaseEndpoint)
-			require.Equal(t, "RESET_LAUNCHPAD_AUTH_ENDPOINT_VAL", config.launchpadAuthEndpoint)
-			require.Equal(t, "RESET_LAUNCHPAD_MASTER_ACCOUNT_VAL", config.launchpadMasterAccount)
-			require.Equal(t, "RESET_LAUNCHPAD_BACKEND_VAL", config.launchpadBackend)
 
 			// Check computed config vals
 			require.Equal(t, "arn:aws:iam::RESET_ACCOUNT_VAL:role/RESET_ACCOUNT_ADMIN_ROLE_NAME_VAL", config.accountAdminRoleARN)
 
 			// Check toggle env vars
 			require.Equal(t, true, config.isNukeEnabled)
-			require.Equal(t, false, config.isLaunchpadEnabled)
 		})
 
 		t.Run("should be a singleton", func(t *testing.T) {

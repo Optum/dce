@@ -136,4 +136,3 @@ data "archive_file" "lambda_code_stub" {
     content  = "STUB CONTENT"
   }
 }
-

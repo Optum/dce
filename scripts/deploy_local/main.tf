@@ -55,7 +55,6 @@ resource "aws_s3_bucket" "local_tfstate" {
 }
 
 # Enforce SSL only access to the bucket
-# (required by Launchpad policy)
 resource "aws_s3_bucket_policy" "reset_codepipeline_source_ssl_policy" {
   bucket = aws_s3_bucket.local_tfstate.id
 

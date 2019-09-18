@@ -1,19 +1,15 @@
 package main
 
 import (
-	"crypto/tls"
 	"log"
-	"net/http"
 	"os"
-	"time"
 
 	"github.com/Optum/Redbox/pkg/common"
 	"github.com/Optum/Redbox/pkg/db"
-	"github.com/Optum/Redbox/pkg/reset"
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/aws/aws-sdk-go/service/sts"
 )
@@ -22,11 +18,11 @@ import (
 // See https://medium.com/golang-issue/how-singleton-pattern-works-with-golang-2fdd61cd5a7f
 var (
 	_config       *serviceConfig
-	_launchpadAPI *reset.LaunchpadAPI
 	_awsSession   *session.Session
 	_tokenService *common.STS
 	_ssmService   *common.SSM
 	_s3Service    *common.S3
+	_snsService   *common.SNS
 	_db           *db.DB
 )
 
@@ -48,12 +44,6 @@ type serviceConfig struct {
 	nukeTemplateDefault string
 	nukeTemplateBucket  string
 	nukeTemplateKey     string
-
-	isLaunchpadEnabled     bool
-	launchpadBaseEndpoint  string
-	launchpadAuthEndpoint  string
-	launchpadMasterAccount string
-	launchpadBackend       string
 }
 
 func (svc *service) config() *serviceConfig {
@@ -73,12 +63,6 @@ func (svc *service) config() *serviceConfig {
 		nukeTemplateDefault: common.RequireEnv("RESET_NUKE_TEMPLATE_DEFAULT"),
 		nukeTemplateBucket:  common.RequireEnv("RESET_NUKE_TEMPLATE_BUCKET"),
 		nukeTemplateKey:     common.RequireEnv("RESET_NUKE_TEMPLATE_KEY"),
-
-		isLaunchpadEnabled:     os.Getenv("RESET_LAUNCHPAD_TOGGLE") != "false",
-		launchpadBaseEndpoint:  common.RequireEnv("RESET_LAUNCHPAD_BASE_ENDPOINT"),
-		launchpadAuthEndpoint:  common.RequireEnv("RESET_LAUNCHPAD_AUTH_ENDPOINT"),
-		launchpadMasterAccount: common.RequireEnv("RESET_LAUNCHPAD_MASTER_ACCOUNT"),
-		launchpadBackend:       common.RequireEnv("RESET_LAUNCHPAD_BACKEND"),
 	}
 	return _config
 }
@@ -131,60 +115,6 @@ func (svc *service) s3Service() *common.S3 {
 	return _s3Service
 }
 
-func (svc *service) launchpadAPI() *reset.LaunchpadAPI {
-	if _launchpadAPI != nil {
-		return _launchpadAPI
-	}
-	config := svc.config()
-
-	keyID := "/redbox/azure/client/id"
-	keySecret := "/redbox/azure/client/secret"
-
-	ssmService := svc.ssmService()
-	clientID, err := ssmService.GetParameter(&keyID)
-	if err != nil {
-		log.Fatalf("Failed to load SSM param at %s: %s", keyID, err)
-	}
-	clientSecret, err := ssmService.GetParameter(&keySecret)
-	if err != nil {
-		log.Fatalf("Failed to load SSM param at %s: %s", keySecret, err)
-	}
-
-	// Create the Storage service under the assumed role
-	awsSession := svc.awsSession()
-	tokenService := svc.tokenService()
-	creds := tokenService.NewCredentials(awsSession, config.accountAdminRoleARN)
-	s3Client := s3.New(awsSession, &aws.Config{
-		Credentials: creds,
-	})
-	storage := common.S3{
-		Client: s3Client,
-	}
-
-	// Create the HTTPClient that will make the requests
-	httpClient := common.HTTPClient{
-		Client: http.Client{
-			Timeout: 60 * time.Second,
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-			},
-		},
-	}
-
-	_launchpadAPI = &reset.LaunchpadAPI{
-		LaunchpadBaseEndpoint: config.launchpadBaseEndpoint,
-		LaunchpadAuthEndpoint: config.launchpadAuthEndpoint,
-		ClientID:              *clientID,
-		ClientSecret:          *clientSecret,
-		BackendBucket:         config.launchpadBackend,
-		HTTP:                  &httpClient,
-		Storage:               storage,
-		Token:                 tokenService,
-	}
-
-	return _launchpadAPI
-}
-
 func (svc *service) db() *db.DB {
 	if _db != nil {
 		return _db
@@ -194,4 +124,14 @@ func (svc *service) db() *db.DB {
 		log.Fatalf("Failed to initialize DB Service:  %s", err)
 	}
 	return _db
+}
+
+func (svc *service) snsService() *common.SNS {
+	if _snsService == nil {
+		_snsService = &common.SNS{
+			Client: sns.New(svc.awsSession()),
+		}
+	}
+
+	return _snsService
 }

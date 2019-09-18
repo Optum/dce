@@ -9,6 +9,7 @@ import (
 
 	"github.com/pkg/errors"
 
+	"github.com/Optum/Redbox/pkg/common"
 	"github.com/Optum/Redbox/pkg/db"
 	"github.com/Optum/Redbox/pkg/reset"
 	"github.com/avast/retry-go"
@@ -18,7 +19,7 @@ import (
 )
 
 // main will run through the reset process for an account which involves using
-// aws-nuke and reapplying Launchpad via an API
+// aws-nuke
 func main() {
 	// Initialize a service container
 	svc := &service{}
@@ -80,38 +81,8 @@ func main() {
 	}
 	log.Printf("%s  :  Nuke Success\n", config.accountID)
 
-	// Run Launchpad Setup
-	// Recreates a clean TF state file in the account, so Launchpad can run
-	// We only do this if aws-nuke ran, and deleted LP's TF state file
-	if config.isNukeEnabled {
-		log.Printf("Launchpad Setup for %s\n", config.accountID)
-		err = svc.launchpadAPI().Setup(config.accountID)
-		if err != nil {
-			log.Fatalf("%s : Could not Setup Launchpad - %s", config.accountID, err)
-		}
-		log.Printf("Launchpad Setup Success for %s\n", config.accountID)
-	}
-
-	// Initiate Launchpad and wait for final status
-	if config.isLaunchpadEnabled {
-		// Call LaunchpadAccount
-		launchpadAccountInput := reset.LaunchpadAccountInput{
-			Launchpad:     svc.launchpadAPI(),
-			AccountID:     config.accountID,
-			MasterAccount: config.launchpadMasterAccount,
-			WaitSeconds:   30,
-		}
-		err := reset.LaunchpadAccount(&launchpadAccountInput)
-		if err != nil {
-			log.Fatalf("Failed to execute Launchpad against account %s: %s", config.accountID, err)
-		}
-	} else {
-		log.Println("INFO: Launchpad is set as toggled off and cannot set " +
-			" back the state of a Redbox Account.")
-	}
-
 	// Update the DB with Account/Lease statuses
-	err = updateDBPostReset(svc.db(), config.accountID)
+	err = updateDBPostReset(svc.db(), svc.snsService(), config.accountID, common.RequireEnv("RESET_COMPLETE_TOPIC_ARN"))
 	if err != nil {
 		log.Fatalf("Failed to update the DB post-reset for account %s:  %s", config.accountID, err)
 	}
@@ -121,7 +92,7 @@ func main() {
 // from "Status=ResetLock" to "Status=Active"
 // Also, if the account was set as "Status=NotReady",
 // will update to "Status=Ready"
-func updateDBPostReset(dbSvc db.DBer, accountID string) error {
+func updateDBPostReset(dbSvc db.DBer, snsSvc common.Notificationer, accountID string, snsTopicArn string) error {
 	// Find any lease for the Account
 	leases, err := dbSvc.FindLeasesByAccount(accountID)
 	if err != nil {
@@ -162,16 +133,34 @@ func updateDBPostReset(dbSvc db.DBer, accountID string) error {
 
 	// If the Account.Status=NotReady, change it back to Status=Ready
 	log.Printf("Setting Account Status from NotReady to Ready: %s", accountID)
-	_, err = dbSvc.TransitionAccountStatus(
+	account, err := dbSvc.TransitionAccountStatus(
 		accountID,
 		db.NotReady, db.Ready,
 	)
 	// Ignore StatusTransitionErrors
 	// (just means the status was NOT previously NotReady")
-	if _, ok := err.(*db.StatusTransitionError); !ok {
-		return err
+	if err != nil {
+		if _, ok := err.(*db.StatusTransitionError); !ok {
+			return err
+		}
+		account, err = dbSvc.GetAccount(accountID)
+		if err != nil {
+			return err
+		}
 	}
 
+	log.Printf("Notifying Reset Topic that the account is complete for: %s", accountID)
+	snsMessage, err := common.PrepareSNSMessageJSON(account)
+	if err != nil {
+		log.Printf("Failed to create SNS account-created message for %s: %s", accountID, err)
+		return err
+	}
+	log.Print(snsMessage)
+	_, err = snsSvc.PublishMessage(aws.String(snsTopicArn), aws.String(snsMessage), true)
+	if err != nil {
+		log.Print("Issue in publishing message: %s" + err.Error())
+		return err
+	}
 	return nil
 }
 

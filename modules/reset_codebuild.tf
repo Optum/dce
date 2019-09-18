@@ -2,7 +2,6 @@
  * Configure CodePipeline resources to
  * execute our Redbox Account Reset process.
  * - Run aws-nuke in each user account
- * - Re-apply Launchpad to each user account
  *
  * We are currently configured a unique CodePipeline
  * resource for every user account.
@@ -103,38 +102,8 @@ resource "aws_codebuild_project" "reset_build" {
     }
 
     environment_variable {
-      name  = "RESET_LAUNCHPAD_BASE_ENDPOINT"
-      value = var.reset_launchpad_base_endpoint
-      type  = "PLAINTEXT"
-    }
-
-    environment_variable {
-      name  = "RESET_LAUNCHPAD_AUTH_ENDPOINT"
-      value = var.reset_launchpad_auth_endpoint
-      type  = "PLAINTEXT"
-    }
-
-    environment_variable {
-      name  = "RESET_LAUNCHPAD_MASTER_ACCOUNT"
-      value = var.reset_launchpad_master_account
-      type  = "PLAINTEXT"
-    }
-
-    environment_variable {
-      name  = "RESET_LAUNCHPAD_BACKEND"
-      value = var.reset_launchpad_backend
-      type  = "PLAINTEXT"
-    }
-
-    environment_variable {
       name  = "RESET_NUKE_TOGGLE"
       value = var.reset_nuke_toggle // "false" for Dry Run, else Delete Resources
-      type  = "PLAINTEXT"
-    }
-
-    environment_variable {
-      name  = "RESET_LAUNCHPAD_TOGGLE"
-      value = var.reset_launchpad_toggle // "false" for Dry Run, else apply Launchpad
       type  = "PLAINTEXT"
     }
 
@@ -147,6 +116,12 @@ resource "aws_codebuild_project" "reset_build" {
     environment_variable {
       name  = "IS_PR"
       value = local.isPr ? "true" : "false"
+      type  = "PLAINTEXT"
+    }
+
+    environment_variable {
+      name  = "RESET_COMPLETE_TOPIC_ARN"
+      value = aws_sns_topic.reset_complete.arn
       type  = "PLAINTEXT"
     }
   }
@@ -205,7 +180,8 @@ resource "aws_iam_role_policy" "codebuild_reset" {
         "dynamodb:GetItem",
         "dynamodb:Scan",
         "dynamodb:Query",
-        "dynamodb:UpdateItem"
+        "dynamodb:UpdateItem",
+        "sns:Publish"
       ]
     },
     {
@@ -245,4 +221,10 @@ resource "aws_cloudwatch_metric_alarm" "reset_failed_builds" {
   statistic           = "Sum"
 
   alarm_actions = [aws_sns_topic.alarms_topic.arn]
+}
+
+
+resource "aws_sns_topic" "reset_complete" {
+  name = "redbox-reset-complete-${var.namespace}"
+  tags = var.global_tags
 }

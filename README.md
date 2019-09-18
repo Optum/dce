@@ -612,8 +612,7 @@ After restoring your DynamoDB table from a backup, you should rerun `terraform a
 ## Reset
 
 AWS Redbox Reset will process an AWS Redbox Account to a clean and secure state.
-The Reset has 2 main procedures, clearing the resources in an account (**Nuke**)
-and reapply security monitoring (**Launchpad**).
+The Reset has 2 main procedures, clearing the resources in an account (**Nuke**).
 
 The Reset of an account is done through a CodeBuild stage in a CodePipeline.
 
