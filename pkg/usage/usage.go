@@ -68,9 +68,12 @@ func (db *DB) GetUsageByDateRange(startDate time.Time, days int) ([]*Usage, erro
 
 	scanOutput := make([]*dynamodb.QueryOutput, 0)
 
+	// Convert startDate to the start time of that day
+	usageStartDate := time.Date(startDate.Year(), startDate.Month(), startDate.Day(), 0, 0, 0, 0, time.UTC)
+
 	for i := 1; i <= days; i++ {
 
-		var resp, err = db.Client.Query(getQueryInput(db.UsageTableName, startDate, nil))
+		var resp, err = db.Client.Query(getQueryInput(db.UsageTableName, usageStartDate, nil))
 		if err != nil {
 			errorMessage := fmt.Sprintf("Failed to query usage record for start date \"%s\": %s.", startDate, err)
 			log.Print(errorMessage)
@@ -80,7 +83,7 @@ func (db *DB) GetUsageByDateRange(startDate time.Time, days int) ([]*Usage, erro
 
 		// pagination
 		for len(resp.LastEvaluatedKey) > 0 {
-			var resp, err = db.Client.Query(getQueryInput(db.UsageTableName, startDate, resp.LastEvaluatedKey))
+			var resp, err = db.Client.Query(getQueryInput(db.UsageTableName, usageStartDate, resp.LastEvaluatedKey))
 			if err != nil {
 				errorMessage := fmt.Sprintf("Failed to query usage record for start date \"%s\": %s.", startDate, err)
 				log.Print(errorMessage)
@@ -90,7 +93,7 @@ func (db *DB) GetUsageByDateRange(startDate time.Time, days int) ([]*Usage, erro
 		}
 
 		// increment startdate by a day
-		startDate = startDate.AddDate(0, 0, 1)
+		usageStartDate = usageStartDate.AddDate(0, 0, 1)
 	}
 
 	usages := []*Usage{}
