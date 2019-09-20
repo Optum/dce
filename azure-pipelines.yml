@@ -47,9 +47,9 @@ steps:
   displayName: 'Set up Golang CI Tools'
 
 # Unit Tests
-# - script: |
-#     make test
-#   displayName: 'Unit Tests'
+- script: |
+    make test
+  displayName: 'Unit Tests'
 
 # Build Go packages
 - script: |
