@@ -2,6 +2,10 @@
 
 - Deprecate Launchpad from here
 
+## vNext
+
+- Modify budget lambdas to write to caching db
+
 ## v0.16.0
 
 - Added dynamodb usage_cache

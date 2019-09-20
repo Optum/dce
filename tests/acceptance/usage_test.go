@@ -88,9 +88,8 @@ func TestUsageDb(t *testing.T) {
 			}
 		}
 
-		// GetUsageByDateRange for testStartDate and 2-days.
-		days := 3
-		actualUsages, err := dbSvc.GetUsageByDateRange(testStartDate, days)
+		// GetUsageByDateRange for testStartDate and 3-days.
+		actualUsages, err := dbSvc.GetUsageByDateRange(testStartDate, testStartDate.AddDate(0, 0, 3))
 		require.Nil(t, err)
 		fmt.Println(&actualUsages)
 
@@ -123,7 +122,6 @@ func TestUsageDb(t *testing.T) {
 
 		require.Equal(t, expectedUsages, actualUsages)
 	})
-
 }
 
 // Remove all records from the Usage table

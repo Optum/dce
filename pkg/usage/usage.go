@@ -6,7 +6,9 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/Optum/Redbox/pkg/common"
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 )
@@ -35,11 +37,11 @@ type Usage struct {
 	TimeToLive   int64   `json:"TimeToLive"`   // ttl attribute
 }
 
-// The DBer interface includes all methods used by the DB struct to interact with
+// The Service interface includes all methods used by the DB struct to interact with
 // Usage DynamoDB. This is useful if we want to mock the DB service.
-type DBer interface {
+type Service interface {
 	PutUsage(input Usage) error
-	GetUsageByDateRange(startDate time.Time, days int) ([]*Usage, error)
+	GetUsageByDateRange(startDate time.Time, endDate time.Time) ([]*Usage, error)
 }
 
 // PutUsage adds an item to Usage DB
@@ -60,15 +62,25 @@ func (db *DB) PutUsage(input Usage) error {
 	return err
 }
 
-// GetUsageByDateRange returns usage amount for all leases starting from startDate to input days
-// startDate is epoch Unix date
-func (db *DB) GetUsageByDateRange(startDate time.Time, days int) ([]*Usage, error) {
+// GetUsageByDateRange returns usage amount for all leases for input date range
+// startDate and endDate are epoch Unix dates
+func (db *DB) GetUsageByDateRange(startDate time.Time, endDate time.Time) ([]*Usage, error) {
 
 	scanOutput := make([]*dynamodb.QueryOutput, 0)
 
-	for i := 1; i <= days; i++ {
+	// Convert startDate to the start time of that day
+	usageStartDate := time.Date(startDate.Year(), startDate.Month(), startDate.Day(), 0, 0, 0, 0, time.UTC)
+	usageEndDate := time.Date(endDate.Year(), endDate.Month(), endDate.Day(), 23, 59, 59, 0, time.UTC)
 
-		var resp, err = db.Client.Query(getQueryInput(db.UsageTableName, startDate, nil))
+	if usageEndDate.Sub(usageStartDate) < 0 {
+		errorMessage := fmt.Sprintf("UsageStartDate \"%d\" should be before usageEndDate \"%d\".", usageStartDate.Unix(), usageEndDate.Unix())
+		log.Print(errorMessage)
+		return nil, nil
+	}
+
+	for {
+
+		var resp, err = db.Client.Query(getQueryInput(db.UsageTableName, usageStartDate, nil))
 		if err != nil {
 			errorMessage := fmt.Sprintf("Failed to query usage record for start date \"%s\": %s.", startDate, err)
 			log.Print(errorMessage)
@@ -78,7 +90,7 @@ func (db *DB) GetUsageByDateRange(startDate time.Time, days int) ([]*Usage, erro
 
 		// pagination
 		for len(resp.LastEvaluatedKey) > 0 {
-			var resp, err = db.Client.Query(getQueryInput(db.UsageTableName, startDate, resp.LastEvaluatedKey))
+			var resp, err = db.Client.Query(getQueryInput(db.UsageTableName, usageStartDate, resp.LastEvaluatedKey))
 			if err != nil {
 				errorMessage := fmt.Sprintf("Failed to query usage record for start date \"%s\": %s.", startDate, err)
 				log.Print(errorMessage)
@@ -88,7 +100,12 @@ func (db *DB) GetUsageByDateRange(startDate time.Time, days int) ([]*Usage, erro
 		}
 
 		// increment startdate by a day
-		startDate = startDate.AddDate(0, 0, 1)
+		usageStartDate = usageStartDate.AddDate(0, 0, 1)
+
+		// continue to get usage till usageEndDate
+		if usageEndDate.Sub(usageStartDate) < 0 {
+			break
+		}
 	}
 
 	usages := []*Usage{}
@@ -114,6 +131,27 @@ func New(client *dynamodb.DynamoDB, usageTableName string) *DB {
 		Client:         client,
 		UsageTableName: usageTableName,
 	}
+}
+
+/*
+NewFromEnv creates a DB instance configured from environment variables.
+Requires env vars for:
+
+- AWS_CURRENT_REGION
+- USAGE_CACHE_DB
+*/
+func NewFromEnv() (*DB, error) {
+	awsSession, err := session.NewSession()
+	if err != nil {
+		return nil, err
+	}
+	return New(
+		dynamodb.New(
+			awsSession,
+			aws.NewConfig().WithRegion(common.RequireEnv("AWS_CURRENT_REGION")),
+		),
+		common.RequireEnv("USAGE_CACHE_DB"),
+	), nil
 }
 
 func unmarshalUsageRecord(dbResult map[string]*dynamodb.AttributeValue) (*Usage, error) {
