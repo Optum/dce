@@ -103,7 +103,7 @@ func (db *DB) GetUsageByDateRange(startDate time.Time, endDate time.Time) ([]*Us
 		usageStartDate = usageStartDate.AddDate(0, 0, 1)
 
 		// continue to get usage till usageEndDate
-		if usageEndDate.Sub(usageStartDate) > 0 {
+		if usageEndDate.Sub(usageStartDate) < 0 {
 			break
 		}
 	}
