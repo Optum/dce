@@ -72,6 +72,12 @@ func (db *DB) GetUsageByDateRange(startDate time.Time, endDate time.Time) ([]*Us
 	usageStartDate := time.Date(startDate.Year(), startDate.Month(), startDate.Day(), 0, 0, 0, 0, time.UTC)
 	usageEndDate := time.Date(endDate.Year(), endDate.Month(), endDate.Day(), 23, 59, 59, 0, time.UTC)
 
+	if usageEndDate.Sub(usageStartDate) < 0 {
+		errorMessage := fmt.Sprintf("UsageStartDate \"%d\" should be before usageEndDate \"%d\".", usageStartDate.Unix(), usageEndDate.Unix())
+		log.Print(errorMessage)
+		return nil, nil
+	}
+
 	for {
 
 		var resp, err = db.Client.Query(getQueryInput(db.UsageTableName, usageStartDate, nil))
