@@ -112,14 +112,14 @@ steps:
     filePath: './scripts/deploy.sh'
 
 # Functional Tests
-- task: AWSShellScript@1
-  displayName: "Functional Tests"
-  inputs:
-    awsCredentials: 'AWS_Login'
-    regionName: 'us-east-1'
-    scriptType: 'inline'
-    inlineScript: |
-      make test_functional
+# - task: AWSShellScript@1
+#   displayName: "Functional Tests"
+#   inputs:
+#     awsCredentials: 'AWS_Login'
+#     regionName: 'us-east-1'
+#     scriptType: 'inline'
+#     inlineScript: |
+#       make test_functional
 
 # Publish junit test results (for unit and functional tests)
 # - task: PublishTestResults@2
