@@ -88,9 +88,8 @@ func TestUsageDb(t *testing.T) {
 			}
 		}
 
-		// GetUsageByDateRange for testStartDate and 2-days.
-		days := 3
-		actualUsages, err := dbSvc.GetUsageByDateRange(testStartDate, days)
+		// GetUsageByDateRange for testStartDate and 3-days.
+		actualUsages, err := dbSvc.GetUsageByDateRange(testStartDate, testStartDate.AddDate(0, 0, 3))
 		require.Nil(t, err)
 		fmt.Println(&actualUsages)
 
@@ -123,19 +122,6 @@ func TestUsageDb(t *testing.T) {
 
 		require.Equal(t, expectedUsages, actualUsages)
 	})
-
-	t.Run("Adhoc GetUsageByDateRange", func(t *testing.T) {
-
-		// Get usages
-		testStartDate := time.Date(2019, 9, 17, 0, 0, 0, 0, time.UTC)
-		days := 4
-		actualUsages, err := dbSvc.GetUsageByDateRange(testStartDate, days)
-		require.Nil(t, err)
-		for _, aUsage := range actualUsages {
-			fmt.Printf("Actual: %v\n", *aUsage)
-		}
-	})
-
 }
 
 // Remove all records from the Usage table

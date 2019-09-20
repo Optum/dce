@@ -11,13 +11,13 @@ type Service struct {
 	mock.Mock
 }
 
-// GetUsageByDateRange provides a mock function with given fields: startDate, days
-func (_m *Service) GetUsageByDateRange(startDate time.Time, days int) ([]*usage.Usage, error) {
-	ret := _m.Called(startDate, days)
+// GetUsageByDateRange provides a mock function with given fields: startDate, endDate
+func (_m *Service) GetUsageByDateRange(startDate time.Time, endDate time.Time) ([]*usage.Usage, error) {
+	ret := _m.Called(startDate, endDate)
 
 	var r0 []*usage.Usage
-	if rf, ok := ret.Get(0).(func(time.Time, int) []*usage.Usage); ok {
-		r0 = rf(startDate, days)
+	if rf, ok := ret.Get(0).(func(time.Time, time.Time) []*usage.Usage); ok {
+		r0 = rf(startDate, endDate)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]*usage.Usage)
@@ -25,8 +25,8 @@ func (_m *Service) GetUsageByDateRange(startDate time.Time, days int) ([]*usage.
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(time.Time, int) error); ok {
-		r1 = rf(startDate, days)
+	if rf, ok := ret.Get(1).(func(time.Time, time.Time) error); ok {
+		r1 = rf(startDate, endDate)
 	} else {
 		r1 = ret.Error(1)
 	}
