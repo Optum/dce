@@ -41,7 +41,7 @@ type Usage struct {
 // Usage DynamoDB. This is useful if we want to mock the DB service.
 type Service interface {
 	PutUsage(input Usage) error
-	GetUsageByDateRange(startDate time.Time, days int) ([]*Usage, error)
+	GetUsageByDateRange(startDate time.Time, endDate time.Time) ([]*Usage, error)
 }
 
 // PutUsage adds an item to Usage DB
@@ -62,16 +62,17 @@ func (db *DB) PutUsage(input Usage) error {
 	return err
 }
 
-// GetUsageByDateRange returns usage amount for all leases starting from startDate to input days
-// startDate is epoch Unix date
-func (db *DB) GetUsageByDateRange(startDate time.Time, days int) ([]*Usage, error) {
+// GetUsageByDateRange returns usage amount for all leases for input date range
+// startDate and endDate are epoch Unix dates
+func (db *DB) GetUsageByDateRange(startDate time.Time, endDate time.Time) ([]*Usage, error) {
 
 	scanOutput := make([]*dynamodb.QueryOutput, 0)
 
 	// Convert startDate to the start time of that day
 	usageStartDate := time.Date(startDate.Year(), startDate.Month(), startDate.Day(), 0, 0, 0, 0, time.UTC)
+	usageEndDate := time.Date(endDate.Year(), endDate.Month(), endDate.Day(), 23, 59, 59, 0, time.UTC)
 
-	for i := 1; i <= days; i++ {
+	for {
 
 		var resp, err = db.Client.Query(getQueryInput(db.UsageTableName, usageStartDate, nil))
 		if err != nil {
@@ -94,6 +95,11 @@ func (db *DB) GetUsageByDateRange(startDate time.Time, days int) ([]*Usage, erro
 
 		// increment startdate by a day
 		usageStartDate = usageStartDate.AddDate(0, 0, 1)
+
+		// continue to get usage till usageEndDate
+		if usageEndDate.Sub(usageStartDate) > 0 {
+			break
+		}
 	}
 
 	usages := []*Usage{}

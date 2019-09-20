@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	"math"
 	"time"
 
 	"github.com/Optum/Redbox/pkg/awsiface"
@@ -67,14 +66,7 @@ func calculateSpend(input *calculateSpendInput) (float64, error) {
 	// when the lease status changed from `ResetLock` --> `Active`
 	budgetStartTime := time.Unix(input.lease.LeaseStatusModifiedOn, 0)
 	// budget's `endTime` is set to yesterday
-	budgetEndTime := usageStartTime
-
-	diffDays := int(math.Round(budgetEndTime.Sub(budgetStartTime).Hours() / 24))
-
-	if diffDays == 0 {
-		diffDays = 1
-	}
-	log.Printf("diff days: %d", diffDays)
+	budgetEndTime := usageEndTime.AddDate(0, 0, -1)
 
 	log.Printf("Retrieving usage for lease %s @ %s for period %s to %s...",
 		input.lease.PrincipalID, input.lease.AccountID,
@@ -82,7 +74,7 @@ func calculateSpend(input *calculateSpendInput) (float64, error) {
 	)
 
 	// Query Usage cache DB
-	usages, err := input.usageSvc.GetUsageByDateRange(budgetStartTime, diffDays)
+	usages, err := input.usageSvc.GetUsageByDateRange(budgetStartTime, budgetEndTime)
 	if err != nil {
 		return 0, errors.Wrapf(err, "Failed to retrieve usage for account %s", input.lease.AccountID)
 	}
