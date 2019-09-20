@@ -134,7 +134,8 @@ has exceeded its budget of $100. Actual spend is $150
 		budgetSvc.On("SetCostExplorer", mock.Anything)
 		currentTime := time.Now()
 		startDate := time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 0, 0, 0, 0, time.UTC)
-		endDate := time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 23, 59, 59, 0, time.UTC)
+		usageEndDate := time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 23, 59, 59, 0, time.UTC)
+		endDate := startDate.AddDate(0, 0, 1)
 		budgetSvc.On("CalculateTotalSpend",
 			startDate,
 			endDate,
@@ -145,7 +146,7 @@ has exceeded its budget of $100. Actual spend is $150
 			PrincipalID:  "test-user",
 			AccountID:    "",
 			StartDate:    startDate.Unix(),
-			EndDate:      endDate.Unix(),
+			EndDate:      usageEndDate.Unix(),
 			CostAmount:   test.actualSpend,
 			CostCurrency: "USD",
 			TimeToLive:   startDate.AddDate(0, 1, 0).Unix(),
@@ -153,7 +154,7 @@ has exceeded its budget of $100. Actual spend is $150
 
 		budgetStartTime := time.Unix(input.lease.LeaseStatusModifiedOn, 0)
 		usageSvc.On("PutUsage", inputUsage).Return(nil)
-		usageSvc.On("GetUsageByDateRange", budgetStartTime, mock.Anything).Return(nil, nil)
+		usageSvc.On("GetUsageByDateRange", budgetStartTime, usageEndDate.AddDate(0, 0, -1)).Return(nil, nil)
 
 		// Should transition from "Active" --> "FinanceLock"
 		if test.shouldTransitionLeaseStatus {
