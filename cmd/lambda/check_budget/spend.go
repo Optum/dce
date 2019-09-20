@@ -41,12 +41,12 @@ func calculateSpend(input *calculateSpendInput) (float64, error) {
 	usageEndTime := time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 23, 59, 59, 0, time.UTC)
 
 	log.Printf("usageStart: %d and usageEnd :%d", usageStartTime.Unix(), usageEndTime.Unix())
-	costAmount, err := input.budgetSvc.CalculateTotalSpend(usageStartTime, usageStartTime.AddDate(0, 0, 1))
+	todayCostAmount, err := input.budgetSvc.CalculateTotalSpend(usageStartTime, usageStartTime.AddDate(0, 0, 1))
 	if err != nil {
 		return 0, errors.Wrapf(err, "Failed to calculate spend for account %s", input.lease.AccountID)
 	}
 
-	log.Printf("usage for today: %f", costAmount)
+	log.Printf("usage for today: %f", todayCostAmount)
 
 	// Set Timetolive to one month from StartDate
 	usageItem := usage.Usage{
@@ -54,7 +54,7 @@ func calculateSpend(input *calculateSpendInput) (float64, error) {
 		EndDate:      usageEndTime.Unix(),
 		PrincipalID:  input.lease.PrincipalID,
 		AccountID:    input.account.ID,
-		CostAmount:   costAmount,
+		CostAmount:   todayCostAmount,
 		CostCurrency: "USD",
 		TimeToLive:   usageStartTime.AddDate(0, 1, 0).Unix(),
 	}
@@ -79,11 +79,10 @@ func calculateSpend(input *calculateSpendInput) (float64, error) {
 		return 0, errors.Wrapf(err, "Failed to retrieve usage for account %s", input.lease.AccountID)
 	}
 
-	log.Printf("usages retrieved: %v", usages)
-
 	// DynDB is eventually consistent. Pull cache DB for SUN-->yesterday, then add the known value for today
-	spend := costAmount
+	spend := todayCostAmount
 	for _, usage := range usages {
+		log.Printf("usages retrieved: %v", usage)
 		if usage.PrincipalID == input.lease.PrincipalID && usage.AccountID == input.lease.AccountID {
 			spend = spend + usage.CostAmount
 		}
