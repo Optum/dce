@@ -41,6 +41,7 @@ func (controller getController) Call(ctx context.Context, req *events.APIGateway
 		usageRes := response.UsageResponse(*a)
 		usageRes.StartDate = startDate.Unix()
 		usageRes.EndDate = endDate.Unix()
+		log.Printf("usage: %v", usageRes)
 		usageResponses = append(usageResponses, &usageRes)
 	}
 
@@ -73,6 +74,8 @@ func SumCostAmountByPrincipalID(input []*response.UsageResponse) []*response.Usa
 		} else {
 			for i, item := range u {
 				if item.PrincipalID == val.PrincipalID {
+					log.Printf("item: %v", item)
+					log.Printf("val: %v", val)
 					u[i].CostAmount = u[i].CostAmount + item.CostAmount
 					break
 				}
