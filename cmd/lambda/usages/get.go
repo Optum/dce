@@ -76,7 +76,7 @@ func SumCostAmountByPrincipalID(input []*response.UsageResponse) []*response.Usa
 				if item.PrincipalID == val.PrincipalID {
 					log.Printf("item: %v", item)
 					log.Printf("val: %v", val)
-					u[i].CostAmount = u[i].CostAmount + item.CostAmount
+					u[i].CostAmount = u[i].CostAmount + val.CostAmount
 					break
 				}
 
