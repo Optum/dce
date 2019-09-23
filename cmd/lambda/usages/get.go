@@ -22,8 +22,9 @@ type getController struct {
 func (controller getController) Call(ctx context.Context, req *events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	// Fetch the usage records.
 	startDate := time.Date(2019, 9, 16, 0, 0, 0, 0, time.UTC)
+	endDate := startDate.AddDate(0, 0, 3)
 
-	usages, err := controller.Dao.GetUsageByDateRange(startDate, startDate.AddDate(0, 0, 3))
+	usages, err := controller.Dao.GetUsageByDateRange(startDate, endDate)
 
 	if err != nil {
 		log.Printf("Error Getting usages for startDate %d: %s", startDate.Unix(), err)
@@ -38,10 +39,14 @@ func (controller getController) Call(ctx context.Context, req *events.APIGateway
 
 	for _, a := range usages {
 		usageRes := response.UsageResponse(*a)
+		usageRes.StartDate = startDate.Unix()
+		usageRes.EndDate = endDate.Unix()
 		usageResponses = append(usageResponses, &usageRes)
 	}
 
-	messageBytes, err := json.Marshal(usageResponses)
+	outputResponses := SumCostAmountByPrincipalID(usageResponses)
+
+	messageBytes, err := json.Marshal(outputResponses)
 
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed to serialize data: %s", err)
@@ -54,4 +59,27 @@ func (controller getController) Call(ctx context.Context, req *events.APIGateway
 	body := string(messageBytes)
 
 	return response.CreateAPIResponse(http.StatusOK, body), nil
+}
+
+// SumCostAmountByPrincipalID returns a unique subset of the input slice by finding unique PrincipalIds and adding cost amount for it.
+func SumCostAmountByPrincipalID(input []*response.UsageResponse) []*response.UsageResponse {
+	u := make([]*response.UsageResponse, 0, len(input))
+	m := make(map[string]bool)
+
+	for _, val := range input {
+		if _, ok := m[val.PrincipalID]; !ok {
+			m[val.PrincipalID] = true
+			u = append(u, val)
+		} else {
+			for i, item := range u {
+				if item.PrincipalID == val.PrincipalID {
+					u[i].CostAmount = u[i].CostAmount + item.CostAmount
+					break
+				}
+
+			}
+		}
+	}
+
+	return u
 }
