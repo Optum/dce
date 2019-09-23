@@ -14,6 +14,7 @@ data "template_file" "aws_redbox_api_swagger" {
   vars = {
     router_lambda_arn = aws_lambda_function.leases.invoke_arn
     accounts_lambda   = aws_lambda_function.accounts_lambda.invoke_arn
+    usages_lambda     = aws_lambda_function.usages.invoke_arn
     namespace         = "AWS_Redbox-${var.namespace}"
   }
 }

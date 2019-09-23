@@ -5,6 +5,7 @@
 ## vNext
 
 - Modify budget lambdas to write to caching db
+- Add `GET /usages` endpoint, to retrieve usages for leases
 
 ## v0.16.0
 

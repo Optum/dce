@@ -230,7 +230,7 @@ paths:
         403:
           description: "Failed to authenticate request"
       x-amazon-apigateway-integration:
-        uri: ${router_lambda_arn}
+        uri: ${usages_lambda}
         httpMethod: "POST"
         type: "aws_proxy"
         passthroughBehavior: "when_no_match"
