@@ -35,6 +35,14 @@ resource "aws_lambda_permission" "allow_api_gateway_accounts_accounts_lambda" {
   source_arn    = "${aws_api_gateway_rest_api.gateway_api.execution_arn}/*/*"
 }
 
+resource "aws_lambda_permission" "allow_api_gateway_usages_lambda" {
+  function_name = aws_lambda_function.usages.arn
+  statement_id  = "AllowExecutionFromApiGateway"
+  action        = "lambda:InvokeFunction"
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_api_gateway_rest_api.gateway_api.execution_arn}/*/*"
+}
+
 resource "aws_api_gateway_deployment" "gateway_deployment_redbox" {
   rest_api_id = aws_api_gateway_rest_api.gateway_api.id
 
