@@ -208,7 +208,7 @@ paths:
         passthroughBehavior: "when_no_match"
       security:
         - sigv4: []
-  "/leases/usages":
+  "/usages":
     get:
       summary: Get usages by date range
       produces:

@@ -23,7 +23,7 @@ func (router *Router) route(ctx context.Context, req *events.APIGatewayProxyRequ
 	var res events.APIGatewayProxyResponse
 	var err error
 	switch {
-	case req.HTTPMethod == http.MethodGet && strings.Contains(req.Path, "/leases/usage"):
+	case req.HTTPMethod == http.MethodGet && strings.Contains(req.Path, "/usages"):
 		res, err = router.GetController.Call(ctx, req)
 	default:
 		return response.NotFoundError(), nil
