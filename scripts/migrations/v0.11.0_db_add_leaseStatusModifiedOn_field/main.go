@@ -1,14 +1,14 @@
 // dbAddLeaseModOn.go
-// This script is intended for one time use in the prod deployment of Redbox
+// This script is intended for one time use in the prod deployment of Dcs
 // Its sole purpose is to add LeaseStatusModifiedOn field, with current epoch seconds value,
-// to the Prod Leases table for AWS_Redbox
+// to the Prod Leases table for AWS_Dcs
 //
 // It is intended to be run as a Golang script:
 // "go run dbAddLeaseModOn.go"
 //
 // This script requires 2 environment variables to be set for its use:
 // "export AWS_CURRENT_REGION=us-east-1"  - The region the database resides in
-// "export LEASE_DB=RedboxLeasetProd"  - Name of the Lease table for Accounts. This is the new table to which items from SOURCE_DB will be added to
+// "export LEASE_DB=DcsLeasetProd"  - Name of the Lease table for Accounts. This is the new table to which items from SOURCE_DB will be added to
 
 package main
 
@@ -18,7 +18,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/Optum/Redbox/pkg/common"
+	"github.com/Optum/Dcs/pkg/common"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -26,8 +26,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 )
 
-// RedboxLease record
-type RedboxLease struct {
+// DcsLease record
+type DcsLease struct {
 	AccountID      string `json:"AccountId"`
 	PrincipalID    string `json:"PrincipalId"`
 	LeaseStatus    string
@@ -35,7 +35,7 @@ type RedboxLease struct {
 	LastModifiedOn int64
 }
 
-type RedboxLeaseMod struct {
+type DcsLeaseMod struct {
 	AccountID             string `json:"AccountId"`
 	PrincipalID           string `json:"PrincipalId"`
 	LeaseStatus           string
@@ -62,7 +62,7 @@ func migrationV11(input *migrationV11Input) (int64, error) {
 
 	// Unmarshal Lease records
 	eseconds := strconv.FormatInt(time.Now().Unix(), 10)
-	leases := []RedboxLease{}
+	leases := []DcsLease{}
 	err = dynamodbattribute.UnmarshalListOfMaps(leaseScanRes.Items, &leases)
 	if err != nil {
 		log.Fatalf("failed to unmarshal Lease result items, %v", err)

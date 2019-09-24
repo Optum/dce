@@ -1,7 +1,7 @@
 package common
 
 import (
-	"github.com/Optum/Redbox/pkg/awsiface"
+	"github.com/Optum/Dcs/pkg/awsiface"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/aws/credentials"

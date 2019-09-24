@@ -151,7 +151,7 @@ steps:
   displayName: 'Create GitHub Release'
   inputs:
     gitHubConnection: Github
-    repositoryName: Optum/Redbox
+    repositoryName: Optum/Dcs
     assets: |
       $(Build.SourcesDirectory)/bin/build_artifacts.zip
       $(Build.SourcesDirectory)/bin/terraform_artifacts.zip

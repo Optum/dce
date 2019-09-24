@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"path"
 
-	"github.com/Optum/Redbox/pkg/db"
+	"github.com/Optum/Dcs/pkg/db"
 
-	"github.com/Optum/Redbox/pkg/api/response"
+	"github.com/Optum/Dcs/pkg/api/response"
 	"github.com/aws/aws-lambda-go/events"
 )
 

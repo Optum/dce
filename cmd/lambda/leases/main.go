@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/Optum/Redbox/pkg/api/response"
-	"github.com/Optum/Redbox/pkg/common"
-	"github.com/Optum/Redbox/pkg/db"
-	"github.com/Optum/Redbox/pkg/provision"
+	"github.com/Optum/Dcs/pkg/api/response"
+	"github.com/Optum/Dcs/pkg/common"
+	"github.com/Optum/Dcs/pkg/db"
+	"github.com/Optum/Dcs/pkg/provision"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/aws/aws-sdk-go/service/sqs"
@@ -53,7 +53,7 @@ func createAPIErrorResponse(responseCode int,
 // publishLease is a helper function to create and publish an lease
 // structured message to an SNS Topic
 func publishLease(snsSvc common.Notificationer,
-	assgn *db.RedboxLease, topic *string) (*string, error) {
+	assgn *db.DcsLease, topic *string) (*string, error) {
 	// Create a LeaseResponse based on the assgn
 	assgnResp := response.CreateLeaseResponse(assgn)
 
@@ -109,7 +109,7 @@ type messageBody struct {
 }
 
 // provisionAccount returns an API Gateway Response based on the execution of
-// leasing a Redbox Principal to a Ready Redbox Account
+// leasing a Dcs Principal to a Ready Dcs Account
 func provisionAccount(request *requestBody, dbSvc db.DBer,
 	snsSvc common.Notificationer, prov provision.Provisioner,
 	topic *string) events.APIGatewayProxyResponse {
@@ -123,10 +123,10 @@ func provisionAccount(request *requestBody, dbSvc db.DBer,
 		log.Printf("Failed to Check Principal Active Leases: %s", err)
 		return createAPIErrorResponse(http.StatusInternalServerError,
 			response.CreateErrorResponse("ServerError",
-				fmt.Sprintf("Cannot verify if Principal has existing Redbox Account : %s",
+				fmt.Sprintf("Cannot verify if Principal has existing Dcs Account : %s",
 					err)))
 	} else if checkLease.PrincipalID == principalID {
-		errStr := fmt.Sprintf("Principal already has an existing Redbox: %s",
+		errStr := fmt.Sprintf("Principal already has an existing Dcs: %s",
 			checkLease.AccountID)
 		log.Printf(errStr)
 		return createAPIErrorResponse(http.StatusConflict,
@@ -141,9 +141,9 @@ func provisionAccount(request *requestBody, dbSvc db.DBer,
 		log.Printf("Failed to Check Ready Accounts: %s", err)
 		return createAPIErrorResponse(http.StatusInternalServerError,
 			response.CreateErrorResponse("ServerError",
-				fmt.Sprintf("Cannot get Available Redbox Accounts : %s", err)))
+				fmt.Sprintf("Cannot get Available Dcs Accounts : %s", err)))
 	} else if account == nil {
-		errStr := "No Available Redbox Accounts at this moment"
+		errStr := "No Available Dcs Accounts at this moment"
 		log.Printf(errStr)
 		return createAPIErrorResponse(http.StatusServiceUnavailable,
 			response.CreateErrorResponse("ServerError", errStr))
@@ -158,10 +158,10 @@ func provisionAccount(request *requestBody, dbSvc db.DBer,
 		log.Printf("Failed to Check Leases with Account: %s", err)
 		return createAPIErrorResponse(http.StatusInternalServerError,
 			response.CreateErrorResponse("ServerError",
-				fmt.Sprintf("Cannot get Available Redbox Accounts : %s", err)))
+				fmt.Sprintf("Cannot get Available Dcs Accounts : %s", err)))
 	}
 
-	// Create/Update a Redbox Account Lease to Active
+	// Create/Update a Dcs Account Lease to Active
 	create := lease.AccountID == ""
 	lease, err = prov.ActivateAccount(create, principalID,
 		account.ID, request.BudgetAmount, request.BudgetCurrency, request.BudgetNotificationEmails)
@@ -217,7 +217,7 @@ func rollbackProvision(prov provision.Provisioner, err error,
 }
 
 // decommissionAccount returns an API Gateway Response based on the execution of
-// removing a Redbox Principal and setting up their Account for Reset
+// removing a Dcs Principal and setting up their Account for Reset
 func decommissionAccount(request *requestBody, queueURL *string, dbSvc db.DBer,
 	queue common.Queue, snsSvc common.Notificationer, topic *string) events.APIGatewayProxyResponse {
 	principalID := request.PrincipalID
@@ -230,7 +230,7 @@ func decommissionAccount(request *requestBody, queueURL *string, dbSvc db.DBer,
 		log.Printf("Error finding leases for Principal %s: %s", principalID, err)
 		return createAPIErrorResponse(http.StatusInternalServerError,
 			response.CreateErrorResponse("ServerError",
-				fmt.Sprintf("Cannot verify if Principal %s has a Redbox Lease",
+				fmt.Sprintf("Cannot verify if Principal %s has a Dcs Lease",
 					principalID)))
 	}
 	if accts == nil {
@@ -241,7 +241,7 @@ func decommissionAccount(request *requestBody, queueURL *string, dbSvc db.DBer,
 	}
 
 	// Get the Account Lease
-	var acct *db.RedboxLease
+	var acct *db.DcsLease
 	for _, a := range accts {
 		if a.AccountID == request.AccountID {
 			acct = a

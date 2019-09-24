@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/Optum/Redbox/pkg/api/mocks"
-	"github.com/Optum/Redbox/pkg/api/response"
+	"github.com/Optum/Dcs/pkg/api/mocks"
+	"github.com/Optum/Dcs/pkg/api/response"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"

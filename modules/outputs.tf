@@ -1,25 +1,25 @@
-output "redbox_account_db_table_name" {
-  value = aws_dynamodb_table.redbox_account.name
+output "dcs_account_db_table_name" {
+  value = aws_dynamodb_table.dcs_account.name
 }
 
-output "redbox_account_db_table_arn" {
-  value = aws_dynamodb_table.redbox_account.arn
+output "dcs_account_db_table_arn" {
+  value = aws_dynamodb_table.dcs_account.arn
 }
 
-output "redbox_account_lease_db_table_name" {
-  value = aws_dynamodb_table.redbox_lease.name
+output "dcs_account_lease_db_table_name" {
+  value = aws_dynamodb_table.dcs_lease.name
 }
 
-output "redbox_account_lease_db_table_arn" {
-  value = aws_dynamodb_table.redbox_lease.arn
+output "dcs_account_lease_db_table_arn" {
+  value = aws_dynamodb_table.dcs_lease.arn
 }
 
-output "redbox_lease_db_table_name" {
-  value = aws_dynamodb_table.redbox_lease.name
+output "dcs_lease_db_table_name" {
+  value = aws_dynamodb_table.dcs_lease.name
 }
 
-output "redbox_lease_db_table_arn" {
-  value = aws_dynamodb_table.redbox_lease.arn
+output "dcs_lease_db_table_arn" {
+  value = aws_dynamodb_table.dcs_lease.arn
 }
 
 output "sqs_reset_queue_url" {
@@ -47,7 +47,7 @@ output "aws_region" {
 }
 
 output "dynamodb_table_account_name" {
-  value = aws_dynamodb_table.redbox_account.name
+  value = aws_dynamodb_table.dcs_account.name
 }
 
 output "lease_added_topic_id" {
@@ -103,7 +103,7 @@ output "account_deleted_topic_arn" {
 }
 
 output "api_url" {
-  value = aws_api_gateway_deployment.gateway_deployment_redbox.invoke_url
+  value = aws_api_gateway_deployment.gateway_deployment_dcs.invoke_url
 }
 
 output "alarm_sns_topic_arn" {
@@ -119,12 +119,12 @@ output "api_access_policy_arn" {
   value = aws_iam_policy.api_execute_admin.arn
 }
 
-output "redbox_principal_role_name" {
-  value = local.redbox_principal_role_name
+output "dcs_principal_role_name" {
+  value = local.dcs_principal_role_name
 }
 
-output "redbox_principal_policy_name" {
-  value = local.redbox_principal_policy_name
+output "dcs_principal_policy_name" {
+  value = local.dcs_principal_policy_name
 }
 
 output "usage_cache_table_name" {

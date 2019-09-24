@@ -7,8 +7,8 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
-	"github.com/Optum/Redbox/pkg/db"
-	"github.com/Optum/Redbox/pkg/db/mocks"
+	"github.com/Optum/Dcs/pkg/db"
+	"github.com/Optum/Dcs/pkg/db/mocks"
 )
 
 // testFindActiveLeaseForPrincipalInput is the structure input used for table
@@ -17,7 +17,7 @@ type testFindActiveLeaseForPrincipalInput struct {
 	ExpectedError             error
 	ExpectedLeasePrincipalID  string
 	ExpectedLeaseAccountID    string
-	FindLeaseByPrincipal      []*db.RedboxLease
+	FindLeaseByPrincipal      []*db.DcsLease
 	FindLeaseByPrincipalError error
 	ExpectLease               bool
 }
@@ -32,8 +32,8 @@ func TestFindActiveLeaseFoPrincipal(t *testing.T) {
 			ExpectedError:            nil,
 			ExpectedLeasePrincipalID: "",
 			ExpectedLeaseAccountID:   "",
-			FindLeaseByPrincipal: []*db.RedboxLease{
-				&db.RedboxLease{
+			FindLeaseByPrincipal: []*db.DcsLease{
+				&db.DcsLease{
 					PrincipalID: "abc",
 					AccountID:   "123",
 					LeaseStatus: db.Decommissioned,
@@ -46,8 +46,8 @@ func TestFindActiveLeaseFoPrincipal(t *testing.T) {
 			ExpectedError:            nil,
 			ExpectedLeasePrincipalID: "abc",
 			ExpectedLeaseAccountID:   "123",
-			FindLeaseByPrincipal: []*db.RedboxLease{
-				&db.RedboxLease{
+			FindLeaseByPrincipal: []*db.DcsLease{
+				&db.DcsLease{
 					PrincipalID: "abc",
 					AccountID:   "123",
 					LeaseStatus: db.Active,
@@ -60,8 +60,8 @@ func TestFindActiveLeaseFoPrincipal(t *testing.T) {
 			ExpectedError:            nil,
 			ExpectedLeasePrincipalID: "abc",
 			ExpectedLeaseAccountID:   "123",
-			FindLeaseByPrincipal: []*db.RedboxLease{
-				&db.RedboxLease{
+			FindLeaseByPrincipal: []*db.DcsLease{
+				&db.DcsLease{
 					PrincipalID: "abc",
 					AccountID:   "123",
 					LeaseStatus: db.FinanceLock,
@@ -74,8 +74,8 @@ func TestFindActiveLeaseFoPrincipal(t *testing.T) {
 			ExpectedError:            nil,
 			ExpectedLeasePrincipalID: "abc",
 			ExpectedLeaseAccountID:   "123",
-			FindLeaseByPrincipal: []*db.RedboxLease{
-				&db.RedboxLease{
+			FindLeaseByPrincipal: []*db.DcsLease{
+				&db.DcsLease{
 					PrincipalID: "abc",
 					AccountID:   "123",
 					LeaseStatus: db.ResetLock,
@@ -125,7 +125,7 @@ type testFindLeaseWithAccountInput struct {
 	ExpectedError            error
 	ExpectedLeasePrincipalID string
 	ExpectedLeaseAccountID   string
-	FindLeasesByAccount      []*db.RedboxLease
+	FindLeasesByAccount      []*db.DcsLease
 	FindLeasesByAccountError error
 	ExpectLease              bool
 }
@@ -140,8 +140,8 @@ func TestFindLeaseWithAccount(t *testing.T) {
 			ExpectedError:            nil,
 			ExpectedLeasePrincipalID: "abc",
 			ExpectedLeaseAccountID:   "123",
-			FindLeasesByAccount: []*db.RedboxLease{
-				&db.RedboxLease{
+			FindLeasesByAccount: []*db.DcsLease{
+				&db.DcsLease{
 					PrincipalID: "abc",
 					AccountID:   "123",
 					LeaseStatus: db.Decommissioned,
@@ -154,8 +154,8 @@ func TestFindLeaseWithAccount(t *testing.T) {
 			ExpectedError:            nil,
 			ExpectedLeasePrincipalID: "",
 			ExpectedLeaseAccountID:   "",
-			FindLeasesByAccount: []*db.RedboxLease{
-				&db.RedboxLease{
+			FindLeasesByAccount: []*db.DcsLease{
+				&db.DcsLease{
 					PrincipalID: "def",
 					AccountID:   "123",
 					LeaseStatus: db.Decommissioned,
@@ -171,9 +171,9 @@ func TestFindLeaseWithAccount(t *testing.T) {
 		// Error Account has Active Lease
 		{
 			ExpectedError: errors.New("Attempt to lease Active Account as " +
-				"new Redbox - 123"),
-			FindLeasesByAccount: []*db.RedboxLease{
-				&db.RedboxLease{
+				"new Dcs - 123"),
+			FindLeasesByAccount: []*db.DcsLease{
+				&db.DcsLease{
 					PrincipalID: "def",
 					AccountID:   "123",
 					LeaseStatus: db.Active,
@@ -183,9 +183,9 @@ func TestFindLeaseWithAccount(t *testing.T) {
 		// Error Account has FinaceLock Lease
 		{
 			ExpectedError: errors.New("Attempt to lease Active Account as " +
-				"new Redbox - 123"),
-			FindLeasesByAccount: []*db.RedboxLease{
-				&db.RedboxLease{
+				"new Dcs - 123"),
+			FindLeasesByAccount: []*db.DcsLease{
+				&db.DcsLease{
 					PrincipalID: "def",
 					AccountID:   "123",
 					LeaseStatus: db.FinanceLock,
@@ -195,9 +195,9 @@ func TestFindLeaseWithAccount(t *testing.T) {
 		// Error Account has ResetLock Lease
 		{
 			ExpectedError: errors.New("Attempt to lease Active Account as " +
-				"new Redbox - 123"),
-			FindLeasesByAccount: []*db.RedboxLease{
-				&db.RedboxLease{
+				"new Dcs - 123"),
+			FindLeasesByAccount: []*db.DcsLease{
+				&db.DcsLease{
 					PrincipalID: "def",
 					AccountID:   "123",
 					LeaseStatus: db.ResetLock,
@@ -239,12 +239,12 @@ func TestFindLeaseWithAccount(t *testing.T) {
 // testActivateLeaseInput is the structure input used for table
 // driven testing for ActivateAccount
 type testActivateLeaseInput struct {
-	ExpectedLease              *db.RedboxLease
+	ExpectedLease              *db.DcsLease
 	ExpectedError              error
 	Create                     bool
-	PutLease                   *db.RedboxLease
+	PutLease                   *db.DcsLease
 	PutLeaseError              error
-	TransitionLeaseStatusLease *db.RedboxLease
+	TransitionLeaseStatusLease *db.DcsLease
 	TransitionLeaseStatusError error
 }
 
@@ -252,7 +252,7 @@ type testActivateLeaseInput struct {
 // function to create or update an account lease as active for a principal
 func TestActivateLease(t *testing.T) {
 	// Construct test scenarios
-	lease := &db.RedboxLease{
+	lease := &db.DcsLease{
 		AccountID:   "123",
 		PrincipalID: "abc",
 		LeaseStatus: db.Active,
@@ -267,7 +267,7 @@ func TestActivateLease(t *testing.T) {
 		// Happy Path - Update
 		{
 			ExpectedLease: lease,
-			TransitionLeaseStatusLease: &db.RedboxLease{
+			TransitionLeaseStatusLease: &db.DcsLease{
 				AccountID:             "123",
 				PrincipalID:           "abc",
 				LeaseStatus:           db.Active,

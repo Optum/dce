@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/Optum/Redbox/pkg/rolemanager"
+	"github.com/Optum/Dcs/pkg/rolemanager"
 
-	awsMocks "github.com/Optum/Redbox/pkg/awsiface/mocks"
-	commonmock "github.com/Optum/Redbox/pkg/common/mocks"
-	"github.com/Optum/Redbox/pkg/db"
-	dbmock "github.com/Optum/Redbox/pkg/db/mocks"
-	roleMock "github.com/Optum/Redbox/pkg/rolemanager/mocks"
+	awsMocks "github.com/Optum/Dcs/pkg/awsiface/mocks"
+	commonmock "github.com/Optum/Dcs/pkg/common/mocks"
+	"github.com/Optum/Dcs/pkg/db"
+	dbmock "github.com/Optum/Dcs/pkg/db/mocks"
+	roleMock "github.com/Optum/Dcs/pkg/rolemanager/mocks"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/client"
@@ -20,9 +20,9 @@ import (
 
 // testTransitionFinanceLockInput is the structured input for testing the helper
 // function transitionFinanceLock
-type testUpdateRedboxPrincipalPolicy struct {
+type testUpdateDcsPrincipalPolicy struct {
 	ExpectedError              error
-	GetAccountResult           *db.RedboxAccount
+	GetAccountResult           *db.DcsAccount
 	GetAccountError            error
 	TransitionLeaseStatusError error
 	PrincipalPolicyName        string
@@ -33,32 +33,32 @@ type testUpdateRedboxPrincipalPolicy struct {
 	StoragerError              error
 }
 
-func TestUpdateRedboxPrincipalPolicy(t *testing.T) {
+func TestUpdateDcsPrincipalPolicy(t *testing.T) {
 
-	tests := []testUpdateRedboxPrincipalPolicy{
+	tests := []testUpdateDcsPrincipalPolicy{
 		// Happy Path Update Principal Policy
 		{
-			GetAccountResult: &db.RedboxAccount{
+			GetAccountResult: &db.DcsAccount{
 				ID:           "123456789012",
-				AdminRoleArn: "arn:aws:iam::123456789012:role/RedBoxAdminRole",
+				AdminRoleArn: "arn:aws:iam::123456789012:role/DcsAdminRole",
 			},
-			PrincipalPolicyName:  "RedboxPrincipalPolicy",
-			PrincipalRoleName:    "RedboxPrincipalRole",
+			PrincipalPolicyName:  "DcsPrincipalPolicy",
+			PrincipalRoleName:    "DcsPrincipalRole",
 			PrincipalPolicyHash:  "aHash",
-			PrincipalIAMDenyTags: []string{"Redbox"},
+			PrincipalIAMDenyTags: []string{"Dcs"},
 			StoragerPolicy:       "{\"Test\" : \"Policy\"}",
 		},
 		// Same hash exists don't update.
 		{
-			GetAccountResult: &db.RedboxAccount{
+			GetAccountResult: &db.DcsAccount{
 				ID:                  "123456789012",
-				AdminRoleArn:        "arn:aws:iam::123456789012:role/RedBoxAdminRole",
+				AdminRoleArn:        "arn:aws:iam::123456789012:role/DcsAdminRole",
 				PrincipalPolicyHash: "aHash",
 			},
-			PrincipalPolicyName:  "RedboxPrincipalPolicy",
-			PrincipalRoleName:    "RedboxPrincipalRole",
+			PrincipalPolicyName:  "DcsPrincipalPolicy",
+			PrincipalRoleName:    "DcsPrincipalRole",
 			PrincipalPolicyHash:  "aHash",
-			PrincipalIAMDenyTags: []string{"Redbox"},
+			PrincipalIAMDenyTags: []string{"Dcs"},
 			StoragerPolicy:       "{\"Test\" : \"Policy\"}",
 		},
 	}

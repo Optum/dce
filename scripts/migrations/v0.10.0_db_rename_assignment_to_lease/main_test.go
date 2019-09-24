@@ -17,9 +17,9 @@ func TestMigrationV0_10_0(t *testing.T) {
 	}
 	tfOut := terraform.OutputAll(t, tfOpts)
 
-	accountTable := tfOut["redbox_account_db_table_name"].(string)
-	leaseTable := tfOut["redbox_account_lease_db_table_name"].(string)
-	assignmentTable := tfOut["redbox_assignment_db_table_name"].(string)
+	accountTable := tfOut["dcs_account_db_table_name"].(string)
+	leaseTable := tfOut["dcs_account_lease_db_table_name"].(string)
+	assignmentTable := tfOut["dcs_assignment_db_table_name"].(string)
 
 	awsSession := session.Must(session.NewSession())
 	dynDB := dynamodb.New(
@@ -186,7 +186,7 @@ func truncateAccountTable(t *testing.T, dynDB *dynamodb.DynamoDB, accountTableNa
 		and remove them in a "BatchWrite" requests.
 	*/
 
-	// Find all records in the RedboxAccount table
+	// Find all records in the DcsAccount table
 	scanResult, err := dynDB.Scan(
 		&dynamodb.ScanInput{
 			TableName: aws.String(accountTableName),
@@ -228,7 +228,7 @@ func truncateLeaseTable(t *testing.T, dynDB *dynamodb.DynamoDB, leaseTableName s
 		and remove them in a "BatchWrite" requests.
 	*/
 
-	// Find all records in the RedboxAccount table
+	// Find all records in the DcsAccount table
 	scanResult, err := dynDB.Scan(
 		&dynamodb.ScanInput{
 			TableName: aws.String(leaseTableName),
@@ -272,7 +272,7 @@ func truncateAssignmentsTable(t *testing.T, dynDB *dynamodb.DynamoDB, assignment
 		and remove them in a "BatchWrite" requests.
 	*/
 
-	// Find all records in the RedboxAccount table
+	// Find all records in the DcsAccount table
 	scanResult, err := dynDB.Scan(
 		&dynamodb.ScanInput{
 			TableName: aws.String(assignmentsTableName),

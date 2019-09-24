@@ -27,7 +27,7 @@ paths:
       security:
         - sigv4: []
     post:
-      summary: Add an AWS Account to the Redbox account pool
+      summary: Add an AWS Account to the Dcs account pool
       consumes:
         - application/json
       parameters:
@@ -46,7 +46,7 @@ paths:
               adminRoleArn:
                 type: string
                 description: |
-                  ARN for an IAM role within this AWS account. The Redbox master account will assume this IAM role to execute operations within this AWS account. This IAM role is configured by the client, and must be configured with [a Trust Relationship with the Redbox master account.](/https://docs.aws.amazon.com/IAM/latest/UserGuide/tutorial_cross-account-with-roles.html)
+                  ARN for an IAM role within this AWS account. The Dcs master account will assume this IAM role to execute operations within this AWS account. This IAM role is configured by the client, and must be configured with [a Trust Relationship with the Dcs master account.](/https://docs.aws.amazon.com/IAM/latest/UserGuide/tutorial_cross-account-with-roles.html)
       produces:
         - application/json
       responses:
@@ -258,13 +258,13 @@ definitions:
         $ref: "#/definitions/accountStatus"
       adminRoleArn:
         type: string
-        description: ARN for an IAM role within this AWS account. The Redbox master account will assume this IAM role to execute operations within this AWS account. This IAM role is configured by the client, and must be configured with [a Trust Relationship with the Redbox master account.](/https://docs.aws.amazon.com/IAM/latest/UserGuide/tutorial_cross-account-with-roles.html)
+        description: ARN for an IAM role within this AWS account. The Dcs master account will assume this IAM role to execute operations within this AWS account. This IAM role is configured by the client, and must be configured with [a Trust Relationship with the Dcs master account.](/https://docs.aws.amazon.com/IAM/latest/UserGuide/tutorial_cross-account-with-roles.html)
       principalRoleArn:
         type: string
-        description: ARN for an IAM role within this AWS account. This role is created by the Redbox master account, and may be assumed by principals to login to their AWS Redbox account.
+        description: ARN for an IAM role within this AWS account. This role is created by the Dcs master account, and may be assumed by principals to login to their AWS Dcs account.
       principalPolicyHash:
         type: string
-        description: The S3 object ETag used to apply the Principal IAM Policy within this AWS account.  This policy is created by the Redbox master account, and is assumed by people with access to principalRoleArn.
+        description: The S3 object ETag used to apply the Principal IAM Policy within this AWS account.  This policy is created by the Dcs master account, and is assumed by people with access to principalRoleArn.
       lastModifiedOn:
         type: integer
         description: Epoch timestamp, when account record was last modified

@@ -6,9 +6,9 @@ import (
 	"context"
 	"log"
 
-	"github.com/Optum/Redbox/pkg/common"
-	"github.com/Optum/Redbox/pkg/db"
-	"github.com/Optum/Redbox/pkg/processresetqueue"
+	"github.com/Optum/Dcs/pkg/common"
+	"github.com/Optum/Dcs/pkg/db"
+	"github.com/Optum/Dcs/pkg/processresetqueue"
 
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws/session"

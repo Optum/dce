@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Deploy Local Redbox application deployment
+# Deploy Local Dcs application deployment
 # 
 # Example:
 #   ./scripts/deploy_local/deploy_local_build.sh

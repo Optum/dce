@@ -1,22 +1,22 @@
 package response
 
 import (
-	"github.com/Optum/Redbox/pkg/db"
+	"github.com/Optum/Dcs/pkg/db"
 )
 
 // CreateLeaseResponse creates an Lease Response based
-// on the provided RedboxLease
-func CreateLeaseResponse(redboxLease *db.RedboxLease) *LeaseResponse {
+// on the provided DcsLease
+func CreateLeaseResponse(dcsLease *db.DcsLease) *LeaseResponse {
 	return &LeaseResponse{
-		AccountID:                redboxLease.AccountID,
-		PrincipalID:              redboxLease.PrincipalID,
-		LeaseStatus:              redboxLease.LeaseStatus,
-		CreatedOn:                redboxLease.CreatedOn,
-		LastModifiedOn:           redboxLease.LastModifiedOn,
-		BudgetAmount:             redboxLease.BudgetAmount,
-		BudgetCurrency:           redboxLease.BudgetCurrency,
-		BudgetNotificationEmails: redboxLease.BudgetNotificationEmails,
-		LeaseStatusModifiedOn:    redboxLease.LeaseStatusModifiedOn,
+		AccountID:                dcsLease.AccountID,
+		PrincipalID:              dcsLease.PrincipalID,
+		LeaseStatus:              dcsLease.LeaseStatus,
+		CreatedOn:                dcsLease.CreatedOn,
+		LastModifiedOn:           dcsLease.LastModifiedOn,
+		BudgetAmount:             dcsLease.BudgetAmount,
+		BudgetCurrency:           dcsLease.BudgetCurrency,
+		BudgetNotificationEmails: dcsLease.BudgetNotificationEmails,
+		LeaseStatusModifiedOn:    dcsLease.LeaseStatusModifiedOn,
 	}
 }
 

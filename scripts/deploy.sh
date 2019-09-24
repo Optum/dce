@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Deploy Redbox application code to AWS Master account
+# Deploy Dcs application code to AWS Master account
 # Requires build artifacts to exist in ./bin/
 # Run ./scripts/build.sh to generate artifacts
 #
@@ -8,7 +8,7 @@
 #   ./scripts/deploy.sh <artifact_file> <namespace> <artifact_bucket_name>
 #
 # Example:
-#   ./scripts/deploy.sh ./bin/build_artifacts.zip prod 1234567890-redbox-artifacts-prod
+#   ./scripts/deploy.sh ./bin/build_artifacts.zip prod 1234567890-dcs-artifacts-prod
 
 set -euxo pipefail
 

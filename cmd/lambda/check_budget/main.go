@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/Optum/Redbox/pkg/awsiface"
-	"github.com/Optum/Redbox/pkg/budget"
-	"github.com/Optum/Redbox/pkg/common"
-	"github.com/Optum/Redbox/pkg/db"
-	"github.com/Optum/Redbox/pkg/email"
-	multierrors "github.com/Optum/Redbox/pkg/errors"
-	"github.com/Optum/Redbox/pkg/usage"
+	"github.com/Optum/Dcs/pkg/awsiface"
+	"github.com/Optum/Dcs/pkg/budget"
+	"github.com/Optum/Dcs/pkg/common"
+	"github.com/Optum/Dcs/pkg/db"
+	"github.com/Optum/Dcs/pkg/email"
+	multierrors "github.com/Optum/Dcs/pkg/errors"
+	"github.com/Optum/Dcs/pkg/usage"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -76,7 +76,7 @@ func main() {
 	})
 }
 
-func eventToLease(leaseEvent interface{}) (*db.RedboxLease, error) {
+func eventToLease(leaseEvent interface{}) (*db.DcsLease, error) {
 	// Convert the interface to JSON
 	mapJSON, err := json.Marshal(leaseEvent)
 	if err != nil {
@@ -84,7 +84,7 @@ func eventToLease(leaseEvent interface{}) (*db.RedboxLease, error) {
 	}
 
 	// Convert the JSON back into a lease
-	var lease db.RedboxLease
+	var lease db.DcsLease
 	err = json.Unmarshal(mapJSON, &lease)
 	if err != nil {
 		return nil, err
@@ -94,7 +94,7 @@ func eventToLease(leaseEvent interface{}) (*db.RedboxLease, error) {
 
 type lambdaHandlerInput struct {
 	dbSvc                                  db.DBer
-	lease                                  *db.RedboxLease
+	lease                                  *db.DcsLease
 	awsSession                             awsiface.AwsSession
 	tokenSvc                               common.TokenService
 	budgetSvc                              budget.Service

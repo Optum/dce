@@ -24,7 +24,7 @@ import (
 	"github.com/gruntwork-io/terratest/modules/terraform"
 	"github.com/stretchr/testify/require"
 
-	"github.com/Optum/Redbox/pkg/db"
+	"github.com/Optum/Dcs/pkg/db"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 )
 
@@ -46,7 +46,7 @@ func TestApi(t *testing.T) {
 			aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
 		),
 		tfOut["dynamodb_table_account_name"].(string),
-		tfOut["redbox_lease_db_table_name"].(string),
+		tfOut["dcs_lease_db_table_name"].(string),
 	)
 
 	// Cleanup tables, to start out
@@ -95,7 +95,7 @@ func TestApi(t *testing.T) {
 
 	t.Run("api_execute_admin policy", func(t *testing.T) {
 
-		t.Run("should allow executing Redbox APIs", func(t *testing.T) {
+		t.Run("should allow executing Dcs APIs", func(t *testing.T) {
 			// Don't run this test, if using `go test -short` flag
 			if testing.Short() {
 				t.Skip("Skipping tests in short mode. IAM role takes a while to propagate...")
@@ -125,7 +125,7 @@ func TestApi(t *testing.T) {
 	}
 	]
 }`, accountID)
-			roleName := "redbox-api-execute-test-role-" + fmt.Sprintf("%v", time.Now().Unix())
+			roleName := "dcs-api-execute-test-role-" + fmt.Sprintf("%v", time.Now().Unix())
 			roleRes, err := iamSvc.CreateRole(&iam.CreateRoleInput{
 				AssumeRolePolicyDocument: aws.String(assumeRolePolicy),
 				Path:                     aws.String("/"),
@@ -186,7 +186,7 @@ func TestApi(t *testing.T) {
 			acctID := "123"
 			principalID := "user"
 			timeNow := time.Now().Unix()
-			err := dbSvc.PutAccount(db.RedboxAccount{
+			err := dbSvc.PutAccount(db.DcsAccount{
 				ID:             acctID,
 				AccountStatus:  db.Ready,
 				LastModifiedOn: timeNow,
@@ -295,7 +295,7 @@ func TestApi(t *testing.T) {
 			// Get nested json in response json
 			err := data["error"].(map[string]interface{})
 			require.Equal(t, "ServerError", err["code"].(string))
-			require.Equal(t, "No Available Redbox Accounts at this moment",
+			require.Equal(t, "No Available Dcs Accounts at this moment",
 				err["message"].(string))
 		})
 
@@ -307,7 +307,7 @@ func TestApi(t *testing.T) {
 			acctID := "123"
 			principalID := "user"
 			timeNow := time.Now().Unix()
-			err := dbSvc.PutAccount(db.RedboxAccount{
+			err := dbSvc.PutAccount(db.DcsAccount{
 				ID:             acctID,
 				AccountStatus:  db.Leased,
 				LastModifiedOn: timeNow,
@@ -315,7 +315,7 @@ func TestApi(t *testing.T) {
 			require.Nil(t, err)
 
 			// Create an Lease Entry
-			_, err = dbSvc.PutLease(db.RedboxLease{
+			_, err = dbSvc.PutLease(db.DcsLease{
 				PrincipalID:           principalID,
 				AccountID:             acctID,
 				LeaseStatus:           db.Active,
@@ -347,7 +347,7 @@ func TestApi(t *testing.T) {
 			// Get nested json in response json
 			errResp := data["error"].(map[string]interface{})
 			require.Equal(t, "ClientError", errResp["code"].(string))
-			require.Equal(t, "Principal already has an existing Redbox: 123",
+			require.Equal(t, "Principal already has an existing Dcs: 123",
 				errResp["message"].(string))
 		})
 
@@ -407,7 +407,7 @@ func TestApi(t *testing.T) {
 			acctID := "123"
 			principalID := "user"
 			timeNow := time.Now().Unix()
-			err := dbSvc.PutAccount(db.RedboxAccount{
+			err := dbSvc.PutAccount(db.DcsAccount{
 				ID:             acctID,
 				AccountStatus:  db.Leased,
 				LastModifiedOn: timeNow,
@@ -415,7 +415,7 @@ func TestApi(t *testing.T) {
 			require.Nil(t, err)
 
 			// Create an Lease Entry
-			_, err = dbSvc.PutLease(db.RedboxLease{
+			_, err = dbSvc.PutLease(db.DcsLease{
 				PrincipalID:           principalID,
 				AccountID:             acctID,
 				LeaseStatus:           db.Active,
@@ -458,7 +458,7 @@ func TestApi(t *testing.T) {
 			acctID := "123"
 			principalID := "user"
 			timeNow := time.Now().Unix()
-			err := dbSvc.PutAccount(db.RedboxAccount{
+			err := dbSvc.PutAccount(db.DcsAccount{
 				ID:             acctID,
 				AccountStatus:  db.NotReady,
 				LastModifiedOn: timeNow,
@@ -466,7 +466,7 @@ func TestApi(t *testing.T) {
 			require.Nil(t, err)
 
 			// Create an Lease Entry
-			_, err = dbSvc.PutLease(db.RedboxLease{
+			_, err = dbSvc.PutLease(db.DcsLease{
 				PrincipalID:           principalID,
 				AccountID:             acctID,
 				LeaseStatus:           db.Decommissioned,
@@ -535,7 +535,7 @@ func TestApi(t *testing.T) {
 			require.Equal(t, accountID, postResJSON["id"])
 			require.Equal(t, "NotReady", postResJSON["accountStatus"])
 			require.Equal(t, adminRoleArn, postResJSON["adminRoleArn"])
-			expectedPrincipalRoleArn := fmt.Sprintf("arn:aws:iam::%s:role/%s", accountID, tfOut["redbox_principal_role_name"])
+			expectedPrincipalRoleArn := fmt.Sprintf("arn:aws:iam::%s:role/%s", accountID, tfOut["dcs_principal_role_name"])
 			require.Equal(t, expectedPrincipalRoleArn, postResJSON["principalRoleArn"])
 			require.True(t, postResJSON["lastModifiedOn"].(float64) > 1561518000)
 			require.True(t, postResJSON["createdOn"].(float64) > 1561518000)
@@ -543,7 +543,7 @@ func TestApi(t *testing.T) {
 			// Check that the account is added to the DB
 			dbAccount, err := dbSvc.GetAccount(accountID)
 			require.Nil(t, err)
-			require.Equal(t, &db.RedboxAccount{
+			require.Equal(t, &db.DcsAccount{
 				ID:                  accountID,
 				AccountStatus:       "NotReady",
 				LastModifiedOn:      int64(postResJSON["lastModifiedOn"].(float64)),
@@ -585,7 +585,7 @@ func TestApi(t *testing.T) {
 				require.Equal(t, accountID, getResJSON["id"])
 				require.Equal(t, "NotReady", getResJSON["accountStatus"])
 				require.Equal(t, adminRoleArn, getResJSON["adminRoleArn"])
-				expectedPrincipalRoleArn := fmt.Sprintf("arn:aws:iam::%s:role/%s", accountID, tfOut["redbox_principal_role_name"])
+				expectedPrincipalRoleArn := fmt.Sprintf("arn:aws:iam::%s:role/%s", accountID, tfOut["dcs_principal_role_name"])
 				require.Equal(t, expectedPrincipalRoleArn, getResJSON["principalRoleArn"])
 				require.True(t, getResJSON["lastModifiedOn"].(float64) > 1561518000)
 				require.True(t, getResJSON["createdOn"].(float64) > 1561518000)
@@ -605,7 +605,7 @@ func TestApi(t *testing.T) {
 				require.Equal(t, accountID, accountJSON["id"])
 				require.Equal(t, "NotReady", accountJSON["accountStatus"])
 				require.Equal(t, adminRoleArn, accountJSON["adminRoleArn"])
-				expectedPrincipalRoleArn := fmt.Sprintf("arn:aws:iam::%s:role/%s", accountID, tfOut["redbox_principal_role_name"])
+				expectedPrincipalRoleArn := fmt.Sprintf("arn:aws:iam::%s:role/%s", accountID, tfOut["dcs_principal_role_name"])
 				require.Equal(t, expectedPrincipalRoleArn, accountJSON["principalRoleArn"])
 				require.True(t, accountJSON["lastModifiedOn"].(float64) > 1561518000)
 				require.True(t, accountJSON["createdOn"].(float64) > 1561518000)
@@ -881,7 +881,7 @@ func createAdminRole(t *testing.T, awsSession client.ConfigProvider) *createAdmi
 				}
 			]
 		}`, currentAccountID)
-	adminRoleName := "redbox-api-test-admin-role-" + fmt.Sprintf("%v", time.Now().Unix())
+	adminRoleName := "dcs-api-test-admin-role-" + fmt.Sprintf("%v", time.Now().Unix())
 	roleRes, err := iamSvc.CreateRole(&iam.CreateRoleInput{
 		AssumeRolePolicyDocument: aws.String(assumeRolePolicy),
 		Path:                     aws.String("/"),
@@ -891,7 +891,7 @@ func createAdminRole(t *testing.T, awsSession client.ConfigProvider) *createAdmi
 	adminRoleArn := *roleRes.Role.Arn
 
 	// Give the Admin Role Permission to create other IAM Roles
-	// (so it can create a role for the Redbox principal)
+	// (so it can create a role for the Dcs principal)
 	_, err = iamSvc.AttachRolePolicy(&iam.AttachRolePolicyInput{
 		RoleName:  aws.String(adminRoleName),
 		PolicyArn: aws.String("arn:aws:iam::aws:policy/IAMFullAccess"),

@@ -2,7 +2,7 @@ package common
 
 import (
 	"errors"
-	"github.com/Optum/Redbox/pkg/common/commoniface/mocks"
+	"github.com/Optum/Dcs/pkg/common/commoniface/mocks"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/codebuild"
 	"github.com/stretchr/testify/assert"

@@ -7,8 +7,8 @@ output name {
 }
 
 output execution_role_name {
-  value = aws_iam_role.redbox_lambda_execution.name
+  value = aws_iam_role.dcs_lambda_execution.name
 }
 output execution_role_arn {
-  value = aws_iam_role.redbox_lambda_execution.arn
+  value = aws_iam_role.dcs_lambda_execution.arn
 }
