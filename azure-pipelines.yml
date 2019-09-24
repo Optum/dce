@@ -46,10 +46,10 @@ steps:
     ./scripts/install_ci.sh
   displayName: 'Set up Golang CI Tools'
 
-# Unit Tests
-- script: |
-    make test
-  displayName: 'Unit Tests'
+# # Unit Tests
+# - script: |
+#     make test
+#   displayName: 'Unit Tests'
 
 # Build Go packages
 - script: |
@@ -80,26 +80,26 @@ steps:
     echo "##vso[task.setvariable variable=namespace]${NS}"
   displayName: "Configure AWS Namespace"
 
-# terraform init
-- task: TerraformTaskV1@0
-  displayName: 'terraform init'
-  inputs:
-    provider: 'aws'
-    command: 'init'
-    workingDirectory: './modules'
-    backendServiceAWS: 'AWS_Terraform_Connection'
-    backendAWSBucketName: '$(BACKEND_AWS_BUCKET_NAME)'
-    backendAWSKey: '$(namespace)/terraform.tfstate'
+# # terraform init
+# - task: TerraformTaskV1@0
+#   displayName: 'terraform init'
+#   inputs:
+#     provider: 'aws'
+#     command: 'init'
+#     workingDirectory: './modules'
+#     backendServiceAWS: 'AWS_Terraform_Connection'
+#     backendAWSBucketName: '$(BACKEND_AWS_BUCKET_NAME)'
+#     backendAWSKey: '$(namespace)/terraform.tfstate'
 
-# terraform apply
-- task: TerraformTaskV1@0
-  displayName: 'terraform apply'
-  inputs:
-    provider: 'aws'
-    command: 'apply'
-    workingDirectory: './modules'
-    commandOptions: '-var="namespace=$(namespace)" -var="budget_notification_from_email=$(NOTIFY_EMAIL)"'
-    environmentServiceNameAWS: 'AWS_Terraform_Connection'
+# # terraform apply
+# - task: TerraformTaskV1@0
+#   displayName: 'terraform apply'
+#   inputs:
+#     provider: 'aws'
+#     command: 'apply'
+#     workingDirectory: './modules'
+#     commandOptions: '-var="namespace=$(namespace)" -var="budget_notification_from_email=$(NOTIFY_EMAIL)"'
+#     environmentServiceNameAWS: 'AWS_Terraform_Connection'
 
 # Deploy Application Code to AWS
 - task: AWSShellScript@1
@@ -121,19 +121,19 @@ steps:
     inlineScript: |
       make test_functional
 
-# Publish junit test results (for unit and functional tests)
-- task: PublishTestResults@2
-  inputs:
-    testRunner: JUnit
-    testResultsFiles: $(System.DefaultWorkingDirectory)/junit-report/*.xml
-  condition: always()
+# # Publish junit test results (for unit and functional tests)
+# - task: PublishTestResults@2
+#   inputs:
+#     testRunner: JUnit
+#     testResultsFiles: $(System.DefaultWorkingDirectory)/junit-report/*.xml
+#   condition: always()
 
-# Publish code coverage results
-- task: PublishCodeCoverageResults@1
-  inputs:
-    codeCoverageTool: Cobertura
-    summaryFileLocation: $(System.DefaultWorkingDirectory)/coverage.xml
-  condition: always()
+# # Publish code coverage results
+# - task: PublishCodeCoverageResults@1
+#   inputs:
+#     codeCoverageTool: Cobertura
+#     summaryFileLocation: $(System.DefaultWorkingDirectory)/coverage.xml
+#   condition: always()
 
 # # terraform destroy
 # - task: TerraformTaskV1@0
