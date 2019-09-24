@@ -762,6 +762,48 @@ func TestApi(t *testing.T) {
 
 	t.Run("Get Usage api", func(t *testing.T) {
 
+		t.Run("Should get an error for invalid date format", func(t *testing.T) {
+
+			// Send an API request
+			resp := apiRequest(t, &apiRequestInput{
+				method: "GET",
+				url:    apiURL + "/usages?startDate=2019-09-2&endDate=2019-09-2",
+				json:   nil,
+			})
+
+			// Verify response code
+			require.Equal(t, http.StatusBadRequest, resp.StatusCode)
+
+			// Parse response json
+			data := parseResponseJSON(t, resp)
+
+			// Verify error response json
+			// Get nested json in response json
+			errResp := data["error"].(map[string]interface{})
+			require.Equal(t, "Invalid startDate", errResp["code"].(string))
+			require.Equal(t, "Failed to parse usage start date: parsing time \"2019-09-2\" as \"2006-01-02\": cannot parse \"2\" as \"02\"",
+				errResp["message"].(string))
+		})
+
+		t.Run("Should get an empty json for usage not found for given input date range", func(t *testing.T) {
+
+			// Send an API request
+			resp := apiRequest(t, &apiRequestInput{
+				method: "GET",
+				url:    apiURL + "/usages?startDate=2019-09-02&endDate=2019-09-02",
+				json:   nil,
+			})
+
+			// Verify response code
+			require.Equal(t, http.StatusOK, resp.StatusCode)
+
+			// Parse response json
+			data := parseResponseArrayJSON(t, resp)
+
+			// Verify response json
+			require.Equal(t, nil, data)
+		})
+
 		t.Run("Should be able to get usage", func(t *testing.T) {
 
 			// Create usage
