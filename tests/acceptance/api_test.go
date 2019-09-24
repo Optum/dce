@@ -816,7 +816,7 @@ func TestApi(t *testing.T) {
 			})
 
 			// Verify response code
-			require.Equal(t, http.StatusFound, resp.StatusCode)
+			require.Equal(t, http.StatusOK, resp.StatusCode)
 
 			// Parse response json
 			data := parseResponseArrayJSON(t, resp)
