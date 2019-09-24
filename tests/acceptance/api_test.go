@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -25,6 +26,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/Optum/Redbox/pkg/db"
+	"github.com/Optum/Redbox/pkg/usage"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 )
 
@@ -47,6 +49,15 @@ func TestApi(t *testing.T) {
 		),
 		tfOut["dynamodb_table_account_name"].(string),
 		tfOut["redbox_lease_db_table_name"].(string),
+	)
+
+	// Configure the usage service
+	usageSvc := usage.New(
+		dynamodb.New(
+			awsSession,
+			aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
+		),
+		tfOut["usage_cache_table_name"].(string),
 	)
 
 	// Cleanup tables, to start out
@@ -747,6 +758,75 @@ func TestApi(t *testing.T) {
 			require.Equal(t, http.StatusNotFound, resp.StatusCode, "it returns a 404")
 		})
 
+	})
+
+	t.Run("Get Usage api", func(t *testing.T) {
+
+		t.Run("Should be able to get usage", func(t *testing.T) {
+
+			// Create usage
+			// Setup usage dates
+			const ttl int = 3
+			testStartDate := time.Date(2019, 5, 5, 0, 0, 0, 0, time.UTC).AddDate(0, -1, 0)
+			testEndDate := time.Date(2019, 5, 5, 23, 59, 59, 0, time.UTC)
+
+			// Create mock usages
+			expectedUsages := []*usage.Usage{}
+			for a := 1; a <= 2; a++ {
+
+				startDate := testStartDate
+				endDate := testEndDate
+
+				timeToLive := startDate.AddDate(0, 0, ttl)
+
+				var testPrinciplaID []string
+				var testAccountID []string
+
+				testPrinciplaID = append(testPrinciplaID, "TestUser")
+				testPrinciplaID = append(testPrinciplaID, strconv.Itoa(a))
+
+				testAccountID = append(testAccountID, "TestAcct")
+				testAccountID = append(testAccountID, strconv.Itoa(a))
+
+				for i := 1; i <= 3; i++ {
+
+					input := usage.Usage{
+						PrincipalID:  strings.Join(testPrinciplaID, ""),
+						AccountID:    strings.Join(testAccountID, ""),
+						StartDate:    startDate.Unix(),
+						EndDate:      endDate.Unix(),
+						CostAmount:   20.00,
+						CostCurrency: "USD",
+						TimeToLive:   timeToLive.Unix(),
+					}
+					err = usageSvc.PutUsage(input)
+					require.Nil(t, err)
+					expectedUsages = append(expectedUsages, &input)
+
+					startDate = startDate.AddDate(0, 0, 1)
+					endDate = endDate.AddDate(0, 0, 1)
+				}
+			}
+
+			// Send an API request
+			resp := apiRequest(t, &apiRequestInput{
+				method: "GET",
+				url:    apiURL + "/usages?startDate=2019-05-05&endDate=2019-05-07",
+				json:   nil,
+			})
+
+			// Verify response code
+			require.Equal(t, http.StatusFound, resp.StatusCode)
+
+			// Parse response json
+			data := parseResponseArrayJSON(t, resp)
+
+			// Verify response json
+			usageJSON := data[0]
+			require.Equal(t, "TestUser1", usageJSON["principalId"].(string))
+			require.Equal(t, "TestAcct1", usageJSON["accountId"].(string))
+			require.Equal(t, 60.00, usageJSON["costAmount"].(float64))
+		})
 	})
 }
 
