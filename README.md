@@ -581,7 +581,7 @@ Usage cost of lease per day is stored in this table.
 
 ```
 {
-  "AccountId": "074556090814", # *Unique AWS Account ID*
+  "AccountId": "123456789012", # *Unique AWS Account ID*
   "CostAmount": 24.00, # *usage cost amount*
   "CostCurrency": "USD", # *usage cost currency*
   "EndDate": 1568678399, # *Epoch Timestamp*
