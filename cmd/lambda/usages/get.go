@@ -18,11 +18,30 @@ type getController struct {
 	Dao usage.DB
 }
 
+const (
+	layoutISO = "2006-01-02"
+)
+
 // Call - function to return usages for input date range
 func (controller getController) Call(ctx context.Context, req *events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	// Fetch the usage records.
-	startDate := time.Date(2019, 9, 16, 0, 0, 0, 0, time.UTC)
-	endDate := startDate.AddDate(0, 0, 3)
+	startDate, err := time.Parse(layoutISO, req.QueryStringParameters["startDate"])
+	if err != nil {
+		errorMessage := fmt.Sprintf("Failed to parse usage start date: %s", err)
+		log.Print(errorMessage)
+		return response.CreateAPIErrorResponse(http.StatusBadRequest,
+			response.CreateErrorResponse(
+				"Invalid startDate", errorMessage)), nil
+	}
+
+	endDate, err := time.Parse(layoutISO, req.QueryStringParameters["endDate"])
+	if err != nil {
+		errorMessage := fmt.Sprintf("Failed to parse usage end date: %s", err)
+		log.Print(errorMessage)
+		return response.CreateAPIErrorResponse(http.StatusBadRequest,
+			response.CreateErrorResponse(
+				"Invalid endDate", errorMessage)), nil
+	}
 
 	usages, err := controller.Dao.GetUsageByDateRange(startDate, endDate)
 
