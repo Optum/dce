@@ -9,5 +9,4 @@ type UsageResponse struct {
 	EndDate      int64   `json:"endDate"`      // Usage ends date Epoch Timestamp
 	CostAmount   float64 `json:"costAmount"`   // Cost Amount for given period
 	CostCurrency string  `json:"costCurrency"` // Cost currency
-	TimeToLive   int64   `json:"timeToLive"`   // ttl attribute
 }
