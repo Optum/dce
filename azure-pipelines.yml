@@ -135,25 +135,25 @@ steps:
     summaryFileLocation: $(System.DefaultWorkingDirectory)/coverage.xml
   condition: always()
 
-# # terraform destroy
-# - task: TerraformTaskV1@0
-#   displayName: 'terraform destroy'
-#   inputs:
-#     provider: 'aws'
-#     command: 'destroy'
-#     workingDirectory: './modules'
-#     commandOptions: '-var="namespace=$(namespace)" -var="budget_notification_from_email=$(NOTIFY_EMAIL)"'
-#     environmentServiceNameAWS: 'AWS_Terraform_Connection'
+# terraform destroy
+- task: TerraformTaskV1@0
+  displayName: 'terraform destroy'
+  inputs:
+    provider: 'aws'
+    command: 'destroy'
+    workingDirectory: './modules'
+    commandOptions: '-var="namespace=$(namespace)" -var="budget_notification_from_email=$(NOTIFY_EMAIL)"'
+    environmentServiceNameAWS: 'AWS_Terraform_Connection'
 
-# # Publish a Github Release for tagged commits
-# # See https://docs.microsoft.com/en-us/azure/devops/pipelines/tasks/utility/github-release?view=azure-devops
-# - task: GithubRelease@0
-#   displayName: 'Create GitHub Release'
-#   inputs:
-#     gitHubConnection: Github
-#     repositoryName: Optum/Redbox
-#     assets: |
-#       $(Build.SourcesDirectory)/bin/build_artifacts.zip
-#       $(Build.SourcesDirectory)/bin/terraform_artifacts.zip
-#       $(Build.SourcesDirectory)/scripts/deploy.sh
-#       $(Build.SourcesDirectory)/scripts/restore_db.sh
+# Publish a Github Release for tagged commits
+# See https://docs.microsoft.com/en-us/azure/devops/pipelines/tasks/utility/github-release?view=azure-devops
+- task: GithubRelease@0
+  displayName: 'Create GitHub Release'
+  inputs:
+    gitHubConnection: Github
+    repositoryName: Optum/Redbox
+    assets: |
+      $(Build.SourcesDirectory)/bin/build_artifacts.zip
+      $(Build.SourcesDirectory)/bin/terraform_artifacts.zip
+      $(Build.SourcesDirectory)/scripts/deploy.sh
+      $(Build.SourcesDirectory)/scripts/restore_db.sh
