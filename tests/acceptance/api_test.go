@@ -862,12 +862,15 @@ func TestApi(t *testing.T) {
 
 			// Parse response json
 			data := parseResponseArrayJSON(t, resp)
+			fmt.Printf("data : %v", data)
 
 			// Verify response json
-			usageJSON := data[0]
-			require.Equal(t, "TestUser1", usageJSON["principalId"].(string))
-			require.Equal(t, "TestAcct1", usageJSON["accountId"].(string))
-			require.Equal(t, 60.00, usageJSON["costAmount"].(float64))
+			if data != nil {
+				usageJSON := data[0]
+				require.Equal(t, "TestUser1", usageJSON["principalId"].(string))
+				require.Equal(t, "TestAcct1", usageJSON["accountId"].(string))
+				require.Equal(t, 60.00, usageJSON["costAmount"].(float64))
+			}
 		})
 	})
 }
