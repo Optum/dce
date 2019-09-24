@@ -121,19 +121,19 @@ steps:
     inlineScript: |
       make test_functional
 
-# # Publish junit test results (for unit and functional tests)
-# - task: PublishTestResults@2
-#   inputs:
-#     testRunner: JUnit
-#     testResultsFiles: $(System.DefaultWorkingDirectory)/junit-report/*.xml
-#   condition: always()
+# Publish junit test results (for unit and functional tests)
+- task: PublishTestResults@2
+  inputs:
+    testRunner: JUnit
+    testResultsFiles: $(System.DefaultWorkingDirectory)/junit-report/*.xml
+  condition: always()
 
-# # Publish code coverage results
-# - task: PublishCodeCoverageResults@1
-#   inputs:
-#     codeCoverageTool: Cobertura
-#     summaryFileLocation: $(System.DefaultWorkingDirectory)/coverage.xml
-#   condition: always()
+# Publish code coverage results
+- task: PublishCodeCoverageResults@1
+  inputs:
+    codeCoverageTool: Cobertura
+    summaryFileLocation: $(System.DefaultWorkingDirectory)/coverage.xml
+  condition: always()
 
 # # terraform destroy
 # - task: TerraformTaskV1@0
