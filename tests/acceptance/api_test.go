@@ -801,7 +801,7 @@ func TestApi(t *testing.T) {
 			data := parseResponseArrayJSON(t, resp)
 
 			// Verify response json
-			require.Equal(t, nil, data)
+			require.Equal(t, []map[string]interface{}([]map[string]interface{}{}), data)
 		})
 
 		t.Run("Should be able to get usage", func(t *testing.T) {
