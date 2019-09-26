@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Optum/Redbox/pkg/db"
-	"github.com/Optum/Redbox/pkg/provision"
+	"github.com/Optum/Dce/pkg/db"
+	"github.com/Optum/Dce/pkg/provision"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -29,7 +29,7 @@ func TestProvisioner(t *testing.T) {
 			aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
 		),
 		tfOut["dynamodb_table_account_name"].(string),
-		tfOut["redbox_lease_db_table_name"].(string),
+		tfOut["dce_lease_db_table_name"].(string),
 	)
 
 	// Configure the Provisioner service
@@ -86,7 +86,7 @@ func TestProvisioner(t *testing.T) {
 			budgetNotificationEmails := []string{"test@test.com"}
 
 			timeNow := time.Now().Unix()
-			assgn := db.RedboxLease{
+			assgn := db.DceLease{
 				AccountID:             acctID,
 				PrincipalID:           principalID,
 				LeaseStatus:           db.Active,
@@ -95,7 +95,7 @@ func TestProvisioner(t *testing.T) {
 				LeaseStatusModifiedOn: timeNow,
 			}
 			putAssgn, err := dbSvc.PutLease(assgn)
-			require.Equal(t, db.RedboxLease{}, *putAssgn) // should return an empty account lease since its new
+			require.Equal(t, db.DceLease{}, *putAssgn) // should return an empty account lease since its new
 			require.Nil(t, err)
 
 			// Activate the below Account Lease

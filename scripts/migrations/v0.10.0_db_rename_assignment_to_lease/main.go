@@ -1,20 +1,20 @@
 // v0.0.1_db_rename_assignment_to_lease.go
-// This script is intended for one time use in the prod deployment of Redbox
-// Its sole purpose is to copy existing records from RedboxAccountAssignmentProd
-// to RedboxLeasetProd table.
+// This script is intended for one time use in the prod deployment of Dce
+// Its sole purpose is to copy existing records from DceAccountAssignmentProd
+// to DceLeasetProd table.
 //
 // It is intended to be run as a Golang script:
 // "go run v0.0.1_db_rename_assignment_to_lease.go"
 //
 // This script requires 3 environment variables to be set for its use:
 // "export AWS_CURRENT_REGION=us-east-1"  - The region the database resides in
-// "export SOURCE_DB=RedboxAccountAssignmentProd"  - Name of the Assignment table for Accounts
-// "export LEASE_DB=RedboxLeasetProd"  - Name of the Lease table for Accounts. This is the new table to which items from SOURCE_DB will be added to
+// "export SOURCE_DB=DceAccountAssignmentProd"  - Name of the Assignment table for Accounts
+// "export LEASE_DB=DceLeasetProd"  - Name of the Lease table for Accounts. This is the new table to which items from SOURCE_DB will be added to
 
 package main
 
 import (
-	"github.com/Optum/Redbox/pkg/common"
+	"github.com/Optum/Dce/pkg/common"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -26,8 +26,8 @@ import (
 	"fmt"
 )
 
-// RedboxAccountAssignment record
-type RedboxAccountAssignment struct {
+// DceAccountAssignment record
+type DceAccountAssignment struct {
 	AccountID        string `json:"AccountId"`
 	UserID           string `json:"UserId"`
 	AssignmentStatus string
@@ -35,8 +35,8 @@ type RedboxAccountAssignment struct {
 	LastModifiedOn   int64
 }
 
-// RedboxLease record
-type RedboxLease struct {
+// DceLease record
+type DceLease struct {
 	AccountID      string `json:"AccountId"`
 	PrincipalID    string `json:"PrincipalId"`
 	LeaseStatus    string
@@ -88,7 +88,7 @@ func migrationV10(input *migrationV10Input) error {
 	}
 
 	// Unmarshal Assignment records
-	assignments := []RedboxAccountAssignment{}
+	assignments := []DceAccountAssignment{}
 	err = dynamodbattribute.UnmarshalListOfMaps(assignmentScanRes.Items, &assignments)
 	if err != nil {
 		log.Fatalf("failed to unmarshal Assignment result items, %v", err)
@@ -99,7 +99,7 @@ func migrationV10(input *migrationV10Input) error {
 		fmt.Printf("AccountId: %s\n", item.AccountID)
 
 		// Cast the Assignment as a Lease
-		lease := RedboxLease{
+		lease := DceLease{
 			AccountID:      item.AccountID,
 			PrincipalID:    item.UserID,
 			LeaseStatus:    item.AssignmentStatus,

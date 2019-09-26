@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Optum/Redbox/pkg/db"
+	"github.com/Optum/Dce/pkg/db"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -30,7 +30,7 @@ func TestDb(t *testing.T) {
 			aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
 		),
 		tfOut["dynamodb_table_account_name"].(string),
-		tfOut["redbox_lease_db_table_name"].(string),
+		tfOut["dce_lease_db_table_name"].(string),
 	)
 
 	// Truncate tables, to make sure we're starting off clean
@@ -51,7 +51,7 @@ func TestDb(t *testing.T) {
 				require.Nil(t, err)
 			}
 
-			// Retrieve the RedboxAccount, check that it matches our mock
+			// Retrieve the DceAccount, check that it matches our mock
 			acct, err := dbSvc.GetAccount("222")
 			require.Nil(t, err)
 			expected := newAccount("222", timeNow)
@@ -75,7 +75,7 @@ func TestDb(t *testing.T) {
 
 			// Create mock accounts
 			timeNow := time.Now().Unix()
-			accountNotReady := db.RedboxAccount{
+			accountNotReady := db.DceAccount{
 				ID:            "111",
 				AccountStatus: "NotReady",
 			}
@@ -84,7 +84,7 @@ func TestDb(t *testing.T) {
 			err = dbSvc.PutAccount(*newAccount("222", timeNow)) // Ready
 			require.Nil(t, err)
 
-			// Retrieve the first Ready RedboxAccount, check that it matches our
+			// Retrieve the first Ready DceAccount, check that it matches our
 			// mock
 			acct, err := dbSvc.GetReadyAccount()
 			require.Nil(t, err)
@@ -102,7 +102,7 @@ func TestDb(t *testing.T) {
 			defer truncateAccountTable(t, dbSvc)
 
 			// Create NotReady mock accounts
-			accountNotReady := db.RedboxAccount{
+			accountNotReady := db.DceAccount{
 				ID:            "111",
 				AccountStatus: "NotReady",
 			}
@@ -126,14 +126,14 @@ func TestDb(t *testing.T) {
 			timeNow := time.Now().Unix()
 			err := dbSvc.PutAccount(*newAccount("222", timeNow)) // Ready
 			require.Nil(t, err)
-			accountNotReady := db.RedboxAccount{
+			accountNotReady := db.DceAccount{
 				ID:             "222",
 				AccountStatus:  "NotReady",
 				LastModifiedOn: timeNow,
 			}
 			err = dbSvc.PutAccount(accountNotReady)
 			require.Nil(t, err)
-			accountLeased := db.RedboxAccount{
+			accountLeased := db.DceAccount{
 				ID:             "333",
 				AccountStatus:  "Leased",
 				LastModifiedOn: timeNow,
@@ -141,7 +141,7 @@ func TestDb(t *testing.T) {
 			err = dbSvc.PutAccount(accountLeased)
 			require.Nil(t, err)
 
-			// Retrieve all RedboxAccount that can be Reset (non-Ready)
+			// Retrieve all DceAccount that can be Reset (non-Ready)
 			accts, err := dbSvc.GetAccountsForReset()
 			require.Nil(t, err)
 			require.Equal(t, 2, len(accts))
@@ -156,7 +156,7 @@ func TestDb(t *testing.T) {
 			defer truncateAccountTable(t, dbSvc)
 
 			// Create some accounts in the DB
-			for _, acct := range []db.RedboxAccount{
+			for _, acct := range []db.DceAccount{
 				{ID: "1", AccountStatus: db.Ready},
 				{ID: "2", AccountStatus: db.NotReady},
 				{ID: "3", AccountStatus: db.Ready},
@@ -169,7 +169,7 @@ func TestDb(t *testing.T) {
 			// Find ready accounts
 			res, err := dbSvc.FindAccountsByStatus(db.Ready)
 			require.Nil(t, err)
-			require.Equal(t, []*db.RedboxAccount{
+			require.Equal(t, []*db.DceAccount{
 				{ID: "1", AccountStatus: db.Ready},
 				{ID: "3", AccountStatus: db.Ready},
 			}, res)
@@ -179,7 +179,7 @@ func TestDb(t *testing.T) {
 			defer truncateAccountTable(t, dbSvc)
 
 			// Create some accounts in the DB
-			for _, acct := range []db.RedboxAccount{
+			for _, acct := range []db.DceAccount{
 				{ID: "1", AccountStatus: db.NotReady},
 				{ID: "2", AccountStatus: db.Leased},
 			} {
@@ -190,7 +190,7 @@ func TestDb(t *testing.T) {
 			// Find ready accounts
 			res, err := dbSvc.FindAccountsByStatus(db.Ready)
 			require.Nil(t, err)
-			require.Equal(t, []*db.RedboxAccount{}, res)
+			require.Equal(t, []*db.DceAccount{}, res)
 		})
 
 	})
@@ -208,7 +208,7 @@ func TestDb(t *testing.T) {
 			defer truncateLeaseTable(t, dbSvc)
 
 			// Create some accounts in the DB
-			for _, acct := range []db.RedboxAccount{
+			for _, acct := range []db.DceAccount{
 				{ID: "1", AccountStatus: db.Ready, PrincipalPolicyHash: "\"PreviousHash\""},
 				{ID: "2", AccountStatus: db.Leased},
 			} {
@@ -236,7 +236,7 @@ func TestDb(t *testing.T) {
 			acctID := "111"
 			principalID := "222"
 			timeNow := time.Now().Unix()
-			lease := db.RedboxLease{
+			lease := db.DceLease{
 				AccountID:             acctID,
 				PrincipalID:           principalID,
 				LeaseStatus:           db.Active,
@@ -245,7 +245,7 @@ func TestDb(t *testing.T) {
 				LeaseStatusModifiedOn: timeNow,
 			}
 			putAssgn, err := dbSvc.PutLease(lease)
-			require.Equal(t, db.RedboxLease{}, *putAssgn) // should return an empty account lease since its new
+			require.Equal(t, db.DceLease{}, *putAssgn) // should return an empty account lease since its new
 			require.Nil(t, err)
 			leaseBefore, err := dbSvc.GetLease(acctID, principalID)
 			time.Sleep(1 * time.Second) // Ensure LastModifiedOn and LeaseStatusModifiedOn changes
@@ -300,7 +300,7 @@ func TestDb(t *testing.T) {
 					acctID := "111"
 					principalID := "222"
 					timeNow := time.Now().Unix()
-					lease := db.RedboxLease{
+					lease := db.DceLease{
 						AccountID:      acctID,
 						PrincipalID:    principalID,
 						LeaseStatus:    status,
@@ -308,7 +308,7 @@ func TestDb(t *testing.T) {
 						LastModifiedOn: timeNow,
 					}
 					putAssgn, err := dbSvc.PutLease(lease)
-					require.Equal(t, db.RedboxLease{}, *putAssgn) // should return an empty account lease since its new
+					require.Equal(t, db.DceLease{}, *putAssgn) // should return an empty account lease since its new
 					require.Nil(t, err)
 
 					// Attempt to set a ResetLock on the Lease
@@ -338,7 +338,7 @@ func TestDb(t *testing.T) {
 			// Create a mock lease with Status=Active
 			acctID := "111"
 			timeNow := time.Now().Unix()
-			account := db.RedboxAccount{
+			account := db.DceAccount{
 				ID:             acctID,
 				AccountStatus:  db.Leased,
 				LastModifiedOn: timeNow,
@@ -394,7 +394,7 @@ func TestDb(t *testing.T) {
 					// Create a mock account
 					// with our non-active status
 					acctID := "111"
-					account := db.RedboxAccount{
+					account := db.DceAccount{
 						ID:            acctID,
 						AccountStatus: status,
 					}
@@ -432,7 +432,7 @@ func TestDb(t *testing.T) {
 			principalID := "222"
 			status := db.Active
 			timeNow := time.Now().Unix()
-			lease := db.RedboxLease{
+			lease := db.DceLease{
 				AccountID:             acctID,
 				PrincipalID:           principalID,
 				LeaseStatus:           status,
@@ -441,7 +441,7 @@ func TestDb(t *testing.T) {
 				LeaseStatusModifiedOn: timeNow,
 			}
 			putAssgn, err := dbSvc.PutLease(lease)
-			require.Equal(t, db.RedboxLease{}, *putAssgn) // should return an empty account lease since its new
+			require.Equal(t, db.DceLease{}, *putAssgn) // should return an empty account lease since its new
 			require.Nil(t, err)
 
 			foundaccount, err := dbSvc.FindLeasesByAccount("111")
@@ -460,7 +460,7 @@ func TestDb(t *testing.T) {
 			principalID := "222"
 			status := db.Active
 			timeNow := time.Now().Unix()
-			lease := db.RedboxLease{
+			lease := db.DceLease{
 				AccountID:             acctID,
 				PrincipalID:           principalID,
 				LeaseStatus:           status,
@@ -469,7 +469,7 @@ func TestDb(t *testing.T) {
 				LeaseStatusModifiedOn: timeNow,
 			}
 			putAssgn, err := dbSvc.PutLease(lease)
-			require.Equal(t, db.RedboxLease{}, *putAssgn) // should return an empty account lease since its new
+			require.Equal(t, db.DceLease{}, *putAssgn) // should return an empty account lease since its new
 			require.Nil(t, err)
 
 			foundLease, err := dbSvc.FindLeasesByAccount("111")
@@ -491,13 +491,13 @@ func TestDb(t *testing.T) {
 			acctID := "111"
 			principalID := "222"
 			status := db.Active
-			lease := db.RedboxLease{
+			lease := db.DceLease{
 				AccountID:   acctID,
 				PrincipalID: principalID,
 				LeaseStatus: status,
 			}
 			putAssgn, err := dbSvc.PutLease(lease)
-			require.Equal(t, db.RedboxLease{}, *putAssgn) // should return an empty account lease since its new
+			require.Equal(t, db.DceLease{}, *putAssgn) // should return an empty account lease since its new
 
 			foundaccount, err := dbSvc.FindLeasesByPrincipal("222")
 
@@ -514,13 +514,13 @@ func TestDb(t *testing.T) {
 			acctID := "333"
 			principalID := "222"
 			status := db.Active
-			lease := db.RedboxLease{
+			lease := db.DceLease{
 				AccountID:   acctID,
 				PrincipalID: principalID,
 				LeaseStatus: status,
 			}
 			putAssgn, err := dbSvc.PutLease(lease)
-			require.Equal(t, db.RedboxLease{}, *putAssgn) // should return an empty account lease since its new
+			require.Equal(t, db.DceLease{}, *putAssgn) // should return an empty account lease since its new
 			require.Nil(t, err)
 
 			foundLease, err := dbSvc.FindLeasesByPrincipal("111")
@@ -536,7 +536,7 @@ func TestDb(t *testing.T) {
 			defer truncateLeaseTable(t, dbSvc)
 
 			// Create some leases in the DB
-			for _, lease := range []db.RedboxLease{
+			for _, lease := range []db.DceLease{
 				{AccountID: "1", PrincipalID: "pid", LeaseStatus: db.Active},
 				{AccountID: "2", PrincipalID: "pid", LeaseStatus: db.ResetLock},
 				{AccountID: "3", PrincipalID: "pid", LeaseStatus: db.Active},
@@ -549,7 +549,7 @@ func TestDb(t *testing.T) {
 			// Find ResetLock leases
 			res, err := dbSvc.FindLeasesByStatus(db.ResetLock)
 			require.Nil(t, err)
-			require.Equal(t, []*db.RedboxLease{
+			require.Equal(t, []*db.DceLease{
 				{AccountID: "2", PrincipalID: "pid", LeaseStatus: db.ResetLock},
 				{AccountID: "4", PrincipalID: "pid", LeaseStatus: db.ResetLock},
 			}, res)
@@ -559,7 +559,7 @@ func TestDb(t *testing.T) {
 			defer truncateLeaseTable(t, dbSvc)
 
 			// Create some leases in the DB
-			for _, lease := range []db.RedboxLease{
+			for _, lease := range []db.DceLease{
 				{AccountID: "1", PrincipalID: "pid", LeaseStatus: db.Active},
 				{AccountID: "2", PrincipalID: "pid", LeaseStatus: db.Active},
 			} {
@@ -570,7 +570,7 @@ func TestDb(t *testing.T) {
 			// Find ResetLock leases
 			res, err := dbSvc.FindLeasesByStatus(db.ResetLock)
 			require.Nil(t, err)
-			require.Equal(t, []*db.RedboxLease{}, res)
+			require.Equal(t, []*db.DceLease{}, res)
 		})
 
 	})
@@ -609,7 +609,7 @@ func TestDb(t *testing.T) {
 
 			t.Run("when the account is leased", func(t *testing.T) {
 				defer truncateAccountTable(t, dbSvc)
-				account := db.RedboxAccount{
+				account := db.DceAccount{
 					ID:             accountID,
 					AccountStatus:  db.Leased,
 					LastModifiedOn: 1561382309,
@@ -638,7 +638,7 @@ func TestDb(t *testing.T) {
 	t.Run("UpdateMetadata", func(t *testing.T) {
 		defer truncateAccountTable(t, dbSvc)
 		id := "test-metadata"
-		account := db.RedboxAccount{ID: id, AccountStatus: db.Ready}
+		account := db.DceAccount{ID: id, AccountStatus: db.Ready}
 		err := dbSvc.PutAccount(account)
 		require.Nil(t, err)
 
@@ -657,8 +657,8 @@ func TestDb(t *testing.T) {
 	})
 }
 
-func newAccount(id string, timeNow int64) *db.RedboxAccount {
-	account := db.RedboxAccount{
+func newAccount(id string, timeNow int64) *db.DceAccount {
+	account := db.DceAccount{
 		ID:             id,
 		AccountStatus:  "Ready",
 		LastModifiedOn: timeNow,
@@ -666,7 +666,7 @@ func newAccount(id string, timeNow int64) *db.RedboxAccount {
 	return &account
 }
 
-// Remove all records from the RedboxAccount table
+// Remove all records from the DceAccount table
 func truncateAccountTable(t *testing.T, dbSvc *db.DB) {
 	/*
 		DynamoDB does not provide a "truncate" method.
@@ -674,7 +674,7 @@ func truncateAccountTable(t *testing.T, dbSvc *db.DB) {
 		and remove them in a "BatchWrite" requests.
 	*/
 
-	// Find all records in the RedboxAccount table
+	// Find all records in the DceAccount table
 	scanResult, err := dbSvc.Client.Scan(
 		&dynamodb.ScanInput{
 			TableName: aws.String(dbSvc.AccountTableName),
@@ -710,7 +710,7 @@ func truncateAccountTable(t *testing.T, dbSvc *db.DB) {
 }
 
 /*
-Remove all records from the RedboxLease table
+Remove all records from the DceLease table
 */
 func truncateLeaseTable(t *testing.T, dbSvc *db.DB) {
 	/*
@@ -719,7 +719,7 @@ func truncateLeaseTable(t *testing.T, dbSvc *db.DB) {
 		and remove them in a "BatchWrite" requests.
 	*/
 
-	// Find all records in the RedboxAccount table
+	// Find all records in the DceAccount table
 	scanResult, err := dbSvc.Client.Scan(
 		&dynamodb.ScanInput{
 			TableName: aws.String(dbSvc.LeaseTableName),

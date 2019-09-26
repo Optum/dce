@@ -3,7 +3,7 @@ resource "aws_lambda_function" "fn" {
   description   = var.description
   runtime       = "go1.x"
   handler       = var.handler
-  role          = aws_iam_role.redbox_lambda_execution.arn
+  role          = aws_iam_role.dce_lambda_execution.arn
   timeout       = 300
 
   # Stub an application deployment

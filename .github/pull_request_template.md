@@ -25,7 +25,7 @@ Put an `x` in the boxes that apply. You can also fill these out after creating t
 -->
 
 - [ ] I have filled out this PR template
-- [ ] I have read the [CONTRIBUTING](https://github.com/Optum/Redbox/blob/master/docs/CONTRIBUTING.md) doc
+- [ ] I have read the [CONTRIBUTING](https://github.com/Optum/Dce/blob/master/docs/CONTRIBUTING.md) doc
 - [ ] I have added automated tests that prove my fix is effective or that my feature works
 - [ ] I have added necessary documentation (`README.md`, inline comments, etc.)
 - [ ] I have updated the `CHANGELOG.md` under a `## next` release, with a short summary of my changes

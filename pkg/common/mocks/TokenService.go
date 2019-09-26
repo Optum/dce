@@ -2,7 +2,7 @@
 
 package mocks
 
-import awsiface "github.com/Optum/Redbox/pkg/awsiface"
+import awsiface "github.com/Optum/Dce/pkg/awsiface"
 import client "github.com/aws/aws-sdk-go/aws/client"
 
 import credentials "github.com/aws/aws-sdk-go/aws/credentials"

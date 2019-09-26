@@ -1,15 +1,15 @@
 package main
 
 import (
-	"github.com/Optum/Redbox/pkg/common"
-	"github.com/Optum/Redbox/pkg/db"
+	"github.com/Optum/Dce/pkg/common"
+	"github.com/Optum/Dce/pkg/db"
 	"log"
 )
 
 type publishLeaseLockedInput struct {
 	snsSvc              common.Notificationer
 	leaseLockedTopicArn string
-	lease               *db.RedboxLease
+	lease               *db.DceLease
 }
 
 func publishLeaseLocked(input *publishLeaseLockedInput) error {

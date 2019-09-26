@@ -9,12 +9,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Optum/Redbox/pkg/rolemanager"
+	"github.com/Optum/Dce/pkg/rolemanager"
 	"github.com/aws/aws-sdk-go/service/iam"
 
-	"github.com/Optum/Redbox/pkg/api/response"
-	"github.com/Optum/Redbox/pkg/common"
-	"github.com/Optum/Redbox/pkg/db"
+	"github.com/Optum/Dce/pkg/api/response"
+	"github.com/Optum/Dce/pkg/common"
+	"github.com/Optum/Dce/pkg/db"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -34,7 +34,7 @@ type createController struct {
 	PrincipalRoleName           string
 	PrincipalPolicyName         string
 	PrincipalMaxSessionDuration int64
-	// The IAM Redbox Principal role will be denied access
+	// The IAM Dce Principal role will be denied access
 	// to resources with these tags leased
 	PrincipalIAMDenyTags []string
 	// Tags to apply to AWS resources created by this controller
@@ -62,7 +62,7 @@ func (c createController) Call(ctx context.Context, req *events.APIGatewayProxyR
 	// Check if the account already exists
 	existingAccount, err := c.Dao.GetAccount(request.ID)
 	if err != nil {
-		log.Printf("Failed to add redbox account %s to pool: %s",
+		log.Printf("Failed to add dce account %s to pool: %s",
 			request.ID, err.Error())
 		return response.ServerError(), nil
 	}
@@ -74,17 +74,17 @@ func (c createController) Call(ctx context.Context, req *events.APIGatewayProxyR
 	// using the `adminRoleArn`
 	_, err = c.TokenService.AssumeRole(&sts.AssumeRoleInput{
 		RoleArn:         aws.String(request.AdminRoleArn),
-		RoleSessionName: aws.String("RedboxMasterAssumeRoleVerification"),
+		RoleSessionName: aws.String("DceMasterAssumeRoleVerification"),
 	})
 	if err != nil {
 		return response.RequestValidationError(
-			"Unable to create Account: adminRole is not assumable by the Redbox master account",
+			"Unable to create Account: adminRole is not assumable by the Dce master account",
 		), nil
 	}
 
 	// Prepare the account record
 	now := time.Now().Unix()
-	account := db.RedboxAccount{
+	account := db.DceAccount{
 		ID:             request.ID,
 		AccountStatus:  db.NotReady,
 		LastModifiedOn: now,
@@ -92,7 +92,7 @@ func (c createController) Call(ctx context.Context, req *events.APIGatewayProxyR
 		AdminRoleArn:   request.AdminRoleArn,
 	}
 
-	// Create an IAM Role for the Redbox principal (end-user) to login to
+	// Create an IAM Role for the Dce principal (end-user) to login to
 	createRolRes, policyHash, err := c.createPrincipalRole(account)
 	if err != nil {
 		log.Printf("failed to create principal role for %s: %s", request.ID, err)
@@ -104,7 +104,7 @@ func (c createController) Call(ctx context.Context, req *events.APIGatewayProxyR
 	// Write the Account to the DB
 	err = c.Dao.PutAccount(account)
 	if err != nil {
-		log.Printf("Failed to add redbox account %s to pool: %s",
+		log.Printf("Failed to add dce account %s to pool: %s",
 			request.ID, err.Error())
 		return response.ServerError(), nil
 	}

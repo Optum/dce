@@ -9,11 +9,11 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 
-	"github.com/Optum/Redbox/pkg/api/response"
-	commock "github.com/Optum/Redbox/pkg/common/mocks"
-	"github.com/Optum/Redbox/pkg/db"
-	dbmock "github.com/Optum/Redbox/pkg/db/mocks"
-	provmock "github.com/Optum/Redbox/pkg/provision/mocks"
+	"github.com/Optum/Dce/pkg/api/response"
+	commock "github.com/Optum/Dce/pkg/common/mocks"
+	"github.com/Optum/Dce/pkg/db"
+	dbmock "github.com/Optum/Dce/pkg/db/mocks"
+	provmock "github.com/Optum/Dce/pkg/provision/mocks"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -77,7 +77,7 @@ type testPublishLeaseInput struct {
 // TestPublishLease tests and verifies the flow of the helper function
 // publishLease to create and publish a message to an SNS Topic
 func TestPublishLease(t *testing.T) {
-	lease := &db.RedboxLease{
+	lease := &db.DceLease{
 		PrincipalID:           "abc",
 		AccountID:             "123",
 		LeaseStatus:           db.Active,
@@ -133,13 +133,13 @@ func TestPublishLease(t *testing.T) {
 // testing for provisionAccount
 type testProvisionAccountInput struct {
 	ExpectedResponse                 events.APIGatewayProxyResponse
-	GetReadyAccountAccount           *db.RedboxAccount
+	GetReadyAccountAccount           *db.DceAccount
 	GetReadyAccountError             error
-	FindActiveLeaseForPrincipal      *db.RedboxLease
+	FindActiveLeaseForPrincipal      *db.DceLease
 	FindActiveLeaseForPrincipalError error
-	FindLeaseWithAccount             *db.RedboxLease
+	FindLeaseWithAccount             *db.DceLease
 	FindLeaseWithAccountError        error
-	ActivateLease                    *db.RedboxLease
+	ActivateLease                    *db.DceLease
 	ActivateLeaseError               error
 	TransitionAccountStatusError     error
 	PublishMessageMessageID          string
@@ -150,7 +150,7 @@ type testProvisionAccountInput struct {
 // TestProvisionAccount tests and verifies the flow of the function to
 // provision an account for a Principal
 func TestProvisionAccount(t *testing.T) {
-	successfulLease := &db.RedboxLease{
+	successfulLease := &db.DceLease{
 		PrincipalID:    "abc",
 		AccountID:      "123",
 		LeaseStatus:    db.Active,
@@ -171,12 +171,12 @@ func TestProvisionAccount(t *testing.T) {
 		{
 			ExpectedResponse: createAPIResponse(http.StatusCreated,
 				string(successfulLeaseBytes)),
-			GetReadyAccountAccount: &db.RedboxAccount{
+			GetReadyAccountAccount: &db.DceAccount{
 				ID:            "123",
 				AccountStatus: db.Ready,
 			},
-			FindActiveLeaseForPrincipal: &db.RedboxLease{},
-			FindLeaseWithAccount: &db.RedboxLease{
+			FindActiveLeaseForPrincipal: &db.DceLease{},
+			FindLeaseWithAccount: &db.DceLease{
 				PrincipalID: "abc",
 				AccountID:   "123",
 				LeaseStatus: db.Decommissioned,
@@ -187,27 +187,27 @@ func TestProvisionAccount(t *testing.T) {
 		{
 			ExpectedResponse: createAPIResponse(http.StatusCreated,
 				string(successfulLeaseBytes)),
-			GetReadyAccountAccount: &db.RedboxAccount{
+			GetReadyAccountAccount: &db.DceAccount{
 				ID:            "123",
 				AccountStatus: db.Ready,
 			},
-			FindActiveLeaseForPrincipal: &db.RedboxLease{},
-			FindLeaseWithAccount:        &db.RedboxLease{},
+			FindActiveLeaseForPrincipal: &db.DceLease{},
+			FindLeaseWithAccount:        &db.DceLease{},
 			ActivateLease:               successfulLease,
 		},
 		// Error Checking Leases
 		{
 			ExpectedResponse: createAPIErrorResponse(http.StatusInternalServerError,
 				response.CreateErrorResponse("ServerError",
-					"Cannot verify if Principal has existing Redbox Account : Find Lease Error")),
+					"Cannot verify if Principal has existing Dce Account : Find Lease Error")),
 			FindActiveLeaseForPrincipalError: errors.New("Find Lease Error"),
 		},
 		// Principal already has an active account
 		{
 			ExpectedResponse: createAPIErrorResponse(http.StatusConflict,
 				response.CreateErrorResponse("ClientError",
-					"Principal already has an existing Redbox: 456")),
-			FindActiveLeaseForPrincipal: &db.RedboxLease{
+					"Principal already has an existing Dce: 456")),
+			FindActiveLeaseForPrincipal: &db.DceLease{
 				PrincipalID: "abc",
 				AccountID:   "456",
 				LeaseStatus: db.Active,
@@ -217,28 +217,28 @@ func TestProvisionAccount(t *testing.T) {
 		{
 			ExpectedResponse: createAPIErrorResponse(http.StatusInternalServerError,
 				response.CreateErrorResponse("ServerError",
-					"Cannot get Available Redbox Accounts : Get Ready Account Error")),
-			FindActiveLeaseForPrincipal: &db.RedboxLease{},
+					"Cannot get Available Dce Accounts : Get Ready Account Error")),
+			FindActiveLeaseForPrincipal: &db.DceLease{},
 			GetReadyAccountError:        errors.New("Get Ready Account Error"),
 		},
 		// No ready accounts
 		{
 			ExpectedResponse: createAPIErrorResponse(http.StatusServiceUnavailable,
 				response.CreateErrorResponse("ServerError",
-					"No Available Redbox Accounts at this moment")),
-			FindActiveLeaseForPrincipal: &db.RedboxLease{},
+					"No Available Dce Accounts at this moment")),
+			FindActiveLeaseForPrincipal: &db.DceLease{},
 			GetReadyAccountAccount:      nil,
 		},
 		// Error Finding Lease With Account
 		{
 			ExpectedResponse: createAPIErrorResponse(http.StatusInternalServerError,
 				response.CreateErrorResponse("ServerError",
-					"Cannot get Available Redbox Accounts : Find Lease with Account Error")),
-			GetReadyAccountAccount: &db.RedboxAccount{
+					"Cannot get Available Dce Accounts : Find Lease with Account Error")),
+			GetReadyAccountAccount: &db.DceAccount{
 				ID:            "123",
 				AccountStatus: db.Ready,
 			},
-			FindActiveLeaseForPrincipal: &db.RedboxLease{},
+			FindActiveLeaseForPrincipal: &db.DceLease{},
 			FindLeaseWithAccountError:   errors.New("Find Lease with Account Error"),
 		},
 		// Error Activate Account Lease
@@ -246,12 +246,12 @@ func TestProvisionAccount(t *testing.T) {
 			ExpectedResponse: createAPIErrorResponse(http.StatusInternalServerError,
 				response.CreateErrorResponse("ServerError",
 					"Failed to Create Lease for Account : 123")),
-			GetReadyAccountAccount: &db.RedboxAccount{
+			GetReadyAccountAccount: &db.DceAccount{
 				ID:            "123",
 				AccountStatus: db.Ready,
 			},
-			FindActiveLeaseForPrincipal: &db.RedboxLease{},
-			FindLeaseWithAccount:        &db.RedboxLease{},
+			FindActiveLeaseForPrincipal: &db.DceLease{},
+			FindLeaseWithAccount:        &db.DceLease{},
 			ActivateLeaseError:          errors.New("Activate Account Lease Error"),
 		},
 		// Error Transition Account Status
@@ -259,12 +259,12 @@ func TestProvisionAccount(t *testing.T) {
 			ExpectedResponse: createAPIErrorResponse(http.StatusInternalServerError,
 				response.CreateErrorResponse("ServerError",
 					"Failed to Create Lease for 123 - abc")),
-			GetReadyAccountAccount: &db.RedboxAccount{
+			GetReadyAccountAccount: &db.DceAccount{
 				ID:            "123",
 				AccountStatus: db.Ready,
 			},
-			FindActiveLeaseForPrincipal:  &db.RedboxLease{},
-			FindLeaseWithAccount:         &db.RedboxLease{},
+			FindActiveLeaseForPrincipal:  &db.DceLease{},
+			FindLeaseWithAccount:         &db.DceLease{},
 			TransitionAccountStatusError: errors.New("Transition Account Status Error"),
 		},
 		// Error Transition Account Status Rollback
@@ -272,12 +272,12 @@ func TestProvisionAccount(t *testing.T) {
 			ExpectedResponse: createAPIErrorResponse(http.StatusInternalServerError,
 				response.CreateErrorResponse("ServerError",
 					"Failed to Rollback Account Lease for 123 - abc")),
-			GetReadyAccountAccount: &db.RedboxAccount{
+			GetReadyAccountAccount: &db.DceAccount{
 				ID:            "123",
 				AccountStatus: db.Ready,
 			},
-			FindActiveLeaseForPrincipal:   &db.RedboxLease{},
-			FindLeaseWithAccount:          &db.RedboxLease{},
+			FindActiveLeaseForPrincipal:   &db.DceLease{},
+			FindLeaseWithAccount:          &db.DceLease{},
 			TransitionAccountStatusError:  errors.New("Transition Account Status Error"),
 			RollbackProvisionAccountError: errors.New("Rollback Provision Account Error"),
 		},
@@ -286,13 +286,13 @@ func TestProvisionAccount(t *testing.T) {
 			ExpectedResponse: createAPIErrorResponse(http.StatusInternalServerError,
 				response.CreateErrorResponse("ServerError",
 					"Failed to Create Lease for 123 - abc")),
-			GetReadyAccountAccount: &db.RedboxAccount{
+			GetReadyAccountAccount: &db.DceAccount{
 				ID:            "123",
 				AccountStatus: db.Ready,
 			},
-			FindActiveLeaseForPrincipal: &db.RedboxLease{},
-			FindLeaseWithAccount:        &db.RedboxLease{},
-			ActivateLease:               &db.RedboxLease{},
+			FindActiveLeaseForPrincipal: &db.DceLease{},
+			FindLeaseWithAccount:        &db.DceLease{},
+			ActivateLease:               &db.DceLease{},
 			PublishMessageError:         errors.New("Publish Message Error"),
 		},
 		// Error Publish Message Rollback
@@ -300,13 +300,13 @@ func TestProvisionAccount(t *testing.T) {
 			ExpectedResponse: createAPIErrorResponse(http.StatusInternalServerError,
 				response.CreateErrorResponse("ServerError",
 					"Failed to Rollback Account Lease for 123 - abc")),
-			GetReadyAccountAccount: &db.RedboxAccount{
+			GetReadyAccountAccount: &db.DceAccount{
 				ID:            "123",
 				AccountStatus: db.Ready,
 			},
-			FindActiveLeaseForPrincipal:   &db.RedboxLease{},
-			FindLeaseWithAccount:          &db.RedboxLease{},
-			ActivateLease:                 &db.RedboxLease{},
+			FindActiveLeaseForPrincipal:   &db.DceLease{},
+			FindLeaseWithAccount:          &db.DceLease{},
+			ActivateLease:                 &db.DceLease{},
 			PublishMessageError:           errors.New("Publish Message Error"),
 			RollbackProvisionAccountError: errors.New("Rollback Provision Account Error"),
 		},
@@ -370,11 +370,11 @@ func TestProvisionAccount(t *testing.T) {
 // testing for decommissionAccount
 type testDecommissionAccountInput struct {
 	ExpectedResponse               events.APIGatewayProxyResponse
-	FindLeaseByLeases              []*db.RedboxLease
+	FindLeaseByLeases              []*db.DceLease
 	FindLeaseByPrincipalError      error
-	TransitionLeaseStatusLease     *db.RedboxLease
+	TransitionLeaseStatusLease     *db.DceLease
 	TransitionLeaseStatusError     error
-	TransitionAccountStatusAccount *db.RedboxAccount
+	TransitionAccountStatusAccount *db.DceAccount
 	TransitionAccountStatusError   error
 	SendMessageError               error
 	PublishMessageMessageID        string
@@ -384,7 +384,7 @@ type testDecommissionAccountInput struct {
 // TestDecommissionAccount tests and verifies the flow of the function to
 // decommission an account for a Principal
 func TestDecommissionAccount(t *testing.T) {
-	successfulLease := &db.RedboxLease{
+	successfulLease := &db.DceLease{
 		PrincipalID:    "abc",
 		AccountID:      "123",
 		LeaseStatus:    db.Decommissioned,
@@ -405,15 +405,15 @@ func TestDecommissionAccount(t *testing.T) {
 		{
 			ExpectedResponse: createAPIResponse(http.StatusOK,
 				string(successfulLeaseBytes)),
-			FindLeaseByLeases: []*db.RedboxLease{
-				&db.RedboxLease{
+			FindLeaseByLeases: []*db.DceLease{
+				&db.DceLease{
 					PrincipalID: "abc",
 					AccountID:   "123",
 					LeaseStatus: db.Active,
 				},
 			},
 			TransitionLeaseStatusLease: successfulLease,
-			TransitionAccountStatusAccount: &db.RedboxAccount{
+			TransitionAccountStatusAccount: &db.DceAccount{
 				ID:            "123",
 				AccountStatus: db.Ready,
 			},
@@ -422,7 +422,7 @@ func TestDecommissionAccount(t *testing.T) {
 		{
 			ExpectedResponse: createAPIErrorResponse(http.StatusInternalServerError,
 				response.CreateErrorResponse("ServerError",
-					"Cannot verify if Principal abc has a Redbox Lease")),
+					"Cannot verify if Principal abc has a Dce Lease")),
 			FindLeaseByPrincipalError: errors.New("Fail finding Lease"),
 		},
 		// Fail to find Lease - No Active Leases
@@ -430,8 +430,8 @@ func TestDecommissionAccount(t *testing.T) {
 			ExpectedResponse: createAPIErrorResponse(http.StatusBadRequest,
 				response.CreateErrorResponse("ClientError",
 					"No active account leases found for abc")),
-			FindLeaseByLeases: []*db.RedboxLease{
-				&db.RedboxLease{
+			FindLeaseByLeases: []*db.DceLease{
+				&db.DceLease{
 					PrincipalID: "abc",
 					AccountID:   "456",
 					LeaseStatus: db.Decommissioned,
@@ -443,8 +443,8 @@ func TestDecommissionAccount(t *testing.T) {
 			ExpectedResponse: createAPIErrorResponse(http.StatusBadRequest,
 				response.CreateErrorResponse("ClientError",
 					"No active account leases found for abc")),
-			FindLeaseByLeases: []*db.RedboxLease{
-				&db.RedboxLease{
+			FindLeaseByLeases: []*db.DceLease{
+				&db.DceLease{
 					PrincipalID: "abc",
 					AccountID:   "456",
 					LeaseStatus: db.Active,
@@ -456,8 +456,8 @@ func TestDecommissionAccount(t *testing.T) {
 			ExpectedResponse: createAPIErrorResponse(http.StatusBadRequest,
 				response.CreateErrorResponse("ClientError",
 					"Account Lease is not active for abc - 123")),
-			FindLeaseByLeases: []*db.RedboxLease{
-				&db.RedboxLease{
+			FindLeaseByLeases: []*db.DceLease{
+				&db.DceLease{
 					PrincipalID: "abc",
 					AccountID:   "123",
 					LeaseStatus: db.Decommissioned,
@@ -469,8 +469,8 @@ func TestDecommissionAccount(t *testing.T) {
 			ExpectedResponse: createAPIErrorResponse(http.StatusInternalServerError,
 				response.CreateErrorResponse("ServerError",
 					"Failed Decommission on Account Lease abc - 123")),
-			FindLeaseByLeases: []*db.RedboxLease{
-				&db.RedboxLease{
+			FindLeaseByLeases: []*db.DceLease{
+				&db.DceLease{
 					PrincipalID: "abc",
 					AccountID:   "123",
 					LeaseStatus: db.Active,
@@ -483,8 +483,8 @@ func TestDecommissionAccount(t *testing.T) {
 			ExpectedResponse: createAPIErrorResponse(http.StatusInternalServerError,
 				response.CreateErrorResponse("ServerError",
 					"Failed Decommission on Account Lease abc - 123")),
-			FindLeaseByLeases: []*db.RedboxLease{
-				&db.RedboxLease{
+			FindLeaseByLeases: []*db.DceLease{
+				&db.DceLease{
 					PrincipalID: "abc",
 					AccountID:   "123",
 					LeaseStatus: db.Active,
@@ -497,14 +497,14 @@ func TestDecommissionAccount(t *testing.T) {
 			ExpectedResponse: createAPIErrorResponse(http.StatusInternalServerError,
 				response.CreateErrorResponse("ServerError",
 					"Failed Decommission on Account Lease abc - 123")),
-			FindLeaseByLeases: []*db.RedboxLease{
-				&db.RedboxLease{
+			FindLeaseByLeases: []*db.DceLease{
+				&db.DceLease{
 					PrincipalID: "abc",
 					AccountID:   "123",
 					LeaseStatus: db.Active,
 				},
 			},
-			TransitionAccountStatusAccount: &db.RedboxAccount{
+			TransitionAccountStatusAccount: &db.DceAccount{
 				ID:            "123",
 				AccountStatus: db.Ready,
 			},
@@ -515,18 +515,18 @@ func TestDecommissionAccount(t *testing.T) {
 			ExpectedResponse: createAPIErrorResponse(http.StatusInternalServerError,
 				response.CreateErrorResponse("ServerError",
 					"Failed Decommission on Account Lease abc - 123")),
-			FindLeaseByLeases: []*db.RedboxLease{
-				&db.RedboxLease{
+			FindLeaseByLeases: []*db.DceLease{
+				&db.DceLease{
 					PrincipalID: "abc",
 					AccountID:   "123",
 					LeaseStatus: db.Active,
 				},
 			},
-			TransitionAccountStatusAccount: &db.RedboxAccount{
+			TransitionAccountStatusAccount: &db.DceAccount{
 				ID:            "123",
 				AccountStatus: db.Ready,
 			},
-			TransitionLeaseStatusLease: &db.RedboxLease{},
+			TransitionLeaseStatusLease: &db.DceLease{},
 			PublishMessageError:        errors.New("Publish Message Error"),
 		},
 	}

@@ -1,6 +1,6 @@
 // Copyright 2019 Optum, Inc
 // db_group_migrate.go
-// This script is intended for one time use in the prod deployment of Redbox
+// This script is intended for one time use in the prod deployment of Dce
 // Its sole purpose is to remove the values associated with the deprecated
 // "GroupId" field in the dynamo database Account table.
 //
@@ -9,8 +9,8 @@
 //
 // This script requires 3 environment variables to be set for its use:
 // "export AWS_CURRENT_REGION=us-east-1"  - The region the database resides in
-// "export ACCOUNT_DB=RedboxAccountsProd"  - Name of the Account table
-// "export ASSIGNMENT_DB=RedboxAccountAssignmentProd"  - Name of the Assignment table for Accounts
+// "export ACCOUNT_DB=DceAccountsProd"  - Name of the Account table
+// "export ASSIGNMENT_DB=DceAccountAssignmentProd"  - Name of the Assignment table for Accounts
 
 package v0_7_0_remove_group_id
 
@@ -18,7 +18,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/Optum/Redbox/pkg/db"
+	"github.com/Optum/Dce/pkg/db"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"

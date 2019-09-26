@@ -1,4 +1,4 @@
-module github.com/Optum/Redbox
+module github.com/Optum/Dce
 
 go 1.12x
 

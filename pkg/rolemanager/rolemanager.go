@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/Optum/Redbox/pkg/awsiface"
-	errors2 "github.com/Optum/Redbox/pkg/errors"
+	"github.com/Optum/Dce/pkg/awsiface"
+	errors2 "github.com/Optum/Dce/pkg/errors"
 	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/service/iam"
 

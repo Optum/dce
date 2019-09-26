@@ -7,11 +7,11 @@ import (
 	"log"
 	"strings"
 
-	"github.com/Optum/Redbox/pkg/api/response"
-	"github.com/Optum/Redbox/pkg/awsiface"
-	"github.com/Optum/Redbox/pkg/common"
-	"github.com/Optum/Redbox/pkg/db"
-	"github.com/Optum/Redbox/pkg/rolemanager"
+	"github.com/Optum/Dce/pkg/api/response"
+	"github.com/Optum/Dce/pkg/awsiface"
+	"github.com/Optum/Dce/pkg/common"
+	"github.com/Optum/Dce/pkg/db"
+	"github.com/Optum/Dce/pkg/rolemanager"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws/arn"
@@ -86,7 +86,7 @@ func processRecord(input processRecordInput) error {
 
 	account, err := input.DbSvc.GetAccount(input.AccountID)
 	if err != nil {
-		log.Printf("Failed to get the redbox account %s: %s",
+		log.Printf("Failed to get the dce account %s: %s",
 			input.AccountID, err.Error())
 		return err
 	}
@@ -110,7 +110,7 @@ func processRecord(input processRecordInput) error {
 		log.Printf("Policy already matches.  Not updating '%s'", principalPolicyArn.String())
 		return nil
 	}
-	// Assume role into the new Redbox account
+	// Assume role into the new Dce account
 	accountSession, err := input.TokenSvc.NewSession(input.AwsSession, accountRes.AdminRoleArn)
 	if err != nil {
 		log.Printf("Failed to assume role '%s': %s", accountRes.AdminRoleArn, err.Error())

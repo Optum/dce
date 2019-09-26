@@ -1,10 +1,10 @@
-## Redbox Reset Generator
+## Dce Reset Generator
 
-This lambda will read from DynamoDB and create SQS entries for the Redbox Nuke function to consume.
+This lambda will read from DynamoDB and create SQS entries for the Dce Nuke function to consume.
 
 events.dyanmoDBEvent{} ---> enqueue() Lambda ---> sqs.SendMessage()
 
-The structure passed to the queue in the message body is the redBox struct as a string:
+The structure passed to the queue in the message body is the dce struct as a string:
 
 ```golang
 var string "aws_account_string"

@@ -4,18 +4,18 @@ import (
 	"log"
 	"time"
 
-	"github.com/Optum/Redbox/pkg/awsiface"
-	"github.com/Optum/Redbox/pkg/budget"
-	"github.com/Optum/Redbox/pkg/common"
-	"github.com/Optum/Redbox/pkg/db"
-	"github.com/Optum/Redbox/pkg/usage"
+	"github.com/Optum/Dce/pkg/awsiface"
+	"github.com/Optum/Dce/pkg/budget"
+	"github.com/Optum/Dce/pkg/common"
+	"github.com/Optum/Dce/pkg/db"
+	"github.com/Optum/Dce/pkg/usage"
 	"github.com/aws/aws-sdk-go/service/costexplorer"
 	"github.com/pkg/errors"
 )
 
 type calculateSpendInput struct {
-	account    *db.RedboxAccount
-	lease      *db.RedboxLease
+	account    *db.DceAccount
+	lease      *db.DceLease
 	tokenSvc   common.TokenService
 	budgetSvc  budget.Service
 	usageSvc   usage.Service

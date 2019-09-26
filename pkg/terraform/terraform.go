@@ -2,7 +2,7 @@ package terraform
 
 import (
 	"encoding/json"
-	"github.com/Optum/Redbox/pkg/shell"
+	"github.com/Optum/Dce/pkg/shell"
 	"github.com/pkg/errors"
 )
 

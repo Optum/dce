@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/Optum/Redbox/pkg/api/response"
-	"github.com/Optum/Redbox/pkg/db"
-	"github.com/Optum/Redbox/pkg/db/mocks"
+	"github.com/Optum/Dce/pkg/api/response"
+	"github.com/Optum/Dce/pkg/db"
+	"github.com/Optum/Dce/pkg/db/mocks"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/stretchr/testify/require"
 )
@@ -17,7 +17,7 @@ import (
 func TestGetAccountByID(t *testing.T) {
 
 	t.Run("When the invoking Call and there are no errors", func(t *testing.T) {
-		expectedAccount := &db.RedboxAccount{
+		expectedAccount := &db.DceAccount{
 			ID:             "123456789",
 			AccountStatus:  db.Ready,
 			LastModifiedOn: 1561149393,

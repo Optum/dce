@@ -8,18 +8,18 @@ import (
 	"strings"
 	"testing"
 
-	awsMocks "github.com/Optum/Redbox/pkg/awsiface/mocks"
-	"github.com/Optum/Redbox/pkg/rolemanager"
-	roleManagerMocks "github.com/Optum/Redbox/pkg/rolemanager/mocks"
+	awsMocks "github.com/Optum/Dce/pkg/awsiface/mocks"
+	"github.com/Optum/Dce/pkg/rolemanager"
+	roleManagerMocks "github.com/Optum/Dce/pkg/rolemanager/mocks"
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/Optum/Redbox/pkg/api/response"
-	"github.com/Optum/Redbox/pkg/common"
-	commonMocks "github.com/Optum/Redbox/pkg/common/mocks"
-	"github.com/Optum/Redbox/pkg/db"
-	dbMocks "github.com/Optum/Redbox/pkg/db/mocks"
+	"github.com/Optum/Dce/pkg/api/response"
+	"github.com/Optum/Dce/pkg/common"
+	commonMocks "github.com/Optum/Dce/pkg/common/mocks"
+	"github.com/Optum/Dce/pkg/db"
+	dbMocks "github.com/Optum/Dce/pkg/db/mocks"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sts"
@@ -29,7 +29,7 @@ import (
 
 func TestCreate(t *testing.T) {
 
-	t.Run("should return a RedboxAccount object", func(t *testing.T) {
+	t.Run("should return a DceAccount object", func(t *testing.T) {
 		// Send request
 		req := createAccountAPIRequest(t, createRequest{
 			ID:           "1234567890",
@@ -95,7 +95,7 @@ func TestCreate(t *testing.T) {
 		tokenService.On("AssumeRole",
 			mock.MatchedBy(func(input *sts.AssumeRoleInput) bool {
 				assert.Equal(t, "arn:iam:adminRole", *input.RoleArn)
-				assert.Equal(t, "RedboxMasterAssumeRoleVerification", *input.RoleSessionName)
+				assert.Equal(t, "DceMasterAssumeRoleVerification", *input.RoleSessionName)
 
 				return true
 			}),
@@ -112,15 +112,15 @@ func TestCreate(t *testing.T) {
 		)
 		require.Nil(t, err)
 		require.Equal(t,
-			response.RequestValidationError("Unable to create Account: adminRole is not assumable by the Redbox master account"),
+			response.RequestValidationError("Unable to create Account: adminRole is not assumable by the Dce master account"),
 			res,
 		)
 	})
 
-	t.Run("should add the account to the RedboxAccounts DB Table, as NotReady", func(t *testing.T) {
+	t.Run("should add the account to the DceAccounts DB Table, as NotReady", func(t *testing.T) {
 		mockDb := &dbMocks.DBer{}
 		controller := newCreateController()
-		controller.PrincipalRoleName = "RedboxPrincipal"
+		controller.PrincipalRoleName = "DcePrincipal"
 		controller.Dao = mockDb
 
 		// Mock the DB, so that the account doesn't already exist
@@ -129,10 +129,10 @@ func TestCreate(t *testing.T) {
 
 		// Mock the DB method to create the Account
 		mockDb.On("PutAccount",
-			mock.MatchedBy(func(account db.RedboxAccount) bool {
+			mock.MatchedBy(func(account db.DceAccount) bool {
 				assert.Equal(t, "1234567890", account.ID)
 				assert.Equal(t, "arn:mock", account.AdminRoleArn)
-				assert.Equal(t, "arn:aws:iam::123456789012:role/RedboxPrincipal", account.PrincipalRoleArn)
+				assert.Equal(t, "arn:aws:iam::123456789012:role/DcePrincipal", account.PrincipalRoleArn)
 				return true
 			}),
 		).Return(nil)
@@ -155,7 +155,7 @@ func TestCreate(t *testing.T) {
 
 		// Mock the DB, so that the account already exist
 		mockDb.On("GetAccount", "1234567890").
-			Return(&db.RedboxAccount{}, nil)
+			Return(&db.DceAccount{}, nil)
 
 		// Send an API request
 		req := createAccountAPIRequest(t, createRequest{
@@ -345,9 +345,9 @@ func TestCreate(t *testing.T) {
 		// Configure some parameters, to make sure these
 		// get passed through to the IAM role
 		controller.PrincipalMaxSessionDuration = 100
-		controller.PrincipalRoleName = "RedboxPrincipal"
-		controller.PrincipalPolicyName = "RedboxPrincipalDefaultPolicy"
-		controller.PrincipalIAMDenyTags = []string{"Redbox", "CantTouchThis"}
+		controller.PrincipalRoleName = "DcePrincipal"
+		controller.PrincipalPolicyName = "DcePrincipalDefaultPolicy"
+		controller.PrincipalIAMDenyTags = []string{"Dce", "CantTouchThis"}
 		controller.Tags = []*iam.Tag{{
 			Key: aws.String("Foo"), Value: aws.String("Bar"),
 		}}
@@ -389,18 +389,18 @@ func TestCreate(t *testing.T) {
 		}
 		`)
 
-		// Mock the RoleManager, to create an IAM Role for the Redbox Principal
+		// Mock the RoleManager, to create an IAM Role for the Dce Principal
 		roleManager.On("CreateRoleWithPolicy",
 			mock.MatchedBy(func(input *rolemanager.CreateRoleWithPolicyInput) bool {
 				// Verify the expected input
-				assert.Equal(t, "RedboxPrincipal", input.RoleName)
-				assert.Equal(t, "Role to be assumed by principal users of Redbox", input.RoleDescription)
+				assert.Equal(t, "DcePrincipal", input.RoleName)
+				assert.Equal(t, "Role to be assumed by principal users of Dce", input.RoleDescription)
 				assert.Equal(t, expectedAssumeRolePolicy, input.AssumeRolePolicyDocument)
 				assert.Equal(t, int64(100), input.MaxSessionDuration)
-				assert.Equal(t, "RedboxPrincipalDefaultPolicy", input.PolicyName)
+				assert.Equal(t, "DcePrincipalDefaultPolicy", input.PolicyName)
 				assert.Equal(t, []*iam.Tag{
 					{Key: aws.String("Foo"), Value: aws.String("Bar")},
-					{Key: aws.String("Name"), Value: aws.String("RedboxPrincipal")},
+					{Key: aws.String("Name"), Value: aws.String("DcePrincipal")},
 				}, input.Tags)
 				assert.Equal(t, true, input.IgnoreAlreadyExistsErrors)
 				assert.Equal(t, "", "")
@@ -458,8 +458,8 @@ func dbStub() *dbMocks.DBer {
 		Return(nil, nil)
 	mockDb.On("PutAccount", mock.Anything).Return(nil)
 	mockDb.On("DeleteAccount", mock.Anything).
-		Return(func(accountID string) *db.RedboxAccount {
-			return &db.RedboxAccount{ID: accountID}
+		Return(func(accountID string) *db.DceAccount {
+			return &db.DceAccount{ID: accountID}
 		}, nil)
 
 	return mockDb
@@ -514,8 +514,8 @@ func roleManagerStub() *roleManagerMocks.RoleManager {
 				return &rolemanager.CreateRoleWithPolicyOutput{
 					RoleName:   input.RoleName,
 					RoleArn:    "arn:aws:iam::123456789012:role/" + input.RoleName,
-					PolicyName: "RedboxPrincipalDefaultPolicy",
-					PolicyArn:  "arn:aws:iam::1234567890:policy/RedboxPrincipalDefaultPolicy",
+					PolicyName: "DcePrincipalDefaultPolicy",
+					PolicyArn:  "arn:aws:iam::1234567890:policy/DcePrincipalDefaultPolicy",
 				}
 			}, nil,
 		)

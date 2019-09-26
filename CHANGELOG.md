@@ -34,7 +34,7 @@
 
 **v0.13.0 Migration Notes**
 
-This release removes a number of Optum-specific configurations from the default aws-nuke YAML configuration. If you want to keep these configurations in your implementation of Redbox, you will need to specify an _override_ nuke config as part of Optum's deployment of Redbox.
+This release removes a number of Optum-specific configurations from the default aws-nuke YAML configuration. If you want to keep these configurations in your implementation of Dce, you will need to specify an _override_ nuke config as part of Optum's deployment of Dce.
 
 To specify a override nuke config, upload your own YAML file to an S3 bucket, and specify the S3 location using the `reset_nuke_template_bucket` and `reset_nuke_template_key` Terraform variables.
 
@@ -45,7 +45,7 @@ See [README.md for details](./README.md#configuring-aws-nuke) on aws-nuke config
 
 ## v0.12.3
 
-- Added EKS services to allowed services in policy file, redboxprincipal.go
+- Added EKS services to allowed services in policy file, dceprincipal.go
 - Audited alarms and Added API gateway 4XX alarm
 - Adds a metadata property to the account object
 - Added publish_locks lambda
@@ -59,7 +59,7 @@ See [README.md for details](./README.md#configuring-aws-nuke) on aws-nuke config
 
 ## v0.12.0
 
-- Add SES terraform to enable email from Redbox App for notifications.
+- Add SES terraform to enable email from Dce App for notifications.
 - Add budget fields to /leases endpoints
 - Cost Explorer spend aggregation service
 - Set -up SES Notification for budgets
@@ -71,8 +71,8 @@ See [README.md for details](./README.md#configuring-aws-nuke) on aws-nuke config
 
 - Add budget fields to API `/leases` endpoint
 
-- Remove `RedboxAccountAssignment` DyanmoDB table
-  - This table was deprecated in v0.10.0, and no longer referenced in AWS Redbox code
+- Remove `DceAccountAssignment` DyanmoDB table
+  - This table was deprecated in v0.10.0, and no longer referenced in AWS Dce code
 - Add `lease-locked` and `lease-unlocked` SNS topics
   - _NOTE:_ No messages are currently being published to these topics. We are supplying them now in advance of further implementation work, so that consumers can start on integration work.
 
@@ -94,8 +94,8 @@ See [README.md for details](./README.md#configuring-aws-nuke) on aws-nuke config
 **BREAKING**
 
 - Rename `Principal` --> `User`; `Assignment` --> `Lease`. Includes:
-  - Create new `RedboxLease` table, migrate data from `RedboxAccountAssignment` table
-    - Note that in this release, both tables exist in order to allow for migrations. The `RedboxAccountAssignment` is deprecated, and will destroyed in a subsequent release.
+  - Create new `DceLease` table, migrate data from `DceAccountAssignment` table
+    - Note that in this release, both tables exist in order to allow for migrations. The `DceAccountAssignment` is deprecated, and will destroyed in a subsequent release.
   - Rename lamdba functions
   - Refactor code to use new terminology
   - Update API `/leases` endpoints, to use `"principalId"` instead of `"userId"`
@@ -114,12 +114,12 @@ See [README.md for details](./README.md#configuring-aws-nuke) on aws-nuke config
 - Add a `DELETE /accounts/{id}` endpoint
   - Removes account from account pool
   - Publishes _account-deleted_ SNS message
-  - Delete the IAM Role for the Redbox principal
+  - Delete the IAM Role for the Dce principal
   - Queues account for reset
 - Add `POST /accounts` endpoint"
   - Adds accounts to account pool
   - Publishes _account-created_ SNS message
-  - Creates an IAM Role for the Redbox Principal
+  - Creates an IAM Role for the Dce Principal
   - Queues account for reset (initial cleanup)
 - Update nuke implementation for `cmd/codebuild/reset`
   - Add functionality to pull a configuration yaml file from an S3 Bucket Object to use for nuke.
@@ -168,7 +168,7 @@ See [README.md for details](./README.md#configuring-aws-nuke) on aws-nuke config
   used with APIs.
 - Update `Notification.go` implementation for `Notificationer` interface.
 - Remove `pkg/authorization` and `pkg/common/jwt*` as they are no longer
-  integrated with the base aws_redbox.
+  integrated with the base aws_dce.
 - Add swaggerUI to host API gateway spec in /dist directory, serving via github pages /docs directory
 
 ## v0.4.0
@@ -188,8 +188,8 @@ See [README.md for details](./README.md#configuring-aws-nuke) on aws-nuke config
 
 ## v0.2.2
 
-- Update `data "template_file" "aws_redbox_api_swagger"` to use the relative
-  path of the Terraform module to read the `swaggerRedbox.yaml` file.
+- Update `data "template_file" "aws_dce_api_swagger"` to use the relative
+  path of the Terraform module to read the `swaggerDce.yaml` file.
 
 ## v0.2.1
 
@@ -197,7 +197,7 @@ See [README.md for details](./README.md#configuring-aws-nuke) on aws-nuke config
 
 ## v0.2.0
 
-- Split apart open-source aws_redbox from Optum-specific implementation:
+- Split apart open-source aws_dce from Optum-specific implementation:
   - CI/CD pipeline deploys GH release w/artifacts, instead of deploying to AWS
   - Move build scripts into .sh files and make commands, for easier reuse
   - Remove sensitive info from code (account IDs, Launchpad API URLs)

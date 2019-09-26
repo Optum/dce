@@ -2,8 +2,8 @@ package main
 
 import (
 	"bytes"
-	"github.com/Optum/Redbox/pkg/db"
-	"github.com/Optum/Redbox/pkg/email"
+	"github.com/Optum/Dce/pkg/db"
+	"github.com/Optum/Dce/pkg/email"
 	"html/template"
 	"log"
 	"sort"
@@ -11,7 +11,7 @@ import (
 )
 
 type sendBudgetNotificationEmailInput struct {
-	lease                                  *db.RedboxLease
+	lease                                  *db.DceLease
 	emailSvc                               email.Service
 	budgetNotificationFromEmail            string
 	budgetNotificationBCCEmails            []string
@@ -46,7 +46,7 @@ func sendBudgetNotificationEmail(input *sendBudgetNotificationEmailInput) error 
 
 	// Render email templates
 	templateData := struct {
-		Lease               db.RedboxLease
+		Lease               db.DceLease
 		ActualSpend         float64
 		IsOverBudget        bool
 		ThresholdPercentile int

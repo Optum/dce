@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	"github.com/Optum/Redbox/pkg/db"
+	"github.com/Optum/Dce/pkg/db"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/stretchr/testify/assert"
 )
@@ -12,7 +12,7 @@ func TestLeaseFromImageSuccess(t *testing.T) {
 
 	// Arrange
 
-	expectedOutput := db.RedboxLease{
+	expectedOutput := db.DceLease{
 		AccountID:                "TestAccountID",
 		PrincipalID:              "TestPrincipalID",
 		LeaseStatus:              "FINANCELOCKED",

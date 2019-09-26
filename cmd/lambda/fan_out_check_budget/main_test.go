@@ -3,9 +3,9 @@ package main
 import (
 	"encoding/json"
 	"errors"
-	awsMocks "github.com/Optum/Redbox/pkg/awsiface/mocks"
-	"github.com/Optum/Redbox/pkg/db"
-	dbMocks "github.com/Optum/Redbox/pkg/db/mocks"
+	awsMocks "github.com/Optum/Dce/pkg/awsiface/mocks"
+	"github.com/Optum/Dce/pkg/db"
+	dbMocks "github.com/Optum/Dce/pkg/db/mocks"
 	"github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -18,7 +18,7 @@ func TestLambdaHandler(t *testing.T) {
 		// Mock the DB to return some leases
 		dbSvc := &dbMocks.DBer{}
 		dbSvc.On("FindLeasesByStatus", db.Active).
-			Return([]*db.RedboxLease{
+			Return([]*db.DceLease{
 				{AccountID: "1"},
 				{AccountID: "2"},
 				{AccountID: "3"},
@@ -32,7 +32,7 @@ func TestLambdaHandler(t *testing.T) {
 				assert.Equal(t, "Event", *input.InvocationType)
 
 				// Make sure the payload is a lease
-				var lease db.RedboxLease
+				var lease db.DceLease
 				err := json.Unmarshal(input.Payload, &lease)
 				assert.Nil(t, err)
 
@@ -56,7 +56,7 @@ func TestLambdaHandler(t *testing.T) {
 		// Mock the DB to return an error
 		dbSvc := &dbMocks.DBer{}
 		dbSvc.On("FindLeasesByStatus", db.Active).
-			Return([]*db.RedboxLease{}, errors.New("db error"))
+			Return([]*db.DceLease{}, errors.New("db error"))
 
 		// Call the handler
 		err := lambdaHandler(&lambdaHandlerInput{
@@ -71,7 +71,7 @@ func TestLambdaHandler(t *testing.T) {
 		// Mock the DB to return some leases
 		dbSvc := &dbMocks.DBer{}
 		dbSvc.On("FindLeasesByStatus", db.Active).
-			Return([]*db.RedboxLease{
+			Return([]*db.DceLease{
 				{AccountID: "1"},
 				{AccountID: "2"},
 				{AccountID: "3"},
@@ -108,7 +108,7 @@ func TestLambdaHandler(t *testing.T) {
 		// Mock the DB to return no leases
 		dbSvc := &dbMocks.DBer{}
 		dbSvc.On("FindLeasesByStatus", db.Active).
-			Return([]*db.RedboxLease{}, nil)
+			Return([]*db.DceLease{}, nil)
 
 		lambdaSvc := &awsMocks.LambdaAPI{}
 

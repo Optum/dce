@@ -3,11 +3,11 @@ package main
 import (
 	"log"
 
-	"github.com/Optum/Redbox/pkg/db"
+	"github.com/Optum/Dce/pkg/db"
 )
 
 type financeLockInput struct {
-	lease *db.RedboxLease
+	lease *db.DceLease
 	dbSvc db.DBer
 }
 

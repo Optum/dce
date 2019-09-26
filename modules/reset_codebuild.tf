@@ -1,6 +1,6 @@
 /**
  * Configure CodePipeline resources to
- * execute our Redbox Account Reset process.
+ * execute our Dce Account Reset process.
  * - Run aws-nuke in each user account
  *
  * We are currently configured a unique CodePipeline
@@ -17,8 +17,8 @@ locals {
 # CodeBuild to create Azure AD Ent App for AWS Account
 # and configure SSO
 resource "aws_codebuild_project" "reset_build" {
-  name          = "redbox-reset-${var.namespace}"
-  description   = "Execute Redbox Account reset for an AWS Account"
+  name          = "dce-reset-${var.namespace}"
+  description   = "Execute Dce Account reset for an AWS Account"
   build_timeout = "480"
   service_role  = aws_iam_role.codebuild_reset.arn
 
@@ -61,7 +61,7 @@ resource "aws_codebuild_project" "reset_build" {
 
     environment_variable {
       name  = "RESET_ACCOUNT_PRINCIPAL_POLICY_NAME"
-      value = local.redbox_principal_policy_name
+      value = local.dce_principal_policy_name
       type  = "PLAINTEXT"
     }
 
@@ -85,13 +85,13 @@ resource "aws_codebuild_project" "reset_build" {
 
     environment_variable {
       name  = "ACCOUNT_DB"
-      value = aws_dynamodb_table.redbox_account.id
+      value = aws_dynamodb_table.dce_account.id
       type  = "PLAINTEXT"
     }
 
     environment_variable {
       name  = "LEASE_DB"
-      value = aws_dynamodb_table.redbox_lease.id
+      value = aws_dynamodb_table.dce_lease.id
       type  = "PLAINTEXT"
     }
 
@@ -136,7 +136,7 @@ resource "aws_codebuild_project" "reset_build" {
 
 # Configure an IAM Role for CodeBuild
 resource "aws_iam_role" "codebuild_reset" {
-  name = "redbox-reset-codebuild-${var.namespace}"
+  name = "dce-reset-codebuild-${var.namespace}"
 
   assume_role_policy = <<EOF
 {
@@ -160,7 +160,7 @@ EOF
 # Configure IAM Policy for CodeBuild
 resource "aws_iam_role_policy" "codebuild_reset" {
   role = aws_iam_role.codebuild_reset.name
-  name = "redbox-reset-codebuild-${var.namespace}"
+  name = "dce-reset-codebuild-${var.namespace}"
 
   policy = <<POLICY
 {
@@ -225,6 +225,6 @@ resource "aws_cloudwatch_metric_alarm" "reset_failed_builds" {
 
 
 resource "aws_sns_topic" "reset_complete" {
-  name = "redbox-reset-complete-${var.namespace}"
+  name = "dce-reset-complete-${var.namespace}"
   tags = var.global_tags
 }

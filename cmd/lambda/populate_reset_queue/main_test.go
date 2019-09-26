@@ -5,9 +5,9 @@ import (
 
 	"github.com/pkg/errors"
 
-	commock "github.com/Optum/Redbox/pkg/common/mocks"
-	"github.com/Optum/Redbox/pkg/db"
-	dbmock "github.com/Optum/Redbox/pkg/db/mocks"
+	commock "github.com/Optum/Dce/pkg/common/mocks"
+	"github.com/Optum/Dce/pkg/db"
+	dbmock "github.com/Optum/Dce/pkg/db/mocks"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -16,7 +16,7 @@ import (
 // function transitionFinanceLock
 type testTransitionFinanceLockInput struct {
 	ExpectedError              error
-	FindLeasesByAccount        []*db.RedboxLease
+	FindLeasesByAccount        []*db.DceLease
 	FindLeasesByAccountError   error
 	TransitionLeaseStatusError error
 }
@@ -29,7 +29,7 @@ func TestTransitionFinanceLock(t *testing.T) {
 	tests := []testTransitionFinanceLockInput{
 		// Happy Path FinanceLock
 		{
-			FindLeasesByAccount: []*db.RedboxLease{
+			FindLeasesByAccount: []*db.DceLease{
 				{
 					AccountID:   "123",
 					PrincipalID: "abc",
@@ -39,7 +39,7 @@ func TestTransitionFinanceLock(t *testing.T) {
 		},
 		// Happy Path No FinanceLock
 		{
-			FindLeasesByAccount: []*db.RedboxLease{
+			FindLeasesByAccount: []*db.DceLease{
 				{
 					AccountID:   "123",
 					PrincipalID: "abc",
@@ -57,7 +57,7 @@ func TestTransitionFinanceLock(t *testing.T) {
 		// TransitionLeaseStatus Failure
 		{
 			ExpectedError: errors.New("Transition Fail"),
-			FindLeasesByAccount: []*db.RedboxLease{
+			FindLeasesByAccount: []*db.DceLease{
 				{
 					AccountID:   "123",
 					PrincipalID: "abc",
@@ -92,19 +92,19 @@ func TestTransitionFinanceLock(t *testing.T) {
 	}
 }
 
-// testEnqueueRedbox is the structured input for testing the function
-// enqueueRedbox
-type testEnqueueRedboxesInput struct {
+// testEnqueueDce is the structured input for testing the function
+// enqueueDce
+type testEnqueueDceesInput struct {
 	ExpectedError            error
 	SendMessageError         error
 	FindLeasesByAccountError error
 }
 
-// TestEnqueueRedbox tests and verifies the flow of adding all redbox accounts
+// TestEnqueueDce tests and verifies the flow of adding all dce accounts
 // provided into the reset queue and transition the finance lock if necessary
-func TestEnqueueRedbox(t *testing.T) {
+func TestEnqueueDce(t *testing.T) {
 	// Construct test scenarios
-	tests := []testEnqueueRedboxesInput{
+	tests := []testEnqueueDceesInput{
 		// Happy Path
 		{},
 		// SendMessage Failure
@@ -122,7 +122,7 @@ func TestEnqueueRedbox(t *testing.T) {
 	}
 
 	// Iterate through each test in the list
-	redboxes := []*db.RedboxAccount{
+	dcees := []*db.DceAccount{
 		{
 			ID:            "123",
 			AccountStatus: "Leased",
@@ -137,10 +137,10 @@ func TestEnqueueRedbox(t *testing.T) {
 
 		mockDB := dbmock.DBer{}
 		mockDB.On("FindLeasesByAccount", mock.Anything).Return(
-			[]*db.RedboxLease{}, test.FindLeasesByAccountError)
+			[]*db.DceLease{}, test.FindLeasesByAccountError)
 
-		// Call enqueueRedboxes
-		err := enqueueRedboxes(redboxes, &queueURL, &mockQueue, &mockDB)
+		// Call enqueueDcees
+		err := enqueueDcees(dcees, &queueURL, &mockQueue, &mockDB)
 
 		// Assert expectations
 		if test.ExpectedError != nil {

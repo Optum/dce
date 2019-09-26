@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/Optum/Redbox/pkg/common"
+	"github.com/Optum/Dce/pkg/common"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -18,43 +18,43 @@ import (
 
 /*
 The `DB` service abstracts all interactions
-with the Redbox DynamoDB tables
+with the Dce DynamoDB tables
 */
 
 // DB contains DynamoDB client and table names
 type DB struct {
 	// DynamoDB Client
 	Client *dynamodb.DynamoDB
-	// Name of the RedboxAccount table
+	// Name of the DceAccount table
 	AccountTableName string
-	// Name of the RedboxLease table
+	// Name of the DceLease table
 	LeaseTableName string
 }
 
 // The DBer interface includes all methods used by the DB struct to interact with
 // DynamoDB. This is useful if we want to mock the DB service.
 type DBer interface {
-	GetAccount(accountID string) (*RedboxAccount, error)
-	GetReadyAccount() (*RedboxAccount, error)
-	GetAccountsForReset() ([]*RedboxAccount, error)
-	GetAccounts() ([]*RedboxAccount, error)
-	FindAccountsByStatus(status AccountStatus) ([]*RedboxAccount, error)
-	FindAccountsByPrincipalID(principalID string) ([]*RedboxAccount, error)
-	PutAccount(account RedboxAccount) error
-	DeleteAccount(accountID string) (*RedboxAccount, error)
-	PutLease(account RedboxLease) (*RedboxLease, error)
-	TransitionAccountStatus(accountID string, prevStatus AccountStatus, nextStatus AccountStatus) (*RedboxAccount, error)
-	TransitionLeaseStatus(accountID string, principalID string, prevStatus LeaseStatus, nextStatus LeaseStatus) (*RedboxLease, error)
-	FindLeasesByAccount(accountID string) ([]*RedboxLease, error)
-	FindLeasesByPrincipal(principalID string) ([]*RedboxLease, error)
-	FindLeasesByStatus(status LeaseStatus) ([]*RedboxLease, error)
+	GetAccount(accountID string) (*DceAccount, error)
+	GetReadyAccount() (*DceAccount, error)
+	GetAccountsForReset() ([]*DceAccount, error)
+	GetAccounts() ([]*DceAccount, error)
+	FindAccountsByStatus(status AccountStatus) ([]*DceAccount, error)
+	FindAccountsByPrincipalID(principalID string) ([]*DceAccount, error)
+	PutAccount(account DceAccount) error
+	DeleteAccount(accountID string) (*DceAccount, error)
+	PutLease(account DceLease) (*DceLease, error)
+	TransitionAccountStatus(accountID string, prevStatus AccountStatus, nextStatus AccountStatus) (*DceAccount, error)
+	TransitionLeaseStatus(accountID string, principalID string, prevStatus LeaseStatus, nextStatus LeaseStatus) (*DceLease, error)
+	FindLeasesByAccount(accountID string) ([]*DceLease, error)
+	FindLeasesByPrincipal(principalID string) ([]*DceLease, error)
+	FindLeasesByStatus(status LeaseStatus) ([]*DceLease, error)
 	UpdateMetadata(accountID string, metadata map[string]interface{}) error
-	UpdateAccountPrincipalPolicyHash(accountID string, prevHash string, nextHash string) (*RedboxAccount, error)
+	UpdateAccountPrincipalPolicyHash(accountID string, prevHash string, nextHash string) (*DceAccount, error)
 }
 
-// GetAccount returns a Redbox account record corresponding to an accountID
+// GetAccount returns a Dce account record corresponding to an accountID
 // string.
-func (db *DB) GetAccount(accountID string) (*RedboxAccount, error) {
+func (db *DB) GetAccount(accountID string) (*DceAccount, error) {
 	result, err := db.Client.GetItem(
 		&dynamodb.GetItemInput{
 			TableName: aws.String(db.AccountTableName),
@@ -78,7 +78,7 @@ func (db *DB) GetAccount(accountID string) (*RedboxAccount, error) {
 
 // GetAccounts returns a list of accounts from the table
 // TODO implement pagination and query support
-func (db *DB) GetAccounts() ([]*RedboxAccount, error) {
+func (db *DB) GetAccounts() ([]*DceAccount, error) {
 	input := &dynamodb.ScanInput{
 		TableName: aws.String(db.AccountTableName),
 	}
@@ -86,11 +86,11 @@ func (db *DB) GetAccounts() ([]*RedboxAccount, error) {
 	// Execute and verify the query
 	resp, err := db.Client.Scan(input)
 	if err != nil {
-		return make([]*RedboxAccount, 0), err
+		return make([]*DceAccount, 0), err
 	}
 
-	// Return the Redbox Account
-	accounts := []*RedboxAccount{}
+	// Return the Dce Account
+	accounts := []*DceAccount{}
 	for _, r := range resp.Items {
 		n, err := unmarshalAccount(r)
 		if err != nil {
@@ -101,9 +101,9 @@ func (db *DB) GetAccounts() ([]*RedboxAccount, error) {
 	return accounts, nil
 }
 
-// GetReadyAccount returns an available Redbox account record with a
+// GetReadyAccount returns an available Dce account record with a
 // corresponding status of 'Ready'
-func (db *DB) GetReadyAccount() (*RedboxAccount, error) {
+func (db *DB) GetReadyAccount() (*DceAccount, error) {
 	// Construct the query to only grab the first available account
 	input := &dynamodb.ScanInput{
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
@@ -124,13 +124,13 @@ func (db *DB) GetReadyAccount() (*RedboxAccount, error) {
 		return nil, nil
 	}
 
-	// Return the Redbox Account
+	// Return the Dce Account
 	return unmarshalAccount(resp.Items[0])
 }
 
-// GetAccountsForReset returns an array of Redbox account records available to
+// GetAccountsForReset returns an array of Dce account records available to
 // be Reset
-func (db *DB) GetAccountsForReset() ([]*RedboxAccount, error) {
+func (db *DB) GetAccountsForReset() ([]*DceAccount, error) {
 	// Build the query input parameters
 	params := &dynamodb.ScanInput{
 		TableName: aws.String(db.AccountTableName),
@@ -150,19 +150,19 @@ func (db *DB) GetAccountsForReset() ([]*RedboxAccount, error) {
 		return nil, err
 	}
 
-	// Create the array of RedboxAccounts
-	redboxes := []*RedboxAccount{}
+	// Create the array of DceAccounts
+	dcees := []*DceAccount{}
 	for _, r := range resp.Items {
 		n, err := unmarshalAccount(r)
 		if err != nil {
 			return nil, err
 		}
-		redboxes = append(redboxes, n)
+		dcees = append(dcees, n)
 	}
-	return redboxes, nil
+	return dcees, nil
 }
 
-func (db *DB) FindAccountsByStatus(status AccountStatus) ([]*RedboxAccount, error) {
+func (db *DB) FindAccountsByStatus(status AccountStatus) ([]*DceAccount, error) {
 	res, err := db.Client.Query(&dynamodb.QueryInput{
 		TableName: aws.String(db.AccountTableName),
 		IndexName: aws.String("AccountStatus"),
@@ -174,7 +174,7 @@ func (db *DB) FindAccountsByStatus(status AccountStatus) ([]*RedboxAccount, erro
 		KeyConditionExpression: aws.String("AccountStatus = :status"),
 	})
 
-	accounts := []*RedboxAccount{}
+	accounts := []*DceAccount{}
 
 	if err != nil {
 		return accounts, err
@@ -190,7 +190,7 @@ func (db *DB) FindAccountsByStatus(status AccountStatus) ([]*RedboxAccount, erro
 
 	return accounts, nil
 }
-func (db *DB) FindAccountsByPrincipalID(principalID string) ([]*RedboxAccount, error) {
+func (db *DB) FindAccountsByPrincipalID(principalID string) ([]*DceAccount, error) {
 	res, err := db.Client.Query(&dynamodb.QueryInput{
 		TableName: aws.String(db.AccountTableName),
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
@@ -201,7 +201,7 @@ func (db *DB) FindAccountsByPrincipalID(principalID string) ([]*RedboxAccount, e
 		KeyConditionExpression: aws.String("PrincipalId = :pid"),
 	})
 
-	accounts := []*RedboxAccount{}
+	accounts := []*DceAccount{}
 
 	if err != nil {
 		return accounts, err
@@ -220,7 +220,7 @@ func (db *DB) FindAccountsByPrincipalID(principalID string) ([]*RedboxAccount, e
 
 // GetLease retrieves a Lease for the
 // given accountID and principalID
-func (db *DB) GetLease(accountID string, principalID string) (*RedboxLease, error) {
+func (db *DB) GetLease(accountID string, principalID string) (*DceLease, error) {
 	result, err := db.Client.GetItem(
 		&dynamodb.GetItemInput{
 			TableName: aws.String(db.LeaseTableName),
@@ -248,7 +248,7 @@ func (db *DB) GetLease(accountID string, principalID string) (*RedboxLease, erro
 }
 
 // FindLeasesByAccount finds lease values for a given accountID
-func (db *DB) FindLeasesByAccount(accountID string) ([]*RedboxLease, error) {
+func (db *DB) FindLeasesByAccount(accountID string) ([]*DceLease, error) {
 	input := &dynamodb.QueryInput{
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
 			":a1": {
@@ -264,20 +264,20 @@ func (db *DB) FindLeasesByAccount(accountID string) ([]*RedboxLease, error) {
 		return nil, err
 	}
 
-	var redboxes []*RedboxLease
+	var dcees []*DceLease
 	for _, r := range resp.Items {
 		n, err := unmarshalLease(r)
 		if err != nil {
 			return nil, err
 		}
-		redboxes = append(redboxes, n)
+		dcees = append(dcees, n)
 	}
 
-	return redboxes, nil
+	return dcees, nil
 }
 
 //FindLeasesByPrincipal finds leased accounts for a given principalID
-func (db *DB) FindLeasesByPrincipal(principalID string) ([]*RedboxLease, error) {
+func (db *DB) FindLeasesByPrincipal(principalID string) ([]*DceLease, error) {
 	input := &dynamodb.QueryInput{
 		IndexName: aws.String("PrincipalId"),
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
@@ -299,19 +299,19 @@ func (db *DB) FindLeasesByPrincipal(principalID string) ([]*RedboxLease, error) 
 
 	fmt.Println(resp)
 
-	var redboxes []*RedboxLease
+	var dcees []*DceLease
 	for _, r := range resp.Items {
 		n, err := unmarshalLease(r)
 		if err != nil {
 			return nil, err
 		}
-		redboxes = append(redboxes, n)
+		dcees = append(dcees, n)
 	}
 
-	return redboxes, nil
+	return dcees, nil
 }
 
-func (db *DB) FindLeasesByStatus(status LeaseStatus) ([]*RedboxLease, error) {
+func (db *DB) FindLeasesByStatus(status LeaseStatus) ([]*DceLease, error) {
 	res, err := db.Client.Query(&dynamodb.QueryInput{
 		IndexName: aws.String("LeaseStatus"),
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
@@ -323,7 +323,7 @@ func (db *DB) FindLeasesByStatus(status LeaseStatus) ([]*RedboxLease, error) {
 		TableName:              aws.String(db.LeaseTableName),
 	})
 
-	leases := []*RedboxLease{}
+	leases := []*DceLease{}
 
 	if err != nil {
 		return leases, err
@@ -340,8 +340,8 @@ func (db *DB) FindLeasesByStatus(status LeaseStatus) ([]*RedboxLease, error) {
 	return leases, nil
 }
 
-// PutAccount stores a Redbox account in DynamoDB
-func (db *DB) PutAccount(account RedboxAccount) error {
+// PutAccount stores a Dce account in DynamoDB
+func (db *DB) PutAccount(account DceAccount) error {
 	item, err := dynamodbattribute.MarshalMap(account)
 	if err != nil {
 		return err
@@ -359,8 +359,8 @@ func (db *DB) PutAccount(account RedboxAccount) error {
 // PutLease writes an Lease to DynamoDB
 // Returns the previous AccountsLease if there is one - does not return
 // the lease that was added
-func (db *DB) PutLease(lease RedboxLease) (
-	*RedboxLease, error) {
+func (db *DB) PutLease(lease DceLease) (
+	*DceLease, error) {
 	item, err := dynamodbattribute.MarshalMap(lease)
 	if err != nil {
 		return nil, err
@@ -386,7 +386,7 @@ func (db *DB) PutLease(lease RedboxLease) (
 //
 // And to unlock the account:
 //		db.TransitionLeaseStatus(accountId, principalID, ResetLock, Active)
-func (db *DB) TransitionLeaseStatus(accountID string, principalID string, prevStatus LeaseStatus, nextStatus LeaseStatus) (*RedboxLease, error) {
+func (db *DB) TransitionLeaseStatus(accountID string, principalID string, prevStatus LeaseStatus, nextStatus LeaseStatus) (*DceLease, error) {
 	result, err := db.Client.UpdateItem(
 		&dynamodb.UpdateItemInput{
 			// Query in Lease Table
@@ -446,7 +446,7 @@ func (db *DB) TransitionLeaseStatus(accountID string, principalID string, prevSt
 
 // TransitionAccountStatus updates account status for a given accountID and
 // returns the updated record on success
-func (db *DB) TransitionAccountStatus(accountID string, prevStatus AccountStatus, nextStatus AccountStatus) (*RedboxAccount, error) {
+func (db *DB) TransitionAccountStatus(accountID string, prevStatus AccountStatus, nextStatus AccountStatus) (*DceAccount, error) {
 	result, err := db.Client.UpdateItem(
 		&dynamodb.UpdateItemInput{
 			// Query in Lease Table
@@ -500,7 +500,7 @@ func (db *DB) TransitionAccountStatus(accountID string, prevStatus AccountStatus
 
 // UpdateAccountPrincipalPolicyHash updates hash representing the
 // current version of the Principal IAM Policy applied to the acount
-func (db *DB) UpdateAccountPrincipalPolicyHash(accountID string, prevHash string, nextHash string) (*RedboxAccount, error) {
+func (db *DB) UpdateAccountPrincipalPolicyHash(accountID string, prevHash string, nextHash string) (*DceAccount, error) {
 
 	conditionExpression := expression.ConditionBuilder{}
 	if prevHash != "" {
@@ -565,7 +565,7 @@ func (db *DB) UpdateAccountPrincipalPolicyHash(accountID string, prevHash string
 }
 
 // DeleteAccount finds a given account and deletes it if it is not of status `Leased`. Returns the account.
-func (db *DB) DeleteAccount(accountID string) (*RedboxAccount, error) {
+func (db *DB) DeleteAccount(accountID string) (*DceAccount, error) {
 	account, err := db.GetAccount(accountID)
 
 	if err != nil {
@@ -635,25 +635,25 @@ func (db *DB) UpdateMetadata(accountID string, metadata map[string]interface{}) 
 	return nil
 }
 
-func unmarshalAccount(dbResult map[string]*dynamodb.AttributeValue) (*RedboxAccount, error) {
-	redboxAccount := RedboxAccount{}
-	err := dynamodbattribute.UnmarshalMap(dbResult, &redboxAccount)
+func unmarshalAccount(dbResult map[string]*dynamodb.AttributeValue) (*DceAccount, error) {
+	dceAccount := DceAccount{}
+	err := dynamodbattribute.UnmarshalMap(dbResult, &dceAccount)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return &redboxAccount, nil
+	return &dceAccount, nil
 }
 
-func unmarshalLease(dbResult map[string]*dynamodb.AttributeValue) (*RedboxLease, error) {
-	redboxLease := RedboxLease{}
-	err := dynamodbattribute.UnmarshalMap(dbResult, &redboxLease)
+func unmarshalLease(dbResult map[string]*dynamodb.AttributeValue) (*DceLease, error) {
+	dceLease := DceLease{}
+	err := dynamodbattribute.UnmarshalMap(dbResult, &dceLease)
 	if err != nil {
 		return nil, err
 	}
 
-	return &redboxLease, nil
+	return &dceLease, nil
 }
 
 // New creates a new DB Service struct,

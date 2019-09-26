@@ -6,16 +6,16 @@ import (
 	"testing"
 	"time"
 
-	awsMocks "github.com/Optum/Redbox/pkg/awsiface/mocks"
-	budgetMocks "github.com/Optum/Redbox/pkg/budget/mocks"
-	"github.com/Optum/Redbox/pkg/common"
-	commonMocks "github.com/Optum/Redbox/pkg/common/mocks"
-	"github.com/Optum/Redbox/pkg/db"
-	dbMocks "github.com/Optum/Redbox/pkg/db/mocks"
-	"github.com/Optum/Redbox/pkg/email"
-	emailMocks "github.com/Optum/Redbox/pkg/email/mocks"
-	"github.com/Optum/Redbox/pkg/usage"
-	usageMocks "github.com/Optum/Redbox/pkg/usage/mocks"
+	awsMocks "github.com/Optum/Dce/pkg/awsiface/mocks"
+	budgetMocks "github.com/Optum/Dce/pkg/budget/mocks"
+	"github.com/Optum/Dce/pkg/common"
+	commonMocks "github.com/Optum/Dce/pkg/common/mocks"
+	"github.com/Optum/Dce/pkg/db"
+	dbMocks "github.com/Optum/Dce/pkg/db/mocks"
+	"github.com/Optum/Dce/pkg/email"
+	emailMocks "github.com/Optum/Dce/pkg/email/mocks"
+	"github.com/Optum/Dce/pkg/usage"
+	usageMocks "github.com/Optum/Dce/pkg/usage/mocks"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/stretchr/testify/mock"
@@ -28,10 +28,10 @@ func TestCheckBudget(t *testing.T) {
 	emailTemplateHTML := `
 <p>
 {{if .IsOverBudget}}
-AWS Redbox Lease for principal {{.Lease.PrincipalID}} in AWS Account {{.Lease.AccountID}}
+AWS Dce Lease for principal {{.Lease.PrincipalID}} in AWS Account {{.Lease.AccountID}}
 has exceeded its budget of ${{.Lease.BudgetAmount}}. Actual spend is ${{.ActualSpend}}
 {{else}}
-AWS Redbox Lease for principal {{.Lease.PrincipalID}} in AWS Account {{.Lease.AccountID}}
+AWS Dce Lease for principal {{.Lease.PrincipalID}} in AWS Account {{.Lease.AccountID}}
 has exceeded the {{.ThresholdPercentile}}% threshold limit for its budget of ${{.Lease.BudgetAmount}}.
 Actual spend is ${{.ActualSpend}}
 {{end}}
@@ -39,31 +39,31 @@ Actual spend is ${{.ActualSpend}}
 `
 	emailTemplateText := `
 {{if .IsOverBudget}}
-AWS Redbox Lease for principal {{.Lease.PrincipalID}} in AWS Account {{.Lease.AccountID}}
+AWS Dce Lease for principal {{.Lease.PrincipalID}} in AWS Account {{.Lease.AccountID}}
 has exceeded its budget of ${{.Lease.BudgetAmount}}. Actual spend is ${{.ActualSpend}}
 {{else}}
-AWS Redbox Lease for principal {{.Lease.PrincipalID}} in AWS Account {{.Lease.AccountID}}
+AWS Dce Lease for principal {{.Lease.PrincipalID}} in AWS Account {{.Lease.AccountID}}
 has exceeded the {{.ThresholdPercentile}}% threshold limit for its budget of ${{.Lease.BudgetAmount}}.
 Actual spend is ${{.ActualSpend}}
 {{end}}
 `
 	emailTemplateSubject := `
-AWS Redbox Lease {{if .IsOverBudget}}over budget{{else}}at {{.ThresholdPercentile}}% of budget{{end}} [{{.Lease.AccountID}}]
+AWS Dce Lease {{if .IsOverBudget}}over budget{{else}}at {{.ThresholdPercentile}}% of budget{{end}} [{{.Lease.AccountID}}]
 `
 
 	expectedOverBudgetEmailHTML := strings.TrimSpace(`
 <p>
 
-AWS Redbox Lease for principal test-user in AWS Account 1234567890
+AWS Dce Lease for principal test-user in AWS Account 1234567890
 has exceeded its budget of $100. Actual spend is $150
 
 </p>
 `)
 	expectedOverBudgetEmailText := strings.TrimSpace(`
-AWS Redbox Lease for principal test-user in AWS Account 1234567890
+AWS Dce Lease for principal test-user in AWS Account 1234567890
 has exceeded its budget of $100. Actual spend is $150
 `)
-	expectedOverBudgetText := "AWS Redbox Lease over budget [1234567890]"
+	expectedOverBudgetText := "AWS Dce Lease over budget [1234567890]"
 
 	type checkBudgetTestInput struct {
 		budgetAmount                  float64
@@ -93,7 +93,7 @@ has exceeded its budget of $100. Actual spend is $150
 		emailSvc := &emailMocks.Service{}
 		input := &lambdaHandlerInput{
 			dbSvc: dbSvc,
-			lease: &db.RedboxLease{
+			lease: &db.DceLease{
 				AccountID:                "1234567890",
 				PrincipalID:              "test-user",
 				LeaseStatus:              test.leaseStatus,
@@ -121,7 +121,7 @@ has exceeded its budget of $100. Actual spend is $150
 
 		// Should grab the account from the DB, to get it's adminRoleArn
 		dbSvc.On("GetAccount", "1234567890").
-			Return(&db.RedboxAccount{
+			Return(&db.DceAccount{
 				AdminRoleArn: "mock:admin:role:arn",
 			}, nil)
 
@@ -161,7 +161,7 @@ has exceeded its budget of $100. Actual spend is $150
 			dbSvc.On("TransitionLeaseStatus",
 				"1234567890", "test-user",
 				db.Active, test.expectedLeaseStatusTransition,
-			).Return(func(acctID string, pID string, from db.LeaseStatus, to db.LeaseStatus) *db.RedboxLease {
+			).Return(func(acctID string, pID string, from db.LeaseStatus, to db.LeaseStatus) *db.DceLease {
 				// Return the lease object, with it's updated status
 				input.lease.LeaseStatus = test.expectedLeaseStatusTransition
 				return input.lease
@@ -250,18 +250,18 @@ has exceeded its budget of $100. Actual spend is $150
 			shouldSQSReset:              false,
 			// Should send notification email
 			shouldSendEmail:      true,
-			expectedEmailSubject: "AWS Redbox Lease at 75% of budget [1234567890]",
+			expectedEmailSubject: "AWS Dce Lease at 75% of budget [1234567890]",
 			expectedEmailBodyHTML: strings.TrimSpace(`
 <p>
 
-AWS Redbox Lease for principal test-user in AWS Account 1234567890
+AWS Dce Lease for principal test-user in AWS Account 1234567890
 has exceeded the 75% threshold limit for its budget of $100.
 Actual spend is $76
 
 </p>
 `),
 			expectedEmailBodyText: strings.TrimSpace(`
-AWS Redbox Lease for principal test-user in AWS Account 1234567890
+AWS Dce Lease for principal test-user in AWS Account 1234567890
 has exceeded the 75% threshold limit for its budget of $100.
 Actual spend is $76
 `),

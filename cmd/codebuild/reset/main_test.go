@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"testing"
 
-	commonMocks "github.com/Optum/Redbox/pkg/common/mocks"
-	"github.com/Optum/Redbox/pkg/db"
-	"github.com/Optum/Redbox/pkg/db/mocks"
+	commonMocks "github.com/Optum/Dce/pkg/common/mocks"
+	"github.com/Optum/Dce/pkg/db"
+	"github.com/Optum/Dce/pkg/db/mocks"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -25,7 +25,7 @@ func TestResetPipeline(t *testing.T) {
 			// Mock Leases
 			dbSvc.
 				On("FindLeasesByAccount", "111").
-				Return([]*db.RedboxLease{
+				Return([]*db.DceLease{
 					{
 						AccountID:   "111",
 						PrincipalID: "222",
@@ -42,12 +42,12 @@ func TestResetPipeline(t *testing.T) {
 			// Mock Lease status change
 			dbSvc.
 				On("TransitionLeaseStatus", "111", "222", db.ResetLock, db.Active).
-				Return(&db.RedboxLease{}, nil)
+				Return(&db.DceLease{}, nil)
 
 			// Mock Account status change
 			dbSvc.
 				On("TransitionAccountStatus", "111", db.NotReady, db.Ready).
-				Return(&db.RedboxAccount{}, nil)
+				Return(&db.DceAccount{}, nil)
 
 			snsSvc.On("PublishMessage",
 				mock.MatchedBy(func(arn *string) bool {
@@ -83,7 +83,7 @@ func TestResetPipeline(t *testing.T) {
 			// Mock Leases
 			dbSvc.
 				On("FindLeasesByAccount", "111").
-				Return([]*db.RedboxLease{
+				Return([]*db.DceLease{
 					// Should call TransitionLeaseStatus for this ResetFinanceLock lease status
 					{
 						AccountID:   "111",
@@ -101,12 +101,12 @@ func TestResetPipeline(t *testing.T) {
 			// Mock Lease status change
 			dbSvc.
 				On("TransitionLeaseStatus", "111", "222", db.ResetFinanceLock, db.FinanceLock).
-				Return(&db.RedboxLease{}, nil)
+				Return(&db.DceLease{}, nil)
 
 			// Mock Account status change
 			dbSvc.
 				On("TransitionAccountStatus", "111", db.NotReady, db.Ready).
-				Return(&db.RedboxAccount{}, nil)
+				Return(&db.DceAccount{}, nil)
 
 			snsSvc.On("PublishMessage",
 				mock.MatchedBy(func(arn *string) bool {
@@ -142,12 +142,12 @@ func TestResetPipeline(t *testing.T) {
 			// Mock Leases
 			dbSvc.
 				On("FindLeasesByAccount", "111").
-				Return([]*db.RedboxLease{}, nil)
+				Return([]*db.DceLease{}, nil)
 
 			// Should change the Account Status
 			dbSvc.
 				On("TransitionAccountStatus", "111", db.NotReady, db.Ready).
-				Return(&db.RedboxAccount{}, nil)
+				Return(&db.DceAccount{}, nil)
 
 			snsSvc.On("PublishMessage",
 				mock.MatchedBy(func(arn *string) bool {
@@ -183,7 +183,7 @@ func TestResetPipeline(t *testing.T) {
 			// Mock Leases
 			dbSvc.
 				On("FindLeasesByAccount", "111").
-				Return([]*db.RedboxLease{}, nil)
+				Return([]*db.DceLease{}, nil)
 
 			// Mock Account status change, so it returns an error
 			// saying that the Account was not in "NotReady" state.
@@ -195,7 +195,7 @@ func TestResetPipeline(t *testing.T) {
 
 			dbSvc.
 				On("GetAccount", "111").
-				Return(&db.RedboxAccount{}, nil)
+				Return(&db.DceAccount{}, nil)
 
 			snsSvc.On("PublishMessage",
 				mock.MatchedBy(func(arn *string) bool {
@@ -246,7 +246,7 @@ func TestResetPipeline(t *testing.T) {
 			// Mock Leases
 			dbSvc.
 				On("FindLeasesByAccount", "111").
-				Return([]*db.RedboxLease{}, nil)
+				Return([]*db.DceLease{}, nil)
 
 			// Mock Account status change, so it returns an error
 			// saying that the Account was not in "NotReady" state.
