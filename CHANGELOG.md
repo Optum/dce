@@ -1,3 +1,8 @@
+## v0.18.0
+
+- Minor fixes to `scripts/deploy_local/deploy_local_build.sh` for options to be recognized.
+- README updates to include current steps for build and deployment.
+
 ## v0.17.0
 
 - Deprecate Launchpad from here
