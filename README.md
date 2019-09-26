@@ -1,6 +1,6 @@
-# AWS DCE
+# AWS Dcs
 
-# The premier repository for AWS Disposable Cloud Environment (DCE).
+# The premier repository for AWS Dcs.
 
 <!--
 Generated with markdown-toc
@@ -10,16 +10,16 @@ markdown-toc -i README.md --maxdepth 3
 
 <!-- toc -->
 
-- [What is DCE?](#what-is-dcs)
-- [Implementing DCE](#implementing-dcs)
-  * [Deploying DCE](#deploying-dcs)
-  * [Using the DCE API](#using-the-dcs-api)
-  * [Integrating with DCE](#integrating-with-dcs)
+- [What is Dcs?](#what-is-dcs)
+- [Implementing Dcs](#implementing-dcs)
+  * [Deploying Dcs](#deploying-dcs)
+  * [Using the Dcs API](#using-the-dcs-api)
+  * [Integrating with Dcs](#integrating-with-dcs)
   * [Integrating with Identity Providers](#integrating-with-identity-providers)
   * [Configuring aws-nuke](#configuring-aws-nuke)
 - [Usage](#usage)
-  * [Adding AWS Accounts to the DCE Account Pool](#adding-aws-accounts-to-the-dcs-account-pool)
-  * [Authenticating into DCE Accounts](#authenticating-into-dcs-accounts)
+  * [Adding AWS Accounts to the Dcs Account Pool](#adding-aws-accounts-to-the-dcs-account-pool)
+  * [Authenticating into Dcs Accounts](#authenticating-into-dcs-accounts)
 - [API Reference](#api-reference)
   * [API Location](#api-location)
   * [Authorization](#authorization)
@@ -47,92 +47,38 @@ markdown-toc -i README.md --maxdepth 3
 
 <!-- tocstop -->
 
-## What is Disposable Cloud Environment (DCE)?
-
-The Disposable Cloud Environment (DCE) is a mechanism for providing temporary, limited Amazon Web Services (AWS)
-accounts. Accounts can be "leased" for a period of seven days (by default). After the time has expired, the 
-account is _reset_ and returned to a pool of accounts to be leased again.
-
-At a high-level, DCE consists of [AWS Lambda](https://aws.amazon.com/lambda/) functions (implemented in [Go](https://golang.org/)), 
-[Amazon DynamoDB](https://aws.amazon.com/dynamodb/) tables, 
-[Amazon Simple Notifcation Servce (SNS)](https://aws.amazon.com/sns/) topics,
-and APIs exposed with [Amazon API Gateway](https://aws.amazon.com/api-gateway/). 
-These resources are created in the AWS account using [Hashicorp Terraform](https://www.terraform.io/).
-
-## Implementing DCE
-
-This repository provides a set of components which implementors (you) can use to deploy your own DCE instance. 
-These components come in the form of:
-
-- Terraform modules to deploy DCE infrastructure to AWS
-- Packaged go modules and other assets, to deploy to Lambda, CodeBuild, etc. to your AWS master account
-
-With these resources deployed, you will have access to a set of _integration points_, for working with your DCE instance:
-
-- APIs for managing DCE resources (accounts, leases, etc.)
-- SNS topics, allowing you hook in to DCE events, and implement your own custom business logic
-
-### Requirements
-
-Before you can deploy DCE into your account, you will need the following:
-
-- An AWS account to serve as the master account.
-- Terraform 0.12+
-- Go 1.12+
-- GNU Make 3.81+
-
-To run the `terraform init` command later, make sure that you have API access
-to your AWS account. To double-check your AWS API credentials, you can use
-the `aws configure` command as shown here:
-
-```bash
-$ aws configure list
-      Name                    Value             Type    Location
-      ----                    -----             ----    --------
-   profile                <not set>             None    None
-access_key                <not set>             None    None
-secret_key                <not set>             None    None
-    region                <not set>             None    None
-```
-
-This output shows an account that _has not yet been initialized_.
-If your configuration looks like this, make sure to configure 
-your API and CLI access before continuing. See [Configurating the AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html)
-to learn how to configure the CLI and API credentials.
-
-### Deploying DCE
-
-To deploy DCE into your master account, follow these steps:
-
-1. Clone this repository.
-    ```bash
-    $ git clone git@github.com:Optum/DCE.git
-    ```
-1. Change into the repository directory.
-    ```bash
-    $ cd DCE
-    ```
-1. Run `make deploy_local` to build and deploy the artifacts to your AWS account.
-    ```bash
-    $ make deploy_local
-    ...
-
-    ```
-
-Once the last command has completed successfully, you will have DCE deployed in your AWS account!
-
-### Using the DCE API
+## What is Dcs?
 
 _TODO_
 
-### Integrating with DCE
+## Implementing Dcs
 
-DCE provides a number of SNS topics, which allow you to hook into DCE events, and implement your own custom business logic. Out of the box, DCE is unopinionated about how you manage the details of your DCE accounts. Some questions which are left to you to answer are:
+This repo provides a set of components which implementors (you) can use to deploy your own Dcs instance. These components come in the form of:
+
+- Terraform modules to deploy Dcs infrastructure to AWS
+- Packaged go modules and other assets, to deploy to Lambda, CodeBuild, etc. to your AWS master account
+
+With these resources deployed, you will have access to a set of _integration points_, for working with your Dcs instance:
+
+- APIs for managing Dcs resources (accounts, leases, etc.)
+- SNS topics, allowing you hook in to Dcs events, and implement your own custom business logic
+
+### Deploying Dcs
+
+_TODO_
+
+### Using the Dcs API
+
+_TODO_
+
+### Integrating with Dcs
+
+Dcs provides a number of SNS topics, which allow you to hook into Dcs events, and implement your own custom business logic. Out of the box, Dcs is unopinionated about how you manage the details of your Dcs accounts. Some questions which are left to you to answer are:
 
 - How do you grant and remove access to AWS Accounts?
 - What do you do when an account reaches a budget threshold?
 
-To answers to these questions, you can subscribe to SNS topics provided by DCE. For example, you could subscribe to the _Lease Added_ topic, create an IAM User, and email an invite to the lease principal to login. On _Lease Removed_, you might delete that IAM User, and notify the lease principal that they no longer have access.
+To answers to these questions, you can subscribe to SNS topics provided by Dcs. For example, you could subscribe to the _Lease Added_ topic, create an IAM User, and email an invite to the lease principal to login. On _Lease Removed_, you might delete that IAM User, and notify the lease principal that they no longer have access.
 
 See the [SNS Topic Reference](#sns-topic-reference) for details on available SNS topics.
 
@@ -142,20 +88,20 @@ When a new AWS account is added to the pool, [a role is created to allow princip
 
 To integrate with alternative identity providers, you may [modify the Assume Role Policy on the IAM role.](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-idp.html). You may listen to events on the [account-created SNS topic](#account-created), which include the `principalRoleArn` in the message body.
 
-#### Example: Vanilla DCE Integration
+#### Example: Vanilla Dcs Integration
 
-_TODO: what's the simplest / least opinionated approach to integrating with DCE_
+_TODO: what's the simplest / least opinionated approach to integrating with Dcs_
 
 
 
 
 ### Configuring aws-nuke
 
-In order to reset AWS accounts, DCE uses the [open source `aws-nuke` tool](https://github.com/rebuy-de/aws-nuke). This tool tries its darndest to delete every single resource in your account, and will make several attempts to ensure everything is wiped clean.
+In order to reset AWS accounts, Dcs uses the [open source `aws-nuke` tool](https://github.com/rebuy-de/aws-nuke). This tool tries its darndest to delete every single resource in your account, and will make several attempts to ensure everything is wiped clean.
 
-To prevent `aws-nuke` from deleting certain resources, you may provide a YAML configuration with a list of resource _filters_. (see [`aws-nuke` docs for the YAML filter configuration syntax](https://github.com/rebuy-de/aws-nuke#filtering-resources)). By default, DCE filters out resources which are critical to running DCE -- for example, the IAM roles for your account's `adminRoleArn` / `principalRoleArn`.
+To prevent `aws-nuke` from deleting certain resources, you may provide a YAML configuration with a list of resource _filters_. (see [`aws-nuke` docs for the YAML filter configuration syntax](https://github.com/rebuy-de/aws-nuke#filtering-resources)). By default, Dcs filters out resources which are critical to running Dcs -- for example, the IAM roles for your account's `adminRoleArn` / `principalRoleArn`.
 
-As a DCE implementor, you may have additional resources you wish protect from `aws-nuke`. If this is the case, you may specify your own custom `aws-nuke` YAML configuration:
+As a Dcs implementor, you may have additional resources you wish protect from `aws-nuke`. If this is the case, you may specify your own custom `aws-nuke` YAML configuration:
 
 - Copy the contents of [`default-nuke-config-template.yml`](./cmd/codebuild/reset/default-nuke-config-template.yml) into your own file, and modify as needed.
   - See [`aws-nuke` docs for the YAML `filters` configuration syntax](https://github.com/rebuy-de/aws-nuke#filtering-resources) 
@@ -165,13 +111,13 @@ As a DCE implementor, you may have additional resources you wish protect from `a
 
 #### Template parameters for aws-nuke YAML configuration
 
-DCE allows you to use a number of template parameters within your `aws-nuke` YAML config, which will be resolved a runtime:
+Dcs allows you to use a number of template parameters within your `aws-nuke` YAML config, which will be resolved a runtime:
 
 | Parameter | Description |
 | ------ | ------ |
 | `{{id}}` |  The AWS Account ID, for the account currently being nuked |
-| `{{admin_role}}` |  The name of the IAM role assumed by the DCE master account to manage the child account. |
-| `{{principal_role}}` |  The name of the IAM role assumed by end users of DCE, in order to login to their AWS account |
+| `{{admin_role}}` |  The name of the IAM role assumed by the Dcs master account to manage the child account. |
+| `{{principal_role}}` |  The name of the IAM role assumed by end users of Dcs, in order to login to their AWS account |
 | `{{principal_policy}}` | The IAM policy assigned the the `principal_role` |
 
 
@@ -182,9 +128,9 @@ By default, `aws-nuke` is set to execute in _Dry Run_ mode, so that you don't ac
 
 ## Usage
 
-### Adding AWS Accounts to the DCE Account Pool
+### Adding AWS Accounts to the Dcs Account Pool
 
-To add an account to the DCE Account Pool, you may use the `POST /accounts` endpoint.
+To add an account to the Dcs Account Pool, you may use the `POST /accounts` endpoint.
 
 eg.
 
@@ -192,7 +138,7 @@ eg.
 POST /accounts
 {
   "id": "123456789012"
-  "adminRoleArn": "arn:aws:iam::123456789012:role/DCEAdmin"
+  "adminRoleArn": "arn:aws:iam::123456789012:role/DcsAdmin"
 }
 
 Response:
@@ -200,7 +146,7 @@ Response:
   "id": "1234567890",
   "accountStatus": "NotReady",
   "adminRoleArn": "arn:aws:iam::1234567890123:role/adminRole",
-  "principalRoleArn":  "arn:aws:iam::1234567890123:role/DCEPrincipal",
+  "principalRoleArn":  "arn:aws:iam::1234567890123:role/DcsPrincipal",
   "principalPolicyHash": "",
   "createdOn": 1560306008,
   "lastModifiedOn": 1560306008,
@@ -208,26 +154,26 @@ Response:
 }
 ```
 
-The IAM Role passed in as `adminRoleArn` must be assumable by the DCE master account, and have appropriate IAM access to manage the DCE Account (eg. can run [aws-nuke](https://github.com/rebuy-de/aws-nuke) in the account).
+The IAM Role passed in as `adminRoleArn` must be assumable by the Dcs master account, and have appropriate IAM access to manage the Dcs Account (eg. can run [aws-nuke](https://github.com/rebuy-de/aws-nuke) in the account).
 
 When adding the account to the pool, the account will be marked as `NotReady`, and queued for reset. You will need to wait for reset to complete and the account to be marked as `Ready` before requesting leases against the account.
 
-DCE will create a new IAM Role to be assumed by principal users of the account. The ARN for this role will be included in the response, as `principalRoleArn`. The principal's role has near-admin access to the account, with the following exceptions:
+Dcs will create a new IAM Role to be assumed by principal users of the account. The ARN for this role will be included in the response, as `principalRoleArn`. The principal's role has near-admin access to the account, with the following exceptions:
 
-- Cannot create resources which cannot be deleted by DCE
+- Cannot create resources which cannot be deleted by Dcs
 - Cannot create support tickets, or increase service limits
 - Is restricted to `us-east-1` and `us-west-1`
-- Cannot modify resources managed by DCE (including itself)
+- Cannot modify resources managed by Dcs (including itself)
 
-See [_Integrating with Identity Providers_](#integrating-with-identity-providers) for documentation on assuming the DCE principal role using an identity provider.
+See [_Integrating with Identity Providers_](#integrating-with-identity-providers) for documentation on assuming the Dcs principal role using an identity provider.
 
-### Authenticating into DCE Accounts
+### Authenticating into Dcs Accounts
 
 ## API Reference
 
-DCE exposes an API for managing DCE accounts and leases.
+Dcs exposes an API for managing Dcs accounts and leases.
 
-See [swaggerDCE.yaml](./modules/swaggerDCE.yaml) for endpoint documentation (better Swagger docs to come...).
+See [swaggerDcs.yaml](./modules/swaggerDcs.yaml) for endpoint documentation (better Swagger docs to come...).
 
 ### API Location
 
@@ -239,22 +185,22 @@ terraform output api_url
 
 ### Authorization
 
-The DCE API is authorized via IAM. To access the API, you must have access to an IAM principal with [appropriate IAM access to execute the API](https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-iam-policy-examples-for-api-execution.html).
+The Dcs API is authorized via IAM. To access the API, you must have access to an IAM principal with [appropriate IAM access to execute the API](https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-iam-policy-examples-for-api-execution.html).
 
 All API requests must be signed with Signature Version 4. See [AWS documentation for signing requests](https://docs.aws.amazon.com/general/latest/gr/sigv4_signing.html).
 
-#### IAM Policy for DCE API requests
+#### IAM Policy for Dcs API requests
 
-The IAM principal used to send requests to the DCE API must have sufficient permissions to execute API requests.
+The IAM principal used to send requests to the Dcs API must have sufficient permissions to execute API requests.
 
-The Terraform module in the repo provides an IAM policy with appropriate permissions for executing DCE API requests. You can access the policy name and ARN as Terraform outputs.
+The Terraform module in the repo provides an IAM policy with appropriate permissions for executing Dcs API requests. You can access the policy name and ARN as Terraform outputs.
 
 ```
 terraform output api_access_policy_name
 terraform output api_access_policy_arn
 ```
 
-#### IAM Policy for DCE Accounts
+#### IAM Policy for Dcs Accounts
 
 The Terraform module will come with a sane starting policy that is applied to the IAM principal.  This policy is applied when a new account is added or when a lease is unlocked.  It is possible to change the policy to what is needed by providing the Terraform variable `dcs_principal_policy`.  The value of this variable is a location of a policy file that can be a Go template.  It is uploaded into S3 and is read from there as the policy is applied.
 
@@ -321,7 +267,7 @@ This message includes a payload as JSON, with the following fields:
 | -------------- | -------------------------------- | ----------------------------------------------------------------------------------------------------------- |
 | id             | string                           | AWS Account ID                                                                                              |
 | accountStatus  | "Ready", "NotReady", or "Leased" | Account status                                                                                              |
-| adminRoleArn   | string                           | ARN for the IAM role used by the DCE master account to manage the account                                |
+| adminRoleArn   | string                           | ARN for the IAM role used by the Dcs master account to manage the account                                |
 | lastModifiedOn | int                              | Last modified timestamp                                                                                     |
 | createdOn      | int                              | Last modified timestamp                                                                                     |
 | metadata       | JSON object                      | Metadata field contains any organization specific data pertaining to the account that needs to be persisted |
@@ -334,7 +280,7 @@ Example:
   "id": "1234567890",
   "accountStatus": "NotReady",
   "adminRoleArn": "arn:aws:iam::1234567890123:role/adminRole",
-  "principalRoleArn": "arn:aws:iam::1234567890123:role/DCEPrincipal",
+  "principalRoleArn": "arn:aws:iam::1234567890123:role/DcsPrincipal",
   "principalPolicyHash": "\"d41d8cd98f00b204e9800998ecf8427e-38\"",
   "createdOn": 1560306008,
   "lastModifiedOn": 1560306008,
@@ -450,7 +396,7 @@ terraform output lease_removed_topic_arn
 
 Triggered when a lease is "locked". Locking a lease means that the principal's access to the account has been temporarily disabled. For example, a lease will be locked when the AWS account reaches it's max budget threshold, and unlocked again after the end of the lease period.
 
-AWS DCE is unopinionated about how lease locks are implemented. It is up to you on how you want to respond to this topic (eg. by removing the principal's access to the account). 
+AWS Dcs is unopinionated about how lease locks are implemented. It is up to you on how you want to respond to this topic (eg. by removing the principal's access to the account). 
 
 #### Payload
 
@@ -492,7 +438,7 @@ terraform output lease_locked_topic_arn
 
 Triggered when a lease is "unlocked". Locking a lease means that the principal's access to the account has been temporarily disabled. For example, a lease will be locked when the AWS account reaches it's max budget threshold, and unlocked again after the end of the lease period.
 
-AWS DCE is unopinionated about how lease locks are implemented. It is up to you on how you want to respond to this topic (eg. by removing the principal's access to the account). 
+AWS Dcs is unopinionated about how lease locks are implemented. It is up to you on how you want to respond to this topic (eg. by removing the principal's access to the account). 
 
 #### Payload
 
@@ -590,7 +536,7 @@ above for automated deployment.
 
 ## Database Schema
 
-**DCEAccount<Namespace>** Table
+**DcsAccount<Namespace>** Table
 
 Status of each Account in our pool
 
@@ -605,7 +551,7 @@ Status of each Account in our pool
 Hash Key: `Id`
 Range Key: `AccountStatus`
 
-**DCELease<Namespace>** Table
+**DcsLease<Namespace>** Table
 
 Current state of a users lease to a AWS Account.
 Records are unique by AccountId+PrincipalId.
@@ -631,7 +577,7 @@ Secondary Range Key: PrincipalId
 
 ## Database Backups
 
-DCE does not backup your DynamoDB tables by default. However, if you want to restore a DynamoDB table from a backup, we do provide a helper script in [scripts/restore_db.sh](./scripts/restore_db.sh). This script is also provided as a Github release artifact, for easy access.
+Dcs does not backup your DynamoDB tables by default. However, if you want to restore a DynamoDB table from a backup, we do provide a helper script in [scripts/restore_db.sh](./scripts/restore_db.sh). This script is also provided as a Github release artifact, for easy access.
 
 To restore a DynamoDB table from a backup:
 
@@ -665,14 +611,14 @@ After restoring your DynamoDB table from a backup, you should rerun `terraform a
 
 ## Reset
 
-AWS DCE Reset will process an AWS DCE Account to a clean and secure state.
+AWS Dcs Reset will process an AWS Dcs Account to a clean and secure state.
 The Reset has 2 main procedures, clearing the resources in an account (**Nuke**).
 
 The Reset of an account is done through a CodeBuild stage in a CodePipeline.
 
 ### Nuke
 
-To clear resources from an AWS DCE Account, [aws-nuke](https://github.com/rebuy-de/aws-nuke)
+To clear resources from an AWS Dcs Account, [aws-nuke](https://github.com/rebuy-de/aws-nuke)
 is used to list out all nuke-able resources and remove them. The defualt
 configuration file used to filter resources to not delete is located
 [here](cmd/codebuild/reset/default-nuke-config-template.yml). The
@@ -692,7 +638,7 @@ They will vary by each service, please refer to the documentation above to creat
 
 ## API Spec
 
-DCE API Spec available via swaggerUI on github host: [API Spec](https://github.optum.com/pages/CommercialCloud-Team/aws_dcs/)
+Dcs API Spec available via swaggerUI on github host: [API Spec](https://github.optum.com/pages/CommercialCloud-Team/aws_dcs/)
 
 ## Notification via SES
 
