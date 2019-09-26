@@ -1,9 +1,6 @@
-## vNext
+## v0.17.0
 
 - Deprecate Launchpad from here
-
-## vNext
-
 - Modify budget lambdas to write to caching db
 
 ## v0.16.0

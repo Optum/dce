@@ -1,6 +1,6 @@
 # AWS DCE
 
-# The premier repository for AWS Disposable Cloud Environment (DCE).
+# The premier repository for AWS Disposable Cloud Environments (DCE).
 
 <!--
 Generated with markdown-toc
