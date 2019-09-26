@@ -1,7 +1,7 @@
 
 #!/bin/bash
 
-# Destroy Local Dcs application deployment
+# Destroy Local Redbox application deployment
 #
 # Example:
 #   ./scripts/deploy_local/destroy_local_build.sh

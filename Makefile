@@ -13,7 +13,7 @@ vendor:
 	go mod vendor
 
 mod: 
-	-go mod init github.com/Optum/Dcs
+	-go mod init github.com/Optum/Redbox
 
 vet:
 	go vet

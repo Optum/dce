@@ -4,7 +4,7 @@ import (
 	"github.com/pkg/errors"
 	"time"
 
-	"github.com/Optum/Dcs/pkg/common"
+	"github.com/Optum/Redbox/pkg/common"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/rebuy-de/aws-nuke/cmd"
 	"github.com/rebuy-de/aws-nuke/pkg/awsutil"
@@ -38,7 +38,7 @@ func NukeAccount(input *NukeAccountInput) error {
 
 	// Get the Credentials of the Role to be assumed into for the Nuke
 	roleArn := "arn:aws:iam::" + input.AccountID + ":role/" + input.RoleName
-	roleSessionName := "DcsNuke" + input.AccountID
+	roleSessionName := "RedboxNuke" + input.AccountID
 	assumeRoleInputs := sts.AssumeRoleInput{
 		RoleArn:         &roleArn,
 		RoleSessionName: &roleSessionName,

@@ -6,9 +6,9 @@ import (
 	"log"
 	"regexp"
 
-	"github.com/Optum/Dcs/pkg/db"
+	"github.com/Optum/Redbox/pkg/db"
 
-	"github.com/Optum/Dcs/pkg/common"
+	"github.com/Optum/Redbox/pkg/common"
 	"github.com/aws/aws-sdk-go/service/sqs"
 )
 

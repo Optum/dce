@@ -9,15 +9,15 @@ module "publish_locks_lambda" {
 
   environment = {
     AWS_CURRENT_REGION       = var.aws_region
-    ACCOUNT_DB               = aws_dynamodb_table.dcs_account.id
-    LEASE_DB                 = aws_dynamodb_table.dcs_lease.id
+    ACCOUNT_DB               = aws_dynamodb_table.redbox_account.id
+    LEASE_DB                 = aws_dynamodb_table.redbox_lease.id
     LEASE_LOCKED_TOPIC_ARN   = aws_sns_topic.lease_locked.arn
     LEASE_UNLOCKED_TOPIC_ARN = aws_sns_topic.lease_unlocked.arn
   }
 }
 
 resource "aws_lambda_event_source_mapping" "publish_locks_from_dynamo_db" {
-  event_source_arn  = aws_dynamodb_table.dcs_lease.stream_arn
+  event_source_arn  = aws_dynamodb_table.redbox_lease.stream_arn
   function_name     = module.publish_locks_lambda.name
   batch_size        = 1
   starting_position = "LATEST"
@@ -37,7 +37,7 @@ resource "aws_iam_role_policy" "publish_locks_lambda_dynamo_db" {
             "dynamodb:GetShardIterator",
             "dynamodb:ListStreams"
         ],
-        "Resource": "${aws_dynamodb_table.dcs_lease.stream_arn}"
+        "Resource": "${aws_dynamodb_table.redbox_lease.stream_arn}"
     },
     {
         "Effect": "Allow",

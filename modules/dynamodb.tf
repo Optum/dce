@@ -1,7 +1,7 @@
-# Dcs Account table
+# Redbox Account table
 # Tracks the status of AWS Accounts in our pool
-resource "aws_dynamodb_table" "dcs_account" {
-  name             = "DcsAccount${title(var.namespace)}"
+resource "aws_dynamodb_table" "redbox_account" {
+  name             = "RedboxAccount${title(var.namespace)}"
   read_capacity    = 5
   write_capacity   = 5
   hash_key         = "Id"
@@ -44,8 +44,8 @@ resource "aws_dynamodb_table" "dcs_account" {
   */
 }
 
-resource "aws_dynamodb_table" "dcs_lease" {
-  name             = "DcsLease${title(var.namespace)}"
+resource "aws_dynamodb_table" "redbox_lease" {
+  name             = "RedboxLease${title(var.namespace)}"
   read_capacity    = 5
   write_capacity   = 5
   hash_key         = "AccountId"

@@ -1,20 +1,20 @@
 package db
 
-// DcsAccount is a type corresponding to a DcsAccount table record
-type DcsAccount struct {
+// RedboxAccount is a type corresponding to a RedboxAccount table record
+type RedboxAccount struct {
 	ID                  string                 `json:"Id"`             // AWS Account ID
 	AccountStatus       AccountStatus          `json:"AccountStatus"`  // Status of the AWS Account
 	LastModifiedOn      int64                  `json:"LastModifiedOn"` // Last Modified Epoch Timestamp
 	CreatedOn           int64                  `json:"CreatedOn"`
-	AdminRoleArn        string                 `json:"AdminRoleArn"`        // Assumed by the Dcs master account, to manage this user account
-	PrincipalRoleArn    string                 `json:"PrincipalRoleArn"`    // Assumed by principal users of Dcs
+	AdminRoleArn        string                 `json:"AdminRoleArn"`        // Assumed by the Redbox master account, to manage this user account
+	PrincipalRoleArn    string                 `json:"PrincipalRoleArn"`    // Assumed by principal users of Redbox
 	PrincipalPolicyHash string                 `json:"PrincipalPolicyHash"` // The the hash of the policy version deployed
 	Metadata            map[string]interface{} `json:"Metadata"`            // Any org specific metadata pertaining to the account
 }
 
-// DcsLease is a type corresponding to a DcsLease
+// RedboxLease is a type corresponding to a RedboxLease
 // table record
-type DcsLease struct {
+type RedboxLease struct {
 	AccountID                string      `json:"AccountId"`                // AWS Account ID
 	PrincipalID              string      `json:"PrincipalId"`              // Azure User Principal ID
 	LeaseStatus              LeaseStatus `json:"LeaseStatus"`              // Status of the Lease
@@ -35,7 +35,7 @@ type Timestamped struct {
 	LastModifiedOn Timestamp
 }
 
-// AccountStatus is a Dcs account status type
+// AccountStatus is a Redbox account status type
 type AccountStatus string
 
 const (
@@ -47,7 +47,7 @@ const (
 	Leased AccountStatus = "Leased"
 )
 
-// LeaseStatus is a Dcs account lease status type
+// LeaseStatus is a Redbox account lease status type
 type LeaseStatus string
 
 const (

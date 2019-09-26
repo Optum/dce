@@ -6,21 +6,21 @@ import (
 	"log"
 	"time"
 
-	"github.com/Optum/Dcs/pkg/db"
+	"github.com/Optum/Redbox/pkg/db"
 )
 
 // Provisioner interface for providing helper methods for provisioning a
-// principal to a Dcs Account
+// principal to a Redbox Account
 type Provisioner interface {
-	FindActiveLeaseForPrincipal(string) (*db.DcsLease, error)
-	FindLeaseWithAccount(string, string) (*db.DcsLease,
+	FindActiveLeaseForPrincipal(string) (*db.RedboxLease, error)
+	FindLeaseWithAccount(string, string) (*db.RedboxLease,
 		error)
-	ActivateAccount(bool, string, string, float64, string, []string) (*db.DcsLease,
+	ActivateAccount(bool, string, string, float64, string, []string) (*db.RedboxLease,
 		error)
 	RollbackProvisionAccount(bool, string, string) error
 }
 
-// AccountProvision implements Provisioner for official Dcs Provisioning
+// AccountProvision implements Provisioner for official Redbox Provisioning
 type AccountProvision struct {
 	DBSvc db.DBer
 }
@@ -28,10 +28,10 @@ type AccountProvision struct {
 // FindActiveLeaseForPrincipal is a helper function to find if there's any actively
 // leased (Active/FinanceLock/ResetLock) account attached to a principal
 func (prov *AccountProvision) FindActiveLeaseForPrincipal(principalID string) (
-	*db.DcsLease, error) {
+	*db.RedboxLease, error) {
 	// Check if the principal has any existing Active/FinanceLock/ResetLock
 	// Leases
-	activeLease := &db.DcsLease{}
+	activeLease := &db.RedboxLease{}
 	leases, err := prov.DBSvc.FindLeasesByPrincipal(principalID)
 	if err != nil {
 		return nil, err
@@ -49,7 +49,7 @@ func (prov *AccountProvision) FindActiveLeaseForPrincipal(principalID string) (
 // lease with the provided account. Returns an error if there's
 // another active lease that is not the principal
 func (prov *AccountProvision) FindLeaseWithAccount(principalID string,
-	accountID string) (*db.DcsLease, error) {
+	accountID string) (*db.RedboxLease, error) {
 	// Check if the principal and Account has been leased before and verify the
 	// Account has no existing Active/FinanceLock/ResetLock Leases
 	leases, err := prov.DBSvc.FindLeasesByAccount(accountID)
@@ -57,13 +57,13 @@ func (prov *AccountProvision) FindLeaseWithAccount(principalID string,
 		return nil, err
 	}
 
-	matchingLease := &db.DcsLease{}
+	matchingLease := &db.RedboxLease{}
 	for _, l := range leases {
 		// Check if the status is Active
 		// If so, return an error
 		if l.LeaseStatus != db.Decommissioned {
 			errStr := fmt.Sprintf("Attempt to lease Active Account as new "+
-				"Dcs - %s", accountID)
+				"Redbox - %s", accountID)
 			return nil, errors.New(errStr)
 		}
 
@@ -80,16 +80,16 @@ func (prov *AccountProvision) FindLeaseWithAccount(principalID string,
 // Returns the lease that has been activated - does not return any previous
 // leases
 func (prov *AccountProvision) ActivateAccount(create bool,
-	principalID string, accountID string, budgetAmount float64, budgetCurrency string, budgetNotificationEmails []string) (*db.DcsLease, error) {
-	// Create a new Dcs Account Lease if there doesn't exist one already
+	principalID string, accountID string, budgetAmount float64, budgetCurrency string, budgetNotificationEmails []string) (*db.RedboxLease, error) {
+	// Create a new Redbox Account Lease if there doesn't exist one already
 	// else, update the existing lease to active
-	var assgn *db.DcsLease
+	var assgn *db.RedboxLease
 	var err error
 	if create {
 		log.Printf("Create new Lease for Principal %s and Account %s\n",
 			principalID, accountID)
 		timeNow := time.Now().Unix()
-		lease := &db.DcsLease{
+		lease := &db.RedboxLease{
 			AccountID:                accountID,
 			PrincipalID:              principalID,
 			LeaseStatus:              db.Active,

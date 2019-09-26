@@ -6,9 +6,9 @@ import (
 	"errors"
 	"log"
 
-	"github.com/Optum/Dcs/pkg/common"
-	"github.com/Optum/Dcs/pkg/db"
-	errors2 "github.com/Optum/Dcs/pkg/errors"
+	"github.com/Optum/Redbox/pkg/common"
+	"github.com/Optum/Redbox/pkg/db"
+	errors2 "github.com/Optum/Redbox/pkg/errors"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -61,7 +61,7 @@ type handleRecordInput struct {
 
 func handleRecord(input *handleRecordInput) error {
 	record := input.record
-	dcsLease, err := leaseFromImage(record.Change.NewImage)
+	redboxLease, err := leaseFromImage(record.Change.NewImage)
 	if err != nil {
 		return err
 	}
@@ -95,7 +95,7 @@ func handleRecord(input *handleRecordInput) error {
 		wasUnlocked := isLockStatus(prevLeaseStatus) && isActiveStatus(nextLeaseStatus)
 
 		publishInput := publishLeaseInput{
-			lease:  dcsLease,
+			lease:  redboxLease,
 			snsSvc: input.snsSvc,
 		}
 		if wasLocked {
@@ -119,14 +119,14 @@ func handleRecord(input *handleRecordInput) error {
 	return nil
 }
 
-func leaseFromImage(image map[string]events.DynamoDBAttributeValue) (*db.DcsLease, error) {
+func leaseFromImage(image map[string]events.DynamoDBAttributeValue) (*db.RedboxLease, error) {
 
-	dcsLease, err := UnmarshalStreamImage(image)
+	redboxLease, err := UnmarshalStreamImage(image)
 	if err != nil {
 		return nil, err
 	}
 
-	return dcsLease, nil
+	return redboxLease, nil
 
 }
 
@@ -148,7 +148,7 @@ func isActiveStatus(status string) bool {
 type publishLeaseInput struct {
 	snsSvc   common.Notificationer
 	topicArn string
-	lease    *db.DcsLease
+	lease    *db.RedboxLease
 }
 
 func publishLease(input *publishLeaseInput) error {
@@ -170,7 +170,7 @@ func publishLease(input *publishLeaseInput) error {
 }
 
 // UnmarshalStreamImage converts events.DynamoDBAttributeValue to struct
-func UnmarshalStreamImage(attribute map[string]events.DynamoDBAttributeValue) (*db.DcsLease, error) {
+func UnmarshalStreamImage(attribute map[string]events.DynamoDBAttributeValue) (*db.RedboxLease, error) {
 
 	dbAttrMap := make(map[string]*dynamodb.AttributeValue)
 
@@ -188,7 +188,7 @@ func UnmarshalStreamImage(attribute map[string]events.DynamoDBAttributeValue) (*
 		dbAttrMap[k] = &dbAttr
 	}
 
-	out := db.DcsLease{}
+	out := db.RedboxLease{}
 	dynamodbattribute.UnmarshalMap(dbAttrMap, &out)
 	return &out, nil
 

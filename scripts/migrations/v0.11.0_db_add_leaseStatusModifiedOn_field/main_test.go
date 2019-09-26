@@ -19,7 +19,7 @@ func TestMigrationV0_11_0(t *testing.T) {
 	}
 	tfOut := terraform.OutputAll(t, tfOpts)
 
-	leaseTable := tfOut["dcs_account_lease_db_table_name"].(string)
+	leaseTable := tfOut["redbox_account_lease_db_table_name"].(string)
 
 	awsSession := session.Must(session.NewSession())
 	dynDB := dynamodb.New(
@@ -118,7 +118,7 @@ func truncateLeaseTable(t *testing.T, dynDB *dynamodb.DynamoDB, leaseTableName s
 		and remove them in a "BatchWrite" requests.
 	*/
 
-	// Find all records in the DcsAccount table
+	// Find all records in the RedboxAccount table
 	scanResult, err := dynDB.Scan(
 		&dynamodb.ScanInput{
 			TableName: aws.String(leaseTableName),

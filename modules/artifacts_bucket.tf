@@ -1,12 +1,12 @@
 locals {
-  dcs_principal_policy = var.dcs_principal_policy == "" ? "${path.module}/fixtures/policies/dcs_principal_policy.tmpl" : var.dcs_principal_policy
+  redbox_principal_policy = var.redbox_principal_policy == "" ? "${path.module}/fixtures/policies/redbox_principal_policy.tmpl" : var.redbox_principal_policy
 }
 
 
 # Configure an S3 Bucket to hold artifacts
 # (eg. application code deployments, etc.)
 resource "aws_s3_bucket" "artifacts" {
-  bucket = "${local.account_id}-dcs-artifacts-${var.namespace}"
+  bucket = "${local.account_id}-redbox-artifacts-${var.namespace}"
 
   # Allow S3 access logs to be written to this bucket
   acl = "log-delivery-write"
@@ -30,7 +30,7 @@ resource "aws_s3_bucket" "artifacts" {
 
   # Send S3 access logs for this bucket to itself
   logging {
-    target_bucket = "${local.account_id}-dcs-artifacts-${var.namespace}"
+    target_bucket = "${local.account_id}-redbox-artifacts-${var.namespace}"
     target_prefix = "/logs"
   }
 
@@ -63,9 +63,9 @@ POLICY
 
 }
 
-resource "aws_s3_bucket_object" "dcs_principal_policy" {
+resource "aws_s3_bucket_object" "redbox_principal_policy" {
   bucket = aws_s3_bucket.artifacts.id
-  key    = "fixtures/policies/dcs_principal_policy.tmpl"
-  source = local.dcs_principal_policy
-  etag   = "${filemd5(local.dcs_principal_policy)}"
+  key    = "fixtures/policies/redbox_principal_policy.tmpl"
+  source = local.redbox_principal_policy
+  etag   = "${filemd5(local.redbox_principal_policy)}"
 }

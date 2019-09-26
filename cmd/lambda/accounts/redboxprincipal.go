@@ -4,17 +4,17 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Optum/Dcs/pkg/db"
-	"github.com/Optum/Dcs/pkg/rolemanager"
+	"github.com/Optum/Redbox/pkg/db"
+	"github.com/Optum/Redbox/pkg/rolemanager"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iam"
 )
 
-func (c createController) createPrincipalRole(account db.DcsAccount) (*rolemanager.CreateRoleWithPolicyOutput, string, error) {
+func (c createController) createPrincipalRole(account db.RedboxAccount) (*rolemanager.CreateRoleWithPolicyOutput, string, error) {
 	// Create an assume role policy,
 	// to let principals from the same account assume the role.
 	//
-	// Consumers of open source dcs may modify and customize
+	// Consumers of open source redbox may modify and customize
 	// this as need (eg. to integrate with SSO/SAML)
 	// by responding to the "account-created" SNS topic
 	assumeRolePolicy := strings.TrimSpace(fmt.Sprintf(`
@@ -33,10 +33,10 @@ func (c createController) createPrincipalRole(account db.DcsAccount) (*rolemanag
 		}
 	`, account.ID))
 
-	// Render the default policy for the Dcs principal
+	// Render the default policy for the Redbox principal
 	policyName := c.PrincipalPolicyName
 	policy, policyHash, err := c.StoragerService.GetTemplateObject(c.ArtifactsBucket, c.PrincipalPolicyS3Key,
-		dcsPrincipalPolicyInput{
+		redboxPrincipalPolicyInput{
 			PrincipalPolicyArn:   fmt.Sprintf("arn:aws:iam::%s:policy/%s", account.ID, policyName),
 			PrincipalRoleArn:     fmt.Sprintf("arn:aws:iam::%s:role/%s", account.ID, c.PrincipalRoleName),
 			PrincipalIAMDenyTags: c.PrincipalIAMDenyTags,
@@ -46,7 +46,7 @@ func (c createController) createPrincipalRole(account db.DcsAccount) (*rolemanag
 		return nil, "", err
 	}
 
-	// Assume role into the new Dcs account
+	// Assume role into the new Redbox account
 	accountSession, err := c.TokenService.NewSession(&c.AWSSession, account.AdminRoleArn)
 	if err != nil {
 		return nil, "", err
@@ -58,21 +58,21 @@ func (c createController) createPrincipalRole(account db.DcsAccount) (*rolemanag
 	createRoleOutput := &rolemanager.CreateRoleWithPolicyOutput{}
 	createRoleOutput, err = c.RoleManager.CreateRoleWithPolicy(&rolemanager.CreateRoleWithPolicyInput{
 		RoleName:                 c.PrincipalRoleName,
-		RoleDescription:          "Role to be assumed by principal users of Dcs",
+		RoleDescription:          "Role to be assumed by principal users of Redbox",
 		AssumeRolePolicyDocument: assumeRolePolicy,
 		MaxSessionDuration:       c.PrincipalMaxSessionDuration,
 		PolicyName:               policyName,
 		PolicyDocument:           policy,
-		PolicyDescription:        "Policy for principal users of Dcs",
+		PolicyDescription:        "Policy for principal users of Redbox",
 		Tags: append(c.Tags,
-			&iam.Tag{Key: aws.String("Name"), Value: aws.String("DcsPrincipal")},
+			&iam.Tag{Key: aws.String("Name"), Value: aws.String("RedboxPrincipal")},
 		),
 		IgnoreAlreadyExistsErrors: true,
 	})
 	return createRoleOutput, policyHash, err
 }
 
-type dcsPrincipalPolicyInput struct {
+type redboxPrincipalPolicyInput struct {
 	PrincipalPolicyArn   string
 	PrincipalRoleArn     string
 	PrincipalIAMDenyTags []string

@@ -3,24 +3,24 @@ package main
 import (
 	"context"
 	"errors"
-	errors2 "github.com/Optum/Dcs/pkg/errors"
-	"github.com/Optum/Dcs/pkg/rolemanager"
-	mocks2 "github.com/Optum/Dcs/pkg/rolemanager/mocks"
+	errors2 "github.com/Optum/Redbox/pkg/errors"
+	"github.com/Optum/Redbox/pkg/rolemanager"
+	mocks2 "github.com/Optum/Redbox/pkg/rolemanager/mocks"
 	"github.com/stretchr/testify/mock"
 	"net/http"
 	"testing"
 
-	"github.com/Optum/Dcs/pkg/api/response"
-	"github.com/Optum/Dcs/pkg/common"
-	commonMocks "github.com/Optum/Dcs/pkg/common/mocks"
-	"github.com/Optum/Dcs/pkg/db"
-	"github.com/Optum/Dcs/pkg/db/mocks"
+	"github.com/Optum/Redbox/pkg/api/response"
+	"github.com/Optum/Redbox/pkg/common"
+	commonMocks "github.com/Optum/Redbox/pkg/common/mocks"
+	"github.com/Optum/Redbox/pkg/db"
+	"github.com/Optum/Redbox/pkg/db/mocks"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/stretchr/testify/require"
 )
 
 func TestDeleteController_Call(t *testing.T) {
-	expectedAccount := db.DcsAccount{
+	expectedAccount := db.RedboxAccount{
 		ID: "1",
 	}
 	t.Run("When there are no errors", func(t *testing.T) {
@@ -73,7 +73,7 @@ func TestDeleteController_Call(t *testing.T) {
 		require.Equal(t, http.StatusInternalServerError, response.StatusCode)
 	})
 
-	t.Run("should destroy the dcs principal IAM Role and Policy", func(t *testing.T) {
+	t.Run("should destroy the redbox principal IAM Role and Policy", func(t *testing.T) {
 		controller := newDeleteController()
 
 		// Mock the role manager
@@ -99,7 +99,7 @@ func TestDeleteController_Call(t *testing.T) {
 		roleManager.AssertExpectations(t)
 	})
 
-	t.Run("should return 204, even if the dcs principal role cannot be deleted", func(t *testing.T) {
+	t.Run("should return 204, even if the redbox principal role cannot be deleted", func(t *testing.T) {
 		controller := newDeleteController()
 
 		// Mock the role manager

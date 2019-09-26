@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/Optum/Dcs/pkg/api/response"
-	"github.com/Optum/Dcs/pkg/db"
-	"github.com/Optum/Dcs/pkg/db/mocks"
+	"github.com/Optum/Redbox/pkg/api/response"
+	"github.com/Optum/Redbox/pkg/db"
+	"github.com/Optum/Redbox/pkg/db/mocks"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/stretchr/testify/require"
 )
@@ -17,7 +17,7 @@ import (
 func TestListController_Call(t *testing.T) {
 
 	t.Run("When the invoking Call and there are no errors", func(t *testing.T) {
-		expectedAccounts := []*db.DcsAccount{
+		expectedAccounts := []*db.RedboxAccount{
 			{
 				ID:             "123456789",
 				AccountStatus:  "READY",

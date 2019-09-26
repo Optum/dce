@@ -9,12 +9,12 @@ import (
 
 	"github.com/stretchr/testify/mock"
 
-	comMocks "github.com/Optum/Dcs/pkg/common/mocks"
-	"github.com/Optum/Dcs/pkg/db"
-	dbMocks "github.com/Optum/Dcs/pkg/db/mocks"
+	comMocks "github.com/Optum/Redbox/pkg/common/mocks"
+	"github.com/Optum/Redbox/pkg/db"
+	dbMocks "github.com/Optum/Redbox/pkg/db/mocks"
 	"github.com/stretchr/testify/require"
 
-	"github.com/Optum/Dcs/pkg/common"
+	"github.com/Optum/Redbox/pkg/common"
 	"github.com/aws/aws-sdk-go/service/sqs"
 )
 
@@ -92,7 +92,7 @@ type resetTest struct {
 	BuildError         error
 	ExpectedBuildEnv   map[string]string
 	ExpectedBuildCount int
-	GetAccount         *db.DcsAccount
+	GetAccount         *db.RedboxAccount
 	GetAccountError    error
 	ExpectedOutput     *ResetOutput
 	ExpectedError      error
@@ -109,7 +109,7 @@ func TestReset(t *testing.T) {
 		{
 			ResetQueue:    createMockQueue(0),
 			ResetQueueURL: "https://mytesturl.com/123456789012/reset_queue",
-			GetAccount: &db.DcsAccount{
+			GetAccount: &db.RedboxAccount{
 				ID:               "1234567890",
 				AdminRoleArn:     "arn:aws:iam::123456789012:role/AdminRole",
 				PrincipalRoleArn: "arn:aws:iam::123456789012:role/PrincipalRole",
@@ -130,7 +130,7 @@ func TestReset(t *testing.T) {
 		{
 			ResetQueue:    createMockQueue(1),
 			ResetQueueURL: "https://mytesturl.com/123456789012/reset_queue",
-			GetAccount: &db.DcsAccount{
+			GetAccount: &db.RedboxAccount{
 				ID:               "1234567890",
 				AdminRoleArn:     "arn:aws:iam::123456789012:role/AdminRole",
 				PrincipalRoleArn: "arn:aws:iam::123456789012:role/PrincipalRole",
@@ -156,7 +156,7 @@ func TestReset(t *testing.T) {
 		{
 			ResetQueue:    createMockQueue(5),
 			ResetQueueURL: "https://mytesturl.com/123456789012/reset_queue",
-			GetAccount: &db.DcsAccount{
+			GetAccount: &db.RedboxAccount{
 				ID:               "1234567890",
 				AdminRoleArn:     "arn:aws:iam::123456789012:role/AdminRole",
 				PrincipalRoleArn: "arn:aws:iam::123456789012:role/PrincipalRole",
@@ -215,7 +215,7 @@ func TestReset(t *testing.T) {
 		{
 			ResetQueue:    createMockQueue(1),
 			ResetQueueURL: "https://mytesturl.com/123456789012/reset_queue",
-			GetAccount: &db.DcsAccount{
+			GetAccount: &db.RedboxAccount{
 				AdminRoleArn: "MyArn",
 			},
 			ExpectedBuildCount: 0,
@@ -234,7 +234,7 @@ func TestReset(t *testing.T) {
 		{
 			ResetQueue:    createMockQueue(1),
 			ResetQueueURL: "https://mytesturl.com/123456789012/fail_receive",
-			GetAccount: &db.DcsAccount{
+			GetAccount: &db.RedboxAccount{
 				AdminRoleArn: "arn:aws:iam::123456789012:role/AdminRole",
 			},
 			ExpectedBuildCount: 0,
@@ -248,7 +248,7 @@ func TestReset(t *testing.T) {
 		{
 			ResetQueue:    createMockQueue(1),
 			ResetQueueURL: "https://mytesturl.com/123456789012/fail_delete",
-			GetAccount: &db.DcsAccount{
+			GetAccount: &db.RedboxAccount{
 				ID:               "1234567890",
 				AdminRoleArn:     "arn:aws:iam::123456789012:role/AdminRole",
 				PrincipalRoleArn: "arn:aws:iam::123456789012:role/PrincipalRole",
@@ -276,7 +276,7 @@ func TestReset(t *testing.T) {
 			ResetQueue:    createMockQueue(1),
 			ResetQueueURL: "https://mytesturl.com/123456789012/reset_queue",
 			BuildError:    errors.New("Fail Triggering Build"),
-			GetAccount: &db.DcsAccount{
+			GetAccount: &db.RedboxAccount{
 				ID:               "1234567890",
 				AdminRoleArn:     "arn:aws:iam::123456789012:role/AdminRole",
 				PrincipalRoleArn: "arn:aws:iam::123456789012:role/PrincipalRole",
@@ -309,7 +309,7 @@ func TestReset(t *testing.T) {
 			mockDb := &dbMocks.DBer{}
 			mockDb.
 				On("FindLeasesByAccount", mock.Anything).
-				Return([]*db.DcsLease{}, nil)
+				Return([]*db.RedboxLease{}, nil)
 			mockDb.
 				On("GetAccount", mock.Anything).
 				Return(test.GetAccount, test.GetAccountError)
@@ -348,7 +348,7 @@ func TestReset(t *testing.T) {
 		// Mock leases for our Account
 		mockDb.
 			On("FindLeasesByAccount", "accountId-1").
-			Return([]*db.DcsLease{
+			Return([]*db.RedboxLease{
 				{
 					PrincipalID: "principalId-1",
 					LeaseStatus: db.Decommissioned,
@@ -361,7 +361,7 @@ func TestReset(t *testing.T) {
 		// Mock `dbSvc.GetAccount`
 		mockDb.
 			On("GetAccount", "accountId-1").
-			Return(&db.DcsAccount{
+			Return(&db.RedboxAccount{
 				AdminRoleArn:     "arn:aws:iam::123456789012:role/AdminRole",
 				PrincipalRoleArn: "arn:aws:iam::123456789012:role/PrincipalRole",
 			}, nil)
@@ -374,7 +374,7 @@ func TestReset(t *testing.T) {
 				"accountId-1", "principalId-2",
 				db.FinanceLock, db.ResetFinanceLock,
 			).
-			Return(&db.DcsLease{}, nil)
+			Return(&db.RedboxLease{}, nil)
 		mockDb.On("GetAccount", mock.Anything).
 			Return(mockAccount(), nil)
 
@@ -405,7 +405,7 @@ func TestReset(t *testing.T) {
 		// Mock leases for our Account
 		mockDb.
 			On("FindLeasesByAccount", "accountId-1").
-			Return([]*db.DcsLease{
+			Return([]*db.RedboxLease{
 				{
 					PrincipalID: "principalId-1",
 					LeaseStatus: db.Active,
@@ -423,7 +423,7 @@ func TestReset(t *testing.T) {
 				"accountId-1", "principalId-1",
 				db.Active, db.ResetLock,
 			).
-			Return(&db.DcsLease{}, nil)
+			Return(&db.RedboxLease{}, nil)
 		mockDb.On("GetAccount", mock.Anything).
 			Return(mockAccount(), nil)
 
@@ -454,11 +454,11 @@ func TestReset(t *testing.T) {
 		// Mock the DB to return no leases for the account
 		mockDb.
 			On("FindLeasesByAccount", "accountId-1").
-			Return([]*db.DcsLease{}, nil)
+			Return([]*db.RedboxLease{}, nil)
 		// Mock `dbSvc.GetAccount`
 		mockDb.
 			On("FindLeasesByAccount", "accountId-1").
-			Return([]*db.DcsLease{}, nil)
+			Return([]*db.RedboxLease{}, nil)
 		mockDb.On("GetAccount", mock.Anything).
 			Return(mockAccount(), nil)
 
@@ -550,10 +550,10 @@ func TestReset(t *testing.T) {
 		mockDb := &dbMocks.DBer{}
 		mockDb.
 			On("FindLeasesByAccount", mock.Anything).
-			Return([]*db.DcsLease{}, nil)
+			Return([]*db.RedboxLease{}, nil)
 		mockDb.
 			On("GetAccount", "accountId-1").
-			Return(&db.DcsAccount{
+			Return(&db.RedboxAccount{
 				ID:               "123456789012",
 				AdminRoleArn:     "arn:aws:iam::123456789012:role/AdminRole",
 				PrincipalRoleArn: "arn:aws:iam::123456789012:role/PrincipalRole",
@@ -586,8 +586,8 @@ func TestReset(t *testing.T) {
 	})
 }
 
-func mockAccount() *db.DcsAccount {
-	return &db.DcsAccount{
+func mockAccount() *db.RedboxAccount {
+	return &db.RedboxAccount{
 		ID:               "123456789012",
 		AdminRoleArn:     "arn:aws:iam::123456789012:role/AdminRole",
 		PrincipalRoleArn: "arn:aws:iam::123456789012:role/PrincipalRole",

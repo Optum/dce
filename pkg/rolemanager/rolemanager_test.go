@@ -4,8 +4,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/Optum/Dcs/pkg/awsiface/mocks"
-	errors2 "github.com/Optum/Dcs/pkg/errors"
+	"github.com/Optum/Redbox/pkg/awsiface/mocks"
+	errors2 "github.com/Optum/Redbox/pkg/errors"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/stretchr/testify/mock"

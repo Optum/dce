@@ -3,16 +3,16 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/Optum/Dcs/pkg/rolemanager"
+	"github.com/Optum/Redbox/pkg/rolemanager"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"log"
 	"net/http"
 	"path"
 
-	"github.com/Optum/Dcs/pkg/api/response"
-	"github.com/Optum/Dcs/pkg/common"
-	"github.com/Optum/Dcs/pkg/db"
+	"github.com/Optum/Redbox/pkg/api/response"
+	"github.com/Optum/Redbox/pkg/common"
+	"github.com/Optum/Redbox/pkg/db"
 	"github.com/aws/aws-lambda-go/events"
 )
 
@@ -59,7 +59,7 @@ func (controller deleteController) Call(ctx context.Context, req *events.APIGate
 }
 
 // sendSNS sends notification to SNS that the delete has occurred.
-func (controller deleteController) sendSNS(account *db.DcsAccount) {
+func (controller deleteController) sendSNS(account *db.RedboxAccount) {
 	serializedAccount := response.AccountResponse(*account)
 	serializedMessage, err := common.PrepareSNSMessageJSON(serializedAccount)
 
@@ -82,8 +82,8 @@ func (controller deleteController) sendToResetQueue(accountID string) {
 	}
 }
 
-func (controller deleteController) destroyIAMPrincipal(account *db.DcsAccount) {
-	// Assume role into the new Dcs account
+func (controller deleteController) destroyIAMPrincipal(account *db.RedboxAccount) {
+	// Assume role into the new Redbox account
 	accountSession, err := controller.TokenService.NewSession(&controller.AWSSession, account.AdminRoleArn)
 	if err != nil {
 		log.Printf("Failed to assume role into account %s: %s", account.ID, err)
@@ -99,6 +99,6 @@ func (controller deleteController) destroyIAMPrincipal(account *db.DcsAccount) {
 	})
 	// Log error, and continue
 	if err != nil {
-		log.Printf("Failed to destroy Dcs Principal IAM Role and Policy: %s", err)
+		log.Printf("Failed to destroy Redbox Principal IAM Role and Policy: %s", err)
 	}
 }

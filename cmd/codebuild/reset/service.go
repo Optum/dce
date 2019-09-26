@@ -4,8 +4,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/Optum/Dcs/pkg/common"
-	"github.com/Optum/Dcs/pkg/db"
+	"github.com/Optum/Redbox/pkg/common"
+	"github.com/Optum/Redbox/pkg/db"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"

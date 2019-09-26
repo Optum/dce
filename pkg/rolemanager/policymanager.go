@@ -6,7 +6,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/arn"
 
-	"github.com/Optum/Dcs/pkg/awsiface"
+	"github.com/Optum/Redbox/pkg/awsiface"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iam"
 )

@@ -2,9 +2,9 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/Optum/Dcs/pkg/common"
-	"github.com/Optum/Dcs/pkg/db"
-	"github.com/Optum/Dcs/pkg/errors"
+	"github.com/Optum/Redbox/pkg/common"
+	"github.com/Optum/Redbox/pkg/db"
+	"github.com/Optum/Redbox/pkg/errors"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws"
@@ -15,7 +15,7 @@ import (
 )
 
 /*
-This lambda initiates the Dcs budget check process. It:
+This lambda initiates the Redbox budget check process. It:
 
 - Runs on a CloudWatch scheduled event (eg. every 6 hours)
 - Grabs all active leases from the DB

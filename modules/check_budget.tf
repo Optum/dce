@@ -9,8 +9,8 @@ module "fan_out_check_budget_lambda" {
 
   environment = {
     AWS_CURRENT_REGION         = var.aws_region
-    ACCOUNT_DB                 = aws_dynamodb_table.dcs_account.id
-    LEASE_DB                   = aws_dynamodb_table.dcs_lease.id
+    ACCOUNT_DB                 = aws_dynamodb_table.redbox_account.id
+    LEASE_DB                   = aws_dynamodb_table.redbox_lease.id
     CHECK_BUDGET_FUNCTION_NAME = module.check_budget_lambda.name
   }
 }
@@ -32,8 +32,8 @@ module "check_budget_lambda" {
 
   environment = {
     AWS_CURRENT_REGION                        = var.aws_region
-    ACCOUNT_DB                                = aws_dynamodb_table.dcs_account.id
-    LEASE_DB                                  = aws_dynamodb_table.dcs_lease.id
+    ACCOUNT_DB                                = aws_dynamodb_table.redbox_account.id
+    LEASE_DB                                  = aws_dynamodb_table.redbox_lease.id
     USAGE_CACHE_DB                            = aws_dynamodb_table.usage_cache.id
     RESET_QUEUE_URL                           = aws_sqs_queue.account_reset.id
     LEASE_LOCKED_TOPIC_ARN                    = aws_sns_topic.lease_locked.arn

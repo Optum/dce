@@ -1,7 +1,7 @@
 package email
 
 import (
-	"github.com/Optum/Dcs/pkg/awsiface"
+	"github.com/Optum/Redbox/pkg/awsiface"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ses"
 )

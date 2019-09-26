@@ -5,31 +5,31 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/Optum/Dcs/pkg/common"
-	"github.com/Optum/Dcs/pkg/db"
+	"github.com/Optum/Redbox/pkg/common"
+	"github.com/Optum/Redbox/pkg/db"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sqs"
 )
 
-// enqueueDcses publishes a single dcs struct into the SQS
+// enqueueRedboxes publishes a single redbox struct into the SQS
 // as an event for consumption
-func enqueueDcses(dcses []*db.DcsAccount, queueURL *string,
+func enqueueRedboxes(redboxes []*db.RedboxAccount, queueURL *string,
 	queue common.Queue, dbSvc db.DBer) error {
-	// For each Dcs Account, send the message to Reset Queue and update
+	// For each Redbox Account, send the message to Reset Queue and update
 	// FinanceLock Lease status if necessary
-	for _, dcs := range dcses {
+	for _, redbox := range redboxes {
 		// Send Message
-		err := queue.SendMessage(queueURL, &dcs.ID)
+		err := queue.SendMessage(queueURL, &redbox.ID)
 		if err != nil {
 			return errors.Wrap(err, "Failed to enqueue accounts")
 		}
-		log.Printf("%s : Added to Reset Queue\n", dcs.ID)
+		log.Printf("%s : Added to Reset Queue\n", redbox.ID)
 
 		// Transition FinanceLock Lease if needed
-		log.Printf("%s : Checking for Finance Lock\n", dcs.ID)
-		err = transitionFinanceLock(dcs.ID, dbSvc)
+		log.Printf("%s : Checking for Finance Lock\n", redbox.ID)
+		err = transitionFinanceLock(redbox.ID, dbSvc)
 		if err != nil {
 			return errors.Wrap(err, "Failed to enqueue accounts")
 		}
@@ -72,10 +72,10 @@ func rbenqHandler(cloudWatchEvent events.CloudWatchEvent) error {
 		return err
 	}
 
-	// Get Dcses
-	dcses, err := dbSvc.GetAccountsForReset()
+	// Get Redboxes
+	redboxes, err := dbSvc.GetAccountsForReset()
 	if err != nil {
-		log.Printf("Failed to get Dcses: %s\n", err)
+		log.Printf("Failed to get Redboxes: %s\n", err)
 		return err
 	}
 
@@ -87,10 +87,10 @@ func rbenqHandler(cloudWatchEvent events.CloudWatchEvent) error {
 		Client: sqsClient,
 	}
 
-	// Enqueue dcses to be reset
-	err = enqueueDcses(dcses, &queueURL, queue, dbSvc)
+	// Enqueue redboxes to be reset
+	err = enqueueRedboxes(redboxes, &queueURL, queue, dbSvc)
 	if err != nil {
-		log.Printf("Failed to enqueue dcses: %s\n", err)
+		log.Printf("Failed to enqueue redboxes: %s\n", err)
 		return err
 	}
 

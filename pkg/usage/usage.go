@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/Optum/Dcs/pkg/common"
+	"github.com/Optum/Redbox/pkg/common"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -15,7 +15,7 @@ import (
 
 /*
 The `UsageDB` service abstracts all interactions
-with the Dcs DynamoDB usage table
+with the Redbox DynamoDB usage table
 */
 
 // DB contains DynamoDB client and table names

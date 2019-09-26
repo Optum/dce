@@ -2,7 +2,7 @@
 
 package mocks
 
-import awsiface "github.com/Optum/Dcs/pkg/awsiface"
+import awsiface "github.com/Optum/Redbox/pkg/awsiface"
 
 import mock "github.com/stretchr/testify/mock"
 import time "time"

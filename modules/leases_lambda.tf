@@ -3,7 +3,7 @@ resource "aws_lambda_function" "leases" {
   description   = "API /leases endpoints"
   runtime       = "go1.x"
   handler       = "leases"
-  role          = aws_iam_role.dcs_lambda_execution.arn
+  role          = aws_iam_role.redbox_lambda_execution.arn
   timeout       = 300
 
   environment {
@@ -12,8 +12,8 @@ resource "aws_lambda_function" "leases" {
       NAMESPACE          = var.namespace
       AWS_CURRENT_REGION = var.aws_region
       RESET_SQS_URL      = aws_sqs_queue.account_reset.id
-      ACCOUNT_DB         = aws_dynamodb_table.dcs_account.id
-      LEASE_DB           = aws_dynamodb_table.dcs_lease.id
+      ACCOUNT_DB         = aws_dynamodb_table.redbox_account.id
+      LEASE_DB           = aws_dynamodb_table.redbox_lease.id
       PROVISION_TOPIC    = aws_sns_topic.lease_added.arn
       DECOMMISSION_TOPIC = aws_sns_topic.lease_removed.arn
     }

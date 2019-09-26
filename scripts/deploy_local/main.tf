@@ -8,8 +8,8 @@ variable "global_tags" {
 
   default = {
     Terraform = "True"
-    AppName   = "AWS Dcs Management"
-    Source    = "github.com/Optum/Dcs//modules"
+    AppName   = "AWS Redbox Management"
+    Source    = "github.com/Optum/Redbox//modules"
     Contact   = "fake_email@domain.com"
   }
 }
