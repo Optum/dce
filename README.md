@@ -1,6 +1,6 @@
 # AWS DCE
 
-# The premier repository for AWS Disposable Cloud Environment (DCE).
+# The premier repository for AWS Disposable Cloud Environments (DCE).
 
 <!--
 Generated with markdown-toc
@@ -47,9 +47,9 @@ markdown-toc -i README.md --maxdepth 3
 
 <!-- tocstop -->
 
-## What is Disposable Cloud Environment (DCE)?
+## What is Disposable Cloud Environments (DCE)?
 
-The Disposable Cloud Environment (DCE) is a mechanism for providing temporary, limited Amazon Web Services (AWS)
+The Disposable Cloud Environments (DCE) is a mechanism for providing temporary, limited Amazon Web Services (AWS)
 accounts. Accounts can be "leased" for a period of seven days (by default). After the time has expired, the 
 account is _reset_ and returned to a pool of accounts to be leased again.
 
@@ -227,7 +227,7 @@ See [_Integrating with Identity Providers_](#integrating-with-identity-providers
 
 DCE exposes an API for managing DCE accounts and leases.
 
-See [swaggerDCE.yaml](./modules/swaggerDCE.yaml) for endpoint documentation (better Swagger docs to come...).
+See [swaggerRedbox.yaml](./modules/swaggerRedbox.yaml) for endpoint documentation (better Swagger docs to come...).
 
 ### API Location
 
@@ -637,7 +637,7 @@ To restore a DynamoDB table from a backup:
 
 ```
 # Grab the account table name from Terraform state
-table_name=$(cd modules && terraform output dcs_account_db_table_name)
+table_name=$(cd modules && terraform output redbox_account_db_table_name)
 
 # Or, grab the leases table name
 table_name=$(cd modules && terraform output dcs_lease_db_table_name)
@@ -689,10 +689,6 @@ They will vary by each service, please refer to the documentation above to creat
 ## Account Provisioning & Decommissioning
 
 ![Account Provisioning & Decommissioning Diagram](/docs/images/provision_decom_diagram.png)
-
-## API Spec
-
-DCE API Spec available via swaggerUI on github host: [API Spec](https://github.optum.com/pages/CommercialCloud-Team/aws_dcs/)
 
 ## Notification via SES
 
