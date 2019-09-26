@@ -18,12 +18,17 @@ type RedboxLease struct {
 	AccountID                string      `json:"AccountId"`                // AWS Account ID
 	PrincipalID              string      `json:"PrincipalId"`              // Azure User Principal ID
 	LeaseStatus              LeaseStatus `json:"LeaseStatus"`              // Status of the Lease
+	LeaseStatusReason        string      `json:"LeaseStatusReason"`        // Reason for the status of the lease
 	CreatedOn                int64       `json:"CreatedOn"`                // Created Epoch Timestamp
 	LastModifiedOn           int64       `json:"LastModifiedOn"`           // Last Modified Epoch Timestamp
 	BudgetAmount             float64     `json:"BudgetAmount"`             // Budget Amount allocated for this lease
 	BudgetCurrency           string      `json:"BudgetCurrency"`           // Budget currency
 	BudgetNotificationEmails []string    `json:"BudgetNotificationEmails"` // Budget notification emails
 	LeaseStatusModifiedOn    int64       `json:"LeaseStatusModifiedOn"`    // Last Modified Epoch Timestamp
+	RequestedLeaseStart      int64       `json:"RequestedLeaseStart"`      // Requested lease start time as an Epoch Timestamp
+	ActualLeaseStart         int64       `json:"ActualLeaseStart"`         // Actual lease start time as an Epoch Timestamp
+	RequestedLeaseEnd        int64       `json:"RequestedLeaseEnd"`        // Requested lease end time as an Epoch Timestamp
+	ActualLeaseEnd           int64       `json:"ActualLeaseEnd"`           // Actual lease end time as an Epoch Timestamp
 }
 
 // Timestamp is a timestamp type for epoch format
@@ -53,14 +58,6 @@ type LeaseStatus string
 const (
 	// Active status
 	Active LeaseStatus = "Active"
-	// Decommissioned status
-	Decommissioned LeaseStatus = "Decommissioned"
-	// FinanceLock status
-	FinanceLock LeaseStatus = "FinanceLock"
-	// ResetLock status
-	ResetLock LeaseStatus = "ResetLock"
-	// ResetFinanceLock status
-	// Same as ResetLock but the account's status was FinanceLock beforehand
-	// and should be FinanceLock after a Reset has been applied
-	ResetFinanceLock LeaseStatus = "ResetFinanceLock"
+	// Inactive status
+	Inactive LeaseStatus = "Inactive"
 )
