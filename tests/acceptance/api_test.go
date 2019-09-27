@@ -781,7 +781,7 @@ func TestApi(t *testing.T) {
 			// Get nested json in response json
 			errResp := data["error"].(map[string]interface{})
 			require.Equal(t, "Invalid startDate", errResp["code"].(string))
-			require.Equal(t, "Failed to parse usage start date: parsing time \"2019-09-2\" as \"2006-01-02\": cannot parse \"2\" as \"02\"",
+			require.Equal(t, "Failed to parse usage start date: strconv.ParseInt: parsing \"2019-09-2\": invalid syntax",
 				errResp["message"].(string))
 		})
 
