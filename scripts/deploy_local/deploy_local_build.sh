@@ -10,7 +10,7 @@ set -euxo pipefail
 KEY="local-tf-state"
 REGION="us-east-1"
 TABLE="local-tf-state"
-NAMESPACE=$(whoami)
+NAMESPACE=${DSE_NAMESPACE:-$(whoami)}
 BUILD_ARTIFACT="bin/build_artifacts.zip"
 
 cd scripts/deploy_local && terraform init

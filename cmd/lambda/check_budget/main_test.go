@@ -18,7 +18,6 @@ import (
 	usageMocks "github.com/Optum/Redbox/pkg/usage/mocks"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sqs"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -395,14 +394,50 @@ func Test_isLeaseExpired(t *testing.T) {
 		lease   *db.RedboxLease
 		context *leaseContext
 	}
+	emails := []string{"joe@example.com"}
+	lease := &db.RedboxLease{
+		AccountID:                "12345",
+		PrincipalID:              "98765",
+		LeaseStatus:              db.Inactive,
+		LeaseStatusReason:        "Expired",
+		CreatedOn:                time.Now().Unix(),
+		LastModifiedOn:           time.Now().Unix(),
+		BudgetAmount:             3000,
+		BudgetCurrency:           "USD",
+		BudgetNotificationEmails: emails,
+		LeaseStatusModifiedOn:    time.Now().Unix(),
+		RequestedLeaseStart:      time.Now().Unix(),
+		ActualLeaseStart:         time.Now().Unix(),
+		RequestedLeaseEnd:        time.Now().Unix(),
+		ActualLeaseEnd:           time.Now().Unix()}
+
+	nonExpiredLeaseTestArgs := &args{
+		lease,
+		&leaseContext{
+			time.Now().AddDate(0, 0, +1).Unix(),
+			5000}}
+
+	expiredLeaseTestArgs := &args{
+		lease,
+		&leaseContext{
+			time.Now().AddDate(0, 0, -1).Unix(),
+			5000}}
+
+	overBudgetTest := &args{
+		lease,
+		&leaseContext{
+			time.Now().AddDate(0, 0, +1).Unix(),
+			5}}
+
 	tests := []struct {
 		name  string
 		args  args
 		want  bool
 		want1 string
 	}{
-		// TODO: Add test cases.
-	}
+		{"Non-expired lease test", *nonExpiredLeaseTestArgs, false, ""},
+		{"Expired lease test", *expiredLeaseTestArgs, true, "Lease date for account has expired!"},
+		{"Over budget lease test", *overBudgetTest, true, "Account is over max budget for lease!"}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, got1 := isLeaseExpired(tt.args.lease, tt.args.context)

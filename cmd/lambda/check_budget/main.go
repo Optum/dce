@@ -14,7 +14,6 @@ import (
 	multierrors "github.com/Optum/Redbox/pkg/errors"
 	"github.com/Optum/Redbox/pkg/usage"
 	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ses"
 	"github.com/aws/aws-sdk-go/service/sns"
@@ -120,6 +119,7 @@ type lambdaHandlerInput struct {
 
 func lambdaHandler(input *lambdaHandlerInput) error {
 	leaseLogID := fmt.Sprintf("%s @ %s", input.lease.PrincipalID, input.lease.PrincipalID)
+	prevLeaseStatus := input.lease.LeaseStatus
 
 	// Lookup the account for this lease,
 	// so we can get the adminRoleArn
@@ -151,29 +151,32 @@ func lambdaHandler(input *lambdaHandlerInput) error {
 	expired, reason := isLeaseExpired(input.lease, &leaseContext{currentTimeEpoch, actualSpend})
 
 	if expired {
-		log.Printf("%s.  Reclaiming account...", reason)
-		err := handleLeaseExpire(input)
+		// Update the lease status with the inactive status and current end time.
+		input.lease.LeaseStatus = db.Inactive
+		input.lease.ActualLeaseEnd = currentTimeEpoch
+		log.Printf("%s.  Updating lease as ready to be reclaimed...", reason)
+		err := handleLeaseExpire(input, prevLeaseStatus)
 		if err != nil {
 			deferredErrors = append(deferredErrors, err)
 		}
-	}
 
-	// Send notification emails, for budget thresholds
-	err = sendBudgetNotificationEmail(&sendBudgetNotificationEmailInput{
-		lease:                                  input.lease,
-		emailSvc:                               input.emailSvc,
-		budgetNotificationFromEmail:            input.budgetNotificationFromEmail,
-		budgetNotificationBCCEmails:            input.budgetNotificationBCCEmails,
-		budgetNotificationTemplateHTML:         input.budgetNotificationTemplateHTML,
-		budgetNotificationTemplateText:         input.budgetNotificationTemplateText,
-		budgetNotificationTemplateSubject:      input.budgetNotificationTemplateSubject,
-		budgetNotificationThresholdPercentiles: input.budgetNotificationThresholdPercentiles,
-		actualSpend:                            actualSpend,
-	})
-	if err != nil {
-		log.Printf("Failed to send budget notification emails for lease %s @ %s: %s",
-			input.lease.PrincipalID, input.lease.AccountID, err)
-		deferredErrors = append(deferredErrors, err)
+		// Send notification emails, for budget thresholds
+		err = sendBudgetNotificationEmail(&sendBudgetNotificationEmailInput{
+			lease:                                  input.lease,
+			emailSvc:                               input.emailSvc,
+			budgetNotificationFromEmail:            input.budgetNotificationFromEmail,
+			budgetNotificationBCCEmails:            input.budgetNotificationBCCEmails,
+			budgetNotificationTemplateHTML:         input.budgetNotificationTemplateHTML,
+			budgetNotificationTemplateText:         input.budgetNotificationTemplateText,
+			budgetNotificationTemplateSubject:      input.budgetNotificationTemplateSubject,
+			budgetNotificationThresholdPercentiles: input.budgetNotificationThresholdPercentiles,
+			actualSpend:                            actualSpend,
+		})
+		if err != nil {
+			log.Printf("Failed to send budget notification emails for lease %s @ %s: %s",
+				input.lease.PrincipalID, input.lease.AccountID, err)
+			deferredErrors = append(deferredErrors, err)
+		}
 	}
 
 	// Return deferred errors
@@ -184,11 +187,13 @@ func lambdaHandler(input *lambdaHandlerInput) error {
 	return nil
 }
 
+// isLeaseExpried contains the logic for determining if a lease has already
+// expired, given the context.
 func isLeaseExpired(lease *db.RedboxLease, context *leaseContext) (bool, string) {
 
-	if context.expireDate >= lease.RequestedLeaseEnd {
+	if context.expireDate <= lease.RequestedLeaseEnd {
 		return true, "Lease date for account has expired!"
-	} else if context.maxSpend >= lease.BudgetAmount {
+	} else if lease.BudgetAmount >= context.maxSpend {
 		return true, "Account is over max budget for lease!"
 	}
 
@@ -199,29 +204,20 @@ func isLeaseExpired(lease *db.RedboxLease, context *leaseContext) (bool, string)
 // - Sets Lease DB status to FinanceLocked
 // - Publish Lease to "lease-locked" SNS topic
 // - Pushes account to reset queue (to stop the bleeding)
-func handleLeaseExpire(input *lambdaHandlerInput) error {
+func handleLeaseExpire(input *lambdaHandlerInput, prevLeaseStatus db.LeaseStatus) error {
 	// Defer errors until the end, so we
 	// can continue on error
 	deferredErrors := []error{}
 
-	// Publish a message to the "lease-locked" SNS topic
-	// (only if the account went from Active --> Locked),
-	log.Printf("Publishing to the lease-locked SNS topic")
-	err := publishLeaseChangedEvent(&leaseChangeEvent{
-		snsSvc:             input.snsSvc,
-		leaseEventTopicArn: input.leaseLockedTopicArn,
-		lease:              input.lease,
-	})
-	if err != nil {
-		deferredErrors = append(deferredErrors, err)
-	}
+	// Here we will save the update to the account status. From
+	// there, a Lambda listening to the account status Dynamodb stream
+	// and then forwarding events to SNS and SQS from there.
+	_, err := input.dbSvc.TransitionLeaseStatus(
+		input.lease.AccountID,
+		input.lease.PrincipalID,
+		input.lease.LeaseStatus,
+		prevLeaseStatus)
 
-	// Add the account to the SQS reset queue
-	log.Printf("Adding account %s to the reset queue", input.lease.AccountID)
-	_, err = input.sqsSvc.SendMessage(&sqs.SendMessageInput{
-		QueueUrl:    aws.String(input.resetQueueURL),
-		MessageBody: aws.String(input.lease.AccountID),
-	})
 	if err != nil {
 		log.Printf("Failed to add account to reset queue for lease %s @ %s: %s", input.lease.PrincipalID, input.lease.AccountID, err)
 		deferredErrors = append(deferredErrors, err)
