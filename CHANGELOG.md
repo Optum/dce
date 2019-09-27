@@ -1,4 +1,4 @@
-## v0.18.0
+## _next_
 
 - Minor fixes to `scripts/deploy_local/deploy_local_build.sh` for options to be recognized.
 - README updates to include current steps for build and deployment.
