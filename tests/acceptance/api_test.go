@@ -812,7 +812,7 @@ func TestApi(t *testing.T) {
 			testStartDate := time.Date(2019, 5, 5, 0, 0, 0, 0, time.UTC)
 			testEndDate := time.Date(2019, 5, 5, 23, 59, 59, 0, time.UTC)
 
-			// Create mock usages
+			// Create mock usage
 			expectedUsages := []*usage.Usage{}
 			for a := 1; a <= 2; a++ {
 

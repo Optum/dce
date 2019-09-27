@@ -1,8 +1,8 @@
-resource "aws_lambda_function" "usages" {
-  function_name = "usages-${var.namespace}"
+resource "aws_lambda_function" "usage" {
+  function_name = "usage-${var.namespace}"
   description   = "API /usage endpoints"
   runtime       = "go1.x"
-  handler       = "usages"
+  handler       = "usage"
   role          = aws_iam_role.redbox_lambda_execution.arn
   timeout       = 300
 

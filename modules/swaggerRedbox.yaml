@@ -210,7 +210,7 @@ paths:
         - sigv4: []
   "/usage":
     get:
-      summary: Get usages by date range
+      summary: Get usage records by date range
       produces:
         - application/json
       parameters:

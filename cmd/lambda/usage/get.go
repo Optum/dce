@@ -19,7 +19,7 @@ type getController struct {
 	Dao usage.DB
 }
 
-// Call - function to return usages for input date range
+// Call - function to return usage for input date range
 func (controller getController) Call(ctx context.Context, req *events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	// Fetch the usage records.
 	i, err := strconv.ParseInt(req.QueryStringParameters["startDate"], 10, 64)
@@ -42,20 +42,20 @@ func (controller getController) Call(ctx context.Context, req *events.APIGateway
 	}
 	endDate := time.Unix(j, 0)
 
-	usages, err := controller.Dao.GetUsageByDateRange(startDate, endDate)
+	usageRecords, err := controller.Dao.GetUsageByDateRange(startDate, endDate)
 
 	if err != nil {
-		log.Printf("Error Getting usages for startDate %d: %s", startDate.Unix(), err)
+		log.Printf("Error Getting usage records for startDate %d: %s", startDate.Unix(), err)
 		return response.CreateAPIErrorResponse(http.StatusInternalServerError,
 			response.CreateErrorResponse("ServerError",
-				fmt.Sprintf("Failed get usages for start date %d",
+				fmt.Sprintf("Failed to get usage records for start date %d",
 					startDate.Unix()))), nil
 	}
 
 	// Serialize them for the JSON response.
 	usageResponses := []*response.UsageResponse{}
 
-	for _, a := range usages {
+	for _, a := range usageRecords {
 		usageRes := response.UsageResponse(*a)
 		usageRes.StartDate = startDate.Unix()
 		usageRes.EndDate = endDate.Unix()
