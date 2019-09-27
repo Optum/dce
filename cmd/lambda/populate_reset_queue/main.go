@@ -26,41 +26,9 @@ func enqueueRedboxes(redboxes []*db.RedboxAccount, queueURL *string,
 			return errors.Wrap(err, "Failed to enqueue accounts")
 		}
 		log.Printf("%s : Added to Reset Queue\n", redbox.ID)
-
-		// Transition FinanceLock Lease if needed
-		log.Printf("%s : Checking for Finance Lock\n", redbox.ID)
-		err = transitionFinanceLock(redbox.ID, dbSvc)
-		if err != nil {
-			return errors.Wrap(err, "Failed to enqueue accounts")
-		}
 	}
 	return nil
 
-}
-
-// transitionFinanceLock is a helper function to that will transition a
-// FinanceLock Account Lease to Active if one exists
-func transitionFinanceLock(accountID string, dbSvc db.DBer) error {
-	// Find all leases
-	leases, err := dbSvc.FindLeasesByAccount(accountID)
-	if err != nil {
-		return err
-	}
-
-	// Look for a FinanceLock Lease and transition its state to Active
-	for _, lease := range leases {
-		if lease.LeaseStatus == db.FinanceLock || lease.LeaseStatus == db.ResetFinanceLock {
-			_, err = dbSvc.TransitionLeaseStatus(accountID,
-				lease.PrincipalID, lease.LeaseStatus, db.Active)
-			if err != nil {
-				return err
-			}
-			log.Printf("%s : Removed Finance Lock\n", accountID)
-			return nil
-		}
-	}
-	log.Printf("%s : No Finance Lock\n", accountID)
-	return nil
 }
 
 // rbenqHandler is the base handler function for the lambda

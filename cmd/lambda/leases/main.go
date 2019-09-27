@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"log"
+	"net/http"
+
 	"github.com/Optum/Redbox/pkg/api/response"
 	"github.com/Optum/Redbox/pkg/common"
 	"github.com/Optum/Redbox/pkg/db"
@@ -12,8 +15,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/aws/aws-sdk-go/service/sqs"
-	"log"
-	"net/http"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -252,8 +253,7 @@ func decommissionAccount(request *requestBody, queueURL *string, dbSvc db.DBer,
 		errStr := fmt.Sprintf("No active account leases found for %s", principalID)
 		return createAPIErrorResponse(http.StatusBadRequest,
 			response.CreateErrorResponse("ClientError", errStr))
-	} else if acct.LeaseStatus != db.Active &&
-		acct.LeaseStatus != db.ResetLock {
+	} else if acct.LeaseStatus != db.Active {
 		errStr := fmt.Sprintf("Account Lease is not active for %s - %s",
 			principalID, accountID)
 		return createAPIErrorResponse(http.StatusBadRequest,
@@ -262,7 +262,7 @@ func decommissionAccount(request *requestBody, queueURL *string, dbSvc db.DBer,
 
 	// Tranistion the Lease Status
 	lease, err := dbSvc.TransitionLeaseStatus(acct.AccountID, principalID,
-		db.Active, db.Decommissioned)
+		db.Active, db.Inactive, "Requested decommission.")
 	if err != nil {
 		log.Printf("Error transitioning lease status: %s", err)
 		return createAPIErrorResponse(http.StatusInternalServerError,

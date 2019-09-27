@@ -94,49 +94,13 @@ func main() {
 // will update to "Status=Ready"
 func updateDBPostReset(dbSvc db.DBer, snsSvc common.Notificationer, accountID string, snsTopicArn string) error {
 	// Find any lease for the Account
-	leases, err := dbSvc.FindLeasesByAccount(accountID)
-	if err != nil {
-		return err
-	}
-
-	// For any Leases with Status=ResetLock,
-	// change the status back to "Active"
-	// And For any Leases with Status=ResetFinanceLock,
-	// change the status back to "FinanceLock"
-	for _, assgn := range leases {
-		// Only consider ResetLock'd leases
-		if assgn.LeaseStatus == db.ResetLock {
-			// Set Status from ResetLock to Active
-			log.Printf("Setting Lease Status from ResetLock to Active: %s - %s",
-				accountID, assgn.PrincipalID)
-			_, err := dbSvc.TransitionLeaseStatus(
-				accountID, assgn.PrincipalID,
-				db.ResetLock, db.Active,
-			)
-			if err != nil {
-				return err
-			}
-		} else if assgn.LeaseStatus == db.ResetFinanceLock {
-			// Set Status from ResetFinanceLock to FinanceLock
-			log.Printf("Setting Lease Status from ResetFinanceLock to FinanceLock: %s - %s",
-				accountID, assgn.PrincipalID)
-			_, err := dbSvc.TransitionLeaseStatus(
-				accountID, assgn.PrincipalID,
-				db.ResetFinanceLock, db.FinanceLock,
-			)
-			if err != nil {
-				return err
-			}
-		}
-
-	}
 
 	// If the Account.Status=NotReady, change it back to Status=Ready
 	log.Printf("Setting Account Status from NotReady to Ready: %s", accountID)
 	account, err := dbSvc.TransitionAccountStatus(
 		accountID,
-		db.NotReady, db.Ready,
-	)
+		db.NotReady, db.Ready)
+
 	// Ignore StatusTransitionErrors
 	// (just means the status was NOT previously NotReady")
 	if err != nil {

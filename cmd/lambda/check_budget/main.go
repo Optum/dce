@@ -155,7 +155,7 @@ func lambdaHandler(input *lambdaHandlerInput) error {
 		input.lease.LeaseStatus = db.Inactive
 		input.lease.ActualLeaseEnd = currentTimeEpoch
 		log.Printf("%s.  Updating lease as ready to be reclaimed...", reason)
-		err := handleLeaseExpire(input, prevLeaseStatus)
+		err := handleLeaseExpire(input, prevLeaseStatus, reason)
 		if err != nil {
 			deferredErrors = append(deferredErrors, err)
 		}
@@ -204,7 +204,7 @@ func isLeaseExpired(lease *db.RedboxLease, context *leaseContext) (bool, string)
 // - Sets Lease DB status to FinanceLocked
 // - Publish Lease to "lease-locked" SNS topic
 // - Pushes account to reset queue (to stop the bleeding)
-func handleLeaseExpire(input *lambdaHandlerInput, prevLeaseStatus db.LeaseStatus) error {
+func handleLeaseExpire(input *lambdaHandlerInput, prevLeaseStatus db.LeaseStatus, leaseStatusReason string) error {
 	// Defer errors until the end, so we
 	// can continue on error
 	deferredErrors := []error{}
@@ -216,7 +216,8 @@ func handleLeaseExpire(input *lambdaHandlerInput, prevLeaseStatus db.LeaseStatus
 		input.lease.AccountID,
 		input.lease.PrincipalID,
 		input.lease.LeaseStatus,
-		prevLeaseStatus)
+		prevLeaseStatus,
+		leaseStatusReason)
 
 	if err != nil {
 		log.Printf("Failed to add account to reset queue for lease %s @ %s: %s", input.lease.PrincipalID, input.lease.AccountID, err)

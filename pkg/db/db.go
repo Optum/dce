@@ -44,7 +44,7 @@ type DBer interface {
 	DeleteAccount(accountID string) (*RedboxAccount, error)
 	PutLease(account RedboxLease) (*RedboxLease, error)
 	TransitionAccountStatus(accountID string, prevStatus AccountStatus, nextStatus AccountStatus) (*RedboxAccount, error)
-	TransitionLeaseStatus(accountID string, principalID string, prevStatus LeaseStatus, nextStatus LeaseStatus) (*RedboxLease, error)
+	TransitionLeaseStatus(accountID string, principalID string, prevStatus LeaseStatus, nextStatus LeaseStatus, leaseStatusReason string) (*RedboxLease, error)
 	FindLeasesByAccount(accountID string) ([]*RedboxLease, error)
 	FindLeasesByPrincipal(principalID string) ([]*RedboxLease, error)
 	FindLeasesByStatus(status LeaseStatus) ([]*RedboxLease, error)
@@ -386,7 +386,7 @@ func (db *DB) PutLease(lease RedboxLease) (
 //
 // And to unlock the account:
 //		db.TransitionLeaseStatus(accountId, principalID, ResetLock, Active)
-func (db *DB) TransitionLeaseStatus(accountID string, principalID string, prevStatus LeaseStatus, nextStatus LeaseStatus) (*RedboxLease, error) {
+func (db *DB) TransitionLeaseStatus(accountID string, principalID string, prevStatus LeaseStatus, nextStatus LeaseStatus, leaseStatusReason string) (*RedboxLease, error) {
 	result, err := db.Client.UpdateItem(
 		&dynamodb.UpdateItemInput{
 			// Query in Lease Table

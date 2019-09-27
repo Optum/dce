@@ -37,7 +37,7 @@ func (prov *AccountProvision) FindActiveLeaseForPrincipal(principalID string) (
 		return nil, err
 	}
 	for _, lease := range leases {
-		if lease.LeaseStatus != db.Decommissioned {
+		if lease.LeaseStatus != db.Inactive {
 			activeLease = lease
 			break
 		}
@@ -61,7 +61,7 @@ func (prov *AccountProvision) FindLeaseWithAccount(principalID string,
 	for _, l := range leases {
 		// Check if the status is Active
 		// If so, return an error
-		if l.LeaseStatus != db.Decommissioned {
+		if l.LeaseStatus == db.Active {
 			errStr := fmt.Sprintf("Attempt to lease Active Account as new "+
 				"Redbox - %s", accountID)
 			return nil, errors.New(errStr)
@@ -110,7 +110,7 @@ func (prov *AccountProvision) ActivateAccount(create bool,
 		log.Printf("Update existing Lease for Principal %s and Account %s\n",
 			principalID, accountID)
 		assgn, err = prov.DBSvc.TransitionLeaseStatus(accountID, principalID,
-			db.Decommissioned, db.Active)
+			db.Inactive, db.Active, "Lease granted")
 		// Failed to Update Lease
 		if err != nil {
 			return nil, err
@@ -126,7 +126,7 @@ func (prov *AccountProvision) RollbackProvisionAccount(
 	transitionAccountStatus bool, principalID string, accountID string) error {
 	// Reverse Account Lease- Set next state as Decommissioned
 	_, errLease := prov.DBSvc.TransitionLeaseStatus(accountID, principalID,
-		db.Active, db.Decommissioned)
+		db.Active, db.Inactive, "Lease rolled back.")
 
 	// Reverse Account - Set next state as Ready
 	if transitionAccountStatus {

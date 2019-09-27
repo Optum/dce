@@ -131,14 +131,7 @@ func leaseFromImage(image map[string]events.DynamoDBAttributeValue) (*db.RedboxL
 }
 
 func isLockStatus(status string) bool {
-	switch status {
-	case string(db.ResetLock),
-		string(db.FinanceLock),
-		string(db.ResetFinanceLock):
-		return true
-	}
-
-	return false
+	return !isActiveStatus(status)
 }
 
 func isActiveStatus(status string) bool {
