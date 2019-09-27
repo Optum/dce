@@ -50,7 +50,7 @@ func TestUsageDb(t *testing.T) {
 		testStartDate := time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 0, 0, 0, 0, time.UTC).AddDate(0, -1, 0)
 		testEndDate := time.Date(testStartDate.Year(), testStartDate.Month(), testStartDate.Day(), 23, 59, 59, 0, time.UTC)
 
-		// Create mock usages
+		// Create mock usage
 		expectedUsages := []*usage.Usage{}
 		for a := 1; a <= 2; a++ {
 

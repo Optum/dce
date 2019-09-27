@@ -108,7 +108,7 @@ func (db *DB) GetUsageByDateRange(startDate time.Time, endDate time.Time) ([]*Us
 		}
 	}
 
-	usages := []*Usage{}
+	usageRecords := []*Usage{}
 	for _, s := range scanOutput {
 
 		// Create the array of Usage records
@@ -117,11 +117,11 @@ func (db *DB) GetUsageByDateRange(startDate time.Time, endDate time.Time) ([]*Us
 			if err != nil {
 				return nil, err
 			}
-			usages = append(usages, n)
+			usageRecords = append(usageRecords, n)
 		}
 	}
 
-	return usages, nil
+	return usageRecords, nil
 }
 
 // New creates a new usage DB Service struct,

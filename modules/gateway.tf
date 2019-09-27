@@ -14,6 +14,7 @@ data "template_file" "aws_redbox_api_swagger" {
   vars = {
     router_lambda_arn = aws_lambda_function.leases.invoke_arn
     accounts_lambda   = aws_lambda_function.accounts_lambda.invoke_arn
+    usages_lambda     = aws_lambda_function.usage.invoke_arn
     namespace         = "AWS_Redbox-${var.namespace}"
   }
 }
@@ -28,6 +29,14 @@ resource "aws_lambda_permission" "allow_api_gateway" {
 
 resource "aws_lambda_permission" "allow_api_gateway_accounts_accounts_lambda" {
   function_name = aws_lambda_function.accounts_lambda.arn
+  statement_id  = "AllowExecutionFromApiGateway"
+  action        = "lambda:InvokeFunction"
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_api_gateway_rest_api.gateway_api.execution_arn}/*/*"
+}
+
+resource "aws_lambda_permission" "allow_api_gateway_usages_lambda" {
+  function_name = aws_lambda_function.usage.arn
   statement_id  = "AllowExecutionFromApiGateway"
   action        = "lambda:InvokeFunction"
   principal     = "apigateway.amazonaws.com"

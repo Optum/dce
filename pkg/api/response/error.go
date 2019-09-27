@@ -50,6 +50,13 @@ func ServerError() events.APIGatewayProxyResponse {
 	)
 }
 
+func ServerErrorWithResponse(message string) events.APIGatewayProxyResponse {
+	return CreateAPIErrorResponse(
+		500,
+		CreateErrorResponse("ServerError", message),
+	)
+}
+
 func AlreadyExistsError() events.APIGatewayProxyResponse {
 	return CreateAPIErrorResponse(
 		409,
