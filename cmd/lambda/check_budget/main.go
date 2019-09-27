@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/Optum/Redbox/pkg/awsiface"
 	"github.com/Optum/Redbox/pkg/budget"
@@ -21,6 +22,11 @@ import (
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/pkg/errors"
 )
+
+type leaseContext struct {
+	expireDate int64
+	maxSpend   float64
+}
 
 func main() {
 	lambda.Start(func(event interface{}) {
@@ -138,14 +144,15 @@ func lambdaHandler(input *lambdaHandlerInput) error {
 	if err != nil {
 		return errors.Wrapf(err, "Failed to calculate spend for lease %s", leaseLogID)
 	}
-	// Defer errors until the end, so we
-	// can continue on error
+	// Defer errors until the end, so we can continue on error
 	deferredErrors := []error{}
+	currentTimeEpoch := time.Now().UnixNano() / 1000000
 
-	// Handle the over-budget case (finance lock, etc)
-	if actualSpend >= input.lease.BudgetAmount {
-		log.Printf("Lease %s is over budget ($%.2f / $%.2f). Locking account...", leaseLogID, actualSpend, input.lease.BudgetAmount)
-		err := handleOverBudget(input)
+	expired, reason := isLeaseExpired(input.lease, &leaseContext{currentTimeEpoch, actualSpend})
+
+	if expired {
+		log.Printf("%s.  Reclaiming account...", reason)
+		err := handleLeaseExpire(input)
 		if err != nil {
 			deferredErrors = append(deferredErrors, err)
 		}
@@ -177,40 +184,36 @@ func lambdaHandler(input *lambdaHandlerInput) error {
 	return nil
 }
 
+func isLeaseExpired(lease *db.RedboxLease, context *leaseContext) (bool, string) {
+
+	if context.expireDate >= lease.RequestedLeaseEnd {
+		return true, "Lease date for account has expired!"
+	} else if context.maxSpend >= lease.BudgetAmount {
+		return true, "Account is over max budget for lease!"
+	}
+
+	return false, ""
+}
+
 // handleOverBudget handles the case where a lease is over budget:
 // - Sets Lease DB status to FinanceLocked
 // - Publish Lease to "lease-locked" SNS topic
 // - Pushes account to reset queue (to stop the bleeding)
-func handleOverBudget(input *lambdaHandlerInput) error {
+func handleLeaseExpire(input *lambdaHandlerInput) error {
 	// Defer errors until the end, so we
 	// can continue on error
 	deferredErrors := []error{}
 
-	// Set Lease.LeaseStatus = FinanceLock
-	prevStatus := input.lease.LeaseStatus
-	err := financeLock(&financeLockInput{
-		lease: input.lease,
-		dbSvc: input.dbSvc,
+	// Publish a message to the "lease-locked" SNS topic
+	// (only if the account went from Active --> Locked),
+	log.Printf("Publishing to the lease-locked SNS topic")
+	err := publishLeaseChangedEvent(&leaseChangeEvent{
+		snsSvc:             input.snsSvc,
+		leaseEventTopicArn: input.leaseLockedTopicArn,
+		lease:              input.lease,
 	})
 	if err != nil {
 		deferredErrors = append(deferredErrors, err)
-	}
-
-	// Publish a message to the "lease-locked" SNS topic
-	// (only if the account went from Active --> Locked),
-	if prevStatus != db.Active {
-		log.Printf("Skipping publish to lease-locked SNS topic (lease was not previously active)")
-
-	} else {
-		log.Printf("Publishing to the lease-locked SNS topic")
-		err := publishLeaseLocked(&publishLeaseLockedInput{
-			snsSvc:              input.snsSvc,
-			leaseLockedTopicArn: input.leaseLockedTopicArn,
-			lease:               input.lease,
-		})
-		if err != nil {
-			deferredErrors = append(deferredErrors, err)
-		}
 	}
 
 	// Add the account to the SQS reset queue

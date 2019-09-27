@@ -18,6 +18,7 @@ import (
 	usageMocks "github.com/Optum/Redbox/pkg/usage/mocks"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sqs"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -171,7 +172,7 @@ has exceeded its budget of $100. Actual spend is $150
 		// Should publish to `lease-locked` topic
 		if test.shouldSNS {
 			lockedLease := *input.lease
-			lockedLease.LeaseStatus = db.FinanceLock
+			lockedLease.LeaseStatus = db.Inactive
 			lockedLeaseMsg, err := common.PrepareSNSMessageJSON(lockedLease)
 			require.Nil(t, err)
 			snsSvc.On("PublishMessage",
@@ -225,7 +226,7 @@ has exceeded its budget of $100. Actual spend is $150
 			actualSpend:  150,
 			// Should transition from Active --> FinanceLock
 			leaseStatus:                   db.Active,
-			expectedLeaseStatusTransition: db.FinanceLock,
+			expectedLeaseStatusTransition: db.Inactive,
 			// Should do all the finance locking things
 			shouldTransitionLeaseStatus: true,
 			shouldSNS:                   true,
@@ -292,7 +293,7 @@ Actual spend is $76
 
 			// DB Transition fails
 			leaseStatus:                   db.Active,
-			expectedLeaseStatusTransition: db.FinanceLock,
+			expectedLeaseStatusTransition: db.Inactive,
 			transitionLeaseError:          errors.New("DB transition failed"),
 
 			// Should continue on error
@@ -315,7 +316,7 @@ Actual spend is $76
 			actualSpend:  150,
 
 			leaseStatus:                   db.Active,
-			expectedLeaseStatusTransition: db.FinanceLock,
+			expectedLeaseStatusTransition: db.Inactive,
 			shouldTransitionLeaseStatus:   true,
 
 			// SNS Fails
@@ -340,7 +341,7 @@ Actual spend is $76
 			actualSpend:  150,
 
 			leaseStatus:                   db.Active,
-			expectedLeaseStatusTransition: db.FinanceLock,
+			expectedLeaseStatusTransition: db.Inactive,
 			shouldTransitionLeaseStatus:   true,
 			shouldSNS:                     true,
 
@@ -365,7 +366,7 @@ Actual spend is $76
 			actualSpend:  150,
 
 			leaseStatus:                   db.Active,
-			expectedLeaseStatusTransition: db.FinanceLock,
+			expectedLeaseStatusTransition: db.Inactive,
 			shouldTransitionLeaseStatus:   true,
 
 			// SNS Fails
@@ -387,4 +388,30 @@ Actual spend is $76
 		})
 	})
 
+}
+
+func Test_isLeaseExpired(t *testing.T) {
+	type args struct {
+		lease   *db.RedboxLease
+		context *leaseContext
+	}
+	tests := []struct {
+		name  string
+		args  args
+		want  bool
+		want1 string
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, got1 := isLeaseExpired(tt.args.lease, tt.args.context)
+			if got != tt.want {
+				t.Errorf("isLeaseExpired() got = %v, want %v", got, tt.want)
+			}
+			if got1 != tt.want1 {
+				t.Errorf("isLeaseExpired() got1 = %v, want %v", got1, tt.want1)
+			}
+		})
+	}
 }

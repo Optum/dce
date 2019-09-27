@@ -2,6 +2,8 @@ package main
 
 import (
 	"encoding/json"
+	"log"
+
 	"github.com/Optum/Redbox/pkg/common"
 	"github.com/Optum/Redbox/pkg/db"
 	"github.com/Optum/Redbox/pkg/errors"
@@ -11,7 +13,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	lambdaSDK "github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/aws/aws-sdk-go/service/lambda/lambdaiface"
-	"log"
 )
 
 /*
