@@ -1,6 +1,6 @@
 resource "aws_lambda_function" "usages" {
   function_name = "usages-${var.namespace}"
-  description   = "API /usages endpoints"
+  description   = "API /usage endpoints"
   runtime       = "go1.x"
   handler       = "usages"
   role          = aws_iam_role.redbox_lambda_execution.arn
