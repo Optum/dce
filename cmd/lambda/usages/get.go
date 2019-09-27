@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/Optum/Redbox/pkg/usage"
@@ -18,14 +19,10 @@ type getController struct {
 	Dao usage.DB
 }
 
-const (
-	layoutISO = "2006-01-02"
-)
-
 // Call - function to return usages for input date range
 func (controller getController) Call(ctx context.Context, req *events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	// Fetch the usage records.
-	startDate, err := time.Parse(layoutISO, req.QueryStringParameters["startDate"])
+	i, err := strconv.ParseInt(req.QueryStringParameters["startDate"], 10, 64)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed to parse usage start date: %s", err)
 		log.Print(errorMessage)
@@ -33,8 +30,9 @@ func (controller getController) Call(ctx context.Context, req *events.APIGateway
 			response.CreateErrorResponse(
 				"Invalid startDate", errorMessage)), nil
 	}
+	startDate := time.Unix(i, 0)
 
-	endDate, err := time.Parse(layoutISO, req.QueryStringParameters["endDate"])
+	j, err := strconv.ParseInt(req.QueryStringParameters["endDate"], 10, 64)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed to parse usage end date: %s", err)
 		log.Print(errorMessage)
@@ -42,6 +40,7 @@ func (controller getController) Call(ctx context.Context, req *events.APIGateway
 			response.CreateErrorResponse(
 				"Invalid endDate", errorMessage)), nil
 	}
+	endDate := time.Unix(j, 0)
 
 	usages, err := controller.Dao.GetUsageByDateRange(startDate, endDate)
 

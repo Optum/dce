@@ -790,7 +790,7 @@ func TestApi(t *testing.T) {
 			// Send an API request
 			resp := apiRequest(t, &apiRequestInput{
 				method: "GET",
-				url:    apiURL + "/usages?startDate=2019-09-02&endDate=2019-09-02",
+				url:    apiURL + "/usages?startDate=1568937600&endDate=1569023999",
 				json:   nil,
 			})
 
@@ -853,7 +853,7 @@ func TestApi(t *testing.T) {
 			// Send an API request
 			resp := apiRequest(t, &apiRequestInput{
 				method: "GET",
-				url:    apiURL + "/usages?startDate=2019-05-05&endDate=2019-05-07",
+				url:    apiURL + "/usages?startDate=1557014400&endDate=1557273599",
 				json:   nil,
 			})
 
