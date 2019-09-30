@@ -1,0 +1,59 @@
+pool:
+  vmImage: 'Ubuntu 16.04'
+
+trigger:
+  # Do not build branches
+  branches:
+    exclude:
+      - "*"
+
+# Configure the namespace used by Terraform
+# May be referenced as an env var (eg. "${NAMESPACE}")
+# Or as a pipeline variable (eg. "$(namespace)")
+- script: |
+    PR_NUMBER="$(System.PullRequest.PullRequestNumber)"
+    # This is the branch name, or the git tag name
+    NS_BRANCH_OR_TAG="$(Build.SourceBranchName)"
+
+    # TODO tag name can't be namespace, AWS doesn't like
+    # it as a resource name.
+    # If it's a tagged version, just call it `release` or something
+    if [[ -z ${PR_NUMBER} ]]; then
+      NS="release"
+    else
+      NS="pr-${PR_NUMBER}"
+    fi
+
+    echo "Namespace is ${NS}"
+
+    # Set the namespace as a Azure Pipeline variable
+    # See https://docs.microsoft.com/en-us/azure/devops/pipelines/process/variables?view=azure-devops&tabs=yaml%2Cbatch#set-in-script
+    echo "##vso[task.setvariable variable=namespace]${NS}"
+  displayName: "Configure AWS Namespace"
+
+# Install Terraform
+- task: TerraformInstaller@0
+  inputs:
+    terraformVersion: '0.12.7'
+  displayName: 'Install Terraform'
+
+# terraform init
+- task: TerraformTaskV1@0
+  displayName: 'terraform init'
+  inputs:
+    provider: 'aws'
+    command: 'init'
+    workingDirectory: './modules'
+    backendServiceAWS: 'AWS_Terraform_Connection'
+    backendAWSBucketName: '$(BACKEND_AWS_BUCKET_NAME)'
+    backendAWSKey: '$(namespace)/terraform.tfstate'
+
+# terraform destroy
+- task: TerraformTaskV1@0
+  displayName: 'terraform destroy'
+  inputs:
+    provider: 'aws'
+    command: 'destroy'
+    workingDirectory: './modules'
+    commandOptions: '-var="namespace=$(namespace)" -var="budget_notification_from_email=$(NOTIFY_EMAIL)"'
+    environmentServiceNameAWS: 'AWS_Terraform_Connection'
