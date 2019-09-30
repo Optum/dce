@@ -1,11 +1,8 @@
 pool:
   vmImage: 'Ubuntu 16.04'
 
-trigger:
-  # Do not build branches
-  branches:
-    exclude:
-      - "*"
+trigger: none
+
 steps:
 # Configure the namespace used by Terraform
 # May be referenced as an env var (eg. "${NAMESPACE}")
