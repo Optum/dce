@@ -15,10 +15,6 @@ trigger:
 pr:
   - master
 
-# Run builds for PRs against `master`
-pr:
-  - master
-
 steps:
 # Setup Python
 - task: UsePythonVersion@0
