@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
 
 	"github.com/Optum/Redbox/pkg/api/response"
 	"github.com/Optum/Redbox/pkg/common"
@@ -17,6 +18,13 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+)
+
+const (
+	PRINCIPAL_ID_PARAM      = "principalId"
+	ACCOUNT_ID_PARAM        = "accountId"
+	NEXT_PRINCIPAL_ID_PARAM = "nextPrincipalId"
+	NEXTACCOUNT_ID_PARAM    = "nextAccountId"
 )
 
 // createAPIResponse is a helper function to create and return a valid response
@@ -260,7 +268,7 @@ func decommissionAccount(request *requestBody, queueURL *string, dbSvc db.DBer,
 			response.CreateErrorResponse("ClientError", errStr))
 	}
 
-	// Tranistion the Lease Status
+	// Transition the Lease Status
 	lease, err := dbSvc.TransitionLeaseStatus(acct.AccountID, principalID,
 		db.Active, db.Decommissioned)
 	if err != nil {
@@ -271,7 +279,7 @@ func decommissionAccount(request *requestBody, queueURL *string, dbSvc db.DBer,
 					accountID)))
 	}
 
-	// Transistion the Account Status
+	// Transition the Account Status
 	_, err = dbSvc.TransitionAccountStatus(acct.AccountID, db.Leased,
 		db.NotReady)
 	if err != nil {
@@ -302,6 +310,27 @@ func decommissionAccount(request *requestBody, queueURL *string, dbSvc db.DBer,
 
 	// Return the response back to API
 	return createAPIResponse(http.StatusOK, *message)
+}
+
+func mapQueryParams(path string) (map[string]string, error) {
+	queryParams, err := url.ParseQuery(path)
+	filters := make(map[string]string)
+
+	if err != nil {
+		return filters, err
+	}
+
+	principalID, ok := queryParams[PRINCIPAL_ID_PARAM]
+	if ok && len(principalID) > 0 {
+		filters["PrincipalId"] = principalID[0]
+	}
+
+	accountID, ok := queryParams[ACCOUNT_ID_PARAM]
+	if ok && len(accountID) > 0 {
+		filters["AccountId"] = accountID[0]
+	}
+
+	return filters, nil
 }
 
 func router(ctx context.Context, req *events.APIGatewayProxyRequest) (
@@ -338,8 +367,12 @@ func router(ctx context.Context, req *events.APIGatewayProxyRequest) (
 	// Execute the correct action based on the HTTP method
 	switch req.HTTPMethod {
 	case "GET":
-		// Placeholder until a proper GET gets implemented
-		return createAPIResponse(http.StatusOK, "{\"message\":\"pong\"}"), nil
+		filters, err := mapQueryParams(req.Path)
+		if err != nil {
+			return response.ServerErrorWithResponse(fmt.Sprintf("Error parsing query params in \"%s\"", req.Path)), nil
+		}
+
+		dbSvc.GetLeases(filters)
 	case "POST":
 		prov := &provision.AccountProvision{
 			DBSvc: dbSvc,

@@ -655,6 +655,107 @@ func TestDb(t *testing.T) {
 		require.Equal(t, expected, updatedAccount.Metadata, "Metadata should be updated")
 		require.NotEqual(t, 0, updatedAccount.LastModifiedOn, "Last modified is updated")
 	})
+
+	t.Run("GetLeases", func(t *testing.T) {
+		defer truncateAccountTable(t, dbSvc)
+		defer truncateLeaseTable(t, dbSvc)
+
+		accountIdOne := "1"
+		accountIdTwo := "2"
+		principalIdOne := "a"
+		principalIdTwo := "b"
+		principalIdThree := "c"
+		principalIdFour := "d"
+
+		_, err = dbSvc.PutLease(db.RedboxLease{
+			AccountID:   accountIdOne,
+			PrincipalID: principalIdOne,
+			LeaseStatus: db.Active,
+		})
+
+		assert.Nil(t, err)
+
+		_, err = dbSvc.PutLease(db.RedboxLease{
+			AccountID:   accountIdOne,
+			PrincipalID: principalIdTwo,
+			LeaseStatus: db.Active,
+		})
+
+		assert.Nil(t, err)
+
+		_, err = dbSvc.PutLease(db.RedboxLease{
+			AccountID:   accountIdOne,
+			PrincipalID: principalIdThree,
+			LeaseStatus: db.Decommissioned,
+		})
+
+		assert.Nil(t, err)
+
+		_, err = dbSvc.PutLease(db.RedboxLease{
+			AccountID:   accountIdTwo,
+			PrincipalID: principalIdFour,
+			LeaseStatus: db.Active,
+		})
+
+		assert.Nil(t, err)
+
+		t.Run("When there no filters", func(t *testing.T) {
+			output, err := dbSvc.GetLeases(db.GetLeasesInput{})
+			assert.Nil(t, err)
+			assert.Equal(t, 4, len(output.Results), "only two leases should be returned")
+		})
+
+		t.Run("When there is a limit", func(t *testing.T) {
+			output, err := dbSvc.GetLeases(db.GetLeasesInput{
+				Limit: 2,
+			})
+			assert.Nil(t, err)
+			assert.Equal(t, 2, len(output.Results), "only two leases should be returned")
+		})
+
+		t.Run("When there is a status", func(t *testing.T) {
+			output, err := dbSvc.GetLeases(db.GetLeasesInput{
+				Status: db.Decommissioned,
+			})
+			assert.Nil(t, err)
+			assert.Equal(t, 1, len(output.Results), "only one lease should be returned")
+			assert.Equal(t, db.Decommissioned, output.Results[0].LeaseStatus, "lease should be decommissioned")
+		})
+
+		t.Run("When there is a principal ID", func(t *testing.T) {
+			output, err := dbSvc.GetLeases(db.GetLeasesInput{
+				PrincipalId: principalIdOne,
+			})
+			assert.Nil(t, err)
+		})
+
+		t.Run("When there is an account ID", func(t *testing.T) {
+			output, err := dbSvc.GetLeases(db.GetLeasesInput{
+				AccountId: accountIdTwo,
+			})
+			assert.Nil(t, err)
+			assert.Equal(t, 1, len(output.Results), "only one lease should be returned")
+		})
+
+		t.Run("When there is a start key", func(t *testing.T) {
+			output, err := dbSvc.GetLeases(db.GetLeasesInput{
+				Limit: 2,
+				AccountId: accountIdOne,
+				StartKey: map[string]string {}
+			})
+			assert.Nil(t, err)
+		})
+
+		t.Run("When there is a both account ID and principal ID", func(t *testing.T) {
+			output, err := dbSvc.GetLeases(db.GetLeasesInput{
+				AccountId: accountIdOne,
+				PrincipalId: principalIdThree,
+			})
+			assert.Nil(t, err)
+			assert.Equal(t, 1, len(output.Results), "only one lease should be returned")
+			assert.Equal(t, db.Decommissioned, output.Results[0].LeaseStatus, "lease should be decommissioned")
+		})
+	})
 }
 
 func newAccount(id string, timeNow int64) *db.RedboxAccount {

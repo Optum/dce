@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/Optum/Redbox/pkg/common"
@@ -597,6 +598,93 @@ func (db *DB) DeleteAccount(accountID string) (*RedboxAccount, error) {
 
 	_, err = db.Client.DeleteItem(input)
 	return account, err
+}
+
+type GetLeasesInput struct {
+	StartKey    map[string]string
+	PrincipalId string
+	AccountId   string
+	Status      LeaseStatus
+	Limit       int64
+}
+
+type GetLeasesOutput struct {
+	Results []*RedboxLease
+	Total   int64
+	NextKey map[string]string
+}
+
+func (db *DB) GetLeases(input GetLeasesInput) (GetLeasesOutput, error) {
+	limit := int64(25)
+	keyConditionExpression := []string{}
+	expressionAttributeValues := make(map[string]*dynamodb.AttributeValue)
+
+	if input.Limit > 0 {
+		limit = input.Limit
+	}
+
+	queryInput := &dynamodb.QueryInput{
+		TableName: aws.String(db.LeaseTableName),
+		Limit:     &limit,
+	}
+
+	if input.Status != "" {
+		expressionAttributeValues[":status"] = &dynamodb.AttributeValue{S: aws.String(string(input.Status))}
+		filter := "Status = :status"
+		queryInput.FilterExpression = &filter
+	}
+
+	if input.PrincipalId != "" {
+		keyConditionExpression = append(keyConditionExpression, "PrincipalId = :principalId")
+		expressionAttributeValues[":principalId"] = &dynamodb.AttributeValue{S: aws.String(input.PrincipalId)}
+	}
+
+	if input.AccountId != "" {
+		keyConditionExpression = append(keyConditionExpression, "AccountId = :accountId")
+		expressionAttributeValues[":accountId"] = &dynamodb.AttributeValue{S: aws.String(input.AccountId)}
+	}
+
+	if len(keyConditionExpression) > 0 {
+		keyConditionExpressionStatement := strings.Join(keyConditionExpression, " and ")
+		queryInput.KeyConditionExpression = &keyConditionExpressionStatement
+		queryInput.ExpressionAttributeValues = expressionAttributeValues
+	}
+
+	if input.StartKey != nil {
+		exclusiveStartKey := make(map[string]*dynamodb.AttributeValue)
+		for k, v := range input.StartKey {
+			exclusiveStartKey[k] = &dynamodb.AttributeValue{S: aws.String(v)}
+		}
+		queryInput.ExclusiveStartKey = exclusiveStartKey
+	}
+
+	queryOutput, err := db.Client.Query(queryInput)
+
+	if err != nil {
+		return GetLeasesOutput{}, err
+	}
+
+	results := make([]*RedboxLease, 0)
+
+	for _, o := range queryOutput.Items {
+		lease, err := unmarshalLease(o)
+		if err != nil {
+			return GetLeasesOutput{}, err
+		}
+		results = append(results, lease)
+	}
+
+	nextKey := make(map[string]string)
+
+	for k, v := range queryOutput.LastEvaluatedKey {
+		nextKey[fmt.Sprintf("next%s", k)] = *v.S
+	}
+
+	return GetLeasesOutput{
+		Total:   *queryOutput.Count,
+		Results: results,
+		NextKey: nextKey,
+	}, nil
 }
 
 // UpdateMetadata updates the metadata field of an account, overwriting the old value completely with a new one
