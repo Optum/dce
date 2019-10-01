@@ -7,6 +7,7 @@
 
 - Deprecate Launchpad from here
 - Modify budget lambdas to write to caching db
+- Add `GET /usage` endpoint, to retrieve usage for leases
 
 ## v0.16.0
 

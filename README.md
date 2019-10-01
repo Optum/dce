@@ -629,6 +629,25 @@ Range Key: `LeaseStatus`
 Secondary Index: PrincipalId
 Secondary Range Key: PrincipalId
 
+**UsageCache<Namespace>** Table
+
+Usage cost of lease per day is stored in this table.
+
+```
+{
+  "AccountId": "123456789012", # *Unique AWS Account ID*
+  "CostAmount": 24.00, # *usage cost amount*
+  "CostCurrency": "USD", # *usage cost currency*
+  "EndDate": 1568678399, # *Epoch Timestamp*
+  "PrincipalId": "TestUser1", # *User principal ID*
+  "StartDate": 1568592000, # *Epoch Timestamp*
+  "TimeToLive": 1571184000 # ttl attribute - Epoch Timestamp*
+}
+```
+
+Hash Key: `StartDate`
+Range Key: `PrincipalId`
+
 ## Database Backups
 
 DCE does not backup your DynamoDB tables by default. However, if you want to restore a DynamoDB table from a backup, we do provide a helper script in [scripts/restore_db.sh](./scripts/restore_db.sh). This script is also provided as a Github release artifact, for easy access.

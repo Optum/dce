@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -25,6 +26,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/Optum/Redbox/pkg/db"
+	"github.com/Optum/Redbox/pkg/usage"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 )
 
@@ -47,6 +49,15 @@ func TestApi(t *testing.T) {
 		),
 		tfOut["dynamodb_table_account_name"].(string),
 		tfOut["redbox_lease_db_table_name"].(string),
+	)
+
+	// Configure the usage service
+	usageSvc := usage.New(
+		dynamodb.New(
+			awsSession,
+			aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
+		),
+		tfOut["usage_cache_table_name"].(string),
 	)
 
 	// Cleanup tables, to start out
@@ -747,6 +758,120 @@ func TestApi(t *testing.T) {
 			require.Equal(t, http.StatusNotFound, resp.StatusCode, "it returns a 404")
 		})
 
+	})
+
+	t.Run("Get Usage api", func(t *testing.T) {
+
+		t.Run("Should get an error for invalid date format", func(t *testing.T) {
+
+			// Send an API request
+			resp := apiRequest(t, &apiRequestInput{
+				method: "GET",
+				url:    apiURL + "/usage?startDate=2019-09-2&endDate=2019-09-2",
+				json:   nil,
+			})
+
+			// Verify response code
+			require.Equal(t, http.StatusBadRequest, resp.StatusCode)
+
+			// Parse response json
+			data := parseResponseJSON(t, resp)
+
+			// Verify error response json
+			// Get nested json in response json
+			errResp := data["error"].(map[string]interface{})
+			require.Equal(t, "Invalid startDate", errResp["code"].(string))
+			require.Equal(t, "Failed to parse usage start date: strconv.ParseInt: parsing \"2019-09-2\": invalid syntax",
+				errResp["message"].(string))
+		})
+
+		t.Run("Should get an empty json for usage not found for given input date range", func(t *testing.T) {
+
+			// Send an API request
+			resp := apiRequest(t, &apiRequestInput{
+				method: "GET",
+				url:    apiURL + "/usage?startDate=1568937600&endDate=1569023999",
+				json:   nil,
+			})
+
+			// Verify response code
+			require.Equal(t, http.StatusOK, resp.StatusCode)
+
+			// Parse response json
+			data := parseResponseArrayJSON(t, resp)
+
+			// Verify response json
+			require.Equal(t, []map[string]interface{}([]map[string]interface{}{}), data)
+		})
+
+		t.Run("Should be able to get usage", func(t *testing.T) {
+
+			// Create usage
+			// Setup usage dates
+			const ttl int = 3
+			testStartDate := time.Date(2019, 5, 5, 0, 0, 0, 0, time.UTC)
+			testEndDate := time.Date(2019, 5, 5, 23, 59, 59, 0, time.UTC)
+
+			// Create mock usage
+			expectedUsages := []*usage.Usage{}
+			for a := 1; a <= 2; a++ {
+
+				startDate := testStartDate
+				endDate := testEndDate
+
+				timeToLive := startDate.AddDate(0, 0, ttl)
+
+				var testPrinciplaID []string
+				var testAccountID []string
+
+				testPrinciplaID = append(testPrinciplaID, "TestUser")
+				testPrinciplaID = append(testPrinciplaID, strconv.Itoa(a))
+
+				testAccountID = append(testAccountID, "TestAcct")
+				testAccountID = append(testAccountID, strconv.Itoa(a))
+
+				for i := 1; i <= 3; i++ {
+
+					input := usage.Usage{
+						PrincipalID:  strings.Join(testPrinciplaID, ""),
+						AccountID:    strings.Join(testAccountID, ""),
+						StartDate:    startDate.Unix(),
+						EndDate:      endDate.Unix(),
+						CostAmount:   20.00,
+						CostCurrency: "USD",
+						TimeToLive:   timeToLive.Unix(),
+					}
+					err = usageSvc.PutUsage(input)
+					require.Nil(t, err)
+					expectedUsages = append(expectedUsages, &input)
+
+					startDate = startDate.AddDate(0, 0, 1)
+					endDate = endDate.AddDate(0, 0, 1)
+				}
+			}
+
+			// Send an API request
+			resp := apiRequest(t, &apiRequestInput{
+				method: "GET",
+				url:    apiURL + "/usage?startDate=1557014400&endDate=1557273599",
+				json:   nil,
+			})
+
+			// Verify response code
+			require.Equal(t, http.StatusOK, resp.StatusCode)
+
+			// Parse response json
+			data := parseResponseArrayJSON(t, resp)
+			fmt.Printf("data : %v", data)
+
+			//Verify response json
+			if data[0] != nil {
+				usageJSON := data[0]
+				require.Equal(t, "TestUser1", usageJSON["principalId"].(string))
+				require.Equal(t, "TestAcct1", usageJSON["accountId"].(string))
+				require.Equal(t, 60.00, usageJSON["costAmount"].(float64))
+			}
+		})
 	})
 }
 

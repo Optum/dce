@@ -208,6 +208,34 @@ paths:
         passthroughBehavior: "when_no_match"
       security:
         - sigv4: []
+  "/usage":
+    get:
+      summary: Get usage records by date range
+      produces:
+        - application/json
+      parameters:
+        - in: path
+          name: startDate
+          type: number
+          required: true
+          description: start date of the usage
+        - in: path
+          name: endDate
+          type: number
+          required: true
+          description: end date of the usage
+      responses:
+        200:
+          $ref: "#/definitions/usage"
+        403:
+          description: "Failed to authenticate request"
+      x-amazon-apigateway-integration:
+        uri: ${usages_lambda}
+        httpMethod: "POST"
+        type: "aws_proxy"
+        passthroughBehavior: "when_no_match"
+      security:
+        - sigv4: []
 securityDefinitions:
   sigv4:
     type: "apiKey"
@@ -301,4 +329,29 @@ definitions:
       "Decommissioned": The principal was previously leased to the account, but now is not.
       "FinanceLock": The principal is leased to the account, but has hit a budget threshold, and is locked out of the account.
       "ResetLock": The principal is leased to the account, but the account is being reset. The principal's access is temporarily revoked, and will be given back after the reset process is complete.
-      "ResetFinanceLock"": The principal is leased to the account, but has been locked out for hitting a budget threshold. Additionally, the account is being reset. After reset, the principal's access will _not_ be restored, and the LeaseStatus will be set back to `ResetLock`
+      "ResetFinanceLock": The principal is leased to the account, but has been locked out for hitting a budget threshold. Additionally, the account is being reset. After reset, the principal's access will _not_ be restored, and the LeaseStatus will be set back to `ResetLock`.
+  usage:
+    description: "usage cost of the aws account from start date to end date"
+    type: object
+    properties:
+      principalId:
+        type: string
+        description: principalId of the user who owns the lease of the AWS account
+      accountId:
+        type: string
+        description: accountId of the AWS account
+      startDate:
+        type: number
+        description: usage start date as Epoch Timestamp
+      endDate:
+        type: number
+        description: usage end date as Epoch Timestamp
+      costAmount:
+        type: number
+        description: usage cost Amount of AWS account for given period
+      costCurrency:
+        type: string
+        description: usage cost currency
+      timeToLive:
+        type: number
+        description: ttl attribute as Epoch Timestamp
