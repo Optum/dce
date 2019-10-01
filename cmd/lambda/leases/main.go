@@ -100,6 +100,7 @@ type requestBody struct {
 	BudgetAmount             float64  `json:"budgetAmount"`
 	BudgetCurrency           string   `json:"budgetCurrency"`
 	BudgetNotificationEmails []string `json:"budgetNotificationEmails"`
+	RequestedLeastEnd        int64    `json:"requestedLeaseEnd"`
 }
 
 // messageBody is the structured object of the JSON Message to send

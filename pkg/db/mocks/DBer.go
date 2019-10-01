@@ -302,13 +302,13 @@ func (_m *DBer) TransitionAccountStatus(accountID string, prevStatus db.AccountS
 	return r0, r1
 }
 
-// TransitionLeaseStatus provides a mock function with given fields: accountID, principalID, prevStatus, nextStatus
-func (_m *DBer) TransitionLeaseStatus(accountID string, principalID string, prevStatus db.LeaseStatus, nextStatus db.LeaseStatus) (*db.RedboxLease, error) {
-	ret := _m.Called(accountID, principalID, prevStatus, nextStatus)
+// TransitionLeaseStatus provides a mock function with given fields: accountID, principalID, prevStatus, nextStatus, leaseStatusReason
+func (_m *DBer) TransitionLeaseStatus(accountID string, principalID string, prevStatus db.LeaseStatus, nextStatus db.LeaseStatus, leaseStatusReason string) (*db.RedboxLease, error) {
+	ret := _m.Called(accountID, principalID, prevStatus, nextStatus, leaseStatusReason)
 
 	var r0 *db.RedboxLease
-	if rf, ok := ret.Get(0).(func(string, string, db.LeaseStatus, db.LeaseStatus) *db.RedboxLease); ok {
-		r0 = rf(accountID, principalID, prevStatus, nextStatus)
+	if rf, ok := ret.Get(0).(func(string, string, db.LeaseStatus, db.LeaseStatus, string) *db.RedboxLease); ok {
+		r0 = rf(accountID, principalID, prevStatus, nextStatus, leaseStatusReason)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*db.RedboxLease)
@@ -316,8 +316,8 @@ func (_m *DBer) TransitionLeaseStatus(accountID string, principalID string, prev
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(string, string, db.LeaseStatus, db.LeaseStatus) error); ok {
-		r1 = rf(accountID, principalID, prevStatus, nextStatus)
+	if rf, ok := ret.Get(1).(func(string, string, db.LeaseStatus, db.LeaseStatus, string) error); ok {
+		r1 = rf(accountID, principalID, prevStatus, nextStatus, leaseStatusReason)
 	} else {
 		r1 = ret.Error(1)
 	}

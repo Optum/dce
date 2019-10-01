@@ -247,6 +247,9 @@ definitions:
       leaseStatusModifiedOn:
         type: number
         description: date lease status was last modified in epoch seconds
+      requestedLeaseEnd:
+        type: number
+        description: date lease should expire in epoch seconds
   account:
     description: "Account Details"
     type: object
