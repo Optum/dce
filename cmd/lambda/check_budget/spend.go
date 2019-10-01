@@ -74,15 +74,15 @@ func calculateSpend(input *calculateSpendInput) (float64, error) {
 	)
 
 	// Query Usage cache DB
-	usages, err := input.usageSvc.GetUsageByDateRange(budgetStartTime, budgetEndTime)
+	usageRecords, err := input.usageSvc.GetUsageByDateRange(budgetStartTime, budgetEndTime)
 	if err != nil {
 		return 0, errors.Wrapf(err, "Failed to retrieve usage for account %s", input.lease.AccountID)
 	}
 
 	// DynDB is eventually consistent. Pull cache DB for SUN-->yesterday, then add the known value for today
 	spend := todayCostAmount
-	for _, usage := range usages {
-		log.Printf("usages retrieved: %v", usage)
+	for _, usage := range usageRecords {
+		log.Printf("usage records retrieved: %v", usage)
 		if usage.PrincipalID == input.lease.PrincipalID && usage.AccountID == input.lease.AccountID {
 			spend = spend + usage.CostAmount
 		}

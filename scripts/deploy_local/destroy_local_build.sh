@@ -1,4 +1,3 @@
-
 #!/bin/bash
 
 # Destroy Local Redbox application deployment
@@ -6,7 +5,7 @@
 # Example:
 #   ./scripts/deploy_local/destroy_local_build.sh
 
-set -uexo pipefail
+set -euxo pipefail
 
 KEY="local-tf-state"
 TABLE="local-tf-state"

@@ -1,7 +1,13 @@
+## _next_
+
+- Minor fixes to `scripts/deploy_local/deploy_local_build.sh` for options to be recognized.
+- README updates to include current steps for build and deployment.
+
 ## v0.17.0
 
 - Deprecate Launchpad from here
 - Modify budget lambdas to write to caching db
+- Add `GET /usage` endpoint, to retrieve usage for leases
 
 ## v0.16.0
 
