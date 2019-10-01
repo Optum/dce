@@ -3,8 +3,6 @@ pool:
 
 trigger: none
 
-pr: none
-
 steps:
 # Configure the namespace used by Terraform
 # May be referenced as an env var (eg. "${NAMESPACE}")
