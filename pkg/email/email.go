@@ -1,14 +1,17 @@
 package email
 
 import (
+	"bytes"
 	"github.com/Optum/Redbox/pkg/awsiface"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ses"
+	"gopkg.in/gomail.v2"
 )
 
 //go:generate mockery -name Service
 type Service interface {
 	SendEmail(input *SendEmailInput) error
+	SendRawEmailWithS3FileAttached(input *SendEmailWithS3FileAttachedInput) error
 }
 
 type SendEmailInput struct {
@@ -19,6 +22,18 @@ type SendEmailInput struct {
 	Subject      string
 	BodyHTML     string
 	BodyText     string
+}
+
+type SendEmailWithS3FileAttachedInput struct {
+	FromAddress  string
+	ToAddresses  []string
+	CCAddresses  []string
+	BCCAddresses []string
+	Subject      string
+	BodyHTML     string
+	BodyText     string
+	s3Svc        common.Storager
+	S3Key        string
 }
 
 type SESEmailService struct {
@@ -51,6 +66,30 @@ func (svc *SESEmailService) SendEmail(input *SendEmailInput) error {
 		Source: aws.String(input.FromAddress),
 	}
 	_, err := svc.SES.SendEmail(&emailInput)
+
+	return err
+}
+
+func (svc *SESEmailService) SendRawEmailWithS3FileAttached(input *SendEmailWithS3FileAttachedInput) error {
+	msg := gomail.NewMessage()
+	msg.SetHeader("From", input.FromAddress)
+	msg.SetHeader("To", input.ToAddresses[0])
+	msg.SetHeader("Subject", input.Subject)
+	msg.SetBody("text/html", input.BodyHTML)
+	msg.Attach("/home/Alex/lolcat.jpg")
+
+	var emailRaw bytes.Buffer
+	msg.WriteTo(&emailRaw)
+
+	message := ses.RawMessage{Data: emailRaw.Bytes()}
+	emailInput := &ses.SendRawEmailInput{
+		FromArn:       aws.String(""),
+		RawMessage:    &message,
+		ReturnPathArn: aws.String(""),
+		Source:        aws.String(""),
+		SourceArn:     aws.String(""),
+	}
+	_, err := svc.SES.SendRawEmail(emailInput)
 
 	return err
 }

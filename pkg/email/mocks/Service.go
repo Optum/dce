@@ -23,3 +23,17 @@ func (_m *Service) SendEmail(input *email.SendEmailInput) error {
 
 	return r0
 }
+
+// SendRawEmailWithS3FileAttached provides a mock function with given fields: input
+func (_m *Service) SendRawEmailWithS3FileAttached(input *email.SendEmailWithS3FileAttachedInput) error {
+	ret := _m.Called(input)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(*email.SendEmailWithS3FileAttachedInput) error); ok {
+		r0 = rf(input)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
