@@ -130,3 +130,7 @@ output "redbox_principal_policy_name" {
 output "usage_cache_table_name" {
   value = aws_dynamodb_table.usage_cache.name
 }
+
+output "usage_cache_table_arn" {
+  value = aws_dynamodb_table.usage_cache.arn
+}
