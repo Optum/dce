@@ -873,6 +873,10 @@ func TestApi(t *testing.T) {
 			}
 		})
 	})
+
+	t.Run("Get Leases", func(t *testing.T) {
+
+	})
 }
 
 type leaseRequest struct {

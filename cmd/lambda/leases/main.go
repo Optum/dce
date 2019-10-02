@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"strconv"
+	"strings"
 
 	"github.com/Optum/Redbox/pkg/api/response"
 	"github.com/Optum/Redbox/pkg/common"
@@ -24,7 +26,9 @@ const (
 	PRINCIPAL_ID_PARAM      = "principalId"
 	ACCOUNT_ID_PARAM        = "accountId"
 	NEXT_PRINCIPAL_ID_PARAM = "nextPrincipalId"
-	NEXTACCOUNT_ID_PARAM    = "nextAccountId"
+	NEXT_ACCOUNT_ID_PARAM   = "nextAccountId"
+	STATUS_PARAM            = "status"
+	LIMIT_PARAM             = "limit"
 )
 
 // createAPIResponse is a helper function to create and return a valid response
@@ -312,25 +316,53 @@ func decommissionAccount(request *requestBody, queueURL *string, dbSvc db.DBer,
 	return createAPIResponse(http.StatusOK, *message)
 }
 
-func mapQueryParams(path string) (map[string]string, error) {
+func mapQueryParams(path string) (db.GetLeasesInput, error) {
 	queryParams, err := url.ParseQuery(path)
-	filters := make(map[string]string)
+	query := db.GetLeasesInput{
+		StartKeys: make(map[string]string),
+	}
 
 	if err != nil {
-		return filters, err
+		return query, err
+	}
+
+	status, ok := queryParams[STATUS_PARAM]
+	if ok && len(status) > 0 {
+		query.Status = status[0]
+	}
+
+	limit, ok := queryParams[LIMIT_PARAM]
+	if ok && len(limit) > 0 {
+		query.Limit = strconv.ParseInt()
 	}
 
 	principalID, ok := queryParams[PRINCIPAL_ID_PARAM]
 	if ok && len(principalID) > 0 {
-		filters["PrincipalId"] = principalID[0]
+		query.PrincipalId = principalID[0]
 	}
 
 	accountID, ok := queryParams[ACCOUNT_ID_PARAM]
 	if ok && len(accountID) > 0 {
-		filters["AccountId"] = accountID[0]
+		query.AccountId = accountID[0]
 	}
 
-	return filters, nil
+	nextAccountID, ok := queryParams[NEXT_ACCOUNT_ID_PARAM]
+	if ok && len(accountID) > 0 {
+		query.StartKeys["AccountId"] = nextAccountID[0]
+	}
+
+	nextPrincipalID, ok := queryParams[NEXT_PRINCIPAL_ID_PARAM]
+	if ok && len(accountID) > 0 {
+		query.StartKeys["PrincipalId"] = nextPrincipalID[0]
+	}
+
+	return query, nil
+}
+
+// Passing the gateway base URL in as an environment variable creates a dependency in Terraform between this lambda, the
+// swagger template file, and the API gateway.
+func parseBaseUrl(req *events.APIGatewayProxyRequest) string {
+	return fmt.Sprintf("%s/%s", req.Headers["Host"], req.RequestContext.Stage)
 }
 
 func router(ctx context.Context, req *events.APIGatewayProxyRequest) (
@@ -372,7 +404,34 @@ func router(ctx context.Context, req *events.APIGatewayProxyRequest) (
 			return response.ServerErrorWithResponse(fmt.Sprintf("Error parsing query params in \"%s\"", req.Path)), nil
 		}
 
-		dbSvc.GetLeases(filters)
+		result, err := dbSvc.GetLeases(filters)
+
+		if err != nil {
+			return response.ServerErrorWithResponse(fmt.Sprintf("Error querying leases: %s", err)), nil
+		}
+
+		responseBytes, err := json.Marshal(result.Results)
+
+		if err != nil {
+			return response.ServerErrorWithResponse(fmt.Sprintf("Error serializing response: %s", err)), nil
+		}
+
+		res := createAPIResponse(http.StatusOK, string(responseBytes))
+		query := make([]string, 0)
+
+		for k, v := range result.NextKeys {
+			param := fmt.Sprintf("next%s", k)
+			query = append(query, fmt.Sprintf("%s=%s", param, v))
+		}
+
+		if len(query) > 0 {
+			base := parseBaseUrl(req)
+			queryString := strings.Join(query, "&")
+			nextUrl := fmt.Sprintf("%s/leases?%s", base, queryString)
+			res.Headers["Link"] = fmt.Sprintf("<%s>; rel=\"next\"", nextUrl)
+		}
+
+		return res, nil
 	case "POST":
 		prov := &provision.AccountProvision{
 			DBSvc: dbSvc,

@@ -657,7 +657,6 @@ func TestDb(t *testing.T) {
 	})
 
 	t.Run("GetLeases", func(t *testing.T) {
-		defer truncateAccountTable(t, dbSvc)
 		defer truncateLeaseTable(t, dbSvc)
 
 		accountIdOne := "1"
@@ -699,10 +698,18 @@ func TestDb(t *testing.T) {
 
 		assert.Nil(t, err)
 
+		_, err = dbSvc.PutLease(db.RedboxLease{
+			AccountID:   accountIdTwo,
+			PrincipalID: principalIdOne,
+			LeaseStatus: db.Decommissioned,
+		})
+
+		assert.Nil(t, err)
+
 		t.Run("When there no filters", func(t *testing.T) {
 			output, err := dbSvc.GetLeases(db.GetLeasesInput{})
 			assert.Nil(t, err)
-			assert.Equal(t, 4, len(output.Results), "only two leases should be returned")
+			assert.Equal(t, 5, len(output.Results), "only two leases should be returned")
 		})
 
 		t.Run("When there is a limit", func(t *testing.T) {
@@ -715,10 +722,10 @@ func TestDb(t *testing.T) {
 
 		t.Run("When there is a status", func(t *testing.T) {
 			output, err := dbSvc.GetLeases(db.GetLeasesInput{
-				Status: db.Decommissioned,
+				Status: string(db.Decommissioned),
 			})
 			assert.Nil(t, err)
-			assert.Equal(t, 1, len(output.Results), "only one lease should be returned")
+			assert.Equal(t, 2, len(output.Results), "only one lease should be returned")
 			assert.Equal(t, db.Decommissioned, output.Results[0].LeaseStatus, "lease should be decommissioned")
 		})
 
@@ -727,6 +734,8 @@ func TestDb(t *testing.T) {
 				PrincipalId: principalIdOne,
 			})
 			assert.Nil(t, err)
+			assert.Equal(t, len(output.Results), 2, "should only return one lease")
+			assert.Equal(t, output.Results[0].PrincipalID, principalIdOne, "should return the lease with the given ID")
 		})
 
 		t.Run("When there is an account ID", func(t *testing.T) {
@@ -734,23 +743,44 @@ func TestDb(t *testing.T) {
 				AccountId: accountIdTwo,
 			})
 			assert.Nil(t, err)
-			assert.Equal(t, 1, len(output.Results), "only one lease should be returned")
+			assert.Equal(t, 2, len(output.Results), "only one lease should be returned")
 		})
 
 		t.Run("When there is a start key", func(t *testing.T) {
-			output, err := dbSvc.GetLeases(db.GetLeasesInput{
-				Limit: 2,
-				AccountId: accountIdOne,
-				StartKey: map[string]string {}
-			})
-			assert.Nil(t, err)
+			results := make([]*db.RedboxLease, 0)
+
+			shouldContinue := true
+			next := make(map[string]string)
+
+			for shouldContinue {
+				output, err := dbSvc.GetLeases(db.GetLeasesInput{
+					Limit:     2,
+					Status:    string(db.Active),
+					StartKeys: next,
+				})
+
+				assert.Nil(t, err)
+				next = output.NextKeys
+				results = append(results, output.Results...)
+
+				if len(next) == 0 {
+					shouldContinue = false
+				}
+			}
+
+			assert.Equal(t, 3, len(results), "only three leases should be returned")
+			assert.Equal(t, results[0].LeaseStatus, db.Active)
+			assert.Equal(t, results[1].LeaseStatus, db.Active)
+			assert.Equal(t, results[2].LeaseStatus, db.Active)
 		})
 
-		t.Run("When there is a both account ID and principal ID", func(t *testing.T) {
+		t.Run("When there is an account ID, principal ID, and a lease status", func(t *testing.T) {
 			output, err := dbSvc.GetLeases(db.GetLeasesInput{
-				AccountId: accountIdOne,
+				AccountId:   accountIdOne,
 				PrincipalId: principalIdThree,
+				Status:      string(db.Decommissioned),
 			})
+
 			assert.Nil(t, err)
 			assert.Equal(t, 1, len(output.Results), "only one lease should be returned")
 			assert.Equal(t, db.Decommissioned, output.Results[0].LeaseStatus, "lease should be decommissioned")

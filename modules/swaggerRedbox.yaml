@@ -63,7 +63,7 @@ paths:
         - sigv4: []
   "/accounts/{id}":
     get:
-      summary: Get a specific account by AccountId
+      summary: Get a specific account by an account ID
       produces:
         - application/json
       parameters:
@@ -182,23 +182,46 @@ paths:
       security:
         - sigv4: []
     get:
-      summary: Get a lease by principalId and accountId [NOT IMPLEMENTED]
+      summary: Get leases
       produces:
         - application/json
       parameters:
-        - in: path
+        - in: query
           name: principalId
           type: string
-          required: true
-          description: principalId of the lease to get
-        - in: path
+          required: false
+          description: Principal ID of the leases.
+        - in: query
           name: accountId
           type: string
-          required: true
-          description: accountId of the lease to get
+          required: false
+          description: Account ID of the leases.
+        - in: query
+          name: status
+          type: string
+          required: false
+          description: Status of the leases.
+        - in: query
+          name: nextPrincipalId
+          type: string
+          required: false
+          description: Principal ID with which to begin the scan operation. This is used to traverse through paginated results.
+        - in: query
+          name: nextAccountId
+          type: string
+          required: false
+          description: Account ID with which to begin the scan operation. This is used to traverse through paginated results.
       responses:
         200:
-          $ref: "#/definitions/lease"
+          description: OK
+          headers:
+            Link:
+              type: string
+              description: Appears only when there is another page of results in the query. The value contains the URL for the next page of the results and follows the `<url>; rel="next"` convention.
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/lease"
         403:
           description: "Failed to authenticate request"
       x-amazon-apigateway-integration:
