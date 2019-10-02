@@ -89,29 +89,23 @@ func handleRecord(input *handleRecordInput) error {
 
 		log.Printf("Transitioning from %s to %s", prevLeaseStatus, nextLeaseStatus)
 
-		// Lease was locked if it transitioned from "Active" --> "*Lock"
-		wasLocked := isActiveStatus(prevLeaseStatus) && isLockStatus(nextLeaseStatus)
-		// Lease was unlocked if it transitioned from "*Lock" --> "Active"
-		wasUnlocked := isLockStatus(prevLeaseStatus) && isActiveStatus(nextLeaseStatus)
+		// Lease is now expired if it transitioned from "Active" --> "Inactive"
+		isExpired := isActiveStatus(prevLeaseStatus) && !isActiveStatus(nextLeaseStatus)
 
 		publishInput := publishLeaseInput{
 			lease:  redboxLease,
 			snsSvc: input.snsSvc,
 		}
-		if wasLocked {
-			publishInput.topicArn = input.leaseLockedTopicArn
-			err := publishLease(&publishInput)
-			if err != nil {
-				return err
-			}
-		}
 
-		if wasUnlocked {
+		// Route the lease event to the correct ARN, now for backwards compatibility.
+		if isExpired {
+			publishInput.topicArn = input.leaseLockedTopicArn
+		} else {
 			publishInput.topicArn = input.leaseUnlockedTopicArn
-			err := publishLease(&publishInput)
-			if err != nil {
-				return err
-			}
+		}
+		err := publishLease(&publishInput)
+		if err != nil {
+			return err
 		}
 	default:
 	}
@@ -128,10 +122,6 @@ func leaseFromImage(image map[string]events.DynamoDBAttributeValue) (*db.RedboxL
 
 	return redboxLease, nil
 
-}
-
-func isLockStatus(status string) bool {
-	return !isActiveStatus(status)
 }
 
 func isActiveStatus(status string) bool {

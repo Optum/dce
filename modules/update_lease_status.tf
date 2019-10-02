@@ -1,32 +1,32 @@
-module "fan_out_check_budget_lambda" {
+module "fan_out_update_lease_status_lambda" {
   source          = "./lambda"
-  name            = "fan_out_check_budget-${var.namespace}"
+  name            = "fan_out_update_lease_status-${var.namespace}"
   namespace       = var.namespace
   description     = "Initiates the budget check lambda. Invokes a check-budget lamdba for each active lease"
   global_tags     = var.global_tags
-  handler         = "fan_out_check_budget"
+  handler         = "fan_out_update_lease_status"
   alarm_topic_arn = aws_sns_topic.alarms_topic.arn
 
   environment = {
     AWS_CURRENT_REGION         = var.aws_region
     ACCOUNT_DB                 = aws_dynamodb_table.redbox_account.id
     LEASE_DB                   = aws_dynamodb_table.redbox_lease.id
-    CHECK_BUDGET_FUNCTION_NAME = module.check_budget_lambda.name
+    update_lease_status_FUNCTION_NAME = module.update_lease_status_lambda.name
   }
 }
 
-// Allow fan_out_check_budget to invoke the check_budget lambda
-resource "aws_iam_role_policy_attachment" "fan_out_check_budget_invoke_lambda" {
-  role       = module.fan_out_check_budget_lambda.execution_role_name
+// Allow fan_out_update_lease_status to invoke the update_lease_status lambda
+resource "aws_iam_role_policy_attachment" "fan_out_update_lease_status_invoke_lambda" {
+  role       = module.fan_out_update_lease_status_lambda.execution_role_name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaRole"
 }
 
-module "check_budget_lambda" {
+module "update_lease_status_lambda" {
   source          = "./lambda"
-  name            = "check_budget-${var.namespace}"
+  name            = "update_lease_status-${var.namespace}"
   namespace       = var.namespace
   description     = "Checks spend for a lease within an AWS account, and locks lease if over budget"
-  handler         = "check_budget"
+  handler         = "update_lease_status"
   global_tags     = var.global_tags
   alarm_topic_arn = aws_sns_topic.alarms_topic.arn
 
@@ -46,9 +46,9 @@ module "check_budget_lambda" {
   }
 }
 
-// Allow check_budget lambda to send emails with SES
+// Allow update_lease_status lambda to send emails with SES
 resource "aws_iam_role_policy" "check_buget_ses" {
-  role   = module.check_budget_lambda.execution_role_name
+  role   = module.update_lease_status_lambda.execution_role_name
   policy = <<POLICY
 {
     "Version": "2012-10-17",
@@ -64,9 +64,9 @@ POLICY
 // Run the fan-out-check-budget lambda on a timer (cloudwatch event)
 module "dbbackup_lambda_schedule" {
   source              = "./cloudwatch_event"
-  name                = "fan_out_check_budget-${var.namespace}"
-  lambda_function_arn = module.fan_out_check_budget_lambda.arn
-  schedule_expression = var.check_budget_schedule_expression
+  name                = "fan_out_update_lease_status-${var.namespace}"
+  lambda_function_arn = module.fan_out_update_lease_status_lambda.arn
+  schedule_expression = var.update_lease_status_schedule_expression
   description         = "Initiates the budget check lambda. Invokes a check-budget lamdba for each active lease"
-  enabled             = var.check_budget_enabled
+  enabled             = var.update_lease_status_enabled
 }
