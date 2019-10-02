@@ -8,12 +8,12 @@ module "publish_lease_events_lambda" {
   alarm_topic_arn = aws_sns_topic.alarms_topic.arn
 
   environment = {
-    AWS_CURRENT_REGION        = var.aws_region
-    ACCOUNT_DB                = aws_dynamodb_table.redbox_account.id
-    LEASE_DB                  = aws_dynamodb_table.redbox_lease.id
-    LEASE_LOCKED_TOPIC_ARN    = aws_sns_topic.lease_locked.arn
-    LEASE_UNLOCKED_TOPIC_ARN  = aws_sns_topic.lease_unlocked.arn
-    LEASE_RESET_SQS_QUEUE_ARN = aws_sqs_queue.account_reset.arn
+    AWS_CURRENT_REGION       = var.aws_region
+    ACCOUNT_DB               = aws_dynamodb_table.redbox_account.id
+    LEASE_DB                 = aws_dynamodb_table.redbox_lease.id
+    LEASE_LOCKED_TOPIC_ARN   = aws_sns_topic.lease_locked.arn
+    LEASE_UNLOCKED_TOPIC_ARN = aws_sns_topic.lease_unlocked.arn
+    RESET_QUEUE_URL          = aws_sqs_queue.account_reset.id
   }
 }
 

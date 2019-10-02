@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 
 	"github.com/Optum/Redbox/pkg/common"
@@ -11,10 +12,12 @@ import (
 	errors2 "github.com/Optum/Redbox/pkg/errors"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/aws/aws-sdk-go/service/sns"
+	"github.com/aws/aws-sdk-go/service/sqs"
 )
 
 // Start the Lambda Handler
@@ -22,6 +25,10 @@ func main() {
 	lambda.Start(handler)
 }
 
+// handler Handles the update to the DynamoDBEvent, which in this
+// case will send a message to an SQS queue if, and only if, the
+// status of the lease has been flipped to Inactive (for cleanup)
+// and then will route the message to the correct SNS topic.
 func handler(ctx context.Context, event events.DynamoDBEvent) error {
 	// Defer errors for later
 	deferredErrors := []error{}
@@ -29,6 +36,7 @@ func handler(ctx context.Context, event events.DynamoDBEvent) error {
 	awsSession := session.Must(session.NewSession())
 	leaseLockedTopicArn := common.RequireEnv("LEASE_LOCKED_TOPIC_ARN")
 	leaseUnlockedTopicArn := common.RequireEnv("LEASE_UNLOCKED_TOPIC_ARN")
+	resetQueueURL := common.RequireEnv("RESET_QUEUE_URL")
 
 	// We get a stream of DynDB records, representing changes to the table
 	for _, record := range event.Records {
@@ -37,7 +45,9 @@ func handler(ctx context.Context, event events.DynamoDBEvent) error {
 			record:                record,
 			leaseLockedTopicArn:   leaseLockedTopicArn,
 			leaseUnlockedTopicArn: leaseUnlockedTopicArn,
+			resetQueueURL:         resetQueueURL,
 			snsSvc:                &common.SNS{Client: sns.New(awsSession)},
+			sqsSvc:                &common.SQSQueue{Client: sqs.New(awsSession)},
 		}
 		err := handleRecord(&input)
 		if err != nil {
@@ -55,8 +65,10 @@ func handler(ctx context.Context, event events.DynamoDBEvent) error {
 type handleRecordInput struct {
 	record                events.DynamoDBEventRecord
 	snsSvc                common.Notificationer
+	sqsSvc                common.Queue
 	leaseLockedTopicArn   string
 	leaseUnlockedTopicArn string
+	resetQueueURL         string
 }
 
 func handleRecord(input *handleRecordInput) error {
@@ -85,6 +97,22 @@ func handleRecord(input *handleRecordInput) error {
 		if prevLeaseStatus == nextLeaseStatus {
 			log.Print("Lease status has not changed.")
 			return nil
+		}
+
+		// The status is changed. Before we do anything else, we will
+		// put the message on the SQS queue ONLY IF the status has gone
+		// to Inactive.
+		// Add the account to the SQS reset queue
+		log.Printf("Adding account %s to the reset queue", redboxLease.AccountID)
+		err = input.sqsSvc.SendMessage(
+			aws.String(input.resetQueueURL),
+			aws.String(redboxLease.AccountID),
+		)
+
+		if err != nil {
+			errMsg := fmt.Sprintf("Failed to add account to reset queue for lease %s @ %s: %s", redboxLease.PrincipalID, redboxLease.AccountID, err)
+			log.Printf(errMsg)
+			return errors.New(errMsg)
 		}
 
 		log.Printf("Transitioning from %s to %s", prevLeaseStatus, nextLeaseStatus)

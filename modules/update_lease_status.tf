@@ -8,10 +8,10 @@ module "fan_out_update_lease_status_lambda" {
   alarm_topic_arn = aws_sns_topic.alarms_topic.arn
 
   environment = {
-    AWS_CURRENT_REGION         = var.aws_region
-    ACCOUNT_DB                 = aws_dynamodb_table.redbox_account.id
-    LEASE_DB                   = aws_dynamodb_table.redbox_lease.id
-    update_lease_status_FUNCTION_NAME = module.update_lease_status_lambda.name
+    AWS_CURRENT_REGION                = var.aws_region
+    ACCOUNT_DB                        = aws_dynamodb_table.redbox_account.id
+    LEASE_DB                          = aws_dynamodb_table.redbox_lease.id
+    UPDATE_LEASE_STATUS_FUNCTION_NAME = module.update_lease_status_lambda.name
   }
 }
 
