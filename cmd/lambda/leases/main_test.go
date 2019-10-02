@@ -337,7 +337,7 @@ func TestProvisionAccount(t *testing.T) {
 			test.FindLeaseWithAccount,
 			test.FindLeaseWithAccountError)
 		mockProv.On("ActivateAccount", mock.Anything,
-			mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+			mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
 			test.ActivateLease,
 			test.ActivateLeaseError)
 		mockProv.On("RollbackProvisionAccount", mock.Anything, mock.Anything,
