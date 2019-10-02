@@ -15,7 +15,7 @@ type Provisioner interface {
 	FindActiveLeaseForPrincipal(string) (*db.RedboxLease, error)
 	FindLeaseWithAccount(string, string) (*db.RedboxLease,
 		error)
-	ActivateAccount(bool, string, string, float64, string, []string) (*db.RedboxLease,
+	ActivateAccount(bool, string, string, float64, string, []string, int64) (*db.RedboxLease,
 		error)
 	RollbackProvisionAccount(bool, string, string) error
 }

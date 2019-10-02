@@ -177,7 +177,7 @@ func provisionAccount(request *requestBody, dbSvc db.DBer,
 	// Create/Update a Redbox Account Lease to Active
 	create := lease.AccountID == ""
 	lease, err = prov.ActivateAccount(create, principalID,
-		account.ID, request.BudgetAmount, request.BudgetCurrency, request.BudgetNotificationEmails)
+		account.ID, request.BudgetAmount, request.BudgetCurrency, request.BudgetNotificationEmails, request.RequestedLeastEnd)
 	if err != nil {
 		log.Printf("Failed to Activate Account Lease: %s", err)
 		return createAPIErrorResponse(http.StatusInternalServerError,
