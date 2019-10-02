@@ -93,7 +93,6 @@ func main() {
 // Also, if the account was set as "Status=NotReady",
 // will update to "Status=Ready"
 func updateDBPostReset(dbSvc db.DBer, snsSvc common.Notificationer, accountID string, snsTopicArn string) error {
-	// Find any lease for the Account
 
 	// If the Account.Status=NotReady, change it back to Status=Ready
 	log.Printf("Setting Account Status from NotReady to Ready: %s", accountID)

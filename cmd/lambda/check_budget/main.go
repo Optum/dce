@@ -23,8 +23,8 @@ import (
 )
 
 type leaseContext struct {
-	expireDate int64
-	maxSpend   float64
+	expireDate  int64
+	actualSpend float64
 }
 
 func main() {
@@ -146,7 +146,7 @@ func lambdaHandler(input *lambdaHandlerInput) error {
 	}
 	// Defer errors until the end, so we can continue on error
 	deferredErrors := []error{}
-	currentTimeEpoch := time.Now().UnixNano() / 1000000
+	currentTimeEpoch := time.Now().Unix()
 
 	expired, reason := isLeaseExpired(input.lease, &leaseContext{currentTimeEpoch, actualSpend})
 
@@ -159,24 +159,24 @@ func lambdaHandler(input *lambdaHandlerInput) error {
 		if err != nil {
 			deferredErrors = append(deferredErrors, err)
 		}
+	}
 
-		// Send notification emails, for budget thresholds
-		err = sendBudgetNotificationEmail(&sendBudgetNotificationEmailInput{
-			lease:                                  input.lease,
-			emailSvc:                               input.emailSvc,
-			budgetNotificationFromEmail:            input.budgetNotificationFromEmail,
-			budgetNotificationBCCEmails:            input.budgetNotificationBCCEmails,
-			budgetNotificationTemplateHTML:         input.budgetNotificationTemplateHTML,
-			budgetNotificationTemplateText:         input.budgetNotificationTemplateText,
-			budgetNotificationTemplateSubject:      input.budgetNotificationTemplateSubject,
-			budgetNotificationThresholdPercentiles: input.budgetNotificationThresholdPercentiles,
-			actualSpend:                            actualSpend,
-		})
-		if err != nil {
-			log.Printf("Failed to send budget notification emails for lease %s @ %s: %s",
-				input.lease.PrincipalID, input.lease.AccountID, err)
-			deferredErrors = append(deferredErrors, err)
-		}
+	// Send notification emails, for budget thresholds
+	err = sendBudgetNotificationEmail(&sendBudgetNotificationEmailInput{
+		lease:                                  input.lease,
+		emailSvc:                               input.emailSvc,
+		budgetNotificationFromEmail:            input.budgetNotificationFromEmail,
+		budgetNotificationBCCEmails:            input.budgetNotificationBCCEmails,
+		budgetNotificationTemplateHTML:         input.budgetNotificationTemplateHTML,
+		budgetNotificationTemplateText:         input.budgetNotificationTemplateText,
+		budgetNotificationTemplateSubject:      input.budgetNotificationTemplateSubject,
+		budgetNotificationThresholdPercentiles: input.budgetNotificationThresholdPercentiles,
+		actualSpend:                            actualSpend,
+	})
+	if err != nil {
+		log.Printf("Failed to send budget notification emails for lease %s @ %s: %s",
+			input.lease.PrincipalID, input.lease.AccountID, err)
+		deferredErrors = append(deferredErrors, err)
 	}
 
 	// Return deferred errors
@@ -193,7 +193,7 @@ func isLeaseExpired(lease *db.RedboxLease, context *leaseContext) (bool, string)
 
 	if context.expireDate <= lease.RequestedLeaseEnd {
 		return true, "Lease date for account has expired!"
-	} else if lease.BudgetAmount >= context.maxSpend {
+	} else if context.actualSpend >= lease.BudgetAmount {
 		return true, "Account is over max budget for lease!"
 	}
 
@@ -215,9 +215,10 @@ func handleLeaseExpire(input *lambdaHandlerInput, prevLeaseStatus db.LeaseStatus
 	_, err := input.dbSvc.TransitionLeaseStatus(
 		input.lease.AccountID,
 		input.lease.PrincipalID,
-		input.lease.LeaseStatus,
 		prevLeaseStatus,
-		leaseStatusReason)
+		input.lease.LeaseStatus,
+		leaseStatusReason,
+	)
 
 	if err != nil {
 		log.Printf("Failed to add account to reset queue for lease %s @ %s: %s", input.lease.PrincipalID, input.lease.AccountID, err)

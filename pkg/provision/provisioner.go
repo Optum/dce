@@ -80,7 +80,8 @@ func (prov *AccountProvision) FindLeaseWithAccount(principalID string,
 // Returns the lease that has been activated - does not return any previous
 // leases
 func (prov *AccountProvision) ActivateAccount(create bool,
-	principalID string, accountID string, budgetAmount float64, budgetCurrency string, budgetNotificationEmails []string) (*db.RedboxLease, error) {
+	principalID string, accountID string, budgetAmount float64, budgetCurrency string,
+	budgetNotificationEmails []string, requestedLeaseEnd int64) (*db.RedboxLease, error) {
 	// Create a new Redbox Account Lease if there doesn't exist one already
 	// else, update the existing lease to active
 	var assgn *db.RedboxLease
@@ -99,6 +100,9 @@ func (prov *AccountProvision) ActivateAccount(create bool,
 			CreatedOn:                timeNow,
 			LastModifiedOn:           timeNow,
 			LeaseStatusModifiedOn:    timeNow,
+			RequestedLeaseEnd:        requestedLeaseEnd,
+			RequestedLeaseStart:      timeNow,
+			ActualLeaseStart:         timeNow,
 		}
 		_, err = prov.DBSvc.PutLease(*lease) // new leases return an empty lease
 		// Failed to Create Lease

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"log"
 	"net/http"
@@ -117,6 +118,16 @@ func provisionAccount(request *requestBody, dbSvc db.DBer,
 	topic *string) events.APIGatewayProxyResponse {
 	principalID := request.PrincipalID
 	log.Printf("Provisioning Account for Principal %s", principalID)
+
+	// Just do a quick sanity check on the request and make sure that the
+	// requested lease end date, if specified, is at least greater than
+	// today and if it isn't then return an error response
+	if request.RequestedLeastEnd != 0 && request.RequestedLeastEnd <= time.Now().Unix() {
+		errStr := fmt.Sprintf("Requested lease has a desired expiry date less than today: %d", request.RequestedLeastEnd)
+		log.Printf(errStr)
+		return createAPIErrorResponse(http.StatusBadRequest,
+			response.CreateErrorResponse("ClientError", errStr))
+	}
 
 	// Check if the principal has any existing Active/FinanceLock/ResetLock
 	// Leases
