@@ -1,12 +1,20 @@
 package main
 
 import (
+	"errors"
+	"log"
 	"testing"
 
+	commonMocks "github.com/Optum/Redbox/pkg/common/mocks"
 	"github.com/Optum/Redbox/pkg/db"
 	"github.com/aws/aws-lambda-go/events"
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
+
+const UnlockedSnsTopic string = "arn:aws:sns:us-east-1:123456789012:lease-unlocked"
+const LockedSnsTopic string = "arn:aws:sns:us-east-1:123456789012:lease-locked"
 
 func TestLeaseFromImageSuccess(t *testing.T) {
 
@@ -15,7 +23,7 @@ func TestLeaseFromImageSuccess(t *testing.T) {
 	expectedOutput := db.RedboxLease{
 		AccountID:                "TestAccountID",
 		PrincipalID:              "TestPrincipalID",
-		LeaseStatus:              "FINANCELOCKED",
+		LeaseStatus:              db.Inactive,
 		CreatedOn:                1565723448,
 		LastModifiedOn:           1565723448,
 		BudgetAmount:             300,
@@ -31,7 +39,7 @@ func TestLeaseFromImageSuccess(t *testing.T) {
 	var input = map[string]events.DynamoDBAttributeValue{
 		"accountId":                events.NewStringAttribute("TestAccountID"),
 		"principalId":              events.NewStringAttribute("TestPrincipalID"),
-		"leaseStatus":              events.NewStringAttribute("FINANCELOCKED"),
+		"LeaseStatus":              events.NewStringAttribute("Inactive"),
 		"createdOn":                events.NewNumberAttribute("1565723448"),
 		"lastModifiedOn":           events.NewNumberAttribute("1565723448"),
 		"budgetAmount":             events.NewNumberAttribute("300.000"),
@@ -44,4 +52,140 @@ func TestLeaseFromImageSuccess(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.Equal(t, actualOutput, &expectedOutput)
+}
+
+func Test_handleRecord(t *testing.T) {
+	type args struct {
+		input *handleRecordInput
+	}
+
+	var activeImage = map[string]events.DynamoDBAttributeValue{
+		"AccountId":      events.NewStringAttribute("123456789012"),
+		"principalId":    events.NewStringAttribute("TestPrincipalID"),
+		"LeaseStatus":    events.NewStringAttribute("Active"),
+		"createdOn":      events.NewNumberAttribute("1565723448"),
+		"lastModifiedOn": events.NewNumberAttribute("1565723448"),
+		"budgetAmount":   events.NewNumberAttribute("300.000"),
+		"budgetCurrency": events.NewStringAttribute("USD"),
+		// "budgetNotificationEmails": events.NewListAttribute(budgetNotificationEmails),
+		"leaseStatusModifiedOn": events.NewNumberAttribute("1565723448"),
+	}
+
+	var inactiveImage = map[string]events.DynamoDBAttributeValue{
+		"AccountId":      events.NewStringAttribute("123456789012"),
+		"principalId":    events.NewStringAttribute("TestPrincipalID"),
+		"LeaseStatus":    events.NewStringAttribute("Inactive"),
+		"createdOn":      events.NewNumberAttribute("1565723448"),
+		"lastModifiedOn": events.NewNumberAttribute("1565723448"),
+		"budgetAmount":   events.NewNumberAttribute("300.000"),
+		"budgetCurrency": events.NewStringAttribute("USD"),
+		// "budgetNotificationEmails": events.NewListAttribute(budgetNotificationEmails),
+		"leaseStatusModifiedOn": events.NewNumberAttribute("1565723448"),
+	}
+
+	activeToInactiveRecord := events.DynamoDBStreamRecord{
+		OldImage: activeImage,
+		NewImage: inactiveImage,
+	}
+
+	inactiveToActiveRecord := events.DynamoDBStreamRecord{
+		OldImage: inactiveImage,
+		NewImage: activeImage,
+	}
+
+	activeToInactiveEventRecord := events.DynamoDBEventRecord{
+		EventName: "MODIFY",
+		Change:    activeToInactiveRecord,
+	}
+
+	inactiveToActiveEventRecord := events.DynamoDBEventRecord{
+		EventName: "MODIFY",
+		Change:    inactiveToActiveRecord,
+	}
+
+	sqsSvc := &commonMocks.Queue{}
+	snsSvc := &commonMocks.Notificationer{}
+
+	tests := []struct {
+		name                 string
+		args                 args
+		wantErr              bool
+		shoudEnqueueReset    bool
+		shouldErrorOnEnqueue bool
+		expectedSnsTopic     string
+	}{
+		{
+			name: "Happy path...",
+			args: args{
+				&handleRecordInput{
+					record:                activeToInactiveEventRecord,
+					snsSvc:                snsSvc,
+					sqsSvc:                sqsSvc,
+					leaseLockedTopicArn:   LockedSnsTopic,
+					leaseUnlockedTopicArn: UnlockedSnsTopic,
+					resetQueueURL:         "sqs-queue",
+				},
+			},
+			wantErr:           false,
+			shoudEnqueueReset: true,
+			expectedSnsTopic:  LockedSnsTopic,
+		},
+		{
+			name: "Went from inactive to active...",
+			args: args{
+				&handleRecordInput{
+					record:                inactiveToActiveEventRecord,
+					snsSvc:                snsSvc,
+					sqsSvc:                sqsSvc,
+					leaseLockedTopicArn:   LockedSnsTopic,
+					leaseUnlockedTopicArn: UnlockedSnsTopic,
+					resetQueueURL:         "sqs-queue",
+				},
+			},
+			wantErr:           false,
+			shoudEnqueueReset: false,
+			expectedSnsTopic:  UnlockedSnsTopic,
+		},
+		{
+			name: "Happy path...",
+			args: args{
+				&handleRecordInput{
+					record:                activeToInactiveEventRecord,
+					snsSvc:                snsSvc,
+					sqsSvc:                sqsSvc,
+					leaseLockedTopicArn:   LockedSnsTopic,
+					leaseUnlockedTopicArn: UnlockedSnsTopic,
+					resetQueueURL:         "sqs-queue",
+				},
+			},
+			wantErr:              true,
+			shoudEnqueueReset:    true,
+			shouldErrorOnEnqueue: true,
+			expectedSnsTopic:     LockedSnsTopic,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			if tt.shoudEnqueueReset {
+				if tt.shouldErrorOnEnqueue {
+					err := errors.New("error enqueuing message")
+					log.Printf("Returning error: %s", err)
+					sqsSvc.On("SendMessage", aws.String(tt.args.input.resetQueueURL), aws.String("123456789012")).Return(err)
+				} else {
+					sqsSvc.On("SendMessage", aws.String(tt.args.input.resetQueueURL), aws.String("123456789012")).Return(nil)
+				}
+			}
+			snsSvc.On("PublishMessage", &tt.expectedSnsTopic, mock.Anything, true).Return(nil, nil)
+
+			err := handleRecord(tt.args.input)
+			log.Printf("Got err value from handleRecord: %s", err)
+			sqsSvc.AssertExpectations(t)
+			snsSvc.AssertExpectations(t)
+
+			if (err != nil) != tt.wantErr {
+				t.Errorf("handleRecord() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
 }
