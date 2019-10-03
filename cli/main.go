@@ -15,8 +15,10 @@ limitations under the License.
 */
 package main
 
-import "github.com/Optum/Redbox/cli/cmd"
+import (
+	"github.com/Optum/Redbox/cli/cmd"
+)
 
 func main() {
-  cmd.Execute()
+	cmd.Execute()
 }
