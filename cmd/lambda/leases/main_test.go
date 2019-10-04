@@ -3,8 +3,11 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"github.com/stretchr/testify/assert"
 	"log"
 	"net/http"
+	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -575,4 +578,60 @@ func TestDecommissionAccount(t *testing.T) {
 		// Assert that the expected output is correct
 		require.Equal(t, test.ExpectedResponse, response)
 	}
+}
+
+func TestParseGetLeasesInput(t *testing.T) {
+	results, err := parseGetLeasesInput(map[string]string{
+		"limit":           "2",
+		"nextAccountId":   "2",
+		"nextPrincipalId": "d",
+		"accountId":       "2",
+		"principalId":     "d",
+	})
+
+	assert.Nil(t, err)
+	assert.Equal(t, results.Limit, int64(2), "It should parse the limit to an integer")
+	assert.Equal(t, results.StartKeys["AccountId"], "2", "It should parse the limit to an integer")
+	assert.Equal(t, results.StartKeys["PrincipalId"], "d", "It should parse the limit to an integer")
+	assert.Equal(t, results.AccountId, "2", "It should parse the limit to an integer")
+	assert.Equal(t, results.PrincipalId, "d", "It should parse the limit to an integer")
+}
+
+func TestBuildNextUrl(t *testing.T) {
+	request := events.APIGatewayProxyRequest{
+		Headers: map[string]string{
+			"Host": "www.example.com",
+		},
+		Path:           "/leases",
+		RequestContext: events.APIGatewayProxyRequestContext{Stage: "test"},
+		QueryStringParameters: map[string]string{
+			"limit":           "5",
+			"status":          "Active",
+			"nextAccountId":   "0",
+			"nextPrincipalId": "c",
+		},
+	}
+
+	nextKeys := map[string]string{
+		"AccountId":   "1",
+		"PrincipalId": "d",
+	}
+
+	expectedParams := map[string]string{
+		"limit":           "5",
+		"status":          "Active",
+		"nextAccountId":   "1",
+		"nextPrincipalId": "d",
+	}
+	expectedBase := "https://www.example.com/test/leases?"
+	actual := buildNextUrl(&request, nextKeys)
+	queryString := strings.TrimPrefix(actual, expectedBase)
+	actualParams, err := url.ParseQuery(queryString)
+	assert.Nil(t, err)
+
+	for expectedKey, expectedValue := range expectedParams {
+		assert.Equal(t, expectedValue, actualParams[expectedKey][0])
+	}
+
+	assert.True(t, strings.Contains(actual, expectedBase), "should contain the base URL")
 }

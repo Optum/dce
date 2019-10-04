@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/url"
 	"strconv"
 	"strings"
 
@@ -316,53 +315,74 @@ func decommissionAccount(request *requestBody, queueURL *string, dbSvc db.DBer,
 	return createAPIResponse(http.StatusOK, *message)
 }
 
-func mapQueryParams(path string) (db.GetLeasesInput, error) {
-	queryParams, err := url.ParseQuery(path)
+// Creates a GetLeasesInput from the query parameters
+func parseGetLeasesInput(queryParams map[string]string) (db.GetLeasesInput, error) {
 	query := db.GetLeasesInput{
 		StartKeys: make(map[string]string),
 	}
 
-	if err != nil {
-		return query, err
-	}
-
 	status, ok := queryParams[STATUS_PARAM]
 	if ok && len(status) > 0 {
-		query.Status = status[0]
+		query.Status = status
 	}
 
 	limit, ok := queryParams[LIMIT_PARAM]
 	if ok && len(limit) > 0 {
-		query.Limit = strconv.ParseInt()
+		limInt, err := strconv.ParseInt(limit, 10, 64)
+		query.Limit = limInt
+		if err != nil {
+			return query, err
+		}
 	}
 
 	principalID, ok := queryParams[PRINCIPAL_ID_PARAM]
 	if ok && len(principalID) > 0 {
-		query.PrincipalId = principalID[0]
+		query.PrincipalId = principalID
 	}
 
 	accountID, ok := queryParams[ACCOUNT_ID_PARAM]
 	if ok && len(accountID) > 0 {
-		query.AccountId = accountID[0]
+		query.AccountId = accountID
 	}
 
 	nextAccountID, ok := queryParams[NEXT_ACCOUNT_ID_PARAM]
-	if ok && len(accountID) > 0 {
-		query.StartKeys["AccountId"] = nextAccountID[0]
+	if ok && len(nextAccountID) > 0 {
+		query.StartKeys["AccountId"] = nextAccountID
 	}
 
 	nextPrincipalID, ok := queryParams[NEXT_PRINCIPAL_ID_PARAM]
-	if ok && len(accountID) > 0 {
-		query.StartKeys["PrincipalId"] = nextPrincipalID[0]
+	if ok && len(nextPrincipalID) > 0 {
+		query.StartKeys["PrincipalId"] = nextPrincipalID
 	}
 
 	return query, nil
 }
 
-// Passing the gateway base URL in as an environment variable creates a dependency in Terraform between this lambda, the
-// swagger template file, and the API gateway.
-func parseBaseUrl(req *events.APIGatewayProxyRequest) string {
-	return fmt.Sprintf("%s/%s", req.Headers["Host"], req.RequestContext.Stage)
+// Build a base API url from the request properties.
+func buildBaseUrl(req *events.APIGatewayProxyRequest) string {
+	return fmt.Sprintf("https://%s/%s", req.Headers["Host"], req.RequestContext.Stage)
+}
+
+// Merges the next parameters into the request parameters and returns an API URL.
+func buildNextUrl(req *events.APIGatewayProxyRequest, nextParams map[string]string) string {
+	responseParams := make(map[string]string)
+	responseQueryStrings := make([]string, 0)
+	base := buildBaseUrl(req)
+
+	for k, v := range req.QueryStringParameters {
+		responseParams[k] = v
+	}
+
+	for k, v := range nextParams {
+		responseParams[fmt.Sprintf("next%s", k)] = v
+	}
+
+	for k, v := range responseParams {
+		responseQueryStrings = append(responseQueryStrings, fmt.Sprintf("%s=%s", k, v))
+	}
+
+	queryString := strings.Join(responseQueryStrings, "&")
+	return fmt.Sprintf("%s%s?%s", base, req.Path, queryString)
 }
 
 func router(ctx context.Context, req *events.APIGatewayProxyRequest) (
@@ -390,7 +410,11 @@ func router(ctx context.Context, req *events.APIGatewayProxyRequest) (
 	}
 
 	// Create the SNS Service
-	awsSession := session.New()
+	awsSession, err := session.NewSession()
+	if err != nil {
+		return response.ServerErrorWithResponse(fmt.Sprintf("Error creating AWS session: %s", err)), nil
+	}
+
 	snsClient := sns.New(awsSession)
 	snsSvc := &common.SNS{
 		Client: snsClient,
@@ -399,12 +423,13 @@ func router(ctx context.Context, req *events.APIGatewayProxyRequest) (
 	// Execute the correct action based on the HTTP method
 	switch req.HTTPMethod {
 	case "GET":
-		filters, err := mapQueryParams(req.Path)
+		getLeasesInput, err := parseGetLeasesInput(req.QueryStringParameters)
+
 		if err != nil {
-			return response.ServerErrorWithResponse(fmt.Sprintf("Error parsing query params in \"%s\"", req.Path)), nil
+			return response.ServerErrorWithResponse(fmt.Sprintf("Error parsing query params")), nil
 		}
 
-		result, err := dbSvc.GetLeases(filters)
+		result, err := dbSvc.GetLeases(getLeasesInput)
 
 		if err != nil {
 			return response.ServerErrorWithResponse(fmt.Sprintf("Error querying leases: %s", err)), nil
@@ -417,17 +442,10 @@ func router(ctx context.Context, req *events.APIGatewayProxyRequest) (
 		}
 
 		res := createAPIResponse(http.StatusOK, string(responseBytes))
-		query := make([]string, 0)
 
-		for k, v := range result.NextKeys {
-			param := fmt.Sprintf("next%s", k)
-			query = append(query, fmt.Sprintf("%s=%s", param, v))
-		}
-
-		if len(query) > 0 {
-			base := parseBaseUrl(req)
-			queryString := strings.Join(query, "&")
-			nextUrl := fmt.Sprintf("%s/leases?%s", base, queryString)
+		// If the DB result has next keys, then the URL to retrieve the next page is put into the Link header.
+		if len(result.NextKeys) > 0 {
+			nextUrl := buildNextUrl(req, result.NextKeys)
 			res.Headers["Link"] = fmt.Sprintf("<%s>; rel=\"next\"", nextUrl)
 		}
 
@@ -454,9 +472,6 @@ func router(ctx context.Context, req *events.APIGatewayProxyRequest) (
 		// Get the reset queue url
 		queueURL := common.RequireEnv("RESET_SQS_URL")
 
-		// Set up the AWS Session
-		awsSession := session.New()
-
 		// Construct a Queue
 		sqsClient := sqs.New(awsSession)
 		queue := common.SQSQueue{
@@ -468,7 +483,7 @@ func router(ctx context.Context, req *events.APIGatewayProxyRequest) (
 	default:
 		return createAPIErrorResponse(http.StatusMethodNotAllowed,
 			response.CreateErrorResponse("ClientError",
-				"Method GET/POST/DELETE are only allowed")), nil
+				"Methods GET/POST/DELETE are only allowed")), nil
 	}
 }
 

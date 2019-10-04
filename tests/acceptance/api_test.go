@@ -4,8 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"net/http"
+	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 	"testing"
@@ -94,12 +97,6 @@ func TestApi(t *testing.T) {
 
 			// Defaults to returning 200
 			require.Equal(t, http.StatusOK, resp.StatusCode)
-
-			// Parse response json
-			data := parseResponseJSON(t, resp)
-
-			// Currently returns a default message
-			require.Equal(t, "pong", data["message"].(string))
 		})
 
 	})
@@ -875,7 +872,164 @@ func TestApi(t *testing.T) {
 	})
 
 	t.Run("Get Leases", func(t *testing.T) {
+		defer truncateLeaseTable(t, dbSvc)
 
+		accountIdOne := "1"
+		accountIdTwo := "2"
+		principalIdOne := "a"
+		principalIdTwo := "b"
+		principalIdThree := "c"
+		principalIdFour := "d"
+
+		_, err = dbSvc.PutLease(db.RedboxLease{
+			AccountID:   accountIdOne,
+			PrincipalID: principalIdOne,
+			LeaseStatus: db.Active,
+		})
+
+		assert.Nil(t, err)
+
+		_, err = dbSvc.PutLease(db.RedboxLease{
+			AccountID:   accountIdOne,
+			PrincipalID: principalIdTwo,
+			LeaseStatus: db.Active,
+		})
+
+		assert.Nil(t, err)
+
+		_, err = dbSvc.PutLease(db.RedboxLease{
+			AccountID:   accountIdOne,
+			PrincipalID: principalIdThree,
+			LeaseStatus: db.Decommissioned,
+		})
+
+		assert.Nil(t, err)
+
+		_, err = dbSvc.PutLease(db.RedboxLease{
+			AccountID:   accountIdTwo,
+			PrincipalID: principalIdFour,
+			LeaseStatus: db.Active,
+		})
+
+		assert.Nil(t, err)
+
+		_, err = dbSvc.PutLease(db.RedboxLease{
+			AccountID:   accountIdTwo,
+			PrincipalID: principalIdOne,
+			LeaseStatus: db.Decommissioned,
+		})
+
+		assert.Nil(t, err)
+
+		t.Run("When there are no query parameters", func(t *testing.T) {
+			resp := apiRequest(t, &apiRequestInput{
+				method: "GET",
+				url:    apiURL + "/leases",
+				json:   nil,
+			})
+
+			results := parseResponseArrayJSON(t, resp)
+			assert.Equal(t, 5, len(results), "all five leases should be returned")
+		})
+
+		t.Run("When there is an account ID parameter", func(t *testing.T) {
+			resp := apiRequest(t, &apiRequestInput{
+				method: "GET",
+				url:    apiURL + "/leases?accountId=" + accountIdOne,
+				json:   nil,
+			})
+
+			results := parseResponseArrayJSON(t, resp)
+			assert.Equal(t, 3, len(results), "only three leases should be returned")
+		})
+
+		t.Run("When there is an principal ID parameter", func(t *testing.T) {
+			resp := apiRequest(t, &apiRequestInput{
+				method: "GET",
+				url:    apiURL + "/leases?principalId=" + principalIdOne,
+				json:   nil,
+			})
+
+			results := parseResponseArrayJSON(t, resp)
+			assert.Equal(t, 2, len(results), "only two leases should be returned")
+		})
+
+		t.Run("When there is a limit parameter", func(t *testing.T) {
+			resp := apiRequest(t, &apiRequestInput{
+				method: "GET",
+				url:    apiURL + "/leases?limit=1",
+				json:   nil,
+			})
+
+			results := parseResponseArrayJSON(t, resp)
+			assert.Equal(t, 1, len(results), "only one lease should be returned")
+		})
+
+		t.Run("When there is a status parameter", func(t *testing.T) {
+			resp := apiRequest(t, &apiRequestInput{
+				method: "GET",
+				url:    apiURL + "/leases?status=" + string(db.Decommissioned),
+				json:   nil,
+			})
+
+			results := parseResponseArrayJSON(t, resp)
+			assert.Equal(t, 2, len(results), "only two leases should be returned")
+		})
+
+		t.Run("When there is a Link header", func(t *testing.T) {
+			nextPageRegex := regexp.MustCompile(`<(.+)>`)
+
+			respOne := apiRequest(t, &apiRequestInput{
+				method: "GET",
+				url:    apiURL + "/leases?limit=2",
+				json:   nil,
+			})
+
+			linkHeader, ok := respOne.Header["Link"]
+			assert.True(t, ok, "Link header should exist")
+
+			resultsOne := parseResponseArrayJSON(t, respOne)
+			assert.Equal(t, 2, len(resultsOne), "only two leases should be returned")
+
+			nextPage := nextPageRegex.FindStringSubmatch(linkHeader[0])[1]
+
+			_, err := url.ParseRequestURI(nextPage)
+			assert.Nil(t, err, "Link header should contain a valid URL")
+
+			respTwo := apiRequest(t, &apiRequestInput{
+				method: "GET",
+				url:    nextPage,
+				json:   nil,
+			})
+
+			linkHeader, ok = respTwo.Header["Link"]
+			assert.True(t, ok, "Link header should exist")
+
+			resultsTwo := parseResponseArrayJSON(t, respTwo)
+			assert.Equal(t, 2, len(resultsTwo), "only two leases should be returned")
+
+			nextPage = nextPageRegex.FindStringSubmatch(linkHeader[0])[1]
+
+			_, err = url.ParseRequestURI(nextPage)
+			assert.Nil(t, err, "Link header should contain a valid URL")
+
+			respThree := apiRequest(t, &apiRequestInput{
+				method: "GET",
+				url:    nextPage,
+				json:   nil,
+			})
+
+			linkHeader, ok = respThree.Header["Link"]
+			assert.False(t, ok, "Link header should not exist in last page")
+
+			resultsThree := parseResponseArrayJSON(t, respThree)
+			assert.Equal(t, 1, len(resultsThree), "only one lease should be returned")
+
+			results := append(resultsOne, resultsTwo...)
+			results = append(results, resultsThree...)
+
+			assert.Equal(t, 5, len(results), "All five releases should be returned")
+		})
 	})
 }
 
