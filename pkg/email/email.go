@@ -12,7 +12,7 @@ import (
 //go:generate mockery -name Service
 type Service interface {
 	SendEmail(input *SendEmailInput) error
-	SendRawEmailWithS3FileAttached(input *SendEmailWithS3FileAttachedInput) error
+	SendRawEmailWithAttachment(input *SendEmailWithAttachmentInput) error
 }
 
 type SendEmailInput struct {
