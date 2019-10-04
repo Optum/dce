@@ -205,12 +205,20 @@ paths:
           name: nextPrincipalId
           type: string
           required: false
-          description: Principal ID with which to begin the scan operation. This is used to traverse through paginated results.
+          description: Principal ID with which to begin the scan operation. This is used to traverse through paginated
+            results.
         - in: query
           name: nextAccountId
           type: string
           required: false
-          description: Account ID with which to begin the scan operation. This is used to traverse through paginated results.
+          description: Account ID with which to begin the scan operation. This is used to traverse through paginated
+            results.
+        - in: query
+          name: limit
+          type: integer
+          required: false
+          description: The maximum number of leases to evaluate (not necessarily the number of matching leases). If
+            there is another page, the URL for page will be in the response Link header.
       responses:
         200:
           description: OK
