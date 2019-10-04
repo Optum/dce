@@ -3,6 +3,7 @@
 - Minor fixes to `scripts/deploy_local/deploy_local_build.sh` for options to be recognized.
 - README updates to include current steps for build and deployment.
 - Pull requests authored by non-team members will not build until a team member comments
+- Add usage table arn to tf output
 
 ## v0.17.0
 
