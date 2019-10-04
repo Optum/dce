@@ -731,7 +731,7 @@ func TestDb(t *testing.T) {
 
 		t.Run("When there is a principal ID", func(t *testing.T) {
 			output, err := dbSvc.GetLeases(db.GetLeasesInput{
-				PrincipalId: principalIDOne,
+				PrincipalID: principalIDOne,
 			})
 			assert.Nil(t, err)
 			assert.Equal(t, len(output.Results), 2, "should only return one lease")
@@ -740,7 +740,7 @@ func TestDb(t *testing.T) {
 
 		t.Run("When there is an account ID", func(t *testing.T) {
 			output, err := dbSvc.GetLeases(db.GetLeasesInput{
-				AccountId: accountIDTwo,
+				AccountID: accountIDTwo,
 			})
 			assert.Nil(t, err)
 			assert.Equal(t, 2, len(output.Results), "only one lease should be returned")
@@ -776,8 +776,8 @@ func TestDb(t *testing.T) {
 
 		t.Run("When there is an account ID, principal ID, and a lease status", func(t *testing.T) {
 			output, err := dbSvc.GetLeases(db.GetLeasesInput{
-				AccountId:   accountIDOne,
-				PrincipalId: principalIDThree,
+				AccountID:   accountIDOne,
+				PrincipalID: principalIDThree,
 				Status:      string(db.Decommissioned),
 			})
 
