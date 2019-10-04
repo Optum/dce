@@ -22,12 +22,12 @@ import (
 )
 
 const (
-	PRINCIPAL_ID_PARAM      = "principalId"
-	ACCOUNT_ID_PARAM        = "accountId"
-	NEXT_PRINCIPAL_ID_PARAM = "nextPrincipalId"
-	NEXT_ACCOUNT_ID_PARAM   = "nextAccountId"
-	STATUS_PARAM            = "status"
-	LIMIT_PARAM             = "limit"
+	PrincipalIDParam     = "principalId"
+	AccountIDParam       = "accountId"
+	NextPrincipalIDParam = "nextPrincipalId"
+	NextAccountIDParam   = "nextAccountId"
+	StatusParam          = "status"
+	LimitParam           = "limit"
 )
 
 // createAPIResponse is a helper function to create and return a valid response
@@ -315,18 +315,18 @@ func decommissionAccount(request *requestBody, queueURL *string, dbSvc db.DBer,
 	return createAPIResponse(http.StatusOK, *message)
 }
 
-// Creates a GetLeasesInput from the query parameters
+// parseGetLeasesInput creates a GetLeasesInput from the query parameters
 func parseGetLeasesInput(queryParams map[string]string) (db.GetLeasesInput, error) {
 	query := db.GetLeasesInput{
 		StartKeys: make(map[string]string),
 	}
 
-	status, ok := queryParams[STATUS_PARAM]
+	status, ok := queryParams[StatusParam]
 	if ok && len(status) > 0 {
 		query.Status = status
 	}
 
-	limit, ok := queryParams[LIMIT_PARAM]
+	limit, ok := queryParams[LimitParam]
 	if ok && len(limit) > 0 {
 		limInt, err := strconv.ParseInt(limit, 10, 64)
 		query.Limit = limInt
@@ -335,22 +335,22 @@ func parseGetLeasesInput(queryParams map[string]string) (db.GetLeasesInput, erro
 		}
 	}
 
-	principalID, ok := queryParams[PRINCIPAL_ID_PARAM]
+	principalID, ok := queryParams[PrincipalIDParam]
 	if ok && len(principalID) > 0 {
-		query.PrincipalId = principalID
+		query.PrincipalID = principalID
 	}
 
-	accountID, ok := queryParams[ACCOUNT_ID_PARAM]
+	accountID, ok := queryParams[AccountIDParam]
 	if ok && len(accountID) > 0 {
-		query.AccountId = accountID
+		query.AccountID = accountID
 	}
 
-	nextAccountID, ok := queryParams[NEXT_ACCOUNT_ID_PARAM]
+	nextAccountID, ok := queryParams[NextAccountIDParam]
 	if ok && len(nextAccountID) > 0 {
 		query.StartKeys["AccountId"] = nextAccountID
 	}
 
-	nextPrincipalID, ok := queryParams[NEXT_PRINCIPAL_ID_PARAM]
+	nextPrincipalID, ok := queryParams[NextPrincipalIDParam]
 	if ok && len(nextPrincipalID) > 0 {
 		query.StartKeys["PrincipalId"] = nextPrincipalID
 	}
@@ -358,16 +358,16 @@ func parseGetLeasesInput(queryParams map[string]string) (db.GetLeasesInput, erro
 	return query, nil
 }
 
-// Build a base API url from the request properties.
-func buildBaseUrl(req *events.APIGatewayProxyRequest) string {
+// buildBaseURL returns a base API url from the request properties.
+func buildBaseURL(req *events.APIGatewayProxyRequest) string {
 	return fmt.Sprintf("https://%s/%s", req.Headers["Host"], req.RequestContext.Stage)
 }
 
-// Merges the next parameters into the request parameters and returns an API URL.
-func buildNextUrl(req *events.APIGatewayProxyRequest, nextParams map[string]string) string {
+// buildNextURL merges the next parameters into the request parameters and returns an API URL.
+func buildNextURL(req *events.APIGatewayProxyRequest, nextParams map[string]string) string {
 	responseParams := make(map[string]string)
 	responseQueryStrings := make([]string, 0)
-	base := buildBaseUrl(req)
+	base := buildBaseURL(req)
 
 	for k, v := range req.QueryStringParameters {
 		responseParams[k] = v
@@ -445,8 +445,8 @@ func router(ctx context.Context, req *events.APIGatewayProxyRequest) (
 
 		// If the DB result has next keys, then the URL to retrieve the next page is put into the Link header.
 		if len(result.NextKeys) > 0 {
-			nextUrl := buildNextUrl(req, result.NextKeys)
-			res.Headers["Link"] = fmt.Sprintf("<%s>; rel=\"next\"", nextUrl)
+			nextURL := buildNextURL(req, result.NextKeys)
+			res.Headers["Link"] = fmt.Sprintf("<%s>; rel=\"next\"", nextURL)
 		}
 
 		return res, nil

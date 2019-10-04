@@ -593,11 +593,11 @@ func TestParseGetLeasesInput(t *testing.T) {
 	assert.Equal(t, results.Limit, int64(2), "It should parse the limit to an integer")
 	assert.Equal(t, results.StartKeys["AccountId"], "2", "It should parse the limit to an integer")
 	assert.Equal(t, results.StartKeys["PrincipalId"], "d", "It should parse the limit to an integer")
-	assert.Equal(t, results.AccountId, "2", "It should parse the limit to an integer")
-	assert.Equal(t, results.PrincipalId, "d", "It should parse the limit to an integer")
+	assert.Equal(t, results.AccountID, "2", "It should parse the limit to an integer")
+	assert.Equal(t, results.PrincipalID, "d", "It should parse the limit to an integer")
 }
 
-func TestBuildNextUrl(t *testing.T) {
+func TestBuildNextURL(t *testing.T) {
 	request := events.APIGatewayProxyRequest{
 		Headers: map[string]string{
 			"Host": "www.example.com",
@@ -624,7 +624,7 @@ func TestBuildNextUrl(t *testing.T) {
 		"nextPrincipalId": "d",
 	}
 	expectedBase := "https://www.example.com/test/leases?"
-	actual := buildNextUrl(&request, nextKeys)
+	actual := buildNextURL(&request, nextKeys)
 	queryString := strings.TrimPrefix(actual, expectedBase)
 	actualParams, err := url.ParseQuery(queryString)
 	assert.Nil(t, err)

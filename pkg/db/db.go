@@ -600,19 +600,22 @@ func (db *DB) DeleteAccount(accountID string) (*RedboxAccount, error) {
 	return account, err
 }
 
+// GetLeasesInput contains the filtering criteria for the GetLeases scan.
 type GetLeasesInput struct {
 	StartKeys   map[string]string
-	PrincipalId string
-	AccountId   string
+	PrincipalID string
+	AccountID   string
 	Status      string
 	Limit       int64
 }
 
+// GetLeasesOutput contains the scan results as well as the keys for retrieve the next page of the result set.
 type GetLeasesOutput struct {
 	Results  []*RedboxLease
 	NextKeys map[string]string
 }
 
+// GetLeases takes a set of filtering criteria and scans the Leases table for the matching records.
 func (db *DB) GetLeases(input GetLeasesInput) (GetLeasesOutput, error) {
 	limit := int64(25)
 	filters := make([]string, 0)
@@ -627,19 +630,20 @@ func (db *DB) GetLeases(input GetLeasesInput) (GetLeasesOutput, error) {
 		Limit:     &limit,
 	}
 
+	// Build the filter clauses.
 	if input.Status != "" {
 		filters = append(filters, "LeaseStatus = :status")
 		filterValues[":status"] = &dynamodb.AttributeValue{S: aws.String(string(input.Status))}
 	}
 
-	if input.PrincipalId != "" {
+	if input.PrincipalID != "" {
 		filters = append(filters, "PrincipalId = :principalId")
-		filterValues[":principalId"] = &dynamodb.AttributeValue{S: aws.String(input.PrincipalId)}
+		filterValues[":principalId"] = &dynamodb.AttributeValue{S: aws.String(input.PrincipalID)}
 	}
 
-	if input.AccountId != "" {
+	if input.AccountID != "" {
 		filters = append(filters, "AccountId = :accountId")
-		filterValues[":accountId"] = &dynamodb.AttributeValue{S: aws.String(input.AccountId)}
+		filterValues[":accountId"] = &dynamodb.AttributeValue{S: aws.String(input.AccountID)}
 	}
 
 	if len(filters) > 0 {
@@ -657,6 +661,7 @@ func (db *DB) GetLeases(input GetLeasesInput) (GetLeasesOutput, error) {
 
 	output, err := db.Client.Scan(scanInput)
 
+	// Parse the results and build the next keys if necessary.
 	if err != nil {
 		return GetLeasesOutput{}, err
 	}

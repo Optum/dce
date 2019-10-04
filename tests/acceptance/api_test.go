@@ -874,48 +874,48 @@ func TestApi(t *testing.T) {
 	t.Run("Get Leases", func(t *testing.T) {
 		defer truncateLeaseTable(t, dbSvc)
 
-		accountIdOne := "1"
-		accountIdTwo := "2"
-		principalIdOne := "a"
-		principalIdTwo := "b"
-		principalIdThree := "c"
-		principalIdFour := "d"
+		accountIDOne := "1"
+		accountIDTwo := "2"
+		principalIDOne := "a"
+		principalIDTwo := "b"
+		principalIDThree := "c"
+		principalIDFour := "d"
 
 		_, err = dbSvc.PutLease(db.RedboxLease{
-			AccountID:   accountIdOne,
-			PrincipalID: principalIdOne,
+			AccountID:   accountIDOne,
+			PrincipalID: principalIDOne,
 			LeaseStatus: db.Active,
 		})
 
 		assert.Nil(t, err)
 
 		_, err = dbSvc.PutLease(db.RedboxLease{
-			AccountID:   accountIdOne,
-			PrincipalID: principalIdTwo,
+			AccountID:   accountIDOne,
+			PrincipalID: principalIDTwo,
 			LeaseStatus: db.Active,
 		})
 
 		assert.Nil(t, err)
 
 		_, err = dbSvc.PutLease(db.RedboxLease{
-			AccountID:   accountIdOne,
-			PrincipalID: principalIdThree,
+			AccountID:   accountIDOne,
+			PrincipalID: principalIDThree,
 			LeaseStatus: db.Decommissioned,
 		})
 
 		assert.Nil(t, err)
 
 		_, err = dbSvc.PutLease(db.RedboxLease{
-			AccountID:   accountIdTwo,
-			PrincipalID: principalIdFour,
+			AccountID:   accountIDTwo,
+			PrincipalID: principalIDFour,
 			LeaseStatus: db.Active,
 		})
 
 		assert.Nil(t, err)
 
 		_, err = dbSvc.PutLease(db.RedboxLease{
-			AccountID:   accountIdTwo,
-			PrincipalID: principalIdOne,
+			AccountID:   accountIDTwo,
+			PrincipalID: principalIDOne,
 			LeaseStatus: db.Decommissioned,
 		})
 
@@ -935,7 +935,7 @@ func TestApi(t *testing.T) {
 		t.Run("When there is an account ID parameter", func(t *testing.T) {
 			resp := apiRequest(t, &apiRequestInput{
 				method: "GET",
-				url:    apiURL + "/leases?accountId=" + accountIdOne,
+				url:    apiURL + "/leases?accountId=" + accountIDOne,
 				json:   nil,
 			})
 
@@ -946,7 +946,7 @@ func TestApi(t *testing.T) {
 		t.Run("When there is an principal ID parameter", func(t *testing.T) {
 			resp := apiRequest(t, &apiRequestInput{
 				method: "GET",
-				url:    apiURL + "/leases?principalId=" + principalIdOne,
+				url:    apiURL + "/leases?principalId=" + principalIDOne,
 				json:   nil,
 			})
 
