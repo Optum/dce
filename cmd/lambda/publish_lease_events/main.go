@@ -99,26 +99,29 @@ func handleRecord(input *handleRecordInput) error {
 			return nil
 		}
 
-		// The status is changed. Before we do anything else, we will
-		// put the message on the SQS queue ONLY IF the status has gone
-		// to Inactive.
-		// Add the account to the SQS reset queue
-		log.Printf("Adding account %s to the reset queue", redboxLease.AccountID)
-		err = input.sqsSvc.SendMessage(
-			aws.String(input.resetQueueURL),
-			aws.String(redboxLease.AccountID),
-		)
-
-		if err != nil {
-			errMsg := fmt.Sprintf("Failed to add account to reset queue for lease %s @ %s: %s", redboxLease.PrincipalID, redboxLease.AccountID, err)
-			log.Printf(errMsg)
-			return errors.New(errMsg)
-		}
-
 		log.Printf("Transitioning from %s to %s", prevLeaseStatus, nextLeaseStatus)
 
 		// Lease is now expired if it transitioned from "Active" --> "Inactive"
 		isExpired := isActiveStatus(prevLeaseStatus) && !isActiveStatus(nextLeaseStatus)
+
+		if isExpired {
+			// Put the message on the SQS queue ONLY IF the status has gone
+			// to Inactive.
+			log.Printf("Adding account %s to the reset queue", redboxLease.AccountID)
+			err = input.sqsSvc.SendMessage(
+				aws.String(input.resetQueueURL),
+				aws.String(redboxLease.AccountID),
+			)
+
+			if err != nil {
+				errMsg := fmt.Sprintf("Failed to add account to reset queue for lease %s @ %s: %s", redboxLease.PrincipalID, redboxLease.AccountID, err)
+				log.Printf(errMsg)
+				// throw the error. Because if we could not enqueue the lease reset, we want
+				// the Lambda to error out so it can be re-tried per the retry policy of
+				// the event source.
+				return errors.New(errMsg)
+			}
+		}
 
 		publishInput := publishLeaseInput{
 			lease:  redboxLease,
