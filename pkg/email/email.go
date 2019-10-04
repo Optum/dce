@@ -2,6 +2,7 @@ package email
 
 import (
 	"bytes"
+
 	"github.com/Optum/Redbox/pkg/awsiface"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ses"
@@ -24,16 +25,15 @@ type SendEmailInput struct {
 	BodyText     string
 }
 
-type SendEmailWithS3FileAttachedInput struct {
-	FromAddress  string
-	ToAddresses  []string
-	CCAddresses  []string
-	BCCAddresses []string
-	Subject      string
-	BodyHTML     string
-	BodyText     string
-	s3Svc        common.Storager
-	S3Key        string
+type SendEmailWithAttachmentInput struct {
+	FromAddress        string
+	ToAddresses        []string
+	CCAddresses        []string
+	BCCAddresses       []string
+	Subject            string
+	BodyHTML           string
+	BodyText           string
+	AttachmentFileName string
 }
 
 type SESEmailService struct {
@@ -70,13 +70,13 @@ func (svc *SESEmailService) SendEmail(input *SendEmailInput) error {
 	return err
 }
 
-func (svc *SESEmailService) SendRawEmailWithS3FileAttached(input *SendEmailWithS3FileAttachedInput) error {
+func (svc *SESEmailService) SendRawEmailWithAttachment(input *SendEmailWithAttachmentInput) error {
 	msg := gomail.NewMessage()
 	msg.SetHeader("From", input.FromAddress)
 	msg.SetHeader("To", input.ToAddresses[0])
 	msg.SetHeader("Subject", input.Subject)
 	msg.SetBody("text/html", input.BodyHTML)
-	msg.Attach("/home/Alex/lolcat.jpg")
+	msg.Attach(input.AttachmentFileName)
 
 	var emailRaw bytes.Buffer
 	msg.WriteTo(&emailRaw)

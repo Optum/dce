@@ -8,10 +8,12 @@ import (
 	"testing"
 
 	"github.com/Optum/Redbox/pkg/common"
+	"github.com/Optum/Redbox/pkg/email"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/aws/aws-sdk-go/service/ses"
 	"github.com/gruntwork-io/terratest/modules/terraform"
 	"github.com/stretchr/testify/require"
 )
@@ -83,6 +85,7 @@ func TestS3(t *testing.T) {
 			_, err = buf.ReadFrom(obj.Body)
 			require.Nil(t, err)
 			require.Equal(t, string(artifactsBody), buf.String())
+
 		})
 	})
 
@@ -109,6 +112,19 @@ func TestS3(t *testing.T) {
 			localBody, err := ioutil.ReadFile("/tmp/local-s3-file.txt")
 			require.Nil(t, err)
 			require.Equal(t, artifactsBody, localBody)
+
+			//Test emailing the file
+			emailTemplateText := `Test email`
+			emailTemplateSubject := `Test`
+			emailSvc := &email.SESEmailService{SES: ses.New(awsSession)}
+			input := email.SendEmailWithAttachmentInput{
+				FromAddress:        "Amudha.Palani@optum.com",
+				ToAddresses:        []string{"Amudha.Palani@optum.com"},
+				BodyText:           emailTemplateText,
+				Subject:            emailTemplateSubject,
+				AttachmentFileName: "/tmp/local-s3-file.txt",
+			}
+			err = emailSvc.SendRawEmailWithAttachment(&input)
 		})
 	})
 }
