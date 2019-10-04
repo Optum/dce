@@ -147,7 +147,7 @@ func Test_handleRecord(t *testing.T) {
 			expectedSnsTopic:  UnlockedSnsTopic,
 		},
 		{
-			name: "Happy path...",
+			name: "Throwing error on enqueue",
 			args: args{
 				&handleRecordInput{
 					record:                activeToInactiveEventRecord,
