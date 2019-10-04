@@ -108,10 +108,11 @@ func handleRecord(input *handleRecordInput) error {
 			// Put the message on the SQS queue ONLY IF the status has gone
 			// to Inactive.
 			log.Printf("Adding account %s to the reset queue", redboxLease.AccountID)
-			err = input.sqsSvc.SendMessage(
+			err := input.sqsSvc.SendMessage(
 				aws.String(input.resetQueueURL),
 				aws.String(redboxLease.AccountID),
 			)
+			log.Printf("Error: %s", err)
 
 			if err != nil {
 				errMsg := fmt.Sprintf("Failed to add account to reset queue for lease %s @ %s: %s", redboxLease.PrincipalID, redboxLease.AccountID, err)

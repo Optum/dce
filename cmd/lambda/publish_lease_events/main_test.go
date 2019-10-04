@@ -1,6 +1,8 @@
 package main
 
 import (
+	"errors"
+	"log"
 	"testing"
 
 	commonMocks "github.com/Optum/Redbox/pkg/common/mocks"
@@ -10,6 +12,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
+
+const UnlockedSnsTopic string = "arn:aws:sns:us-east-1:123456789012:lease-unlocked"
+const LockedSnsTopic string = "arn:aws:sns:us-east-1:123456789012:lease-locked"
 
 func TestLeaseFromImageSuccess(t *testing.T) {
 
@@ -54,8 +59,8 @@ func Test_handleRecord(t *testing.T) {
 		input *handleRecordInput
 	}
 
-	var oldImage = map[string]events.DynamoDBAttributeValue{
-		"AccountId":      events.NewStringAttribute("TestAccountID"),
+	var activeImage = map[string]events.DynamoDBAttributeValue{
+		"AccountId":      events.NewStringAttribute("123456789012"),
 		"principalId":    events.NewStringAttribute("TestPrincipalID"),
 		"LeaseStatus":    events.NewStringAttribute("Active"),
 		"createdOn":      events.NewNumberAttribute("1565723448"),
@@ -66,8 +71,8 @@ func Test_handleRecord(t *testing.T) {
 		"leaseStatusModifiedOn": events.NewNumberAttribute("1565723448"),
 	}
 
-	var newImage = map[string]events.DynamoDBAttributeValue{
-		"AccountId":      events.NewStringAttribute("TestAccountID"),
+	var inactiveImage = map[string]events.DynamoDBAttributeValue{
+		"AccountId":      events.NewStringAttribute("123456789012"),
 		"principalId":    events.NewStringAttribute("TestPrincipalID"),
 		"LeaseStatus":    events.NewStringAttribute("Inactive"),
 		"createdOn":      events.NewNumberAttribute("1565723448"),
@@ -78,49 +83,103 @@ func Test_handleRecord(t *testing.T) {
 		"leaseStatusModifiedOn": events.NewNumberAttribute("1565723448"),
 	}
 
-	record := events.DynamoDBStreamRecord{
-		OldImage: oldImage,
-		NewImage: newImage,
+	activeToInactiveRecord := events.DynamoDBStreamRecord{
+		OldImage: activeImage,
+		NewImage: inactiveImage,
 	}
 
-	sampleRecord := events.DynamoDBEventRecord{
+	inactiveToActiveRecord := events.DynamoDBStreamRecord{
+		OldImage: inactiveImage,
+		NewImage: activeImage,
+	}
+
+	activeToInactiveEventRecord := events.DynamoDBEventRecord{
 		EventName: "MODIFY",
-		Change:    record,
+		Change:    activeToInactiveRecord,
+	}
+
+	inactiveToActiveEventRecord := events.DynamoDBEventRecord{
+		EventName: "MODIFY",
+		Change:    inactiveToActiveRecord,
 	}
 
 	sqsSvc := &commonMocks.Queue{}
 	snsSvc := &commonMocks.Notificationer{}
 
-	input := &handleRecordInput{
-		record:                sampleRecord,
-		snsSvc:                snsSvc,
-		sqsSvc:                sqsSvc,
-		leaseLockedTopicArn:   "arn:aws:sns:us-east-1:123456789012:lease-locked",
-		leaseUnlockedTopicArn: "arn:aws:sns:us-east-1:123456789012:lease-unlocked",
-		resetQueueURL:         "sqs-queue",
-	}
-	happyPathArgs := &args{
-		input: input,
-	}
-
 	tests := []struct {
-		name              string
-		args              args
-		wantErr           bool
-		shoudEnqueueReset bool
+		name                 string
+		args                 args
+		wantErr              bool
+		shoudEnqueueReset    bool
+		shouldErrorOnEnqueue bool
+		expectedSnsTopic     string
 	}{
-		{"Happy path...", *happyPathArgs, false, true},
+		{
+			name: "Happy path...",
+			args: args{
+				&handleRecordInput{
+					record:                activeToInactiveEventRecord,
+					snsSvc:                snsSvc,
+					sqsSvc:                sqsSvc,
+					leaseLockedTopicArn:   LockedSnsTopic,
+					leaseUnlockedTopicArn: UnlockedSnsTopic,
+					resetQueueURL:         "sqs-queue",
+				},
+			},
+			wantErr:           false,
+			shoudEnqueueReset: true,
+			expectedSnsTopic:  LockedSnsTopic,
+		},
+		{
+			name: "Went from inactive to active...",
+			args: args{
+				&handleRecordInput{
+					record:                inactiveToActiveEventRecord,
+					snsSvc:                snsSvc,
+					sqsSvc:                sqsSvc,
+					leaseLockedTopicArn:   LockedSnsTopic,
+					leaseUnlockedTopicArn: UnlockedSnsTopic,
+					resetQueueURL:         "sqs-queue",
+				},
+			},
+			wantErr:           false,
+			shoudEnqueueReset: false,
+			expectedSnsTopic:  UnlockedSnsTopic,
+		},
+		{
+			name: "Happy path...",
+			args: args{
+				&handleRecordInput{
+					record:                activeToInactiveEventRecord,
+					snsSvc:                snsSvc,
+					sqsSvc:                sqsSvc,
+					leaseLockedTopicArn:   LockedSnsTopic,
+					leaseUnlockedTopicArn: UnlockedSnsTopic,
+					resetQueueURL:         "sqs-queue",
+				},
+			},
+			wantErr:              true,
+			shoudEnqueueReset:    true,
+			shouldErrorOnEnqueue: true,
+			expectedSnsTopic:     LockedSnsTopic,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Set up mocks
-			snsSvc.On("PublishMessage", &input.leaseLockedTopicArn, mock.Anything, true).Return(nil, nil)
 
 			if tt.shoudEnqueueReset {
-				sqsSvc.On("SendMessage", aws.String(input.resetQueueURL), mock.Anything).Return(nil)
+				if tt.shouldErrorOnEnqueue {
+					err := errors.New("error enqueuing message")
+					log.Printf("Returning error: %s", err)
+					sqsSvc.On("SendMessage", aws.String(tt.args.input.resetQueueURL), aws.String("123456789012")).Return(err)
+				} else {
+					sqsSvc.On("SendMessage", aws.String(tt.args.input.resetQueueURL), aws.String("123456789012")).Return(nil)
+				}
 			}
+			snsSvc.On("PublishMessage", &tt.expectedSnsTopic, mock.Anything, true).Return(nil, nil)
 
 			err := handleRecord(tt.args.input)
+			log.Printf("Got err value from handleRecord: %s", err)
 			sqsSvc.AssertExpectations(t)
 			snsSvc.AssertExpectations(t)
 
