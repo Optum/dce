@@ -125,6 +125,7 @@ func TestS3(t *testing.T) {
 				AttachmentFileName: "/tmp/local-s3-file.txt",
 			}
 			err = emailSvc.SendRawEmailWithAttachment(&input)
+			require.Nil(t, err)
 		})
 	})
 }
