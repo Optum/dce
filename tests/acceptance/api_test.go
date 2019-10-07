@@ -872,6 +872,21 @@ func TestApi(t *testing.T) {
 	})
 
 	t.Run("Get Leases", func(t *testing.T) {
+
+		t.Run("should return empty for no leases", func (t *testing.T) {
+			defer truncateLeaseTable(t, dbSvc)
+
+			resp := apiRequest(t, &apiRequestInput{
+				method: "GET",
+				url:    apiURL + "/leases",
+				json:   nil,
+			})
+
+			results := parseResponseArrayJSON(t, resp)
+
+			assert.Equal(t, results, []map[string]interface{}{}, "API should return []")
+		})
+
 		defer truncateLeaseTable(t, dbSvc)
 
 		accountIDOne := "1"
@@ -930,6 +945,11 @@ func TestApi(t *testing.T) {
 
 			results := parseResponseArrayJSON(t, resp)
 			assert.Equal(t, 5, len(results), "all five leases should be returned")
+
+			// Check one of the result objects, to make sure it looks right
+			assert.Equal(t, results[0]["accountId"], "1")
+			assert.Equal(t, results[0]["principalId"], "a")
+			assert.Equal(t, results[0]["leaseStatus"], "Active")
 		})
 
 		t.Run("When there is an account ID parameter", func(t *testing.T) {

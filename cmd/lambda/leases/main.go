@@ -435,7 +435,13 @@ func router(ctx context.Context, req *events.APIGatewayProxyRequest) (
 			return response.ServerErrorWithResponse(fmt.Sprintf("Error querying leases: %s", err)), nil
 		}
 
-		responseBytes, err := json.Marshal(result.Results)
+		// Convert DB Lease model to API Response model
+		leaseResponseItems := []response.LeaseResponse{}
+		for _, lease := range result.Results {
+			leaseResponseItems = append(leaseResponseItems, response.LeaseResponse(*lease))
+		}
+
+		responseBytes, err := json.Marshal(leaseResponseItems)
 
 		if err != nil {
 			return response.ServerErrorWithResponse(fmt.Sprintf("Error serializing response: %s", err)), nil
