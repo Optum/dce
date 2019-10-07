@@ -10,6 +10,7 @@ func CreateLeaseResponse(redboxLease *db.RedboxLease) *LeaseResponse {
 	return &LeaseResponse{
 		AccountID:                redboxLease.AccountID,
 		PrincipalID:              redboxLease.PrincipalID,
+		ID:                       redboxLease.ID,
 		LeaseStatus:              redboxLease.LeaseStatus,
 		CreatedOn:                redboxLease.CreatedOn,
 		LastModifiedOn:           redboxLease.LastModifiedOn,
@@ -35,6 +36,7 @@ func CreateLeaseResponse(redboxLease *db.RedboxLease) *LeaseResponse {
 type LeaseResponse struct {
 	AccountID                string         `json:"accountId"`
 	PrincipalID              string         `json:"principalId"`
+	ID                       string         `json:"id"`
 	LeaseStatus              db.LeaseStatus `json:"leaseStatus"`
 	CreatedOn                int64          `json:"createdOn"`
 	LastModifiedOn           int64          `json:"lastModifiedOn"`

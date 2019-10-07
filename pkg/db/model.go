@@ -17,6 +17,7 @@ type RedboxAccount struct {
 type RedboxLease struct {
 	AccountID                string      `json:"AccountId"`                // AWS Account ID
 	PrincipalID              string      `json:"PrincipalId"`              // Azure User Principal ID
+	ID                       string      `json:"Id"`                       // Lease ID
 	LeaseStatus              LeaseStatus `json:"LeaseStatus"`              // Status of the Lease
 	LeaseStatusReason        string      `json:"LeaseStatusReason"`        // Reason for the status of the lease
 	CreatedOn                int64       `json:"CreatedOn"`                // Created Epoch Timestamp
