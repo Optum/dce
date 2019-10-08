@@ -873,7 +873,7 @@ func TestApi(t *testing.T) {
 
 	t.Run("Get Leases", func(t *testing.T) {
 
-		t.Run("should return empty for no leases", func (t *testing.T) {
+		t.Run("should return empty for no leases", func(t *testing.T) {
 			defer truncateLeaseTable(t, dbSvc)
 
 			resp := apiRequest(t, &apiRequestInput{
