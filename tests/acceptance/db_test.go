@@ -655,6 +655,137 @@ func TestDb(t *testing.T) {
 		require.Equal(t, expected, updatedAccount.Metadata, "Metadata should be updated")
 		require.NotEqual(t, 0, updatedAccount.LastModifiedOn, "Last modified is updated")
 	})
+
+	t.Run("GetLeases", func(t *testing.T) {
+		defer truncateLeaseTable(t, dbSvc)
+
+		accountIDOne := "1"
+		accountIDTwo := "2"
+		principalIDOne := "a"
+		principalIDTwo := "b"
+		principalIDThree := "c"
+		principalIDFour := "d"
+
+		_, err = dbSvc.PutLease(db.RedboxLease{
+			AccountID:   accountIDOne,
+			PrincipalID: principalIDOne,
+			LeaseStatus: db.Active,
+		})
+
+		assert.Nil(t, err)
+
+		_, err = dbSvc.PutLease(db.RedboxLease{
+			AccountID:   accountIDOne,
+			PrincipalID: principalIDTwo,
+			LeaseStatus: db.Active,
+		})
+
+		assert.Nil(t, err)
+
+		_, err = dbSvc.PutLease(db.RedboxLease{
+			AccountID:   accountIDOne,
+			PrincipalID: principalIDThree,
+			LeaseStatus: db.Decommissioned,
+		})
+
+		assert.Nil(t, err)
+
+		_, err = dbSvc.PutLease(db.RedboxLease{
+			AccountID:   accountIDTwo,
+			PrincipalID: principalIDFour,
+			LeaseStatus: db.Active,
+		})
+
+		assert.Nil(t, err)
+
+		_, err = dbSvc.PutLease(db.RedboxLease{
+			AccountID:   accountIDTwo,
+			PrincipalID: principalIDOne,
+			LeaseStatus: db.Decommissioned,
+		})
+
+		assert.Nil(t, err)
+
+		t.Run("When there no filters", func(t *testing.T) {
+			output, err := dbSvc.GetLeases(db.GetLeasesInput{})
+			assert.Nil(t, err)
+			assert.Equal(t, 5, len(output.Results), "only two leases should be returned")
+		})
+
+		t.Run("When there is a limit", func(t *testing.T) {
+			output, err := dbSvc.GetLeases(db.GetLeasesInput{
+				Limit: 2,
+			})
+			assert.Nil(t, err)
+			assert.Equal(t, 2, len(output.Results), "only two leases should be returned")
+		})
+
+		t.Run("When there is a status", func(t *testing.T) {
+			output, err := dbSvc.GetLeases(db.GetLeasesInput{
+				Status: string(db.Decommissioned),
+			})
+			assert.Nil(t, err)
+			assert.Equal(t, 2, len(output.Results), "only one lease should be returned")
+			assert.Equal(t, db.Decommissioned, output.Results[0].LeaseStatus, "lease should be decommissioned")
+		})
+
+		t.Run("When there is a principal ID", func(t *testing.T) {
+			output, err := dbSvc.GetLeases(db.GetLeasesInput{
+				PrincipalID: principalIDOne,
+			})
+			assert.Nil(t, err)
+			assert.Equal(t, len(output.Results), 2, "should only return one lease")
+			assert.Equal(t, output.Results[0].PrincipalID, principalIDOne, "should return the lease with the given ID")
+		})
+
+		t.Run("When there is an account ID", func(t *testing.T) {
+			output, err := dbSvc.GetLeases(db.GetLeasesInput{
+				AccountID: accountIDTwo,
+			})
+			assert.Nil(t, err)
+			assert.Equal(t, 2, len(output.Results), "only one lease should be returned")
+		})
+
+		t.Run("When there is a start key", func(t *testing.T) {
+			results := make([]*db.RedboxLease, 0)
+
+			shouldContinue := true
+			next := make(map[string]string)
+
+			for shouldContinue {
+				output, err := dbSvc.GetLeases(db.GetLeasesInput{
+					Limit:     2,
+					Status:    string(db.Active),
+					StartKeys: next,
+				})
+
+				assert.Nil(t, err)
+				next = output.NextKeys
+				results = append(results, output.Results...)
+
+				if len(next) == 0 {
+					shouldContinue = false
+				}
+			}
+
+			assert.Equal(t, 3, len(results), "only three leases should be returned")
+			assert.Equal(t, results[0].LeaseStatus, db.Active)
+			assert.Equal(t, results[1].LeaseStatus, db.Active)
+			assert.Equal(t, results[2].LeaseStatus, db.Active)
+		})
+
+		t.Run("When there is an account ID, principal ID, and a lease status", func(t *testing.T) {
+			output, err := dbSvc.GetLeases(db.GetLeasesInput{
+				AccountID:   accountIDOne,
+				PrincipalID: principalIDThree,
+				Status:      string(db.Decommissioned),
+			})
+
+			assert.Nil(t, err)
+			assert.Equal(t, 1, len(output.Results), "only one lease should be returned")
+			assert.Equal(t, db.Decommissioned, output.Results[0].LeaseStatus, "lease should be decommissioned")
+		})
+	})
 }
 
 func newAccount(id string, timeNow int64) *db.RedboxAccount {
