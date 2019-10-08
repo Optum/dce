@@ -426,7 +426,7 @@ func router(ctx context.Context, req *events.APIGatewayProxyRequest) (
 		getLeasesInput, err := parseGetLeasesInput(req.QueryStringParameters)
 
 		if err != nil {
-			return response.ServerErrorWithResponse(fmt.Sprintf("Error parsing query params")), nil
+			return response.RequestValidationError(fmt.Sprintf("Error parsing query params")), nil
 		}
 
 		result, err := dbSvc.GetLeases(getLeasesInput)
