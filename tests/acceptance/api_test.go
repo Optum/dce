@@ -947,9 +947,13 @@ func TestApi(t *testing.T) {
 			assert.Equal(t, 5, len(results), "all five leases should be returned")
 
 			// Check one of the result objects, to make sure it looks right
-			assert.Equal(t, results[0]["accountId"], "1")
-			assert.Equal(t, results[0]["principalId"], "a")
-			assert.Equal(t, results[0]["leaseStatus"], "Active")
+			_, hasAccountId := results[0]["accountId"]
+			_, hasPrincipalId := results[0]["principalId"]
+			_, hasLeaseStatus := results[0]["leaseStatus"]
+
+			assert.True(t, hasAccountId, "response should be serialized with the accountId property")
+			assert.True(t, hasPrincipalId, "response should be serialized with the principalId property")
+			assert.True(t, hasLeaseStatus, "response should be serialized with the leaseStatus property")
 		})
 
 		t.Run("When there is an account ID parameter", func(t *testing.T) {
