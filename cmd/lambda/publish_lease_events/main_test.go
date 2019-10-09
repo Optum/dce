@@ -155,7 +155,7 @@ func Test_handleRecord(t *testing.T) {
 					sqsSvc:                sqsSvc,
 					leaseLockedTopicArn:   LockedSnsTopic,
 					leaseUnlockedTopicArn: UnlockedSnsTopic,
-					resetQueueURL:         "sqs-queue",
+					resetQueueURL:         "sqs-err-queue",
 				},
 			},
 			wantErr:              true,
@@ -169,9 +169,7 @@ func Test_handleRecord(t *testing.T) {
 
 			if tt.shoudEnqueueReset {
 				if tt.shouldErrorOnEnqueue {
-					err := errors.New("error enqueuing message")
-					log.Printf("Returning error: %s", err)
-					sqsSvc.On("SendMessage", aws.String(tt.args.input.resetQueueURL), aws.String("123456789012")).Return(err)
+					sqsSvc.On("SendMessage", aws.String(tt.args.input.resetQueueURL), aws.String("123456789012")).Return(errors.New("error enqueuing message"))
 				} else {
 					sqsSvc.On("SendMessage", aws.String(tt.args.input.resetQueueURL), aws.String("123456789012")).Return(nil)
 				}
