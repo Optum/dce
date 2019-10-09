@@ -42,6 +42,8 @@ func TestProvisioner(t *testing.T) {
 			// Cleanup table on completion
 			defer truncateLeaseTable(t, dbSvc)
 
+			sevenDaysFromNow := time.Now().AddDate(0, 0, 7).Unix()
+
 			// Activate the below Account Lease
 			acctID := "111"
 			principalID := "222"
@@ -49,7 +51,7 @@ func TestProvisioner(t *testing.T) {
 			budgetCurrency := "USD"
 			budgetNotificationEmails := []string{"test@test.com"}
 			result, err := provSvc.ActivateAccount(true, principalID,
-				acctID, budgetAmount, budgetCurrency, budgetNotificationEmails)
+				acctID, budgetAmount, budgetCurrency, budgetNotificationEmails, sevenDaysFromNow)
 
 			// Verify the lease returned
 			require.Equal(t, principalID, result.PrincipalID)
@@ -84,6 +86,7 @@ func TestProvisioner(t *testing.T) {
 			var budgetAmount float64 = 300
 			budgetCurrency := "USD"
 			budgetNotificationEmails := []string{"test@test.com"}
+			sevenDaysFromNow := time.Now().AddDate(0, 0, 7).Unix()
 
 			timeNow := time.Now().Unix()
 			assgn := db.RedboxLease{
@@ -100,7 +103,7 @@ func TestProvisioner(t *testing.T) {
 
 			// Activate the below Account Lease
 			result, err := provSvc.ActivateAccount(true, principalID,
-				acctID, budgetAmount, budgetCurrency, budgetNotificationEmails)
+				acctID, budgetAmount, budgetCurrency, budgetNotificationEmails, sevenDaysFromNow)
 
 			// Verify the lease returned
 			require.Equal(t, principalID, result.PrincipalID)

@@ -253,20 +253,21 @@ func TestDb(t *testing.T) {
 			// Set a ResetLock on the Lease
 			updatedLease, err := dbSvc.TransitionLeaseStatus(
 				acctID, principalID,
-				db.Active, db.ResetLock,
+				db.Active, db.Inactive,
+				"Lease decommissioned",
 			)
 			require.Nil(t, err)
 			require.NotNil(t, updatedLease)
 
 			// Check that the returned Lease
 			// has Status=ResetLock
-			require.Equal(t, updatedLease.LeaseStatus, db.ResetLock)
+			require.Equal(t, updatedLease.LeaseStatus, db.Inactive)
 
 			// Check the lease in the db
 			leaseAfter, err := dbSvc.GetLease(acctID, principalID)
 			require.Nil(t, err)
 			require.NotNil(t, leaseAfter)
-			require.Equal(t, leaseAfter.LeaseStatus, db.ResetLock)
+			require.Equal(t, leaseAfter.LeaseStatus, db.Inactive)
 			require.True(t, leaseBefore.LastModifiedOn !=
 				leaseAfter.LastModifiedOn)
 			require.True(t, leaseBefore.LeaseStatusModifiedOn !=
@@ -277,7 +278,8 @@ func TestDb(t *testing.T) {
 			// Attempt to lock an lease that doesn't exist
 			updatedLease, err := dbSvc.TransitionLeaseStatus(
 				"not-an-acct-id", "not-a-principal-id",
-				db.Active, db.ResetLock,
+				db.Active, db.Inactive,
+				"",
 			)
 			require.Nil(t, updatedLease)
 			require.NotNil(t, err)
@@ -288,7 +290,7 @@ func TestDb(t *testing.T) {
 
 		t.Run("Should fail if account is not in prevStatus", func(t *testing.T) {
 			// Run test for each non-active status
-			notActiveStatuses := []db.LeaseStatus{db.FinanceLock, db.Decommissioned}
+			notActiveStatuses := []db.LeaseStatus{db.Inactive}
 			for _, status := range notActiveStatuses {
 
 				t.Run(fmt.Sprint("...when status is ", status), func(t *testing.T) {
@@ -315,6 +317,7 @@ func TestDb(t *testing.T) {
 					updatedLease, err := dbSvc.TransitionLeaseStatus(
 						acctID, principalID,
 						db.Active, status,
+						"Lease expired.",
 					)
 					require.Nil(t, updatedLease)
 					require.NotNil(t, err)
@@ -538,20 +541,20 @@ func TestDb(t *testing.T) {
 			// Create some leases in the DB
 			for _, lease := range []db.RedboxLease{
 				{AccountID: "1", PrincipalID: "pid", LeaseStatus: db.Active},
-				{AccountID: "2", PrincipalID: "pid", LeaseStatus: db.ResetLock},
+				{AccountID: "2", PrincipalID: "pid", LeaseStatus: db.Inactive},
 				{AccountID: "3", PrincipalID: "pid", LeaseStatus: db.Active},
-				{AccountID: "4", PrincipalID: "pid", LeaseStatus: db.ResetLock},
+				{AccountID: "4", PrincipalID: "pid", LeaseStatus: db.Inactive},
 			} {
 				_, err := dbSvc.PutLease(lease)
 				require.Nil(t, err)
 			}
 
 			// Find ResetLock leases
-			res, err := dbSvc.FindLeasesByStatus(db.ResetLock)
+			res, err := dbSvc.FindLeasesByStatus(db.Inactive)
 			require.Nil(t, err)
 			require.Equal(t, []*db.RedboxLease{
-				{AccountID: "2", PrincipalID: "pid", LeaseStatus: db.ResetLock},
-				{AccountID: "4", PrincipalID: "pid", LeaseStatus: db.ResetLock},
+				{AccountID: "2", PrincipalID: "pid", LeaseStatus: db.Inactive},
+				{AccountID: "4", PrincipalID: "pid", LeaseStatus: db.Inactive},
 			}, res)
 		})
 
@@ -568,7 +571,7 @@ func TestDb(t *testing.T) {
 			}
 
 			// Find ResetLock leases
-			res, err := dbSvc.FindLeasesByStatus(db.ResetLock)
+			res, err := dbSvc.FindLeasesByStatus(db.Inactive)
 			require.Nil(t, err)
 			require.Equal(t, []*db.RedboxLease{}, res)
 		})
@@ -685,7 +688,7 @@ func TestDb(t *testing.T) {
 		_, err = dbSvc.PutLease(db.RedboxLease{
 			AccountID:   accountIDOne,
 			PrincipalID: principalIDThree,
-			LeaseStatus: db.Decommissioned,
+			LeaseStatus: db.Inactive,
 		})
 
 		assert.Nil(t, err)
@@ -701,7 +704,7 @@ func TestDb(t *testing.T) {
 		_, err = dbSvc.PutLease(db.RedboxLease{
 			AccountID:   accountIDTwo,
 			PrincipalID: principalIDOne,
-			LeaseStatus: db.Decommissioned,
+			LeaseStatus: db.Inactive,
 		})
 
 		assert.Nil(t, err)
@@ -722,11 +725,11 @@ func TestDb(t *testing.T) {
 
 		t.Run("When there is a status", func(t *testing.T) {
 			output, err := dbSvc.GetLeases(db.GetLeasesInput{
-				Status: string(db.Decommissioned),
+				Status: string(db.Inactive),
 			})
 			assert.Nil(t, err)
 			assert.Equal(t, 2, len(output.Results), "only one lease should be returned")
-			assert.Equal(t, db.Decommissioned, output.Results[0].LeaseStatus, "lease should be decommissioned")
+			assert.Equal(t, db.Inactive, output.Results[0].LeaseStatus, "lease should be decommissioned")
 		})
 
 		t.Run("When there is a principal ID", func(t *testing.T) {
@@ -778,12 +781,12 @@ func TestDb(t *testing.T) {
 			output, err := dbSvc.GetLeases(db.GetLeasesInput{
 				AccountID:   accountIDOne,
 				PrincipalID: principalIDThree,
-				Status:      string(db.Decommissioned),
+				Status:      string(db.Inactive),
 			})
 
 			assert.Nil(t, err)
 			assert.Equal(t, 1, len(output.Results), "only one lease should be returned")
-			assert.Equal(t, db.Decommissioned, output.Results[0].LeaseStatus, "lease should be decommissioned")
+			assert.Equal(t, db.Inactive, output.Results[0].LeaseStatus, "lease should be decommissioned")
 		})
 	})
 }
