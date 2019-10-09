@@ -39,6 +39,7 @@ type DBer interface {
 	GetReadyAccount() (*RedboxAccount, error)
 	GetAccountsForReset() ([]*RedboxAccount, error)
 	GetAccounts() ([]*RedboxAccount, error)
+	GetLeaseByID(leaseID string) (*RedboxLease, error)
 	FindAccountsByStatus(status AccountStatus) ([]*RedboxAccount, error)
 	FindAccountsByPrincipalID(principalID string) ([]*RedboxAccount, error)
 	PutAccount(account RedboxAccount) error
@@ -217,6 +218,35 @@ func (db *DB) FindAccountsByPrincipalID(principalID string) ([]*RedboxAccount, e
 	}
 
 	return accounts, nil
+}
+
+// GetLeaseByID gets a lease by ID
+func (db *DB) GetLeaseByID(leaseID string) (*RedboxLease, error) {
+
+	input := &dynamodb.QueryInput{
+		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+			":a1": {
+				S: aws.String(leaseID),
+			},
+		},
+		KeyConditionExpression: aws.String("Id = :a1"),
+		TableName:              aws.String(db.LeaseTableName),
+		IndexName:              aws.String("LeaseId"),
+	}
+
+	resp, err := db.Client.Query(input)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(resp.Items) < 1 {
+		return nil, fmt.Errorf("No Lease found with id: %s", leaseID)
+	}
+	if len(resp.Items) > 1 {
+		return nil, fmt.Errorf("Found more than one Lease with id: %s", leaseID)
+	}
+
+	return unmarshalLease(resp.Items[0])
 }
 
 // GetLease retrieves a Lease for the

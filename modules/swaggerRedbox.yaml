@@ -143,7 +143,7 @@ paths:
         403:
           description: "Failed to authenticate request"
       x-amazon-apigateway-integration:
-        uri: ${router_lambda_arn}
+        uri: ${leases_lambda}
         httpMethod: "POST"
         type: "aws_proxy"
         passthroughBehavior: "when_no_match"
@@ -175,7 +175,7 @@ paths:
         403:
           description: "Failed to authenticate request"
       x-amazon-apigateway-integration:
-        uri: ${router_lambda_arn}
+        uri: ${leases_lambda}
         httpMethod: "POST"
         type: "aws_proxy"
         passthroughBehavior: "when_no_match"
@@ -233,7 +233,30 @@ paths:
         403:
           description: "Failed to authenticate request"
       x-amazon-apigateway-integration:
-        uri: ${router_lambda_arn}
+        uri: ${leases_lambda}
+        httpMethod: "POST"
+        type: "aws_proxy"
+        passthroughBehavior: "when_no_match"
+      security:
+        - sigv4: []
+  "/leases/{id}":
+    get:
+      summary: Get a lease by Id
+      produces:
+        - application/json
+      parameters:
+        - in: path
+          name: id
+          type: string
+          required: true
+          description: Id for lease
+      responses:
+        200:
+          $ref: "#/definitions/lease"
+        403:
+          description: "Failed to retrieve lease"
+      x-amazon-apigateway-integration:
+        uri: ${leases_lambda}
         httpMethod: "POST"
         type: "aws_proxy"
         passthroughBehavior: "when_no_match"
@@ -275,9 +298,12 @@ securityDefinitions:
     x-amazon-apigateway-authtype: "awsSigv4"
 definitions:
   lease:
-    description: "Lease Id"
+    description: "Lease Details"
     type: object
     properties:
+      id:
+        type: string
+        description: Lease ID
       principalId:
         type: string
         description: principalId of the lease to get

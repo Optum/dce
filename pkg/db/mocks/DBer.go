@@ -219,6 +219,29 @@ func (_m *DBer) GetAccountsForReset() ([]*db.RedboxAccount, error) {
 	return r0, r1
 }
 
+// GetLeaseByID provides a mock function with given fields: leaseID
+func (_m *DBer) GetLeaseByID(leaseID string) (*db.RedboxLease, error) {
+	ret := _m.Called(leaseID)
+
+	var r0 *db.RedboxLease
+	if rf, ok := ret.Get(0).(func(string) *db.RedboxLease); ok {
+		r0 = rf(leaseID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*db.RedboxLease)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(leaseID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetReadyAccount provides a mock function with given fields:
 func (_m *DBer) GetReadyAccount() (*db.RedboxAccount, error) {
 	ret := _m.Called()

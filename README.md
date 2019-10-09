@@ -613,7 +613,8 @@ Records are unique by AccountId+PrincipalId.
 ```
 {
   "AccountId":  "123456789012", # AWS Account ID
-  "PrincipalId": "098765432"
+  "PrincipalId": "098765432",
+  "Id" "4585fca7-cb21-406b-b778-83dccb351354",
   "LeaseStatus": "Active" | "FinanceLock" | "ResetLock" | "ResetFinanceLock" | "Decommissioned"
   "CreatedOn": 1555690626 # *Epoch Timestamp*
   "LastModifiedOn": 1555690626 # *Epoch Timestamp*

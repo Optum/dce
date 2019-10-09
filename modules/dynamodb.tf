@@ -73,6 +73,14 @@ resource "aws_dynamodb_table" "redbox_lease" {
     write_capacity  = 5
   }
 
+  global_secondary_index {
+    name            = "LeaseId"
+    hash_key        = "Id"
+    projection_type = "ALL"
+    read_capacity   = 5
+    write_capacity  = 5
+  }
+
   # AWS Account ID
   attribute {
     name = "AccountId"
@@ -93,6 +101,12 @@ resource "aws_dynamodb_table" "redbox_lease" {
   # Principal ID
   attribute {
     name = "PrincipalId"
+    type = "S"
+  }
+
+  # Lease ID
+  attribute {
+    name = "Id"
     type = "S"
   }
 

@@ -17,6 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/client"
+	"github.com/google/uuid"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -661,6 +662,8 @@ func TestApi(t *testing.T) {
 				require.Equal(t, budgetAmount, resJSON["budgetAmount"])
 				require.Equal(t, "USD", resJSON["budgetCurrency"])
 				require.Equal(t, s, resJSON["budgetNotificationEmails"])
+				_, err = uuid.Parse(fmt.Sprintf("%v", resJSON["id"]))
+				require.Nil(t, err)
 				require.NotNil(t, resJSON["leaseStatusModifiedOn"])
 
 				// Check the lease is in the DB

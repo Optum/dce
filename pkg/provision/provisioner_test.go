@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
@@ -86,6 +87,8 @@ func TestFindActiveLeaseFoPrincipal(t *testing.T) {
 			require.Equal(t, test.ExpectedLeasePrincipalID, lease.PrincipalID)
 			require.Equal(t, test.ExpectedLeaseAccountID,
 				lease.AccountID)
+			_, err = uuid.Parse(lease.ID)
+			require.Nil(t, err)
 		} else {
 			require.Nil(t, lease)
 		}
@@ -179,6 +182,8 @@ func TestFindLeaseWithAccount(t *testing.T) {
 			require.Equal(t, test.ExpectedLeasePrincipalID, lease.PrincipalID)
 			require.Equal(t, test.ExpectedLeaseAccountID,
 				lease.AccountID)
+			_, err = uuid.Parse(lease.ID)
+			require.Nil(t, err)
 		} else {
 			require.Nil(t, lease)
 		}
@@ -287,6 +292,8 @@ func TestActivateLease(t *testing.T) {
 				assgn.LastModifiedOn) // Should not be 0
 			require.NotEqual(t, test.ExpectedLease.LeaseStatusModifiedOn,
 				assgn.LeaseStatusModifiedOn) // Should not be 0
+			_, err = uuid.Parse(assgn.ID)
+			require.Nil(t, err)
 		} else {
 			require.Equal(t, test.ExpectedLease, assgn)
 		}

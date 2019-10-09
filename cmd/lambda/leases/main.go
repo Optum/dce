@@ -4,11 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"time"
 	"log"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/Optum/Redbox/pkg/api/response"
 	"github.com/Optum/Redbox/pkg/common"
@@ -467,6 +467,7 @@ func router(ctx context.Context, req *events.APIGatewayProxyRequest) (
 		}
 
 		return res, nil
+
 	case "POST":
 		prov := &provision.AccountProvision{
 			DBSvc: dbSvc,
