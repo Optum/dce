@@ -80,6 +80,7 @@ func TestPublishLease(t *testing.T) {
 	lease := &db.RedboxLease{
 		PrincipalID:           "abc",
 		AccountID:             "123",
+		ID:                    "uid-123",
 		LeaseStatus:           db.Active,
 		CreatedOn:             567,
 		LastModifiedOn:        567,

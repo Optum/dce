@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"log"
@@ -351,6 +352,11 @@ func router(ctx context.Context, req *events.APIGatewayProxyRequest) (
 	switch req.HTTPMethod {
 	case "GET":
 		// Placeholder until a proper GET gets implemented
+		if strings.Contains(req.Path, "/leases/") {
+			getController := getController{Dao: dbSvc}
+			return getController.Call(ctx, req)
+		}
+
 		return createAPIResponse(http.StatusOK, "{\"message\":\"pong\"}"), nil
 	case "POST":
 		prov := &provision.AccountProvision{

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/Optum/Redbox/pkg/db"
+	guuid "github.com/google/uuid"
 )
 
 // Provisioner interface for providing helper methods for provisioning a
@@ -87,12 +88,14 @@ func (prov *AccountProvision) ActivateAccount(create bool,
 	var assgn *db.RedboxLease
 	var err error
 	if create {
+		leaseID := guuid.New()
 		log.Printf("Create new Lease for Principal %s and Account %s\n",
 			principalID, accountID)
 		timeNow := time.Now().Unix()
 		lease := &db.RedboxLease{
 			AccountID:                accountID,
 			PrincipalID:              principalID,
+			ID:                       leaseID.String(),
 			LeaseStatus:              db.Active,
 			BudgetAmount:             budgetAmount,
 			BudgetCurrency:           budgetCurrency,
