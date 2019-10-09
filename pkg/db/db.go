@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/Optum/Redbox/pkg/common"
@@ -597,6 +598,94 @@ func (db *DB) DeleteAccount(accountID string) (*RedboxAccount, error) {
 
 	_, err = db.Client.DeleteItem(input)
 	return account, err
+}
+
+// GetLeasesInput contains the filtering criteria for the GetLeases scan.
+type GetLeasesInput struct {
+	StartKeys   map[string]string
+	PrincipalID string
+	AccountID   string
+	Status      string
+	Limit       int64
+}
+
+// GetLeasesOutput contains the scan results as well as the keys for retrieve the next page of the result set.
+type GetLeasesOutput struct {
+	Results  []*RedboxLease
+	NextKeys map[string]string
+}
+
+// GetLeases takes a set of filtering criteria and scans the Leases table for the matching records.
+func (db *DB) GetLeases(input GetLeasesInput) (GetLeasesOutput, error) {
+	limit := int64(25)
+	filters := make([]string, 0)
+	filterValues := make(map[string]*dynamodb.AttributeValue)
+
+	if input.Limit > 0 {
+		limit = input.Limit
+	}
+
+	scanInput := &dynamodb.ScanInput{
+		TableName: aws.String(db.LeaseTableName),
+		Limit:     &limit,
+	}
+
+	// Build the filter clauses.
+	if input.Status != "" {
+		filters = append(filters, "LeaseStatus = :status")
+		filterValues[":status"] = &dynamodb.AttributeValue{S: aws.String(string(input.Status))}
+	}
+
+	if input.PrincipalID != "" {
+		filters = append(filters, "PrincipalId = :principalId")
+		filterValues[":principalId"] = &dynamodb.AttributeValue{S: aws.String(input.PrincipalID)}
+	}
+
+	if input.AccountID != "" {
+		filters = append(filters, "AccountId = :accountId")
+		filterValues[":accountId"] = &dynamodb.AttributeValue{S: aws.String(input.AccountID)}
+	}
+
+	if len(filters) > 0 {
+		filterStatement := strings.Join(filters, " and ")
+		scanInput.FilterExpression = &filterStatement
+		scanInput.ExpressionAttributeValues = filterValues
+	}
+
+	if input.StartKeys != nil && len(input.StartKeys) > 0 {
+		scanInput.ExclusiveStartKey = make(map[string]*dynamodb.AttributeValue)
+		for k, v := range input.StartKeys {
+			scanInput.ExclusiveStartKey[k] = &dynamodb.AttributeValue{S: aws.String(v)}
+		}
+	}
+
+	output, err := db.Client.Scan(scanInput)
+
+	// Parse the results and build the next keys if necessary.
+	if err != nil {
+		return GetLeasesOutput{}, err
+	}
+
+	results := make([]*RedboxLease, 0)
+
+	for _, o := range output.Items {
+		lease, err := unmarshalLease(o)
+		if err != nil {
+			return GetLeasesOutput{}, err
+		}
+		results = append(results, lease)
+	}
+
+	nextKey := make(map[string]string)
+
+	for k, v := range output.LastEvaluatedKey {
+		nextKey[k] = *v.S
+	}
+
+	return GetLeasesOutput{
+		Results:  results,
+		NextKeys: nextKey,
+	}, nil
 }
 
 // UpdateMetadata updates the metadata field of an account, overwriting the old value completely with a new one

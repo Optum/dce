@@ -5,9 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
-
 	"log"
 	"net/http"
+	"strconv"
+	"strings"
 
 	"github.com/Optum/Redbox/pkg/api/response"
 	"github.com/Optum/Redbox/pkg/common"
@@ -19,6 +20,15 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+)
+
+const (
+	PrincipalIDParam     = "principalId"
+	AccountIDParam       = "accountId"
+	NextPrincipalIDParam = "nextPrincipalId"
+	NextAccountIDParam   = "nextAccountId"
+	StatusParam          = "status"
+	LimitParam           = "limit"
 )
 
 // createAPIResponse is a helper function to create and return a valid response
@@ -272,7 +282,7 @@ func decommissionAccount(request *requestBody, queueURL *string, dbSvc db.DBer,
 			response.CreateErrorResponse("ClientError", errStr))
 	}
 
-	// Tranistion the Lease Status
+	// Transition the Lease Status
 	lease, err := dbSvc.TransitionLeaseStatus(acct.AccountID, principalID,
 		db.Active, db.Inactive, "Requested decommission.")
 	if err != nil {
@@ -283,7 +293,7 @@ func decommissionAccount(request *requestBody, queueURL *string, dbSvc db.DBer,
 					accountID)))
 	}
 
-	// Transistion the Account Status
+	// Transition the Account Status
 	_, err = dbSvc.TransitionAccountStatus(acct.AccountID, db.Leased,
 		db.NotReady)
 	if err != nil {
@@ -316,6 +326,76 @@ func decommissionAccount(request *requestBody, queueURL *string, dbSvc db.DBer,
 	return createAPIResponse(http.StatusOK, *message)
 }
 
+// parseGetLeasesInput creates a GetLeasesInput from the query parameters
+func parseGetLeasesInput(queryParams map[string]string) (db.GetLeasesInput, error) {
+	query := db.GetLeasesInput{
+		StartKeys: make(map[string]string),
+	}
+
+	status, ok := queryParams[StatusParam]
+	if ok && len(status) > 0 {
+		query.Status = status
+	}
+
+	limit, ok := queryParams[LimitParam]
+	if ok && len(limit) > 0 {
+		limInt, err := strconv.ParseInt(limit, 10, 64)
+		query.Limit = limInt
+		if err != nil {
+			return query, err
+		}
+	}
+
+	principalID, ok := queryParams[PrincipalIDParam]
+	if ok && len(principalID) > 0 {
+		query.PrincipalID = principalID
+	}
+
+	accountID, ok := queryParams[AccountIDParam]
+	if ok && len(accountID) > 0 {
+		query.AccountID = accountID
+	}
+
+	nextAccountID, ok := queryParams[NextAccountIDParam]
+	if ok && len(nextAccountID) > 0 {
+		query.StartKeys["AccountId"] = nextAccountID
+	}
+
+	nextPrincipalID, ok := queryParams[NextPrincipalIDParam]
+	if ok && len(nextPrincipalID) > 0 {
+		query.StartKeys["PrincipalId"] = nextPrincipalID
+	}
+
+	return query, nil
+}
+
+// buildBaseURL returns a base API url from the request properties.
+func buildBaseURL(req *events.APIGatewayProxyRequest) string {
+	return fmt.Sprintf("https://%s/%s", req.Headers["Host"], req.RequestContext.Stage)
+}
+
+// buildNextURL merges the next parameters into the request parameters and returns an API URL.
+func buildNextURL(req *events.APIGatewayProxyRequest, nextParams map[string]string) string {
+	responseParams := make(map[string]string)
+	responseQueryStrings := make([]string, 0)
+	base := buildBaseURL(req)
+
+	for k, v := range req.QueryStringParameters {
+		responseParams[k] = v
+	}
+
+	for k, v := range nextParams {
+		responseParams[fmt.Sprintf("next%s", k)] = v
+	}
+
+	for k, v := range responseParams {
+		responseQueryStrings = append(responseQueryStrings, fmt.Sprintf("%s=%s", k, v))
+	}
+
+	queryString := strings.Join(responseQueryStrings, "&")
+	return fmt.Sprintf("%s%s?%s", base, req.Path, queryString)
+}
+
 func router(ctx context.Context, req *events.APIGatewayProxyRequest) (
 	events.APIGatewayProxyResponse, error) {
 	// Extract the Body from the Request
@@ -341,7 +421,11 @@ func router(ctx context.Context, req *events.APIGatewayProxyRequest) (
 	}
 
 	// Create the SNS Service
-	awsSession := session.New()
+	awsSession, err := session.NewSession()
+	if err != nil {
+		return response.ServerErrorWithResponse(fmt.Sprintf("Error creating AWS session: %s", err)), nil
+	}
+
 	snsClient := sns.New(awsSession)
 	snsSvc := &common.SNS{
 		Client: snsClient,
@@ -350,8 +434,39 @@ func router(ctx context.Context, req *events.APIGatewayProxyRequest) (
 	// Execute the correct action based on the HTTP method
 	switch req.HTTPMethod {
 	case "GET":
-		// Placeholder until a proper GET gets implemented
-		return createAPIResponse(http.StatusOK, "{\"message\":\"pong\"}"), nil
+		getLeasesInput, err := parseGetLeasesInput(req.QueryStringParameters)
+
+		if err != nil {
+			return response.RequestValidationError(fmt.Sprintf("Error parsing query params")), nil
+		}
+
+		result, err := dbSvc.GetLeases(getLeasesInput)
+
+		if err != nil {
+			return response.ServerErrorWithResponse(fmt.Sprintf("Error querying leases: %s", err)), nil
+		}
+
+		// Convert DB Lease model to API Response model
+		leaseResponseItems := []response.LeaseResponse{}
+		for _, lease := range result.Results {
+			leaseResponseItems = append(leaseResponseItems, response.LeaseResponse(*lease))
+		}
+
+		responseBytes, err := json.Marshal(leaseResponseItems)
+
+		if err != nil {
+			return response.ServerErrorWithResponse(fmt.Sprintf("Error serializing response: %s", err)), nil
+		}
+
+		res := createAPIResponse(http.StatusOK, string(responseBytes))
+
+		// If the DB result has next keys, then the URL to retrieve the next page is put into the Link header.
+		if len(result.NextKeys) > 0 {
+			nextURL := buildNextURL(req, result.NextKeys)
+			res.Headers["Link"] = fmt.Sprintf("<%s>; rel=\"next\"", nextURL)
+		}
+
+		return res, nil
 	case "POST":
 		prov := &provision.AccountProvision{
 			DBSvc: dbSvc,
@@ -374,9 +489,6 @@ func router(ctx context.Context, req *events.APIGatewayProxyRequest) (
 		// Get the reset queue url
 		queueURL := common.RequireEnv("RESET_SQS_URL")
 
-		// Set up the AWS Session
-		awsSession := session.New()
-
 		// Construct a Queue
 		sqsClient := sqs.New(awsSession)
 		queue := common.SQSQueue{
@@ -388,7 +500,7 @@ func router(ctx context.Context, req *events.APIGatewayProxyRequest) (
 	default:
 		return createAPIErrorResponse(http.StatusMethodNotAllowed,
 			response.CreateErrorResponse("ClientError",
-				"Method GET/POST/DELETE are only allowed")), nil
+				"Methods GET/POST/DELETE are only allowed")), nil
 	}
 }
 
