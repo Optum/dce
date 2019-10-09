@@ -87,8 +87,6 @@ func TestFindActiveLeaseFoPrincipal(t *testing.T) {
 			require.Equal(t, test.ExpectedLeasePrincipalID, lease.PrincipalID)
 			require.Equal(t, test.ExpectedLeaseAccountID,
 				lease.AccountID)
-			_, err = uuid.Parse(lease.ID)
-			require.Nil(t, err)
 		} else {
 			require.Nil(t, lease)
 		}
@@ -182,8 +180,6 @@ func TestFindLeaseWithAccount(t *testing.T) {
 			require.Equal(t, test.ExpectedLeasePrincipalID, lease.PrincipalID)
 			require.Equal(t, test.ExpectedLeaseAccountID,
 				lease.AccountID)
-			_, err = uuid.Parse(lease.ID)
-			require.Nil(t, err)
 		} else {
 			require.Nil(t, lease)
 		}
@@ -276,12 +272,15 @@ func TestActivateLease(t *testing.T) {
 
 		// Assert that the expected output is correct
 		if test.ExpectedLease != nil {
-			require.Equal(t, test.ExpectedLease.AccountID,
-				assgn.AccountID)
+			require.Equal(t, test.ExpectedLease.AccountID, assgn.AccountID)
 			require.Equal(t, test.ExpectedLease.PrincipalID, assgn.PrincipalID)
-			require.Equal(t, test.ExpectedLease.LeaseStatus,
-				assgn.LeaseStatus)
+			require.Equal(t, test.ExpectedLease.LeaseStatus, assgn.LeaseStatus)
 			if test.Create {
+				for _, v := range mockDB.Calls[0].Arguments {
+					leaseID := v.(db.RedboxLease).ID
+					_, err = uuid.Parse(leaseID)
+					require.Nil(t, err)
+				}
 				require.NotEqual(t, test.ExpectedLease.CreatedOn,
 					assgn.CreatedOn) // Should be different
 			} else {
@@ -292,8 +291,6 @@ func TestActivateLease(t *testing.T) {
 				assgn.LastModifiedOn) // Should not be 0
 			require.NotEqual(t, test.ExpectedLease.LeaseStatusModifiedOn,
 				assgn.LeaseStatusModifiedOn) // Should not be 0
-			_, err = uuid.Parse(assgn.ID)
-			require.Nil(t, err)
 		} else {
 			require.Equal(t, test.ExpectedLease, assgn)
 		}
