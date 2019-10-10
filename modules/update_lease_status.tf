@@ -61,7 +61,7 @@ resource "aws_iam_role_policy" "check_buget_ses" {
 POLICY
 }
 
-// Run the fan-out-check-budget lambda on a timer (cloudwatch event)
+// Run the fan-out-update-lease-status-lambda lambda on a timer (cloudwatch event)
 module "dbbackup_lambda_schedule" {
   source              = "./cloudwatch_event"
   name                = "fan_out_update_lease_status-${var.namespace}"
