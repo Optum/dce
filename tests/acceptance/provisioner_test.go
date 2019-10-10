@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/google/uuid"
 	"github.com/gruntwork-io/terratest/modules/terraform"
 	"github.com/stretchr/testify/require"
 )
@@ -54,18 +55,19 @@ func TestProvisioner(t *testing.T) {
 				acctID, budgetAmount, budgetCurrency, budgetNotificationEmails, sevenDaysFromNow)
 
 			// Verify the lease returned
+			require.Nil(t, err)
 			require.Equal(t, principalID, result.PrincipalID)
 			require.Equal(t, acctID, result.AccountID)
 			require.Equal(t, db.Active, result.LeaseStatus)
 			require.NotEqual(t, 0, result.CreatedOn)
 			require.NotEqual(t, 0, result.LastModifiedOn)
 			require.NotEqual(t, 0, result.LastModifiedOn)
-			require.Nil(t, err)
 
 			// Get the lease
 			assgnAfter, err := dbSvc.GetLease(acctID, principalID)
 
 			// Verify the lease exists
+			require.Nil(t, err)
 			require.Equal(t, result.PrincipalID, assgnAfter.PrincipalID)
 			require.Equal(t, result.AccountID, assgnAfter.AccountID)
 			require.Equal(t, result.LeaseStatus,
@@ -73,7 +75,6 @@ func TestProvisioner(t *testing.T) {
 			require.Equal(t, result.CreatedOn, assgnAfter.CreatedOn)
 			require.Equal(t, result.LastModifiedOn, assgnAfter.LastModifiedOn)
 			require.Equal(t, result.LeaseStatusModifiedOn, assgnAfter.LeaseStatusModifiedOn)
-			require.Nil(t, err)
 		})
 
 		t.Run("Should Transition Existing Lease", func(t *testing.T) {
@@ -90,6 +91,7 @@ func TestProvisioner(t *testing.T) {
 
 			timeNow := time.Now().Unix()
 			assgn := db.RedboxLease{
+				ID:                    uuid.New().String(),
 				AccountID:             acctID,
 				PrincipalID:           principalID,
 				LeaseStatus:           db.Active,
@@ -98,8 +100,8 @@ func TestProvisioner(t *testing.T) {
 				LeaseStatusModifiedOn: timeNow,
 			}
 			putAssgn, err := dbSvc.PutLease(assgn)
-			require.Equal(t, db.RedboxLease{}, *putAssgn) // should return an empty account lease since its new
 			require.Nil(t, err)
+			require.Equal(t, db.RedboxLease{}, *putAssgn) // should return an empty account lease since its new
 
 			// Activate the below Account Lease
 			result, err := provSvc.ActivateAccount(true, principalID,

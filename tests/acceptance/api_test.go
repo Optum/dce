@@ -326,6 +326,7 @@ func TestApi(t *testing.T) {
 
 			// Create an Lease Entry
 			_, err = dbSvc.PutLease(db.RedboxLease{
+				ID:                    uuid.New().String(),
 				PrincipalID:           principalID,
 				AccountID:             acctID,
 				LeaseStatus:           db.Active,
@@ -426,6 +427,7 @@ func TestApi(t *testing.T) {
 
 			// Create an Lease Entry
 			_, err = dbSvc.PutLease(db.RedboxLease{
+				ID:                    uuid.New().String(),
 				PrincipalID:           principalID,
 				AccountID:             acctID,
 				LeaseStatus:           db.Active,
@@ -477,6 +479,7 @@ func TestApi(t *testing.T) {
 
 			// Create an Lease Entry
 			_, err = dbSvc.PutLease(db.RedboxLease{
+				ID:                    uuid.New().String(),
 				PrincipalID:           principalID,
 				AccountID:             acctID,
 				LeaseStatus:           db.Inactive,
@@ -901,6 +904,7 @@ func TestApi(t *testing.T) {
 		principalIDFour := "d"
 
 		_, err = dbSvc.PutLease(db.RedboxLease{
+			ID:          uuid.New().String(),
 			AccountID:   accountIDOne,
 			PrincipalID: principalIDOne,
 			LeaseStatus: db.Active,
@@ -909,6 +913,7 @@ func TestApi(t *testing.T) {
 		assert.Nil(t, err)
 
 		_, err = dbSvc.PutLease(db.RedboxLease{
+			ID:          uuid.New().String(),
 			AccountID:   accountIDOne,
 			PrincipalID: principalIDTwo,
 			LeaseStatus: db.Active,
@@ -917,6 +922,7 @@ func TestApi(t *testing.T) {
 		assert.Nil(t, err)
 
 		_, err = dbSvc.PutLease(db.RedboxLease{
+			ID:          uuid.New().String(),
 			AccountID:   accountIDOne,
 			PrincipalID: principalIDThree,
 			LeaseStatus: db.Inactive,
@@ -925,6 +931,7 @@ func TestApi(t *testing.T) {
 		assert.Nil(t, err)
 
 		_, err = dbSvc.PutLease(db.RedboxLease{
+			ID:          uuid.New().String(),
 			AccountID:   accountIDTwo,
 			PrincipalID: principalIDFour,
 			LeaseStatus: db.Active,
@@ -933,6 +940,7 @@ func TestApi(t *testing.T) {
 		assert.Nil(t, err)
 
 		_, err = dbSvc.PutLease(db.RedboxLease{
+			ID:          uuid.New().String(),
 			AccountID:   accountIDTwo,
 			PrincipalID: principalIDOne,
 			LeaseStatus: db.Inactive,

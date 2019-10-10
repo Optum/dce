@@ -328,8 +328,6 @@ func (db *DB) FindLeasesByPrincipal(principalID string) ([]*RedboxLease, error) 
 		return nil, nil
 	}
 
-	fmt.Println(resp)
-
 	var redboxes []*RedboxLease
 	for _, r := range resp.Items {
 		n, err := unmarshalLease(r)
