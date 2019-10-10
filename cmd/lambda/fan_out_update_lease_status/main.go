@@ -79,7 +79,7 @@ func lambdaHandler(input *lambdaHandlerInput) error {
 			continue
 		}
 
-		// Invoke the check_budget lambda
+		// Invoke the fan_out_update_lease_status lambda
 		log.Printf("Invoking lambda %s with lease %s @ %s",
 			input.updateLeaseStatusFunctionName, lease.PrincipalID, lease.AccountID)
 		_, err = input.lambdaSvc.Invoke(&lambdaSDK.InvokeInput{
