@@ -155,7 +155,7 @@ variable "update_lease_status_enabled" {
 
 variable "namespace_prefix" {
   type    = string
-  default = "DCE"
+  default = "dce"
 }
 
 variable "cognito_callback_urls" {

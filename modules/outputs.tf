@@ -138,3 +138,19 @@ output "usage_cache_table_arn" {
 output cognito_user_pool_id {
   value = module.api_gateway_authorizer.user_pool_id
 }
+
+output "role_user_arn" {
+  value = module.api_gateway_authorizer.user_role_arn
+}
+
+output "role_admin_arn" {
+  value = module.api_gateway_authorizer.admin_role_arn
+}
+
+output "role_user_policy" {
+  value = module.api_gateway_authorizer.user_policy_arn
+}
+
+output "role_admin_policy" {
+  value = module.api_gateway_authorizer.admin_policy_arn
+}
