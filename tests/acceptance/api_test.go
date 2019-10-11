@@ -1097,13 +1097,15 @@ type apiResponse struct {
 	json interface{}
 }
 
+var chainCredentials *credentials.Credentials = credentials.NewChainCredentials([]credentials.Provider{
+	&credentials.EnvProvider{},
+	&credentials.SharedCredentialsProvider{Filename: "", Profile: ""},
+})
+
 func apiRequest(t *testing.T, input *apiRequestInput) *apiResponse {
 	// Set defaults
 	if input.creds == nil {
-		input.creds = credentials.NewChainCredentials([]credentials.Provider{
-			&credentials.EnvProvider{},
-			&credentials.SharedCredentialsProvider{Filename: "", Profile: ""},
-		})
+		input.creds = chainCredentials
 	}
 	if input.region == "" {
 		input.region = "us-east-1"

@@ -1,0 +1,15 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "execute-api:Invoke",
+      "Resource": [
+        "${api_gateway_arn}/GET/usage/*",
+        "${api_gateway_arn}/GET/leases/*",
+        "${api_gateway_arn}/POST/leases/*",
+        "${api_gateway_arn}/DELETE/leases/*"
+      ]
+    }
+  ]
+}
