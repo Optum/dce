@@ -140,3 +140,23 @@ variable "redbox_principal_policy" {
   description = "Location of file with the policy used for the RedBox Principal Account"
   default     = ""
 }
+
+variable "namespace_prefix" {
+  type    = string
+  default = "DCE"
+}
+
+variable "cognito_callback_urls" {
+  type    = list(string)
+  default = ["https://127.0.0.1:8080/login"]
+}
+
+variable "cognito_logout_urls" {
+  type    = list(string)
+  default = ["https://127.0.0.1:8080/logout"]
+}
+
+variable "cognito_identity_providers" {
+  type    = list(string)
+  default = ["COGNITO"]
+}

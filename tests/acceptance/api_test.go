@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -13,6 +12,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 
 	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -959,7 +960,7 @@ func TestApi(t *testing.T) {
 		t.Run("When there is an account ID parameter", func(t *testing.T) {
 			resp := apiRequest(t, &apiRequestInput{
 				method: "GET",
-				url:    apiURL + "/leases?accountId=" + accountIDOne,
+				url:    apiURL + "leases?accountId=" + accountIDOne,
 				json:   nil,
 			})
 
@@ -970,7 +971,7 @@ func TestApi(t *testing.T) {
 		t.Run("When there is an principal ID parameter", func(t *testing.T) {
 			resp := apiRequest(t, &apiRequestInput{
 				method: "GET",
-				url:    apiURL + "/leases?principalId=" + principalIDOne,
+				url:    apiURL + "leases?principalId=" + principalIDOne,
 				json:   nil,
 			})
 
@@ -1080,13 +1081,15 @@ type apiResponse struct {
 	json interface{}
 }
 
+var chainCredentials *credentials.Credentials = credentials.NewChainCredentials([]credentials.Provider{
+	&credentials.EnvProvider{},
+	&credentials.SharedCredentialsProvider{Filename: "", Profile: ""},
+})
+
 func apiRequest(t *testing.T, input *apiRequestInput) *apiResponse {
 	// Set defaults
 	if input.creds == nil {
-		input.creds = credentials.NewChainCredentials([]credentials.Provider{
-			&credentials.EnvProvider{},
-			&credentials.SharedCredentialsProvider{Filename: "", Profile: ""},
-		})
+		input.creds = chainCredentials
 	}
 	if input.region == "" {
 		input.region = "us-east-1"

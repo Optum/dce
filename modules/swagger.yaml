@@ -197,7 +197,7 @@ paths:
           required: false
           description: Account ID of the leases.
         - in: query
-          name: status
+          name: status1
           type: string
           required: false
           description: Status of the leases.
@@ -205,19 +205,22 @@ paths:
           name: nextPrincipalId
           type: string
           required: false
-          description: Principal ID with which to begin the scan operation. This is used to traverse through paginated
+          description:
+            Principal ID with which to begin the scan operation. This is used to traverse through paginated
             results.
         - in: query
           name: nextAccountId
           type: string
           required: false
-          description: Account ID with which to begin the scan operation. This is used to traverse through paginated
+          description:
+            Account ID with which to begin the scan operation. This is used to traverse through paginated
             results.
         - in: query
           name: limit
           type: integer
           required: false
-          description: The maximum number of leases to evaluate (not necessarily the number of matching leases). If
+          description:
+            The maximum number of leases to evaluate (not necessarily the number of matching leases). If
             there is another page, the URL for page will be in the response Link header.
       responses:
         200:

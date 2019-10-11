@@ -103,7 +103,7 @@ output "account_deleted_topic_arn" {
 }
 
 output "api_url" {
-  value = aws_api_gateway_deployment.gateway_deployment_redbox.invoke_url
+  value = aws_api_gateway_deployment.gateway_deployment.invoke_url
 }
 
 output "alarm_sns_topic_arn" {
@@ -133,4 +133,8 @@ output "usage_cache_table_name" {
 
 output "usage_cache_table_arn" {
   value = aws_dynamodb_table.usage_cache.arn
+}
+
+output cognito_user_pool_id {
+  value = module.api_gateway_authorizer.user_pool_id
 }
