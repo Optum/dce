@@ -111,7 +111,7 @@ type requestBody struct {
 	BudgetAmount             float64  `json:"budgetAmount"`
 	BudgetCurrency           string   `json:"budgetCurrency"`
 	BudgetNotificationEmails []string `json:"budgetNotificationEmails"`
-	RequestedLeastEnd        int64    `json:"requestedLeaseEnd"`
+	ExpiresOn                int64    `json:"expiresOn"`
 }
 
 // messageBody is the structured object of the JSON Message to send
@@ -132,8 +132,8 @@ func provisionAccount(request *requestBody, dbSvc db.DBer,
 	// Just do a quick sanity check on the request and make sure that the
 	// requested lease end date, if specified, is at least greater than
 	// today and if it isn't then return an error response
-	if request.RequestedLeastEnd != 0 && request.RequestedLeastEnd <= time.Now().Unix() {
-		errStr := fmt.Sprintf("Requested lease has a desired expiry date less than today: %d", request.RequestedLeastEnd)
+	if request.ExpiresOn != 0 && request.ExpiresOn <= time.Now().Unix() {
+		errStr := fmt.Sprintf("Requested lease has a desired expiry date less than today: %d", request.ExpiresOn)
 		log.Printf(errStr)
 		return createAPIErrorResponse(http.StatusBadRequest,
 			response.CreateErrorResponse("ClientError", errStr))
@@ -187,7 +187,7 @@ func provisionAccount(request *requestBody, dbSvc db.DBer,
 	// Create/Update a Redbox Account Lease to Active
 	create := lease.AccountID == ""
 	lease, err = prov.ActivateAccount(create, principalID,
-		account.ID, request.BudgetAmount, request.BudgetCurrency, request.BudgetNotificationEmails, request.RequestedLeastEnd)
+		account.ID, request.BudgetAmount, request.BudgetCurrency, request.BudgetNotificationEmails, request.ExpiresOn)
 	if err != nil {
 		log.Printf("Failed to Activate Account Lease: %s", err)
 		return createAPIErrorResponse(http.StatusInternalServerError,
@@ -284,7 +284,7 @@ func decommissionAccount(request *requestBody, queueURL *string, dbSvc db.DBer,
 
 	// Transition the Lease Status
 	lease, err := dbSvc.TransitionLeaseStatus(acct.AccountID, principalID,
-		db.Active, db.Inactive, "Requested decommission.")
+		db.Active, db.Inactive, db.LeaseDestroyed)
 	if err != nil {
 		log.Printf("Error transitioning lease status: %s", err)
 		return createAPIErrorResponse(http.StatusInternalServerError,

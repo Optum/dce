@@ -74,6 +74,14 @@ resource "aws_dynamodb_table" "redbox_lease" {
   }
 
   global_secondary_index {
+    name            = "LeaseStatusReason"
+    hash_key        = "LeaseStatusReason"
+    projection_type = "ALL"
+    read_capacity   = 5
+    write_capacity  = 5
+  }
+
+  global_secondary_index {
     name            = "LeaseId"
     hash_key        = "Id"
     projection_type = "ALL"
@@ -90,11 +98,15 @@ resource "aws_dynamodb_table" "redbox_lease" {
   # Lease status.
   # May be one of:
   # - ACTIVE
-  # - FINANCE_LOCK
-  # - RESET_LOCK
-  # - DECOMMISSIONED
+  # - INACTIVE
   attribute {
     name = "LeaseStatus"
+    type = "S"
+  }
+
+  # Lease status reason
+  attribute {
+    name = "LeaseStatusReason"
     type = "S"
   }
 

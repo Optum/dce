@@ -27,7 +27,7 @@ type AccountProvision struct {
 }
 
 // FindActiveLeaseForPrincipal is a helper function to find if there's any actively
-// leased (Active/FinanceLock/ResetLock) account attached to a principal
+// leased (Active/Inactive) account attached to a principal
 func (prov *AccountProvision) FindActiveLeaseForPrincipal(principalID string) (
 	*db.RedboxLease, error) {
 	// Check if the principal has any existing Active/FinanceLock/ResetLock
@@ -82,7 +82,7 @@ func (prov *AccountProvision) FindLeaseWithAccount(principalID string,
 // leases
 func (prov *AccountProvision) ActivateAccount(create bool,
 	principalID string, accountID string, budgetAmount float64, budgetCurrency string,
-	budgetNotificationEmails []string, requestedLeaseEnd int64) (*db.RedboxLease, error) {
+	budgetNotificationEmails []string, expiresOn int64) (*db.RedboxLease, error) {
 	// Create a new Redbox Account Lease if there doesn't exist one already
 	// else, update the existing lease to active
 	var assgn *db.RedboxLease
@@ -103,9 +103,7 @@ func (prov *AccountProvision) ActivateAccount(create bool,
 			CreatedOn:                timeNow,
 			LastModifiedOn:           timeNow,
 			LeaseStatusModifiedOn:    timeNow,
-			RequestedLeaseEnd:        requestedLeaseEnd,
-			RequestedLeaseStart:      timeNow,
-			ActualLeaseStart:         timeNow,
+			ExpiresOn:                expiresOn,
 		}
 		_, err = prov.DBSvc.PutLease(*lease) // new leases return an empty lease
 		// Failed to Create Lease
@@ -117,7 +115,7 @@ func (prov *AccountProvision) ActivateAccount(create bool,
 		log.Printf("Update existing Lease for Principal %s and Account %s\n",
 			principalID, accountID)
 		assgn, err = prov.DBSvc.TransitionLeaseStatus(accountID, principalID,
-			db.Inactive, db.Active, "Lease granted")
+			db.Inactive, db.Active, db.LeaseActive)
 		// Failed to Update Lease
 		if err != nil {
 			return nil, err
@@ -133,7 +131,7 @@ func (prov *AccountProvision) RollbackProvisionAccount(
 	transitionAccountStatus bool, principalID string, accountID string) error {
 	// Reverse Account Lease- Set next state as Decommissioned
 	_, errLease := prov.DBSvc.TransitionLeaseStatus(accountID, principalID,
-		db.Active, db.Inactive, "Lease rolled back.")
+		db.Active, db.Inactive, db.LeaseRolledBack)
 
 	// Reverse Account - Set next state as Ready
 	if transitionAccountStatus {

@@ -46,7 +46,7 @@ type DBer interface {
 	DeleteAccount(accountID string) (*RedboxAccount, error)
 	PutLease(account RedboxLease) (*RedboxLease, error)
 	TransitionAccountStatus(accountID string, prevStatus AccountStatus, nextStatus AccountStatus) (*RedboxAccount, error)
-	TransitionLeaseStatus(accountID string, principalID string, prevStatus LeaseStatus, nextStatus LeaseStatus, leaseStatusReason string) (*RedboxLease, error)
+	TransitionLeaseStatus(accountID string, principalID string, prevStatus LeaseStatus, nextStatus LeaseStatus, leaseStatusReason LeaseStatusReason) (*RedboxLease, error)
 	FindLeasesByAccount(accountID string) ([]*RedboxLease, error)
 	FindLeasesByPrincipal(principalID string) ([]*RedboxLease, error)
 	FindLeasesByStatus(status LeaseStatus) ([]*RedboxLease, error)
@@ -415,7 +415,7 @@ func (db *DB) PutLease(lease RedboxLease) (
 //
 // And to unlock the account:
 //		db.TransitionLeaseStatus(accountId, principalID, ResetLock, Active)
-func (db *DB) TransitionLeaseStatus(accountID string, principalID string, prevStatus LeaseStatus, nextStatus LeaseStatus, leaseStatusReason string) (*RedboxLease, error) {
+func (db *DB) TransitionLeaseStatus(accountID string, principalID string, prevStatus LeaseStatus, nextStatus LeaseStatus, leaseStatusReason LeaseStatusReason) (*RedboxLease, error) {
 	result, err := db.Client.UpdateItem(
 		&dynamodb.UpdateItemInput{
 			// Query in Lease Table
@@ -431,6 +431,7 @@ func (db *DB) TransitionLeaseStatus(accountID string, principalID string, prevSt
 			},
 			// Set Status="Active"
 			UpdateExpression: aws.String("set LeaseStatus=:nextStatus, " +
+				"LeaseStatusReason=:nextStatusReason, " +
 				"LastModifiedOn=:lastModifiedOn, " + "LeaseStatusModifiedOn=:leaseStatusModifiedOn"),
 			ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
 				":prevStatus": {
@@ -438,6 +439,9 @@ func (db *DB) TransitionLeaseStatus(accountID string, principalID string, prevSt
 				},
 				":nextStatus": {
 					S: aws.String(string(nextStatus)),
+				},
+				":nextStatusReason": {
+					S: aws.String(string(leaseStatusReason)),
 				},
 				":lastModifiedOn": {
 					N: aws.String(strconv.FormatInt(time.Now().Unix(), 10)),

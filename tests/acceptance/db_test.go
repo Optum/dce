@@ -258,7 +258,7 @@ func TestDb(t *testing.T) {
 			updatedLease, err := dbSvc.TransitionLeaseStatus(
 				acctID, principalID,
 				db.Active, db.Inactive,
-				"Lease decommissioned",
+				db.LeaseDestroyed,
 			)
 			require.Nil(t, err)
 			require.NotNil(t, updatedLease)
@@ -283,7 +283,7 @@ func TestDb(t *testing.T) {
 			updatedLease, err := dbSvc.TransitionLeaseStatus(
 				"not-an-acct-id", "not-a-principal-id",
 				db.Active, db.Inactive,
-				"",
+				db.LeaseDestroyed,
 			)
 			require.NotNil(t, err)
 			require.Nil(t, updatedLease)
@@ -322,7 +322,7 @@ func TestDb(t *testing.T) {
 					updatedLease, err := dbSvc.TransitionLeaseStatus(
 						acctID, principalID,
 						db.Active, status,
-						"Lease expired.",
+						db.LeaseExpired,
 					)
 					require.NotNil(t, err)
 					require.Nil(t, updatedLease)

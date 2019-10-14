@@ -159,7 +159,7 @@ has exceeded its budget of $100. Actual spend is $150
 				"1234567890", "test-user",
 				db.Active, test.expectedLeaseStatusTransition,
 				mock.Anything,
-			).Return(func(acctID string, pID string, from db.LeaseStatus, to db.LeaseStatus, reason string) *db.RedboxLease {
+			).Return(func(acctID string, pID string, from db.LeaseStatus, to db.LeaseStatus, reason db.LeaseStatusReason) *db.RedboxLease {
 				// Return the lease object, with it's updated status
 				input.lease.LeaseStatus = test.expectedLeaseStatusTransition
 				return input.lease
@@ -297,17 +297,14 @@ func Test_isLeaseExpired(t *testing.T) {
 		AccountID:                "12345",
 		PrincipalID:              "98765",
 		LeaseStatus:              db.Inactive,
-		LeaseStatusReason:        "Expired",
+		LeaseStatusReason:        db.LeaseExpired,
 		CreatedOn:                time.Now().Unix(),
 		LastModifiedOn:           time.Now().Unix(),
 		BudgetAmount:             3000,
 		BudgetCurrency:           "USD",
 		BudgetNotificationEmails: emails,
 		LeaseStatusModifiedOn:    time.Now().Unix(),
-		RequestedLeaseStart:      time.Now().Unix(),
-		ActualLeaseStart:         time.Now().Unix(),
-		RequestedLeaseEnd:        time.Now().Unix(),
-		ActualLeaseEnd:           time.Now().Unix()}
+		ExpiresOn:                time.Now().Unix()}
 
 	nonExpiredLeaseTestArgs := &args{
 		lease,
@@ -331,11 +328,12 @@ func Test_isLeaseExpired(t *testing.T) {
 		name  string
 		args  args
 		want  bool
-		want1 string
+		want1 db.LeaseStatusReason
 	}{
-		{"Non-expired lease test", *nonExpiredLeaseTestArgs, false, ""},
-		{"Expired lease test", *expiredLeaseTestArgs, true, "Lease date for account has expired!"},
-		{"Over budget lease test", *overBudgetTest, true, "Account is over max budget for lease!"}}
+		{"Non-expired lease test", *nonExpiredLeaseTestArgs, false, db.LeaseActive},
+		{"Expired lease test", *expiredLeaseTestArgs, true, db.LeaseExpired},
+		{"Over budget lease test", *overBudgetTest, true, db.LeaseOverBudget},
+	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, got1 := isLeaseExpired(tt.args.lease, tt.args.context)

@@ -153,7 +153,6 @@ func lambdaHandler(input *lambdaHandlerInput) error {
 	if expired {
 		// Update the lease status with the inactive status and current end time.
 		input.lease.LeaseStatus = db.Inactive
-		input.lease.ActualLeaseEnd = currentTimeEpoch
 		log.Printf("%s.  Updating lease as ready to be reclaimed...", reason)
 		err := handleLeaseExpire(input, prevLeaseStatus, reason)
 		if err != nil {
@@ -189,22 +188,22 @@ func lambdaHandler(input *lambdaHandlerInput) error {
 
 // isLeaseExpried contains the logic for determining if a lease has already
 // expired, given the context.
-func isLeaseExpired(lease *db.RedboxLease, context *leaseContext) (bool, string) {
+func isLeaseExpired(lease *db.RedboxLease, context *leaseContext) (bool, db.LeaseStatusReason) {
 
-	if context.expireDate <= lease.RequestedLeaseEnd {
-		return true, "Lease date for account has expired!"
+	if context.expireDate <= lease.ExpiresOn {
+		return true, db.LeaseExpired
 	} else if context.actualSpend >= lease.BudgetAmount {
-		return true, "Account is over max budget for lease!"
+		return true, db.LeaseOverBudget
 	}
 
-	return false, ""
+	return false, db.LeaseActive
 }
 
 // handleOverBudget handles the case where a lease is over budget:
 // - Sets Lease DB status to FinanceLocked
 // - Publish Lease to "lease-locked" SNS topic
 // - Pushes account to reset queue (to stop the bleeding)
-func handleLeaseExpire(input *lambdaHandlerInput, prevLeaseStatus db.LeaseStatus, leaseStatusReason string) error {
+func handleLeaseExpire(input *lambdaHandlerInput, prevLeaseStatus db.LeaseStatus, leaseStatusReason db.LeaseStatusReason) error {
 	// Defer errors until the end, so we
 	// can continue on error
 	deferredErrors := []error{}
