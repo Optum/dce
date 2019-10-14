@@ -37,7 +37,6 @@ type DB struct {
 type DBer interface {
 	GetAccount(accountID string) (*RedboxAccount, error)
 	GetReadyAccount() (*RedboxAccount, error)
-	GetAccountsForReset() ([]*RedboxAccount, error)
 	GetAccounts() ([]*RedboxAccount, error)
 	GetLeaseByID(leaseID string) (*RedboxLease, error)
 	FindAccountsByStatus(status AccountStatus) ([]*RedboxAccount, error)
@@ -128,40 +127,6 @@ func (db *DB) GetReadyAccount() (*RedboxAccount, error) {
 
 	// Return the Redbox Account
 	return unmarshalAccount(resp.Items[0])
-}
-
-// GetAccountsForReset returns an array of Redbox account records available to
-// be Reset
-func (db *DB) GetAccountsForReset() ([]*RedboxAccount, error) {
-	// Build the query input parameters
-	params := &dynamodb.ScanInput{
-		TableName: aws.String(db.AccountTableName),
-		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-			":acctstatus": {
-				S: aws.String("Ready"),
-			},
-		},
-		FilterExpression: aws.String("AccountStatus <> :acctstatus"),
-	}
-
-	// Make the DynamoDB Query API call
-	// Warning: this could potentially be an expensive operation if the
-	// database size becomes too big for the key/value nature of DynamoDB!
-	resp, err := db.Client.Scan(params)
-	if err != nil {
-		return nil, err
-	}
-
-	// Create the array of RedboxAccounts
-	redboxes := []*RedboxAccount{}
-	for _, r := range resp.Items {
-		n, err := unmarshalAccount(r)
-		if err != nil {
-			return nil, err
-		}
-		redboxes = append(redboxes, n)
-	}
-	return redboxes, nil
 }
 
 func (db *DB) FindAccountsByStatus(status AccountStatus) ([]*RedboxAccount, error) {

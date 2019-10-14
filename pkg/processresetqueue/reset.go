@@ -107,14 +107,6 @@ func Reset(input *ResetInput) (*ResetOutput, error) {
 			log.Printf("Start Account: %s\nMessage ID: %s\n", accountID,
 				*message.MessageId)
 
-			// Mark any leases Status=ResetLock
-			err = resetLockAccount(input.DbSvc, accountID)
-			if err != nil {
-				failTriggerResetOnAccount(&output, result, accountID,
-					err.Error())
-				continue
-			}
-
 			// Set Reset Build Env Vars
 			resetBuildEnvironment := map[string]string{
 				"RESET_ACCOUNT":                     account.ID,
@@ -190,31 +182,4 @@ func failTriggerResetOnAccount(output *ResetOutput, result ResetResult,
 	log.Printf("Error: %s", message)
 	output.Success = false
 	output.Accounts[accountID] = result
-}
-
-// resetLockAccount will cycle the least from Active to Inactive for the
-//   account
-func resetLockAccount(dbSvc db.DBer, accountID string) error {
-	// Find all leases for this account
-	leases, err := dbSvc.FindLeasesByAccount(accountID)
-	if err != nil {
-		return err
-	}
-
-	// Find Active leases
-	for _, assgn := range leases {
-		// If Active, set status to Inactive
-		if assgn.LeaseStatus == db.Active {
-			_, err := dbSvc.TransitionLeaseStatus(
-				accountID, assgn.PrincipalID,
-				db.Active, db.Inactive,
-				"Lease reset",
-			)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
 }

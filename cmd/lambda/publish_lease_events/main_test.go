@@ -7,6 +7,7 @@ import (
 
 	commonMocks "github.com/Optum/Redbox/pkg/common/mocks"
 	"github.com/Optum/Redbox/pkg/db"
+	dbMocks "github.com/Optum/Redbox/pkg/db/mocks"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/stretchr/testify/assert"
@@ -105,6 +106,7 @@ func Test_handleRecord(t *testing.T) {
 
 	sqsSvc := &commonMocks.Queue{}
 	snsSvc := &commonMocks.Notificationer{}
+	dbSvc := &dbMocks.DBer{}
 
 	tests := []struct {
 		name                 string
@@ -121,6 +123,7 @@ func Test_handleRecord(t *testing.T) {
 					record:                activeToInactiveEventRecord,
 					snsSvc:                snsSvc,
 					sqsSvc:                sqsSvc,
+					dbSvc:                 dbSvc,
 					leaseLockedTopicArn:   LockedSnsTopic,
 					leaseUnlockedTopicArn: UnlockedSnsTopic,
 					resetQueueURL:         "sqs-queue",
@@ -137,6 +140,7 @@ func Test_handleRecord(t *testing.T) {
 					record:                inactiveToActiveEventRecord,
 					snsSvc:                snsSvc,
 					sqsSvc:                sqsSvc,
+					dbSvc:                 dbSvc,
 					leaseLockedTopicArn:   LockedSnsTopic,
 					leaseUnlockedTopicArn: UnlockedSnsTopic,
 					resetQueueURL:         "sqs-queue",
@@ -153,6 +157,7 @@ func Test_handleRecord(t *testing.T) {
 					record:                activeToInactiveEventRecord,
 					snsSvc:                snsSvc,
 					sqsSvc:                sqsSvc,
+					dbSvc:                 dbSvc,
 					leaseLockedTopicArn:   LockedSnsTopic,
 					leaseUnlockedTopicArn: UnlockedSnsTopic,
 					resetQueueURL:         "sqs-err-queue",
@@ -168,6 +173,14 @@ func Test_handleRecord(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 
 			if tt.shoudEnqueueReset {
+				// If it should enqueue the reset, then it should also flip the account status
+				// to Inactive.
+				dbSvc.On("TransitionAccountStatus",
+					"123456789012",
+					db.Leased,
+					db.NotReady,
+				).Return(nil, nil)
+
 				if tt.shouldErrorOnEnqueue {
 					sqsSvc.On("SendMessage", aws.String(tt.args.input.resetQueueURL), aws.String("123456789012")).Return(errors.New("error enqueuing message"))
 				} else {
@@ -180,6 +193,7 @@ func Test_handleRecord(t *testing.T) {
 			log.Printf("Got err value from handleRecord: %s", err)
 			sqsSvc.AssertExpectations(t)
 			snsSvc.AssertExpectations(t)
+			dbSvc.AssertExpectations(t)
 
 			if (err != nil) != tt.wantErr {
 				t.Errorf("handleRecord() error = %v, wantErr %v", err, tt.wantErr)

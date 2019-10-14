@@ -41,7 +41,7 @@ func rbenqHandler(cloudWatchEvent events.CloudWatchEvent) error {
 	}
 
 	// Get Redboxes
-	redboxes, err := dbSvc.GetAccountsForReset()
+	redboxes, err := dbSvc.FindAccountsByStatus(db.NotReady)
 	if err != nil {
 		log.Printf("Failed to get Redboxes: %s\n", err)
 		return err

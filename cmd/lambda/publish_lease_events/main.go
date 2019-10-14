@@ -37,6 +37,10 @@ func handler(ctx context.Context, event events.DynamoDBEvent) error {
 	leaseLockedTopicArn := common.RequireEnv("LEASE_LOCKED_TOPIC_ARN")
 	leaseUnlockedTopicArn := common.RequireEnv("LEASE_UNLOCKED_TOPIC_ARN")
 	resetQueueURL := common.RequireEnv("RESET_QUEUE_URL")
+	dbSvc, err := db.NewFromEnv()
+	if err != nil {
+		log.Fatalf("Failed to configure DB service %s", err)
+	}
 
 	// We get a stream of DynDB records, representing changes to the table
 	for _, record := range event.Records {
@@ -48,6 +52,7 @@ func handler(ctx context.Context, event events.DynamoDBEvent) error {
 			resetQueueURL:         resetQueueURL,
 			snsSvc:                &common.SNS{Client: sns.New(awsSession)},
 			sqsSvc:                &common.SQSQueue{Client: sqs.New(awsSession)},
+			dbSvc:                 dbSvc,
 		}
 		err := handleRecord(&input)
 		if err != nil {
@@ -66,6 +71,7 @@ type handleRecordInput struct {
 	record                events.DynamoDBEventRecord
 	snsSvc                common.Notificationer
 	sqsSvc                common.Queue
+	dbSvc                 db.DBer
 	leaseLockedTopicArn   string
 	leaseUnlockedTopicArn string
 	resetQueueURL         string
@@ -105,6 +111,10 @@ func handleRecord(input *handleRecordInput) error {
 		isExpired := isActiveStatus(prevLeaseStatus) && !isActiveStatus(nextLeaseStatus)
 
 		if isExpired {
+			// Before adding the account to any queues, make sure the account is
+			// updated to NotReady state.
+			_, err = input.dbSvc.TransitionAccountStatus(redboxLease.AccountID, db.Leased, db.NotReady)
+
 			// Put the message on the SQS queue ONLY IF the status has gone
 			// to Inactive.
 			log.Printf("Adding account %s to the reset queue", redboxLease.AccountID)
