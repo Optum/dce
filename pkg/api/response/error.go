@@ -1,6 +1,11 @@
 package response
 
-import "github.com/aws/aws-lambda-go/events"
+import (
+	"fmt"
+	"net/http"
+
+	"github.com/aws/aws-lambda-go/events"
+)
 
 // CreateErrorResponse creates and returns a formatted JSON string of the
 // structured ErrorResponse
@@ -40,6 +45,20 @@ func RequestValidationError(message string) events.APIGatewayProxyResponse {
 	return CreateAPIErrorResponse(
 		400,
 		CreateErrorResponse("RequestValidationError", message),
+	)
+}
+
+func UnsupportedMethodError(method string) events.APIGatewayProxyResponse {
+	return CreateAPIErrorResponse(
+		http.StatusMethodNotAllowed,
+		CreateErrorResponse("ClientError", fmt.Sprintf("Method %s is not allowed", method)),
+	)
+}
+
+func ClientErrorWithResponse(message string) events.APIGatewayProxyResponse {
+	return CreateAPIErrorResponse(
+		500,
+		CreateErrorResponse("ClientError", message),
 	)
 }
 

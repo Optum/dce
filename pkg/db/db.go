@@ -39,6 +39,7 @@ type DBer interface {
 	GetReadyAccount() (*RedboxAccount, error)
 	GetAccountsForReset() ([]*RedboxAccount, error)
 	GetAccounts() ([]*RedboxAccount, error)
+	GetLeases(input GetLeasesInput) (GetLeasesOutput, error)
 	FindAccountsByStatus(status AccountStatus) ([]*RedboxAccount, error)
 	FindAccountsByPrincipalID(principalID string) ([]*RedboxAccount, error)
 	PutAccount(account RedboxAccount) error
