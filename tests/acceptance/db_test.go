@@ -117,40 +117,6 @@ func TestDb(t *testing.T) {
 		})
 	})
 
-	t.Run("GetAccountsForReset", func(t *testing.T) {
-		// Get the first Ready Account
-		t.Run("Should retrieve Accounts by non-Ready Status", func(t *testing.T) {
-			// Cleanup table on completion
-			defer truncateAccountTable(t, dbSvc)
-
-			// Create mock accounts
-			timeNow := time.Now().Unix()
-			err := dbSvc.PutAccount(*newAccount("222", timeNow)) // Ready
-			require.Nil(t, err)
-			accountNotReady := db.RedboxAccount{
-				ID:             "222",
-				AccountStatus:  "NotReady",
-				LastModifiedOn: timeNow,
-			}
-			err = dbSvc.PutAccount(accountNotReady)
-			require.Nil(t, err)
-			accountLeased := db.RedboxAccount{
-				ID:             "333",
-				AccountStatus:  "Leased",
-				LastModifiedOn: timeNow,
-			}
-			err = dbSvc.PutAccount(accountLeased)
-			require.Nil(t, err)
-
-			// Retrieve all RedboxAccount that can be Reset (non-Ready)
-			accts, err := dbSvc.GetAccountsForReset()
-			require.Nil(t, err)
-			require.Equal(t, 2, len(accts))
-			require.Equal(t, accountNotReady, *accts[0])
-			require.Equal(t, accountLeased, *accts[1])
-		})
-	})
-
 	t.Run("FindAccountsByStatus", func(t *testing.T) {
 
 		t.Run("should return matching accounts", func(t *testing.T) {
