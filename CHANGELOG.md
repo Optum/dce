@@ -5,6 +5,7 @@
 - Pull requests authored by non-team members will not build until a team member comments
 - Add usage table arn to tf output
 - Add email with attachment
+- Adds GET /leases API support
 
 ## v0.17.0
 
