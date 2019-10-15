@@ -208,6 +208,7 @@ func TestDb(t *testing.T) {
 				AccountID:             acctID,
 				PrincipalID:           principalID,
 				LeaseStatus:           db.Active,
+				LeaseStatusReason:     db.LeaseActive,
 				CreatedOn:             timeNow,
 				LastModifiedOn:        timeNow,
 				LeaseStatusModifiedOn: timeNow,
@@ -273,12 +274,13 @@ func TestDb(t *testing.T) {
 					principalID := "222"
 					timeNow := time.Now().Unix()
 					lease := db.RedboxLease{
-						ID:             uuid.New().String(),
-						AccountID:      acctID,
-						PrincipalID:    principalID,
-						LeaseStatus:    status,
-						CreatedOn:      timeNow,
-						LastModifiedOn: timeNow,
+						ID:                uuid.New().String(),
+						AccountID:         acctID,
+						PrincipalID:       principalID,
+						LeaseStatus:       status,
+						LeaseStatusReason: db.LeaseActive,
+						CreatedOn:         timeNow,
+						LastModifiedOn:    timeNow,
 					}
 					putAssgn, err := dbSvc.PutLease(lease)
 					require.Nil(t, err, "Expected no errors saving a new lease to the db.")
@@ -411,6 +413,7 @@ func TestDb(t *testing.T) {
 				AccountID:             acctID,
 				PrincipalID:           principalID,
 				LeaseStatus:           status,
+				LeaseStatusReason:     db.LeaseActive,
 				CreatedOn:             timeNow,
 				LastModifiedOn:        timeNow,
 				LeaseStatusModifiedOn: timeNow,
@@ -440,6 +443,7 @@ func TestDb(t *testing.T) {
 				AccountID:             acctID,
 				PrincipalID:           principalID,
 				LeaseStatus:           status,
+				LeaseStatusReason:     db.LeaseActive,
 				CreatedOn:             timeNow,
 				LastModifiedOn:        timeNow,
 				LeaseStatusModifiedOn: timeNow,
@@ -468,10 +472,11 @@ func TestDb(t *testing.T) {
 			principalID := "222"
 			status := db.Active
 			lease := db.RedboxLease{
-				ID:          uuid.New().String(),
-				AccountID:   acctID,
-				PrincipalID: principalID,
-				LeaseStatus: status,
+				ID:                uuid.New().String(),
+				AccountID:         acctID,
+				PrincipalID:       principalID,
+				LeaseStatus:       status,
+				LeaseStatusReason: db.LeaseActive,
 			}
 			putAssgn, err := dbSvc.PutLease(lease)
 			require.Equal(t, db.RedboxLease{}, *putAssgn) // should return an empty account lease since its new
@@ -492,10 +497,11 @@ func TestDb(t *testing.T) {
 			principalID := "222"
 			status := db.Active
 			lease := db.RedboxLease{
-				ID:          uuid.New().String(),
-				AccountID:   acctID,
-				PrincipalID: principalID,
-				LeaseStatus: status,
+				ID:                uuid.New().String(),
+				AccountID:         acctID,
+				PrincipalID:       principalID,
+				LeaseStatus:       status,
+				LeaseStatusReason: db.LeaseActive,
 			}
 			putAssgn, err := dbSvc.PutLease(lease)
 			require.Equal(t, db.RedboxLease{}, *putAssgn) // should return an empty account lease since its new
@@ -521,10 +527,10 @@ func TestDb(t *testing.T) {
 
 			// Create some leases in the DB
 			for _, lease := range []db.RedboxLease{
-				{ID: uuidOne, AccountID: "1", PrincipalID: "pid", LeaseStatus: db.Active},
-				{ID: uuidTwo, AccountID: "2", PrincipalID: "pid", LeaseStatus: db.Inactive},
-				{ID: uuidThree, AccountID: "3", PrincipalID: "pid", LeaseStatus: db.Active},
-				{ID: uuidFour, AccountID: "4", PrincipalID: "pid", LeaseStatus: db.Inactive},
+				{ID: uuidOne, AccountID: "1", PrincipalID: "pid", LeaseStatus: db.Active, LeaseStatusReason: db.LeaseActive},
+				{ID: uuidTwo, AccountID: "2", PrincipalID: "pid", LeaseStatus: db.Inactive, LeaseStatusReason: db.LeaseExpired},
+				{ID: uuidThree, AccountID: "3", PrincipalID: "pid", LeaseStatus: db.Active, LeaseStatusReason: db.LeaseActive},
+				{ID: uuidFour, AccountID: "4", PrincipalID: "pid", LeaseStatus: db.Inactive, LeaseStatusReason: db.LeaseDestroyed},
 			} {
 				_, err := dbSvc.PutLease(lease)
 				require.Nil(t, err)
@@ -534,8 +540,8 @@ func TestDb(t *testing.T) {
 			res, err := dbSvc.FindLeasesByStatus(db.Inactive)
 			require.Nil(t, err)
 			require.Equal(t, []*db.RedboxLease{
-				{ID: uuidTwo, AccountID: "2", PrincipalID: "pid", LeaseStatus: db.Inactive},
-				{ID: uuidFour, AccountID: "4", PrincipalID: "pid", LeaseStatus: db.Inactive},
+				{ID: uuidTwo, AccountID: "2", PrincipalID: "pid", LeaseStatus: db.Inactive, LeaseStatusReason: db.LeaseExpired},
+				{ID: uuidFour, AccountID: "4", PrincipalID: "pid", LeaseStatus: db.Inactive, LeaseStatusReason: db.LeaseDestroyed},
 			}, res)
 		})
 
@@ -544,8 +550,8 @@ func TestDb(t *testing.T) {
 
 			// Create some leases in the DB
 			for _, lease := range []db.RedboxLease{
-				{ID: uuid.New().String(), AccountID: "1", PrincipalID: "pid", LeaseStatus: db.Active},
-				{ID: uuid.New().String(), AccountID: "2", PrincipalID: "pid", LeaseStatus: db.Active},
+				{ID: uuid.New().String(), AccountID: "1", PrincipalID: "pid", LeaseStatus: db.Active, LeaseStatusReason: db.LeaseActive},
+				{ID: uuid.New().String(), AccountID: "2", PrincipalID: "pid", LeaseStatus: db.Active, LeaseStatusReason: db.LeaseActive},
 			} {
 				_, err := dbSvc.PutLease(lease)
 				require.Nil(t, err)
@@ -651,46 +657,51 @@ func TestDb(t *testing.T) {
 		principalIDFour := "d"
 
 		_, err = dbSvc.PutLease(db.RedboxLease{
-			ID:          uuid.New().String(),
-			AccountID:   accountIDOne,
-			PrincipalID: principalIDOne,
-			LeaseStatus: db.Active,
+			ID:                uuid.New().String(),
+			AccountID:         accountIDOne,
+			PrincipalID:       principalIDOne,
+			LeaseStatus:       db.Active,
+			LeaseStatusReason: db.LeaseActive,
 		})
 
 		assert.Nil(t, err)
 
 		_, err = dbSvc.PutLease(db.RedboxLease{
-			ID:          uuid.New().String(),
-			AccountID:   accountIDOne,
-			PrincipalID: principalIDTwo,
-			LeaseStatus: db.Active,
+			ID:                uuid.New().String(),
+			AccountID:         accountIDOne,
+			PrincipalID:       principalIDTwo,
+			LeaseStatus:       db.Active,
+			LeaseStatusReason: db.LeaseActive,
 		})
 
 		assert.Nil(t, err)
 
 		_, err = dbSvc.PutLease(db.RedboxLease{
-			ID:          uuid.New().String(),
-			AccountID:   accountIDOne,
-			PrincipalID: principalIDThree,
-			LeaseStatus: db.Inactive,
+			ID:                uuid.New().String(),
+			AccountID:         accountIDOne,
+			PrincipalID:       principalIDThree,
+			LeaseStatus:       db.Inactive,
+			LeaseStatusReason: db.LeaseDestroyed,
 		})
 
 		assert.Nil(t, err)
 
 		_, err = dbSvc.PutLease(db.RedboxLease{
-			ID:          uuid.New().String(),
-			AccountID:   accountIDTwo,
-			PrincipalID: principalIDFour,
-			LeaseStatus: db.Active,
+			ID:                uuid.New().String(),
+			AccountID:         accountIDTwo,
+			PrincipalID:       principalIDFour,
+			LeaseStatus:       db.Active,
+			LeaseStatusReason: db.LeaseActive,
 		})
 
 		assert.Nil(t, err)
 
 		_, err = dbSvc.PutLease(db.RedboxLease{
-			ID:          uuid.New().String(),
-			AccountID:   accountIDTwo,
-			PrincipalID: principalIDOne,
-			LeaseStatus: db.Inactive,
+			ID:                uuid.New().String(),
+			AccountID:         accountIDTwo,
+			PrincipalID:       principalIDOne,
+			LeaseStatus:       db.Inactive,
+			LeaseStatusReason: db.LeaseDestroyed,
 		})
 
 		assert.Nil(t, err)

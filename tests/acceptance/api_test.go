@@ -904,46 +904,51 @@ func TestApi(t *testing.T) {
 		principalIDFour := "d"
 
 		_, err = dbSvc.PutLease(db.RedboxLease{
-			ID:          uuid.New().String(),
-			AccountID:   accountIDOne,
-			PrincipalID: principalIDOne,
-			LeaseStatus: db.Active,
+			ID:                uuid.New().String(),
+			AccountID:         accountIDOne,
+			PrincipalID:       principalIDOne,
+			LeaseStatus:       db.Active,
+			LeaseStatusReason: db.LeaseActive,
 		})
 
 		assert.Nil(t, err)
 
 		_, err = dbSvc.PutLease(db.RedboxLease{
-			ID:          uuid.New().String(),
-			AccountID:   accountIDOne,
-			PrincipalID: principalIDTwo,
-			LeaseStatus: db.Active,
+			ID:                uuid.New().String(),
+			AccountID:         accountIDOne,
+			PrincipalID:       principalIDTwo,
+			LeaseStatus:       db.Active,
+			LeaseStatusReason: db.LeaseActive,
 		})
 
 		assert.Nil(t, err)
 
 		_, err = dbSvc.PutLease(db.RedboxLease{
-			ID:          uuid.New().String(),
-			AccountID:   accountIDOne,
-			PrincipalID: principalIDThree,
-			LeaseStatus: db.Inactive,
+			ID:                uuid.New().String(),
+			AccountID:         accountIDOne,
+			PrincipalID:       principalIDThree,
+			LeaseStatus:       db.Inactive,
+			LeaseStatusReason: db.LeaseActive,
 		})
 
 		assert.Nil(t, err)
 
 		_, err = dbSvc.PutLease(db.RedboxLease{
-			ID:          uuid.New().String(),
-			AccountID:   accountIDTwo,
-			PrincipalID: principalIDFour,
-			LeaseStatus: db.Active,
+			ID:                uuid.New().String(),
+			AccountID:         accountIDTwo,
+			PrincipalID:       principalIDFour,
+			LeaseStatus:       db.Active,
+			LeaseStatusReason: db.LeaseActive,
 		})
 
 		assert.Nil(t, err)
 
 		_, err = dbSvc.PutLease(db.RedboxLease{
-			ID:          uuid.New().String(),
-			AccountID:   accountIDTwo,
-			PrincipalID: principalIDOne,
-			LeaseStatus: db.Inactive,
+			ID:                uuid.New().String(),
+			AccountID:         accountIDTwo,
+			PrincipalID:       principalIDOne,
+			LeaseStatus:       db.Inactive,
+			LeaseStatusReason: db.LeaseActive,
 		})
 
 		assert.Nil(t, err)
