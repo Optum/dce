@@ -196,22 +196,22 @@ func (_m *DBer) GetAccounts() ([]*db.RedboxAccount, error) {
 	return r0, r1
 }
 
-// GetAccountsForReset provides a mock function with given fields:
-func (_m *DBer) GetAccountsForReset() ([]*db.RedboxAccount, error) {
-	ret := _m.Called()
+// GetLeaseByID provides a mock function with given fields: leaseID
+func (_m *DBer) GetLeaseByID(leaseID string) (*db.RedboxLease, error) {
+	ret := _m.Called(leaseID)
 
-	var r0 []*db.RedboxAccount
-	if rf, ok := ret.Get(0).(func() []*db.RedboxAccount); ok {
-		r0 = rf()
+	var r0 *db.RedboxLease
+	if rf, ok := ret.Get(0).(func(string) *db.RedboxLease); ok {
+		r0 = rf(leaseID)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]*db.RedboxAccount)
+			r0 = ret.Get(0).(*db.RedboxLease)
 		}
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func() error); ok {
-		r1 = rf()
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(leaseID)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -302,13 +302,13 @@ func (_m *DBer) TransitionAccountStatus(accountID string, prevStatus db.AccountS
 	return r0, r1
 }
 
-// TransitionLeaseStatus provides a mock function with given fields: accountID, principalID, prevStatus, nextStatus
-func (_m *DBer) TransitionLeaseStatus(accountID string, principalID string, prevStatus db.LeaseStatus, nextStatus db.LeaseStatus) (*db.RedboxLease, error) {
-	ret := _m.Called(accountID, principalID, prevStatus, nextStatus)
+// TransitionLeaseStatus provides a mock function with given fields: accountID, principalID, prevStatus, nextStatus, leaseStatusReason
+func (_m *DBer) TransitionLeaseStatus(accountID string, principalID string, prevStatus db.LeaseStatus, nextStatus db.LeaseStatus, leaseStatusReason db.LeaseStatusReason) (*db.RedboxLease, error) {
+	ret := _m.Called(accountID, principalID, prevStatus, nextStatus, leaseStatusReason)
 
 	var r0 *db.RedboxLease
-	if rf, ok := ret.Get(0).(func(string, string, db.LeaseStatus, db.LeaseStatus) *db.RedboxLease); ok {
-		r0 = rf(accountID, principalID, prevStatus, nextStatus)
+	if rf, ok := ret.Get(0).(func(string, string, db.LeaseStatus, db.LeaseStatus, db.LeaseStatusReason) *db.RedboxLease); ok {
+		r0 = rf(accountID, principalID, prevStatus, nextStatus, leaseStatusReason)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*db.RedboxLease)
@@ -316,8 +316,8 @@ func (_m *DBer) TransitionLeaseStatus(accountID string, principalID string, prev
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(string, string, db.LeaseStatus, db.LeaseStatus) error); ok {
-		r1 = rf(accountID, principalID, prevStatus, nextStatus)
+	if rf, ok := ret.Get(1).(func(string, string, db.LeaseStatus, db.LeaseStatus, db.LeaseStatusReason) error); ok {
+		r1 = rf(accountID, principalID, prevStatus, nextStatus, leaseStatusReason)
 	} else {
 		r1 = ret.Error(1)
 	}

@@ -52,3 +52,7 @@ override.tf.json
 *.zip
 
 junit-report/
+test.output.txt
+coverage.json
+coverage.txt
+tf-lsp.log

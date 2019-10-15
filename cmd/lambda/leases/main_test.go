@@ -3,12 +3,13 @@ package main
 import (
 	"encoding/json"
 	"errors"
-	"github.com/stretchr/testify/assert"
 	"log"
 	"net/http"
 	"net/url"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 
 	"github.com/aws/aws-lambda-go/events"
 
@@ -83,6 +84,7 @@ func TestPublishLease(t *testing.T) {
 	lease := &db.RedboxLease{
 		PrincipalID:           "abc",
 		AccountID:             "123",
+		ID:                    "uid-123",
 		LeaseStatus:           db.Active,
 		CreatedOn:             567,
 		LastModifiedOn:        567,
@@ -182,7 +184,7 @@ func TestProvisionAccount(t *testing.T) {
 			FindLeaseWithAccount: &db.RedboxLease{
 				PrincipalID: "abc",
 				AccountID:   "123",
-				LeaseStatus: db.Decommissioned,
+				LeaseStatus: db.Inactive,
 			},
 			ActivateLease: successfulLease,
 		},
@@ -340,7 +342,7 @@ func TestProvisionAccount(t *testing.T) {
 			test.FindLeaseWithAccount,
 			test.FindLeaseWithAccountError)
 		mockProv.On("ActivateAccount", mock.Anything,
-			mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+			mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
 			test.ActivateLease,
 			test.ActivateLeaseError)
 		mockProv.On("RollbackProvisionAccount", mock.Anything, mock.Anything,
@@ -390,7 +392,7 @@ func TestDecommissionAccount(t *testing.T) {
 	successfulLease := &db.RedboxLease{
 		PrincipalID:    "abc",
 		AccountID:      "123",
-		LeaseStatus:    db.Decommissioned,
+		LeaseStatus:    db.Inactive,
 		CreatedOn:      567,
 		LastModifiedOn: 567,
 	}
@@ -437,7 +439,7 @@ func TestDecommissionAccount(t *testing.T) {
 				&db.RedboxLease{
 					PrincipalID: "abc",
 					AccountID:   "456",
-					LeaseStatus: db.Decommissioned,
+					LeaseStatus: db.Inactive,
 				},
 			},
 		},
@@ -463,7 +465,7 @@ func TestDecommissionAccount(t *testing.T) {
 				&db.RedboxLease{
 					PrincipalID: "abc",
 					AccountID:   "123",
-					LeaseStatus: db.Decommissioned,
+					LeaseStatus: db.Inactive,
 				},
 			},
 		},
@@ -548,7 +550,7 @@ func TestDecommissionAccount(t *testing.T) {
 			test.FindLeaseByLeases,
 			test.FindLeaseByPrincipalError)
 		mockDB.On("TransitionLeaseStatus", mock.Anything, mock.Anything,
-			mock.Anything, mock.Anything).Return(
+			mock.Anything, mock.Anything, mock.Anything).Return(
 			test.TransitionLeaseStatusLease,
 			test.TransitionLeaseStatusError)
 		mockDB.On("TransitionAccountStatus", mock.Anything, mock.Anything,

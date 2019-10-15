@@ -8,7 +8,6 @@ import (
 
 	awsMocks "github.com/Optum/Redbox/pkg/awsiface/mocks"
 	budgetMocks "github.com/Optum/Redbox/pkg/budget/mocks"
-	"github.com/Optum/Redbox/pkg/common"
 	commonMocks "github.com/Optum/Redbox/pkg/common/mocks"
 	"github.com/Optum/Redbox/pkg/db"
 	dbMocks "github.com/Optum/Redbox/pkg/db/mocks"
@@ -16,8 +15,6 @@ import (
 	emailMocks "github.com/Optum/Redbox/pkg/email/mocks"
 	"github.com/Optum/Redbox/pkg/usage"
 	usageMocks "github.com/Optum/Redbox/pkg/usage/mocks"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -161,32 +158,12 @@ has exceeded its budget of $100. Actual spend is $150
 			dbSvc.On("TransitionLeaseStatus",
 				"1234567890", "test-user",
 				db.Active, test.expectedLeaseStatusTransition,
-			).Return(func(acctID string, pID string, from db.LeaseStatus, to db.LeaseStatus) *db.RedboxLease {
+				mock.Anything,
+			).Return(func(acctID string, pID string, from db.LeaseStatus, to db.LeaseStatus, reason db.LeaseStatusReason) *db.RedboxLease {
 				// Return the lease object, with it's updated status
 				input.lease.LeaseStatus = test.expectedLeaseStatusTransition
 				return input.lease
 			}, test.transitionLeaseError)
-		}
-
-		// Should publish to `lease-locked` topic
-		if test.shouldSNS {
-			lockedLease := *input.lease
-			lockedLease.LeaseStatus = db.FinanceLock
-			lockedLeaseMsg, err := common.PrepareSNSMessageJSON(lockedLease)
-			require.Nil(t, err)
-			snsSvc.On("PublishMessage",
-				aws.String("lease-locked"),
-				&lockedLeaseMsg,
-				true,
-			).Return(&lockedLeaseMsg, test.snsError)
-		}
-
-		// Should add the account to the reset queue
-		if test.shouldSQSReset {
-			sqsSvc.On("SendMessage", &sqs.SendMessageInput{
-				QueueUrl:    aws.String("reset-queue-url"),
-				MessageBody: aws.String("1234567890"),
-			}).Return(&sqs.SendMessageOutput{}, test.sqsError)
 		}
 
 		// Should send a notification email
@@ -225,7 +202,7 @@ has exceeded its budget of $100. Actual spend is $150
 			actualSpend:  150,
 			// Should transition from Active --> FinanceLock
 			leaseStatus:                   db.Active,
-			expectedLeaseStatusTransition: db.FinanceLock,
+			expectedLeaseStatusTransition: db.Inactive,
 			// Should do all the finance locking things
 			shouldTransitionLeaseStatus: true,
 			shouldSNS:                   true,
@@ -292,7 +269,7 @@ Actual spend is $76
 
 			// DB Transition fails
 			leaseStatus:                   db.Active,
-			expectedLeaseStatusTransition: db.FinanceLock,
+			expectedLeaseStatusTransition: db.Inactive,
 			transitionLeaseError:          errors.New("DB transition failed"),
 
 			// Should continue on error
@@ -308,83 +285,64 @@ Actual spend is $76
 			expectedError: "DB transition failed",
 		})
 
-		// Continue if SNS fails
-		checkBudgetTest(&checkBudgetTestInput{
-			// Over budget
-			budgetAmount: 100,
-			actualSpend:  150,
-
-			leaseStatus:                   db.Active,
-			expectedLeaseStatusTransition: db.FinanceLock,
-			shouldTransitionLeaseStatus:   true,
-
-			// SNS Fails
-			shouldSNS: true,
-			snsError:  errors.New("SNS failed"),
-
-			// Should continue on error
-			shouldSQSReset:        true,
-			shouldSendEmail:       true,
-			expectedEmailSubject:  expectedOverBudgetText,
-			expectedEmailBodyHTML: expectedOverBudgetEmailHTML,
-			expectedEmailBodyText: expectedOverBudgetEmailText,
-
-			// Should return an error
-			expectedError: "SNS failed",
-		})
-
-		// Continue if SQS fails
-		checkBudgetTest(&checkBudgetTestInput{
-			// Over budget
-			budgetAmount: 100,
-			actualSpend:  150,
-
-			leaseStatus:                   db.Active,
-			expectedLeaseStatusTransition: db.FinanceLock,
-			shouldTransitionLeaseStatus:   true,
-			shouldSNS:                     true,
-
-			// SQS fails
-			shouldSQSReset: true,
-			sqsError:       errors.New("sqs error"),
-
-			// Should continue on error
-			shouldSendEmail:       true,
-			expectedEmailSubject:  expectedOverBudgetText,
-			expectedEmailBodyHTML: expectedOverBudgetEmailHTML,
-			expectedEmailBodyText: expectedOverBudgetEmailText,
-
-			// Should return an error
-			expectedError: "sqs error",
-		})
-
-		// Multiple errors
-		checkBudgetTest(&checkBudgetTestInput{
-			// Over budget
-			budgetAmount: 100,
-			actualSpend:  150,
-
-			leaseStatus:                   db.Active,
-			expectedLeaseStatusTransition: db.FinanceLock,
-			shouldTransitionLeaseStatus:   true,
-
-			// SNS Fails
-			shouldSNS: true,
-			snsError:  errors.New("sns error"),
-
-			// SQS fails
-			shouldSQSReset: true,
-			sqsError:       errors.New("sqs error"),
-
-			// Should continue on error
-			shouldSendEmail:       true,
-			expectedEmailSubject:  expectedOverBudgetText,
-			expectedEmailBodyHTML: expectedOverBudgetEmailHTML,
-			expectedEmailBodyText: expectedOverBudgetEmailText,
-
-			// Should return a combined error
-			expectedError: "sns error.*sqs error",
-		})
 	})
+}
+func Test_isLeaseExpired(t *testing.T) {
+	type args struct {
+		lease   *db.RedboxLease
+		context *leaseContext
+	}
+	emails := []string{"joe@example.com"}
+	lease := &db.RedboxLease{
+		AccountID:                "12345",
+		PrincipalID:              "98765",
+		LeaseStatus:              db.Inactive,
+		LeaseStatusReason:        db.LeaseExpired,
+		CreatedOn:                time.Now().Unix(),
+		LastModifiedOn:           time.Now().Unix(),
+		BudgetAmount:             3000,
+		BudgetCurrency:           "USD",
+		BudgetNotificationEmails: emails,
+		LeaseStatusModifiedOn:    time.Now().Unix(),
+		ExpiresOn:                time.Now().Unix()}
 
+	nonExpiredLeaseTestArgs := &args{
+		lease,
+		&leaseContext{
+			time.Now().AddDate(0, 0, +1).Unix(),
+			10}}
+
+	expiredLeaseTestArgs := &args{
+		lease,
+		&leaseContext{
+			time.Now().AddDate(0, 0, -1).Unix(),
+			10}}
+
+	overBudgetTest := &args{
+		lease,
+		&leaseContext{
+			time.Now().AddDate(0, 0, +1).Unix(),
+			5000}}
+
+	tests := []struct {
+		name  string
+		args  args
+		want  bool
+		want1 db.LeaseStatusReason
+	}{
+		{"Non-expired lease test", *nonExpiredLeaseTestArgs, false, db.LeaseActive},
+		{"Expired lease test", *expiredLeaseTestArgs, true, db.LeaseExpired},
+		{"Over budget lease test", *overBudgetTest, true, db.LeaseOverBudget},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, got1 := isLeaseExpired(tt.args.lease, tt.args.context)
+			if got != tt.want {
+				t.Errorf("isLeaseExpired() got = %v, want %v", got, tt.want)
+			}
+			if got1 != tt.want1 {
+				t.Errorf("isLeaseExpired() got1 = %v, want %v", got1, tt.want1)
+			}
+		})
+	}
 }

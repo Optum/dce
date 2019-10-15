@@ -2,6 +2,8 @@ package main
 
 import (
 	"encoding/json"
+	"log"
+
 	"github.com/Optum/Redbox/pkg/common"
 	"github.com/Optum/Redbox/pkg/db"
 	"github.com/Optum/Redbox/pkg/errors"
@@ -11,7 +13,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	lambdaSDK "github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/aws/aws-sdk-go/service/lambda/lambdaiface"
-	"log"
 )
 
 /*
@@ -40,9 +41,9 @@ func main() {
 
 		// Run our Lambda handler
 		err = lambdaHandler(&lambdaHandlerInput{
-			dbSvc:                   dbSvc,
-			lambdaSvc:               lambdaSvc,
-			checkBudgetFunctionName: common.RequireEnv("CHECK_BUDGET_FUNCTION_NAME"),
+			dbSvc:                         dbSvc,
+			lambdaSvc:                     lambdaSvc,
+			updateLeaseStatusFunctionName: common.RequireEnv("UPDATE_LEASE_STATUS_FUNCTION_NAME"),
 		})
 		if err != nil {
 			log.Fatal(err.Error())
@@ -53,9 +54,9 @@ func main() {
 }
 
 type lambdaHandlerInput struct {
-	dbSvc                   db.DBer
-	lambdaSvc               lambdaiface.LambdaAPI
-	checkBudgetFunctionName string
+	dbSvc                         db.DBer
+	lambdaSvc                     lambdaiface.LambdaAPI
+	updateLeaseStatusFunctionName string
 }
 
 func lambdaHandler(input *lambdaHandlerInput) error {
@@ -78,18 +79,18 @@ func lambdaHandler(input *lambdaHandlerInput) error {
 			continue
 		}
 
-		// Invoke the check_budget lambda
+		// Invoke the fan_out_update_lease_status lambda
 		log.Printf("Invoking lambda %s with lease %s @ %s",
-			input.checkBudgetFunctionName, lease.PrincipalID, lease.AccountID)
+			input.updateLeaseStatusFunctionName, lease.PrincipalID, lease.AccountID)
 		_, err = input.lambdaSvc.Invoke(&lambdaSDK.InvokeInput{
-			FunctionName:   aws.String(input.checkBudgetFunctionName),
+			FunctionName:   aws.String(input.updateLeaseStatusFunctionName),
 			InvocationType: aws.String("Event"),
 			Payload:        leaseJSON,
 		})
 		// save any errors to handle later
 		if err != nil {
 			log.Printf("Failed to invoke lambda %s with lease %s @ %s: %s",
-				input.checkBudgetFunctionName, lease.PrincipalID, lease.AccountID, err)
+				input.updateLeaseStatusFunctionName, lease.PrincipalID, lease.AccountID, err)
 			invokeErrors = append(invokeErrors, err)
 			continue
 		}

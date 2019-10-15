@@ -3,9 +3,10 @@ package processresetqueue
 import (
 	"errors"
 	"fmt"
-	"github.com/aws/aws-sdk-go/aws"
 	"strings"
 	"testing"
+
+	"github.com/aws/aws-sdk-go/aws"
 
 	"github.com/stretchr/testify/mock"
 
@@ -308,9 +309,6 @@ func TestReset(t *testing.T) {
 			// Mock the Database to return test.GetAccount
 			mockDb := &dbMocks.DBer{}
 			mockDb.
-				On("FindLeasesByAccount", mock.Anything).
-				Return([]*db.RedboxLease{}, nil)
-			mockDb.
 				On("GetAccount", mock.Anything).
 				Return(test.GetAccount, test.GetAccountError)
 
@@ -340,90 +338,14 @@ func TestReset(t *testing.T) {
 		}
 	})
 
-	t.Run("Should set Lease.Status=ResetFinanceLock in DB, if the account has Active leases", func(t *testing.T) {
-		// Mock the DB Service
-		mockDb := &dbMocks.DBer{}
-		defer mockDb.AssertExpectations(t)
-
-		// Mock leases for our Account
-		mockDb.
-			On("FindLeasesByAccount", "accountId-1").
-			Return([]*db.RedboxLease{
-				{
-					PrincipalID: "principalId-1",
-					LeaseStatus: db.Decommissioned,
-				},
-				{
-					PrincipalID: "principalId-2",
-					LeaseStatus: db.FinanceLock,
-				},
-			}, nil)
-		// Mock `dbSvc.GetAccount`
-		mockDb.
-			On("GetAccount", "accountId-1").
-			Return(&db.RedboxAccount{
-				AdminRoleArn:     "arn:aws:iam::123456789012:role/AdminRole",
-				PrincipalRoleArn: "arn:aws:iam::123456789012:role/PrincipalRole",
-			}, nil)
-
-		// Should set Lease.Status=ResetFinanceLock
-		// on the FinanceLock lease (principalId-2)
-		mockDb.
-			On(
-				"TransitionLeaseStatus",
-				"accountId-1", "principalId-2",
-				db.FinanceLock, db.ResetFinanceLock,
-			).
-			Return(&db.RedboxLease{}, nil)
-		mockDb.On("GetAccount", mock.Anything).
-			Return(mockAccount(), nil)
-
-		// Mock the Build
-		mockBuild := &comMocks.Builder{}
-		mockBuild.On("StartBuild", mock.Anything, mock.Anything).
-			Return("123", nil)
-
-		// Call Reset
-		queueURL := "https://mytesturl.com/123456789012/reset_queue"
-		resetOutput, err := Reset(&ResetInput{
-			// Will provide account "accountId-1"
-			ResetQueue:    createMockQueue(1),
-			ResetQueueURL: &queueURL,
-			ResetBuild:    mockBuild,
-			BuildName:     &buildName,
-			DbSvc:         mockDb,
-		})
-		require.Nil(t, err)
-		require.True(t, resetOutput.Success)
-	})
-
 	t.Run("Should set Lease.Status=ResetLock in DB, if the account has active leases", func(t *testing.T) {
 		// Mock the DB Service
 		mockDb := &dbMocks.DBer{}
 		defer mockDb.AssertExpectations(t)
 
 		// Mock leases for our Account
-		mockDb.
-			On("FindLeasesByAccount", "accountId-1").
-			Return([]*db.RedboxLease{
-				{
-					PrincipalID: "principalId-1",
-					LeaseStatus: db.Active,
-				},
-				{
-					PrincipalID: "principalId-2",
-					LeaseStatus: db.Decommissioned,
-				},
-			}, nil)
 		// Should set Lease.Status=ResetLock
 		// on the active lease (principalId-1)
-		mockDb.
-			On(
-				"TransitionLeaseStatus",
-				"accountId-1", "principalId-1",
-				db.Active, db.ResetLock,
-			).
-			Return(&db.RedboxLease{}, nil)
 		mockDb.On("GetAccount", mock.Anything).
 			Return(mockAccount(), nil)
 
@@ -452,13 +374,6 @@ func TestReset(t *testing.T) {
 		defer mockDb.AssertExpectations(t)
 
 		// Mock the DB to return no leases for the account
-		mockDb.
-			On("FindLeasesByAccount", "accountId-1").
-			Return([]*db.RedboxLease{}, nil)
-		// Mock `dbSvc.GetAccount`
-		mockDb.
-			On("FindLeasesByAccount", "accountId-1").
-			Return([]*db.RedboxLease{}, nil)
 		mockDb.On("GetAccount", mock.Anything).
 			Return(mockAccount(), nil)
 
@@ -486,44 +401,13 @@ func TestReset(t *testing.T) {
 		mockDb.AssertNotCalled(t, "TransitionLeaseStatus")
 	})
 
-	t.Run("Should not trigger pipeline if the lease status update fails", func(t *testing.T) {
-		// Mock the DB to fail on `FindLeasesByAccount`
-		mockDb := &dbMocks.DBer{}
-		defer mockDb.AssertExpectations(t)
-		dbErr := errors.New("Error: Could not successfully trigger a reset on all accounts")
-		mockDb.
-			On("FindLeasesByAccount", "accountId-1").
-			Return(nil, dbErr)
-		mockDb.On("GetAccount", mock.Anything).
-			Return(mockAccount(), nil)
-
-		// Mock the build, and assert that we do _not_ call it
-		mockBuild := comMocks.Builder{}
-		defer mockBuild.AssertNotCalled(t, "StartBuild")
-
-		// Call Reset
-		queueURL := "https://mytesturl.com/123456789012/reset_queue"
-		_, err := Reset(&ResetInput{
-			// Will provide account "accountId-1"
-			ResetQueue:    createMockQueue(1),
-			ResetQueueURL: &queueURL,
-			ResetBuild:    &mockBuild,
-			BuildName:     &buildName,
-			DbSvc:         mockDb,
-		})
-		require.NotNil(t, err)
-	})
-
 	t.Run("Should return errors from DB", func(t *testing.T) {
 		// Mock the DB to fail on `FindLeasesByAccount`
 		mockDb := &dbMocks.DBer{}
 		defer mockDb.AssertExpectations(t)
 		dbErr := errors.New("Error: Could not successfully trigger a reset on all accounts")
-		mockDb.
-			On("FindLeasesByAccount", "accountId-1").
-			Return(nil, dbErr)
 		mockDb.On("GetAccount", mock.Anything).
-			Return(mockAccount(), nil)
+			Return(mockAccount(), dbErr)
 
 		// Mock the Build
 		mockBuild := &comMocks.Builder{}

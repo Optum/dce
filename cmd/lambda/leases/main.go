@@ -4,8 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
+	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/Optum/Redbox/pkg/api/response"
 	"github.com/Optum/Redbox/pkg/common"
@@ -14,8 +17,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/aws/aws-sdk-go/service/sqs"
-	"log"
-	"net/http"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -110,6 +111,7 @@ type requestBody struct {
 	BudgetAmount             float64  `json:"budgetAmount"`
 	BudgetCurrency           string   `json:"budgetCurrency"`
 	BudgetNotificationEmails []string `json:"budgetNotificationEmails"`
+	ExpiresOn                int64    `json:"expiresOn"`
 }
 
 // messageBody is the structured object of the JSON Message to send
@@ -126,6 +128,16 @@ func provisionAccount(request *requestBody, dbSvc db.DBer,
 	topic *string) events.APIGatewayProxyResponse {
 	principalID := request.PrincipalID
 	log.Printf("Provisioning Account for Principal %s", principalID)
+
+	// Just do a quick sanity check on the request and make sure that the
+	// requested lease end date, if specified, is at least greater than
+	// today and if it isn't then return an error response
+	if request.ExpiresOn != 0 && request.ExpiresOn <= time.Now().Unix() {
+		errStr := fmt.Sprintf("Requested lease has a desired expiry date less than today: %d", request.ExpiresOn)
+		log.Printf(errStr)
+		return createAPIErrorResponse(http.StatusBadRequest,
+			response.CreateErrorResponse("ClientError", errStr))
+	}
 
 	// Check if the principal has any existing Active/FinanceLock/ResetLock
 	// Leases
@@ -175,7 +187,7 @@ func provisionAccount(request *requestBody, dbSvc db.DBer,
 	// Create/Update a Redbox Account Lease to Active
 	create := lease.AccountID == ""
 	lease, err = prov.ActivateAccount(create, principalID,
-		account.ID, request.BudgetAmount, request.BudgetCurrency, request.BudgetNotificationEmails)
+		account.ID, request.BudgetAmount, request.BudgetCurrency, request.BudgetNotificationEmails, request.ExpiresOn)
 	if err != nil {
 		log.Printf("Failed to Activate Account Lease: %s", err)
 		return createAPIErrorResponse(http.StatusInternalServerError,
@@ -263,8 +275,7 @@ func decommissionAccount(request *requestBody, queueURL *string, dbSvc db.DBer,
 		errStr := fmt.Sprintf("No active account leases found for %s", principalID)
 		return createAPIErrorResponse(http.StatusBadRequest,
 			response.CreateErrorResponse("ClientError", errStr))
-	} else if acct.LeaseStatus != db.Active &&
-		acct.LeaseStatus != db.ResetLock {
+	} else if acct.LeaseStatus != db.Active {
 		errStr := fmt.Sprintf("Account Lease is not active for %s - %s",
 			principalID, accountID)
 		return createAPIErrorResponse(http.StatusBadRequest,
@@ -273,7 +284,7 @@ func decommissionAccount(request *requestBody, queueURL *string, dbSvc db.DBer,
 
 	// Transition the Lease Status
 	lease, err := dbSvc.TransitionLeaseStatus(acct.AccountID, principalID,
-		db.Active, db.Decommissioned)
+		db.Active, db.Inactive, db.LeaseDestroyed)
 	if err != nil {
 		log.Printf("Error transitioning lease status: %s", err)
 		return createAPIErrorResponse(http.StatusInternalServerError,
@@ -456,6 +467,7 @@ func router(ctx context.Context, req *events.APIGatewayProxyRequest) (
 		}
 
 		return res, nil
+
 	case "POST":
 		prov := &provision.AccountProvision{
 			DBSvc: dbSvc,

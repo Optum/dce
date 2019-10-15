@@ -3,7 +3,9 @@ package provision
 import (
 	"errors"
 	"testing"
+	"time"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
@@ -27,7 +29,7 @@ type testFindActiveLeaseForPrincipalInput struct {
 func TestFindActiveLeaseFoPrincipal(t *testing.T) {
 	// Construct test scenarios
 	tests := []testFindActiveLeaseForPrincipalInput{
-		// Happy Path - Decommissioned
+		// Happy Path - Inactive
 		{
 			ExpectedError:            nil,
 			ExpectedLeasePrincipalID: "",
@@ -36,7 +38,7 @@ func TestFindActiveLeaseFoPrincipal(t *testing.T) {
 				&db.RedboxLease{
 					PrincipalID: "abc",
 					AccountID:   "123",
-					LeaseStatus: db.Decommissioned,
+					LeaseStatus: db.Inactive,
 				},
 			},
 			ExpectLease: true,
@@ -51,34 +53,6 @@ func TestFindActiveLeaseFoPrincipal(t *testing.T) {
 					PrincipalID: "abc",
 					AccountID:   "123",
 					LeaseStatus: db.Active,
-				},
-			},
-			ExpectLease: true,
-		},
-		// Happy Path - FinanceLock
-		{
-			ExpectedError:            nil,
-			ExpectedLeasePrincipalID: "abc",
-			ExpectedLeaseAccountID:   "123",
-			FindLeaseByPrincipal: []*db.RedboxLease{
-				&db.RedboxLease{
-					PrincipalID: "abc",
-					AccountID:   "123",
-					LeaseStatus: db.FinanceLock,
-				},
-			},
-			ExpectLease: true,
-		},
-		// Happy Path - ResetLock
-		{
-			ExpectedError:            nil,
-			ExpectedLeasePrincipalID: "abc",
-			ExpectedLeaseAccountID:   "123",
-			FindLeaseByPrincipal: []*db.RedboxLease{
-				&db.RedboxLease{
-					PrincipalID: "abc",
-					AccountID:   "123",
-					LeaseStatus: db.ResetLock,
 				},
 			},
 			ExpectLease: true,
@@ -144,7 +118,7 @@ func TestFindLeaseWithAccount(t *testing.T) {
 				&db.RedboxLease{
 					PrincipalID: "abc",
 					AccountID:   "123",
-					LeaseStatus: db.Decommissioned,
+					LeaseStatus: db.Inactive,
 				},
 			},
 			ExpectLease: true,
@@ -158,7 +132,7 @@ func TestFindLeaseWithAccount(t *testing.T) {
 				&db.RedboxLease{
 					PrincipalID: "def",
 					AccountID:   "123",
-					LeaseStatus: db.Decommissioned,
+					LeaseStatus: db.Inactive,
 				},
 			},
 			ExpectLease: true,
@@ -177,30 +151,6 @@ func TestFindLeaseWithAccount(t *testing.T) {
 					PrincipalID: "def",
 					AccountID:   "123",
 					LeaseStatus: db.Active,
-				},
-			},
-		},
-		// Error Account has FinaceLock Lease
-		{
-			ExpectedError: errors.New("Attempt to lease Active Account as " +
-				"new Redbox - 123"),
-			FindLeasesByAccount: []*db.RedboxLease{
-				&db.RedboxLease{
-					PrincipalID: "def",
-					AccountID:   "123",
-					LeaseStatus: db.FinanceLock,
-				},
-			},
-		},
-		// Error Account has ResetLock Lease
-		{
-			ExpectedError: errors.New("Attempt to lease Active Account as " +
-				"new Redbox - 123"),
-			FindLeasesByAccount: []*db.RedboxLease{
-				&db.RedboxLease{
-					PrincipalID: "def",
-					AccountID:   "123",
-					LeaseStatus: db.ResetLock,
 				},
 			},
 		},
@@ -304,7 +254,7 @@ func TestActivateLease(t *testing.T) {
 				test.PutLeaseError)
 		} else {
 			mockDB.On("TransitionLeaseStatus", mock.Anything,
-				mock.Anything, mock.Anything, mock.Anything).Return(
+				mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
 				test.TransitionLeaseStatusLease,
 				test.TransitionLeaseStatusError)
 		}
@@ -314,17 +264,23 @@ func TestActivateLease(t *testing.T) {
 			DBSvc: mockDB,
 		}
 
+		// Just use seven days out so that we don't need to worry about
+		// anything expiring
+		timeInSevenDays := time.Now().AddDate(0, 0, 7).Unix()
 		// Call findLeaseWithAccount
-		assgn, err := prov.ActivateAccount(test.Create, principalID, accountID, budgetAmount, budgetCurrency, budgetNotificationEmails)
+		assgn, err := prov.ActivateAccount(test.Create, principalID, accountID, budgetAmount, budgetCurrency, budgetNotificationEmails, timeInSevenDays)
 
 		// Assert that the expected output is correct
 		if test.ExpectedLease != nil {
-			require.Equal(t, test.ExpectedLease.AccountID,
-				assgn.AccountID)
+			require.Equal(t, test.ExpectedLease.AccountID, assgn.AccountID)
 			require.Equal(t, test.ExpectedLease.PrincipalID, assgn.PrincipalID)
-			require.Equal(t, test.ExpectedLease.LeaseStatus,
-				assgn.LeaseStatus)
+			require.Equal(t, test.ExpectedLease.LeaseStatus, assgn.LeaseStatus)
 			if test.Create {
+				for _, v := range mockDB.Calls[0].Arguments {
+					leaseID := v.(db.RedboxLease).ID
+					_, err = uuid.Parse(leaseID)
+					require.Nil(t, err)
+				}
 				require.NotEqual(t, test.ExpectedLease.CreatedOn,
 					assgn.CreatedOn) // Should be different
 			} else {
@@ -392,11 +348,11 @@ func TestRollbackProvisionAccount(t *testing.T) {
 		// Setup mocks
 		mockDB := &mocks.DBer{}
 		mockDB.On("TransitionLeaseStatus", mock.Anything,
-			mock.Anything, mock.Anything, mock.Anything).Return(
+			mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
 			nil, test.TransitionLeaseStatusError)
 		if test.TransitionAccountStatus {
 			mockDB.On("TransitionAccountStatus", mock.Anything,
-				mock.Anything, mock.Anything, mock.Anything).Return(
+				mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
 				nil, test.TransitionAccountStatusError)
 		}
 

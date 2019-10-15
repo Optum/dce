@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/Optum/Redbox/pkg/awsiface"
 	"github.com/Optum/Redbox/pkg/budget"
@@ -13,7 +14,6 @@ import (
 	multierrors "github.com/Optum/Redbox/pkg/errors"
 	"github.com/Optum/Redbox/pkg/usage"
 	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ses"
 	"github.com/aws/aws-sdk-go/service/sns"
@@ -21,6 +21,11 @@ import (
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/pkg/errors"
 )
+
+type leaseContext struct {
+	expireDate  int64
+	actualSpend float64
+}
 
 func main() {
 	lambda.Start(func(event interface{}) {
@@ -114,6 +119,7 @@ type lambdaHandlerInput struct {
 
 func lambdaHandler(input *lambdaHandlerInput) error {
 	leaseLogID := fmt.Sprintf("%s @ %s", input.lease.PrincipalID, input.lease.PrincipalID)
+	prevLeaseStatus := input.lease.LeaseStatus
 
 	// Lookup the account for this lease,
 	// so we can get the adminRoleArn
@@ -138,14 +144,17 @@ func lambdaHandler(input *lambdaHandlerInput) error {
 	if err != nil {
 		return errors.Wrapf(err, "Failed to calculate spend for lease %s", leaseLogID)
 	}
-	// Defer errors until the end, so we
-	// can continue on error
+	// Defer errors until the end, so we can continue on error
 	deferredErrors := []error{}
+	currentTimeEpoch := time.Now().Unix()
 
-	// Handle the over-budget case (finance lock, etc)
-	if actualSpend >= input.lease.BudgetAmount {
-		log.Printf("Lease %s is over budget ($%.2f / $%.2f). Locking account...", leaseLogID, actualSpend, input.lease.BudgetAmount)
-		err := handleOverBudget(input)
+	expired, reason := isLeaseExpired(input.lease, &leaseContext{currentTimeEpoch, actualSpend})
+
+	if expired {
+		// Update the lease status with the inactive status and current end time.
+		input.lease.LeaseStatus = db.Inactive
+		log.Printf("%s.  Updating lease as ready to be reclaimed...", reason)
+		err := handleLeaseExpire(input, prevLeaseStatus, reason)
 		if err != nil {
 			deferredErrors = append(deferredErrors, err)
 		}
@@ -177,48 +186,39 @@ func lambdaHandler(input *lambdaHandlerInput) error {
 	return nil
 }
 
+// isLeaseExpried contains the logic for determining if a lease has already
+// expired, given the context.
+func isLeaseExpired(lease *db.RedboxLease, context *leaseContext) (bool, db.LeaseStatusReason) {
+
+	if context.expireDate <= lease.ExpiresOn {
+		return true, db.LeaseExpired
+	} else if context.actualSpend >= lease.BudgetAmount {
+		return true, db.LeaseOverBudget
+	}
+
+	return false, db.LeaseActive
+}
+
 // handleOverBudget handles the case where a lease is over budget:
 // - Sets Lease DB status to FinanceLocked
 // - Publish Lease to "lease-locked" SNS topic
 // - Pushes account to reset queue (to stop the bleeding)
-func handleOverBudget(input *lambdaHandlerInput) error {
+func handleLeaseExpire(input *lambdaHandlerInput, prevLeaseStatus db.LeaseStatus, leaseStatusReason db.LeaseStatusReason) error {
 	// Defer errors until the end, so we
 	// can continue on error
 	deferredErrors := []error{}
 
-	// Set Lease.LeaseStatus = FinanceLock
-	prevStatus := input.lease.LeaseStatus
-	err := financeLock(&financeLockInput{
-		lease: input.lease,
-		dbSvc: input.dbSvc,
-	})
-	if err != nil {
-		deferredErrors = append(deferredErrors, err)
-	}
+	// Here we will save the update to the account status. From
+	// there, a Lambda listening to the account status Dynamodb stream
+	// and then forwarding events to SNS and SQS from there.
+	_, err := input.dbSvc.TransitionLeaseStatus(
+		input.lease.AccountID,
+		input.lease.PrincipalID,
+		prevLeaseStatus,
+		input.lease.LeaseStatus,
+		leaseStatusReason,
+	)
 
-	// Publish a message to the "lease-locked" SNS topic
-	// (only if the account went from Active --> Locked),
-	if prevStatus != db.Active {
-		log.Printf("Skipping publish to lease-locked SNS topic (lease was not previously active)")
-
-	} else {
-		log.Printf("Publishing to the lease-locked SNS topic")
-		err := publishLeaseLocked(&publishLeaseLockedInput{
-			snsSvc:              input.snsSvc,
-			leaseLockedTopicArn: input.leaseLockedTopicArn,
-			lease:               input.lease,
-		})
-		if err != nil {
-			deferredErrors = append(deferredErrors, err)
-		}
-	}
-
-	// Add the account to the SQS reset queue
-	log.Printf("Adding account %s to the reset queue", input.lease.AccountID)
-	_, err = input.sqsSvc.SendMessage(&sqs.SendMessageInput{
-		QueueUrl:    aws.String(input.resetQueueURL),
-		MessageBody: aws.String(input.lease.AccountID),
-	})
 	if err != nil {
 		log.Printf("Failed to add account to reset queue for lease %s @ %s: %s", input.lease.PrincipalID, input.lease.AccountID, err)
 		deferredErrors = append(deferredErrors, err)
