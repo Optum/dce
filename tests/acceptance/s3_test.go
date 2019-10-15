@@ -83,7 +83,6 @@ func TestS3(t *testing.T) {
 			_, err = buf.ReadFrom(obj.Body)
 			require.Nil(t, err)
 			require.Equal(t, string(artifactsBody), buf.String())
-
 		})
 	})
 
