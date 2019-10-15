@@ -74,14 +74,6 @@ resource "aws_dynamodb_table" "redbox_lease" {
   }
 
   global_secondary_index {
-    name            = "LeaseStatusReason"
-    hash_key        = "LeaseStatusReason"
-    projection_type = "ALL"
-    read_capacity   = 5
-    write_capacity  = 5
-  }
-
-  global_secondary_index {
     name            = "LeaseId"
     hash_key        = "Id"
     projection_type = "ALL"
@@ -104,12 +96,6 @@ resource "aws_dynamodb_table" "redbox_lease" {
     type = "S"
   }
 
-  # Lease status reason
-  attribute {
-    name = "LeaseStatusReason"
-    type = "S"
-  }
-
   # Principal ID
   attribute {
     name = "PrincipalId"
@@ -125,6 +111,7 @@ resource "aws_dynamodb_table" "redbox_lease" {
   tags = var.global_tags
   /*
   Other attributes:
+    - LeaseStatusReason (string)
     - CreatedOn (Integer, epoch timestamps)
     - LastModifiedOn (Integer, epoch timestamps)
     - LeaseStatusModifiedOn (Integer, epoch timestamps)
