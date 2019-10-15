@@ -26,6 +26,7 @@ type SendEmailInput struct {
 }
 
 type SendEmailWithAttachmentInput struct {
+	FromArn            string
 	FromAddress        string
 	ToAddresses        []string
 	CCAddresses        []string
@@ -70,6 +71,7 @@ func (svc *SESEmailService) SendEmail(input *SendEmailInput) error {
 	return err
 }
 
+// SendRawEmailWithAttachment sends SES raw email with attachment
 func (svc *SESEmailService) SendRawEmailWithAttachment(input *SendEmailWithAttachmentInput) error {
 	msg := gomail.NewMessage()
 	msg.SetHeader("From", input.FromAddress)
@@ -83,12 +85,10 @@ func (svc *SESEmailService) SendRawEmailWithAttachment(input *SendEmailWithAttac
 
 	message := ses.RawMessage{Data: emailRaw.Bytes()}
 	emailInput := &ses.SendRawEmailInput{
-		FromArn:       aws.String(""),
-		RawMessage:    &message,
-		ReturnPathArn: aws.String(""),
-		Source:        aws.String(""),
-		SourceArn:     aws.String(""),
+		FromArn:    aws.String(input.FromArn),
+		RawMessage: &message,
 	}
+
 	_, err := svc.SES.SendRawEmail(emailInput)
 
 	return err
