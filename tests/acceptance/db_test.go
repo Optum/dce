@@ -322,7 +322,7 @@ func TestDb(t *testing.T) {
 			err := dbSvc.PutAccount(account)
 			require.Nil(t, err)
 			accountBefore, err := dbSvc.GetAccount(acctID)
-			time.Sleep(1 * time.Second) // Ensure LastModifiedOn changes
+			time.Sleep(2 * time.Second) // Ensure LastModifiedOn changes
 
 			// Set a ResetLock on the Lease
 			updatedAccount, err := dbSvc.TransitionAccountStatus(
