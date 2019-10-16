@@ -74,8 +74,7 @@ func (c DeleteController) Call(ctx context.Context, req *events.APIGatewayProxyR
 	}
 	if acct == nil {
 		return response.NotFoundError(), nil
-	} else if acct.LeaseStatus != db.Active &&
-		acct.LeaseStatus != db.Inactive {
+	} else if acct.LeaseStatus != db.Active {
 		errStr := fmt.Sprintf("Account Lease is not active for %s - %s",
 			principalID, accountID)
 		return response.ClientErrorWithResponse(errStr), nil
@@ -83,7 +82,7 @@ func (c DeleteController) Call(ctx context.Context, req *events.APIGatewayProxyR
 
 	// Transition the Lease Status
 	_, err = c.Dao.TransitionLeaseStatus(acct.AccountID, principalID,
-		db.Active, db.Inactive, "Lease deleted.")
+		db.Active, db.Inactive, db.LeaseDestroyed)
 	if err != nil {
 		log.Printf("Error transitioning lease status: %s", err)
 		return response.ServerErrorWithResponse(fmt.Sprintf("Failed Decommission on Account Lease %s - %s", principalID, accountID)), nil

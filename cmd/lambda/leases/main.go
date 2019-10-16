@@ -46,7 +46,13 @@ func main() {
 	snsSvc := &common.SNS{Client: sns.New(awsSession)}
 
 	router := &api.Router{
-		GetController: GetController{Dao: dao},
+		ResourceName: "leases",
+		GetController: GetController{
+			Dao: dao,
+		},
+		ListController: ListController{
+			Dao: dao,
+		},
 		DeleteController: DeleteController{
 			Dao: dao,
 			SNS: snsSvc,

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -14,9 +13,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/client"
+	"github.com/google/uuid"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -250,7 +252,7 @@ func TestApi(t *testing.T) {
 			// Verify provisioned response json
 			require.Equal(t, principalID, data["principalId"].(string))
 			require.Equal(t, acctID, data["accountId"].(string))
-			require.Equal(t, string(db.Decommissioned),
+			require.Equal(t, string(db.Inactive),
 				data["leaseStatus"].(string))
 			require.NotNil(t, data["createdOn"])
 			require.NotNil(t, data["lastModifiedOn"])
@@ -324,6 +326,7 @@ func TestApi(t *testing.T) {
 
 			// Create an Lease Entry
 			_, err = dbSvc.PutLease(db.RedboxLease{
+				ID:                    uuid.New().String(),
 				PrincipalID:           principalID,
 				AccountID:             acctID,
 				LeaseStatus:           db.Active,
@@ -424,6 +427,7 @@ func TestApi(t *testing.T) {
 
 			// Create an Lease Entry
 			_, err = dbSvc.PutLease(db.RedboxLease{
+				ID:                    uuid.New().String(),
 				PrincipalID:           principalID,
 				AccountID:             acctID,
 				LeaseStatus:           db.Active,
@@ -475,9 +479,10 @@ func TestApi(t *testing.T) {
 
 			// Create an Lease Entry
 			_, err = dbSvc.PutLease(db.RedboxLease{
+				ID:                    uuid.New().String(),
 				PrincipalID:           principalID,
 				AccountID:             acctID,
-				LeaseStatus:           db.Decommissioned,
+				LeaseStatus:           db.Inactive,
 				CreatedOn:             timeNow,
 				LastModifiedOn:        timeNow,
 				LeaseStatusModifiedOn: timeNow,
@@ -661,6 +666,8 @@ func TestApi(t *testing.T) {
 				require.Equal(t, budgetAmount, resJSON["budgetAmount"])
 				require.Equal(t, "USD", resJSON["budgetCurrency"])
 				require.Equal(t, s, resJSON["budgetNotificationEmails"])
+				_, err = uuid.Parse(fmt.Sprintf("%v", resJSON["id"]))
+				require.Nil(t, err)
 				require.NotNil(t, resJSON["leaseStatusModifiedOn"])
 
 				// Check the lease is in the DB
@@ -705,7 +712,7 @@ func TestApi(t *testing.T) {
 					// (since we dont' yet have a GET /leases endpoint
 					lease, err := dbSvc.GetLease(accountID, "test-user")
 					require.Nil(t, err)
-					require.Equal(t, db.Decommissioned, lease.LeaseStatus)
+					require.Equal(t, db.Inactive, lease.LeaseStatus)
 
 					t.Run("STEP: Delete Account", func(t *testing.T) {
 						// Delete the account
@@ -897,41 +904,51 @@ func TestApi(t *testing.T) {
 		principalIDFour := "d"
 
 		_, err = dbSvc.PutLease(db.RedboxLease{
-			AccountID:   accountIDOne,
-			PrincipalID: principalIDOne,
-			LeaseStatus: db.Active,
+			ID:                uuid.New().String(),
+			AccountID:         accountIDOne,
+			PrincipalID:       principalIDOne,
+			LeaseStatus:       db.Active,
+			LeaseStatusReason: db.LeaseActive,
 		})
 
 		assert.Nil(t, err)
 
 		_, err = dbSvc.PutLease(db.RedboxLease{
-			AccountID:   accountIDOne,
-			PrincipalID: principalIDTwo,
-			LeaseStatus: db.Active,
+			ID:                uuid.New().String(),
+			AccountID:         accountIDOne,
+			PrincipalID:       principalIDTwo,
+			LeaseStatus:       db.Active,
+			LeaseStatusReason: db.LeaseActive,
 		})
 
 		assert.Nil(t, err)
 
 		_, err = dbSvc.PutLease(db.RedboxLease{
-			AccountID:   accountIDOne,
-			PrincipalID: principalIDThree,
-			LeaseStatus: db.Decommissioned,
+			ID:                uuid.New().String(),
+			AccountID:         accountIDOne,
+			PrincipalID:       principalIDThree,
+			LeaseStatus:       db.Inactive,
+			LeaseStatusReason: db.LeaseActive,
 		})
 
 		assert.Nil(t, err)
 
 		_, err = dbSvc.PutLease(db.RedboxLease{
-			AccountID:   accountIDTwo,
-			PrincipalID: principalIDFour,
-			LeaseStatus: db.Active,
+			ID:                uuid.New().String(),
+			AccountID:         accountIDTwo,
+			PrincipalID:       principalIDFour,
+			LeaseStatus:       db.Active,
+			LeaseStatusReason: db.LeaseActive,
 		})
 
 		assert.Nil(t, err)
 
 		_, err = dbSvc.PutLease(db.RedboxLease{
-			AccountID:   accountIDTwo,
-			PrincipalID: principalIDOne,
-			LeaseStatus: db.Decommissioned,
+			ID:                uuid.New().String(),
+			AccountID:         accountIDTwo,
+			PrincipalID:       principalIDOne,
+			LeaseStatus:       db.Inactive,
+			LeaseStatusReason: db.LeaseActive,
 		})
 
 		assert.Nil(t, err)
@@ -992,7 +1009,7 @@ func TestApi(t *testing.T) {
 		t.Run("When there is a status parameter", func(t *testing.T) {
 			resp := apiRequest(t, &apiRequestInput{
 				method: "GET",
-				url:    apiURL + "/leases?status=" + string(db.Decommissioned),
+				url:    apiURL + "/leases?status=" + string(db.Inactive),
 				json:   nil,
 			})
 

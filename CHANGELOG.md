@@ -1,10 +1,15 @@
-## _next_
+## v0.18.0
 
 - Minor fixes to `scripts/deploy_local/deploy_local_build.sh` for options to be recognized.
 - README updates to include current steps for build and deployment.
 - Pull requests authored by non-team members will not build until a team member comments
 - Add usage table arn to tf output
 - Adds GET /leases API support
+- Add ID to the Leases table
+- Added expiration date for lease ends
+- Simplified lease status model to include only two statuses: Inactive and Active.
+- Changed check_budget to update_lease_status and added check for expiration date.
+- Changed SQS and SNS notifications for lease status change to be triggered by lease status change in DB.
 
 ## v0.17.0
 

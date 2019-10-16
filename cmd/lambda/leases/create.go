@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/Optum/Redbox/pkg/api/response"
 	"github.com/Optum/Redbox/pkg/common"
@@ -28,6 +29,7 @@ type createLeaseRequest struct {
 	BudgetAmount             float64  `json:"budgetAmount"`
 	BudgetCurrency           string   `json:"budgetCurrency"`
 	BudgetNotificationEmails []string `json:"budgetNotificationEmails"`
+	ExpiresOn                int64    `json:"expiresOn"`
 }
 
 // Call - Function to validate the account request to add into the pool and
@@ -52,17 +54,27 @@ func (c CreateController) Call(ctx context.Context, req *events.APIGatewayProxyR
 	principalID := requestBody.PrincipalID
 	log.Printf("Provisioning Account for Principal %s", principalID)
 
+	// Just do a quick sanity check on the request and make sure that the
+	// requested lease end date, if specified, is at least greater than
+	// today and if it isn't then return an error response
+	if requestBody.ExpiresOn != 0 && requestBody.ExpiresOn <= time.Now().Unix() {
+		errStr := fmt.Sprintf("Requested lease has a desired expiry date less than today: %d", requestBody.ExpiresOn)
+		log.Printf(errStr)
+		return response.BadRequestError(errStr), nil
+	}
+
 	// Check if the principal has any existing Active/FinanceLock/ResetLock
 	// Leases
 	checkLease, err := c.Provisioner.FindActiveLeaseForPrincipal(principalID)
 	if err != nil {
 		log.Printf("Failed to Check Principal Active Leases: %s", err)
-		return response.ServerErrorWithResponse(
-			fmt.Sprintf("Cannot verify if Principal has existing Redbox Account : %s", err)), nil
+		return response.ServerErrorWithResponse(fmt.Sprintf("Cannot verify if Principal has existing Redbox Account : %s",
+			err)), nil
 	} else if checkLease.PrincipalID == principalID {
-		log.Printf(fmt.Sprintf("Principal already has an existing Redbox: %s",
-			checkLease.AccountID))
-		return response.AlreadyExistsError(), nil
+		errStr := fmt.Sprintf("Principal already has an existing Redbox: %s",
+			checkLease.AccountID)
+		log.Printf(errStr)
+		return response.ClientErrorWithResponse(errStr), nil
 	}
 	log.Printf("Principal %s has no Active Leases\n", principalID)
 
@@ -76,7 +88,7 @@ func (c CreateController) Call(ctx context.Context, req *events.APIGatewayProxyR
 	} else if account == nil {
 		errStr := "No Available Redbox Accounts at this moment"
 		log.Printf(errStr)
-		return response.NotFoundError(), nil
+		return response.ServerErrorWithResponse(errStr), nil
 	}
 	log.Printf("Principal %s will be Leased to Account: %s\n", principalID,
 		account.ID)
@@ -92,7 +104,8 @@ func (c CreateController) Call(ctx context.Context, req *events.APIGatewayProxyR
 	// Create/Update a Redbox Account Lease to Active
 	create := lease.AccountID == ""
 	lease, err = c.Provisioner.ActivateAccount(create, principalID,
-		account.ID, requestBody.BudgetAmount, requestBody.BudgetCurrency, requestBody.BudgetNotificationEmails)
+		account.ID, requestBody.BudgetAmount, requestBody.BudgetCurrency, requestBody.BudgetNotificationEmails,
+		requestBody.ExpiresOn)
 	if err != nil {
 		log.Printf("Failed to Activate Account Lease: %s", err)
 		return response.ServerErrorWithResponse(fmt.Sprintf("Failed to Create Lease for Account : %s", account.ID)), nil
@@ -115,6 +128,7 @@ func (c CreateController) Call(ctx context.Context, req *events.APIGatewayProxyR
 		return rollbackProvision(c.Provisioner, err, true, principalID, account.ID), nil
 	}
 
+	// Return the response back to API
 	return events.APIGatewayProxyResponse{
 		StatusCode: http.StatusCreated,
 		Body:       *message,

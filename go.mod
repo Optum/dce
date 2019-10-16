@@ -8,7 +8,7 @@ require (
 	github.com/aws/aws-sdk-go v1.20.3
 	github.com/boombuler/barcode v1.0.0 // indirect
 	github.com/go-sql-driver/mysql v1.4.1 // indirect
-	github.com/google/uuid v1.1.1 // indirect
+	github.com/google/uuid v1.1.1
 	github.com/gruntwork-io/terratest v0.15.13
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/mattn/go-colorable v0.1.1 // indirect

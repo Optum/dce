@@ -41,6 +41,13 @@ type ErrorBase struct {
 	Message string `json:"message"`
 }
 
+func BadRequestError(message string) events.APIGatewayProxyResponse {
+	return CreateAPIErrorResponse(
+		http.StatusBadRequest,
+		CreateErrorResponse("ClientError", message),
+	)
+}
+
 func RequestValidationError(message string) events.APIGatewayProxyResponse {
 	return CreateAPIErrorResponse(
 		400,

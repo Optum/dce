@@ -3,6 +3,8 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"testing"
+
 	awsMocks "github.com/Optum/Redbox/pkg/awsiface/mocks"
 	"github.com/Optum/Redbox/pkg/db"
 	dbMocks "github.com/Optum/Redbox/pkg/db/mocks"
@@ -10,7 +12,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestLambdaHandler(t *testing.T) {
@@ -28,7 +29,7 @@ func TestLambdaHandler(t *testing.T) {
 		lambdaSvc := &awsMocks.LambdaAPI{}
 		lambdaSvc.On("Invoke",
 			mock.MatchedBy(func(input *lambda.InvokeInput) bool {
-				assert.Equal(t, "check_budget", *input.FunctionName)
+				assert.Equal(t, "update_lease_status", *input.FunctionName)
 				assert.Equal(t, "Event", *input.InvocationType)
 
 				// Make sure the payload is a lease
@@ -42,9 +43,9 @@ func TestLambdaHandler(t *testing.T) {
 
 		// Call the handler
 		err := lambdaHandler(&lambdaHandlerInput{
-			dbSvc:                   dbSvc,
-			lambdaSvc:               lambdaSvc,
-			checkBudgetFunctionName: "check_budget",
+			dbSvc:                         dbSvc,
+			lambdaSvc:                     lambdaSvc,
+			updateLeaseStatusFunctionName: "update_lease_status",
 		})
 		require.Nil(t, err)
 
@@ -60,9 +61,9 @@ func TestLambdaHandler(t *testing.T) {
 
 		// Call the handler
 		err := lambdaHandler(&lambdaHandlerInput{
-			dbSvc:                   dbSvc,
-			lambdaSvc:               &awsMocks.LambdaAPI{},
-			checkBudgetFunctionName: "check_budget",
+			dbSvc:                         dbSvc,
+			lambdaSvc:                     &awsMocks.LambdaAPI{},
+			updateLeaseStatusFunctionName: "update_lease_status",
 		})
 		require.Equal(t, errors.New("db error"), err)
 	})
@@ -92,9 +93,9 @@ func TestLambdaHandler(t *testing.T) {
 
 		// Call the handler
 		err := lambdaHandler(&lambdaHandlerInput{
-			dbSvc:                   dbSvc,
-			lambdaSvc:               lambdaSvc,
-			checkBudgetFunctionName: "check_budget",
+			dbSvc:                         dbSvc,
+			lambdaSvc:                     lambdaSvc,
+			updateLeaseStatusFunctionName: "update_lease_status",
 		})
 		// should return an error
 		require.Regexp(t, "second lambda invoke failed", err)
@@ -114,9 +115,9 @@ func TestLambdaHandler(t *testing.T) {
 
 		// Call the handler
 		err := lambdaHandler(&lambdaHandlerInput{
-			dbSvc:                   dbSvc,
-			lambdaSvc:               lambdaSvc,
-			checkBudgetFunctionName: "check_budget",
+			dbSvc:                         dbSvc,
+			lambdaSvc:                     lambdaSvc,
+			updateLeaseStatusFunctionName: "update_lease_status",
 		})
 		require.Nil(t, err)
 

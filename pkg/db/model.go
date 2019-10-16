@@ -15,15 +15,18 @@ type RedboxAccount struct {
 // RedboxLease is a type corresponding to a RedboxLease
 // table record
 type RedboxLease struct {
-	AccountID                string      `json:"AccountId"`                // AWS Account ID
-	PrincipalID              string      `json:"PrincipalId"`              // Azure User Principal ID
-	LeaseStatus              LeaseStatus `json:"LeaseStatus"`              // Status of the Lease
-	CreatedOn                int64       `json:"CreatedOn"`                // Created Epoch Timestamp
-	LastModifiedOn           int64       `json:"LastModifiedOn"`           // Last Modified Epoch Timestamp
-	BudgetAmount             float64     `json:"BudgetAmount"`             // Budget Amount allocated for this lease
-	BudgetCurrency           string      `json:"BudgetCurrency"`           // Budget currency
-	BudgetNotificationEmails []string    `json:"BudgetNotificationEmails"` // Budget notification emails
-	LeaseStatusModifiedOn    int64       `json:"LeaseStatusModifiedOn"`    // Last Modified Epoch Timestamp
+	AccountID                string            `json:"AccountId"`                // AWS Account ID
+	PrincipalID              string            `json:"PrincipalId"`              // Azure User Principal ID
+	ID                       string            `json:"Id"`                       // Lease ID
+	LeaseStatus              LeaseStatus       `json:"LeaseStatus"`              // Status of the Lease
+	LeaseStatusReason        LeaseStatusReason `json:"LeaseStatusReason"`        // Reason for the status of the lease
+	CreatedOn                int64             `json:"CreatedOn"`                // Created Epoch Timestamp
+	LastModifiedOn           int64             `json:"LastModifiedOn"`           // Last Modified Epoch Timestamp
+	BudgetAmount             float64           `json:"BudgetAmount"`             // Budget Amount allocated for this lease
+	BudgetCurrency           string            `json:"BudgetCurrency"`           // Budget currency
+	BudgetNotificationEmails []string          `json:"BudgetNotificationEmails"` // Budget notification emails
+	LeaseStatusModifiedOn    int64             `json:"LeaseStatusModifiedOn"`    // Last Modified Epoch Timestamp
+	ExpiresOn                int64             `json:"ExpiresOn"`                // Lease expiration time as Epoch
 }
 
 // Timestamp is a timestamp type for epoch format
@@ -53,14 +56,23 @@ type LeaseStatus string
 const (
 	// Active status
 	Active LeaseStatus = "Active"
-	// Decommissioned status
-	Decommissioned LeaseStatus = "Decommissioned"
-	// FinanceLock status
-	FinanceLock LeaseStatus = "FinanceLock"
-	// ResetLock status
-	ResetLock LeaseStatus = "ResetLock"
-	// ResetFinanceLock status
-	// Same as ResetLock but the account's status was FinanceLock beforehand
-	// and should be FinanceLock after a Reset has been applied
-	ResetFinanceLock LeaseStatus = "ResetFinanceLock"
+	// Inactive status
+	Inactive LeaseStatus = "Inactive"
+)
+
+// LeaseStatusReason provides consistent verbiage for lease status change reasons.
+type LeaseStatusReason string
+
+const (
+	// LeaseExpired means the lease has past its expiresOn date and therefore expired.
+	LeaseExpired LeaseStatusReason = "Expired"
+	// LeaseOverBudget means the lease is over its budgeted amount and is therefore reset/reclaimed.
+	LeaseOverBudget LeaseStatusReason = "OverBudget"
+	// LeaseDestroyed means the lease has been deleted via an API call or other user action.
+	LeaseDestroyed LeaseStatusReason = "Destroyed"
+	// LeaseActive means the lease is still active.
+	LeaseActive LeaseStatusReason = "Active"
+	// LeaseRolledBack means something happened in the system that caused the lease to be inactive
+	// based on an error happening and rollback occuring
+	LeaseRolledBack LeaseStatusReason = "Rollback"
 )

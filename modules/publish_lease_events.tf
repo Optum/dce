@@ -1,10 +1,10 @@
-module "publish_locks_lambda" {
+module "publish_lease_events_lambda" {
   source          = "./lambda"
-  name            = "publish_locks-${var.namespace}"
+  name            = "publish_lease_events-${var.namespace}"
   namespace       = var.namespace
-  description     = "Publishes to SNS lease-locked and lease-unlocked topics in response to DB changes"
+  description     = "Publishes lease change events to SNS and SQS in response to DB changes"
   global_tags     = var.global_tags
-  handler         = "publish_locks"
+  handler         = "publish_lease_events"
   alarm_topic_arn = aws_sns_topic.alarms_topic.arn
 
   environment = {
@@ -13,18 +13,19 @@ module "publish_locks_lambda" {
     LEASE_DB                 = aws_dynamodb_table.redbox_lease.id
     LEASE_LOCKED_TOPIC_ARN   = aws_sns_topic.lease_locked.arn
     LEASE_UNLOCKED_TOPIC_ARN = aws_sns_topic.lease_unlocked.arn
+    RESET_QUEUE_URL          = aws_sqs_queue.account_reset.id
   }
 }
 
-resource "aws_lambda_event_source_mapping" "publish_locks_from_dynamo_db" {
+resource "aws_lambda_event_source_mapping" "publish_lease_events_from_dynamo_db" {
   event_source_arn  = aws_dynamodb_table.redbox_lease.stream_arn
-  function_name     = module.publish_locks_lambda.name
+  function_name     = module.publish_lease_events_lambda.name
   batch_size        = 1
   starting_position = "LATEST"
 }
 
-resource "aws_iam_role_policy" "publish_locks_lambda_dynamo_db" {
-  role   = module.publish_locks_lambda.execution_role_name
+resource "aws_iam_role_policy" "publish_lease_events_lambda_dynamo_db" {
+  role   = module.publish_lease_events_lambda.execution_role_name
   policy = <<POLICY
 {
   "Version": "2012-10-17",
@@ -43,6 +44,15 @@ resource "aws_iam_role_policy" "publish_locks_lambda_dynamo_db" {
         "Effect": "Allow",
         "Action": [
             "sns:Publish"
+        ],
+        "Resource": [
+            "*"
+        ]
+    },
+    {
+        "Effect": "Allow",
+        "Action": [
+            "sqs:Publish"
         ],
         "Resource": [
             "*"

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/Optum/Redbox/pkg/db"
+	guuid "github.com/google/uuid"
 )
 
 // Provisioner interface for providing helper methods for provisioning a
@@ -15,7 +16,7 @@ type Provisioner interface {
 	FindActiveLeaseForPrincipal(string) (*db.RedboxLease, error)
 	FindLeaseWithAccount(string, string) (*db.RedboxLease,
 		error)
-	ActivateAccount(bool, string, string, float64, string, []string) (*db.RedboxLease,
+	ActivateAccount(bool, string, string, float64, string, []string, int64) (*db.RedboxLease,
 		error)
 	RollbackProvisionAccount(bool, string, string) error
 }
@@ -26,7 +27,7 @@ type AccountProvision struct {
 }
 
 // FindActiveLeaseForPrincipal is a helper function to find if there's any actively
-// leased (Active/FinanceLock/ResetLock) account attached to a principal
+// leased (Active/Inactive) account attached to a principal
 func (prov *AccountProvision) FindActiveLeaseForPrincipal(principalID string) (
 	*db.RedboxLease, error) {
 	// Check if the principal has any existing Active/FinanceLock/ResetLock
@@ -37,7 +38,7 @@ func (prov *AccountProvision) FindActiveLeaseForPrincipal(principalID string) (
 		return nil, err
 	}
 	for _, lease := range leases {
-		if lease.LeaseStatus != db.Decommissioned {
+		if lease.LeaseStatus != db.Inactive {
 			activeLease = lease
 			break
 		}
@@ -61,7 +62,7 @@ func (prov *AccountProvision) FindLeaseWithAccount(principalID string,
 	for _, l := range leases {
 		// Check if the status is Active
 		// If so, return an error
-		if l.LeaseStatus != db.Decommissioned {
+		if l.LeaseStatus == db.Active {
 			errStr := fmt.Sprintf("Attempt to lease Active Account as new "+
 				"Redbox - %s", accountID)
 			return nil, errors.New(errStr)
@@ -80,18 +81,21 @@ func (prov *AccountProvision) FindLeaseWithAccount(principalID string,
 // Returns the lease that has been activated - does not return any previous
 // leases
 func (prov *AccountProvision) ActivateAccount(create bool,
-	principalID string, accountID string, budgetAmount float64, budgetCurrency string, budgetNotificationEmails []string) (*db.RedboxLease, error) {
+	principalID string, accountID string, budgetAmount float64, budgetCurrency string,
+	budgetNotificationEmails []string, expiresOn int64) (*db.RedboxLease, error) {
 	// Create a new Redbox Account Lease if there doesn't exist one already
 	// else, update the existing lease to active
 	var assgn *db.RedboxLease
 	var err error
 	if create {
+		leaseID := guuid.New()
 		log.Printf("Create new Lease for Principal %s and Account %s\n",
 			principalID, accountID)
 		timeNow := time.Now().Unix()
 		lease := &db.RedboxLease{
 			AccountID:                accountID,
 			PrincipalID:              principalID,
+			ID:                       leaseID.String(),
 			LeaseStatus:              db.Active,
 			BudgetAmount:             budgetAmount,
 			BudgetCurrency:           budgetCurrency,
@@ -99,6 +103,7 @@ func (prov *AccountProvision) ActivateAccount(create bool,
 			CreatedOn:                timeNow,
 			LastModifiedOn:           timeNow,
 			LeaseStatusModifiedOn:    timeNow,
+			ExpiresOn:                expiresOn,
 		}
 		_, err = prov.DBSvc.PutLease(*lease) // new leases return an empty lease
 		// Failed to Create Lease
@@ -110,7 +115,7 @@ func (prov *AccountProvision) ActivateAccount(create bool,
 		log.Printf("Update existing Lease for Principal %s and Account %s\n",
 			principalID, accountID)
 		assgn, err = prov.DBSvc.TransitionLeaseStatus(accountID, principalID,
-			db.Decommissioned, db.Active)
+			db.Inactive, db.Active, db.LeaseActive)
 		// Failed to Update Lease
 		if err != nil {
 			return nil, err
@@ -126,7 +131,7 @@ func (prov *AccountProvision) RollbackProvisionAccount(
 	transitionAccountStatus bool, principalID string, accountID string) error {
 	// Reverse Account Lease- Set next state as Decommissioned
 	_, errLease := prov.DBSvc.TransitionLeaseStatus(accountID, principalID,
-		db.Active, db.Decommissioned)
+		db.Active, db.Inactive, db.LeaseRolledBack)
 
 	// Reverse Account - Set next state as Ready
 	if transitionAccountStatus {

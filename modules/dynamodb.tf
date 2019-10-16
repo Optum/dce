@@ -73,6 +73,14 @@ resource "aws_dynamodb_table" "redbox_lease" {
     write_capacity  = 5
   }
 
+  global_secondary_index {
+    name            = "LeaseId"
+    hash_key        = "Id"
+    projection_type = "ALL"
+    read_capacity   = 5
+    write_capacity  = 5
+  }
+
   # AWS Account ID
   attribute {
     name = "AccountId"
@@ -82,9 +90,7 @@ resource "aws_dynamodb_table" "redbox_lease" {
   # Lease status.
   # May be one of:
   # - ACTIVE
-  # - FINANCE_LOCK
-  # - RESET_LOCK
-  # - DECOMMISSIONED
+  # - INACTIVE
   attribute {
     name = "LeaseStatus"
     type = "S"
@@ -96,9 +102,16 @@ resource "aws_dynamodb_table" "redbox_lease" {
     type = "S"
   }
 
+  # Lease ID
+  attribute {
+    name = "Id"
+    type = "S"
+  }
+
   tags = var.global_tags
   /*
   Other attributes:
+    - LeaseStatusReason (string)
     - CreatedOn (Integer, epoch timestamps)
     - LastModifiedOn (Integer, epoch timestamps)
     - LeaseStatusModifiedOn (Integer, epoch timestamps)
