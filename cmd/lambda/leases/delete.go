@@ -8,9 +8,7 @@ import (
 	"net/http"
 
 	"github.com/Optum/Redbox/pkg/api/response"
-	"github.com/Optum/Redbox/pkg/rolemanager"
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/aws/aws-sdk-go/aws/session"
 
 	"github.com/Optum/Redbox/pkg/common"
 	"github.com/Optum/Redbox/pkg/db"
@@ -31,11 +29,6 @@ type DeleteController struct {
 	ResetQueueURL          string
 	SNS                    common.Notificationer
 	AccountDeletedTopicArn string
-	AWSSession             session.Session
-	TokenService           common.TokenService
-	RoleManager            rolemanager.RoleManager
-	PrincipalRoleName      string
-	PrincipalPolicyName    string
 }
 
 func (c DeleteController) Call(ctx context.Context, req *events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
