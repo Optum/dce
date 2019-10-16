@@ -65,7 +65,7 @@ func TestCreateAPIErrorResponse(t *testing.T) {
 
 	// Iterate through each test in the list
 	for _, test := range tests {
-		actualResponse := createAPIErrorResponse(test.ResponseCode, test.ErrResp)
+		actualResponse := response.CreateAPIErrorResponse(test.ResponseCode, test.ErrResp)
 		require.Equal(t, test.ExpectedResponse, actualResponse)
 	}
 }
@@ -164,18 +164,12 @@ func TestProvisionAccount(t *testing.T) {
 	}
 	successfulLeaseResponse :=
 		response.CreateLeaseResponse(successfulLease)
-	successfulLeaseBytes, err :=
-		json.Marshal(successfulLeaseResponse)
-	if err != nil {
-		log.Fatalf("Failed to Marshal Account Lease: %s", err)
-	}
 
 	// Construct test scenarios
 	tests := []testProvisionAccountInput{
 		// Happy Path - Existing Lease
 		{
-			ExpectedResponse: createAPIResponse(http.StatusCreated,
-				string(successfulLeaseBytes)),
+			ExpectedResponse: response.CreateJSONResponse(http.StatusCreated, successfulLeaseResponse),
 			GetReadyAccountAccount: &db.RedboxAccount{
 				ID:            "123",
 				AccountStatus: db.Ready,
@@ -190,8 +184,7 @@ func TestProvisionAccount(t *testing.T) {
 		},
 		// Happy Path - New Lease
 		{
-			ExpectedResponse: createAPIResponse(http.StatusCreated,
-				string(successfulLeaseBytes)),
+			ExpectedResponse: response.CreateJSONResponse(http.StatusCreated, successfulLeaseResponse),
 			GetReadyAccountAccount: &db.RedboxAccount{
 				ID:            "123",
 				AccountStatus: db.Ready,
@@ -202,14 +195,14 @@ func TestProvisionAccount(t *testing.T) {
 		},
 		// Error Checking Leases
 		{
-			ExpectedResponse: createAPIErrorResponse(http.StatusInternalServerError,
+			ExpectedResponse: response.CreateAPIErrorResponse(http.StatusInternalServerError,
 				response.CreateErrorResponse("ServerError",
 					"Cannot verify if Principal has existing Redbox Account : Find Lease Error")),
 			FindActiveLeaseForPrincipalError: errors.New("Find Lease Error"),
 		},
 		// Principal already has an active account
 		{
-			ExpectedResponse: createAPIErrorResponse(http.StatusConflict,
+			ExpectedResponse: response.CreateAPIErrorResponse(http.StatusConflict,
 				response.CreateErrorResponse("ClientError",
 					"Principal already has an existing Redbox: 456")),
 			FindActiveLeaseForPrincipal: &db.RedboxLease{
@@ -220,7 +213,7 @@ func TestProvisionAccount(t *testing.T) {
 		},
 		// Error Getting Ready Accounts
 		{
-			ExpectedResponse: createAPIErrorResponse(http.StatusInternalServerError,
+			ExpectedResponse: response.CreateAPIErrorResponse(http.StatusInternalServerError,
 				response.CreateErrorResponse("ServerError",
 					"Cannot get Available Redbox Accounts : Get Ready Account Error")),
 			FindActiveLeaseForPrincipal: &db.RedboxLease{},
@@ -228,7 +221,7 @@ func TestProvisionAccount(t *testing.T) {
 		},
 		// No ready accounts
 		{
-			ExpectedResponse: createAPIErrorResponse(http.StatusServiceUnavailable,
+			ExpectedResponse: response.CreateAPIErrorResponse(http.StatusServiceUnavailable,
 				response.CreateErrorResponse("ServerError",
 					"No Available Redbox Accounts at this moment")),
 			FindActiveLeaseForPrincipal: &db.RedboxLease{},
@@ -236,7 +229,7 @@ func TestProvisionAccount(t *testing.T) {
 		},
 		// Error Finding Lease With Account
 		{
-			ExpectedResponse: createAPIErrorResponse(http.StatusInternalServerError,
+			ExpectedResponse: response.CreateAPIErrorResponse(http.StatusInternalServerError,
 				response.CreateErrorResponse("ServerError",
 					"Cannot get Available Redbox Accounts : Find Lease with Account Error")),
 			GetReadyAccountAccount: &db.RedboxAccount{
@@ -248,7 +241,7 @@ func TestProvisionAccount(t *testing.T) {
 		},
 		// Error Activate Account Lease
 		{
-			ExpectedResponse: createAPIErrorResponse(http.StatusInternalServerError,
+			ExpectedResponse: response.CreateAPIErrorResponse(http.StatusInternalServerError,
 				response.CreateErrorResponse("ServerError",
 					"Failed to Create Lease for Account : 123")),
 			GetReadyAccountAccount: &db.RedboxAccount{
@@ -261,7 +254,7 @@ func TestProvisionAccount(t *testing.T) {
 		},
 		// Error Transition Account Status
 		{
-			ExpectedResponse: createAPIErrorResponse(http.StatusInternalServerError,
+			ExpectedResponse: response.CreateAPIErrorResponse(http.StatusInternalServerError,
 				response.CreateErrorResponse("ServerError",
 					"Failed to Create Lease for 123 - abc")),
 			GetReadyAccountAccount: &db.RedboxAccount{
@@ -274,7 +267,7 @@ func TestProvisionAccount(t *testing.T) {
 		},
 		// Error Transition Account Status Rollback
 		{
-			ExpectedResponse: createAPIErrorResponse(http.StatusInternalServerError,
+			ExpectedResponse: response.CreateAPIErrorResponse(http.StatusInternalServerError,
 				response.CreateErrorResponse("ServerError",
 					"Failed to Rollback Account Lease for 123 - abc")),
 			GetReadyAccountAccount: &db.RedboxAccount{
@@ -288,7 +281,7 @@ func TestProvisionAccount(t *testing.T) {
 		},
 		// Error Publish Message
 		{
-			ExpectedResponse: createAPIErrorResponse(http.StatusInternalServerError,
+			ExpectedResponse: response.CreateAPIErrorResponse(http.StatusInternalServerError,
 				response.CreateErrorResponse("ServerError",
 					"Failed to Create Lease for 123 - abc")),
 			GetReadyAccountAccount: &db.RedboxAccount{
@@ -302,7 +295,7 @@ func TestProvisionAccount(t *testing.T) {
 		},
 		// Error Publish Message Rollback
 		{
-			ExpectedResponse: createAPIErrorResponse(http.StatusInternalServerError,
+			ExpectedResponse: response.CreateAPIErrorResponse(http.StatusInternalServerError,
 				response.CreateErrorResponse("ServerError",
 					"Failed to Rollback Account Lease for 123 - abc")),
 			GetReadyAccountAccount: &db.RedboxAccount{
@@ -408,7 +401,7 @@ func TestDecommissionAccount(t *testing.T) {
 	tests := []testDecommissionAccountInput{
 		// Happy Path
 		{
-			ExpectedResponse: createAPIResponse(http.StatusOK,
+			ExpectedResponse: response.CreateAPIResponse(http.StatusOK,
 				string(successfulLeaseBytes)),
 			FindLeaseByLeases: []*db.RedboxLease{
 				&db.RedboxLease{
@@ -425,14 +418,14 @@ func TestDecommissionAccount(t *testing.T) {
 		},
 		// Fail to find Lease - No Leases
 		{
-			ExpectedResponse: createAPIErrorResponse(http.StatusInternalServerError,
+			ExpectedResponse: response.CreateAPIErrorResponse(http.StatusInternalServerError,
 				response.CreateErrorResponse("ServerError",
 					"Cannot verify if Principal abc has a Redbox Lease")),
 			FindLeaseByPrincipalError: errors.New("Fail finding Lease"),
 		},
 		// Fail to find Lease - No Active Leases
 		{
-			ExpectedResponse: createAPIErrorResponse(http.StatusBadRequest,
+			ExpectedResponse: response.CreateAPIErrorResponse(http.StatusBadRequest,
 				response.CreateErrorResponse("ClientError",
 					"No active account leases found for abc")),
 			FindLeaseByLeases: []*db.RedboxLease{
@@ -445,7 +438,7 @@ func TestDecommissionAccount(t *testing.T) {
 		},
 		// Fail to find Lease - Lease with Different ID
 		{
-			ExpectedResponse: createAPIErrorResponse(http.StatusBadRequest,
+			ExpectedResponse: response.CreateAPIErrorResponse(http.StatusBadRequest,
 				response.CreateErrorResponse("ClientError",
 					"No active account leases found for abc")),
 			FindLeaseByLeases: []*db.RedboxLease{
@@ -458,7 +451,7 @@ func TestDecommissionAccount(t *testing.T) {
 		},
 		// Fail to decommission a Decommissioned Lease
 		{
-			ExpectedResponse: createAPIErrorResponse(http.StatusBadRequest,
+			ExpectedResponse: response.CreateAPIErrorResponse(http.StatusBadRequest,
 				response.CreateErrorResponse("ClientError",
 					"Account Lease is not active for abc - 123")),
 			FindLeaseByLeases: []*db.RedboxLease{
@@ -471,7 +464,7 @@ func TestDecommissionAccount(t *testing.T) {
 		},
 		// Fail transition Lease Status
 		{
-			ExpectedResponse: createAPIErrorResponse(http.StatusInternalServerError,
+			ExpectedResponse: response.CreateAPIErrorResponse(http.StatusInternalServerError,
 				response.CreateErrorResponse("ServerError",
 					"Failed Decommission on Account Lease abc - 123")),
 			FindLeaseByLeases: []*db.RedboxLease{
@@ -485,7 +478,7 @@ func TestDecommissionAccount(t *testing.T) {
 		},
 		// Fail tranition Account Status
 		{
-			ExpectedResponse: createAPIErrorResponse(http.StatusInternalServerError,
+			ExpectedResponse: response.CreateAPIErrorResponse(http.StatusInternalServerError,
 				response.CreateErrorResponse("ServerError",
 					"Failed Decommission on Account Lease abc - 123")),
 			FindLeaseByLeases: []*db.RedboxLease{
@@ -499,7 +492,7 @@ func TestDecommissionAccount(t *testing.T) {
 		},
 		// Fail sending Reset Message
 		{
-			ExpectedResponse: createAPIErrorResponse(http.StatusInternalServerError,
+			ExpectedResponse: response.CreateAPIErrorResponse(http.StatusInternalServerError,
 				response.CreateErrorResponse("ServerError",
 					"Failed Decommission on Account Lease abc - 123")),
 			FindLeaseByLeases: []*db.RedboxLease{
@@ -517,7 +510,7 @@ func TestDecommissionAccount(t *testing.T) {
 		},
 		// Error Publish Message
 		{
-			ExpectedResponse: createAPIErrorResponse(http.StatusInternalServerError,
+			ExpectedResponse: response.CreateAPIErrorResponse(http.StatusInternalServerError,
 				response.CreateErrorResponse("ServerError",
 					"Failed Decommission on Account Lease abc - 123")),
 			FindLeaseByLeases: []*db.RedboxLease{
