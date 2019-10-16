@@ -4,6 +4,7 @@
 - README updates to include current steps for build and deployment.
 - Pull requests authored by non-team members will not build until a team member comments
 - Add usage table arn to tf output
+- Add email with attachment
 - Adds GET /leases API support
 - Add ID to the Leases table
 - Added expiration date for lease ends
