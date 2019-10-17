@@ -32,17 +32,21 @@ func (router *Router) Route(ctx context.Context, req *events.APIGatewayProxyRequ
 
 	var res events.APIGatewayProxyResponse
 	var err error
+	strLen := len(router.ResourceName)
 	switch {
 	case req.HTTPMethod == http.MethodGet && strings.Compare(req.Path, router.ResourceName) == 0:
 		res, err = router.ListController.Call(ctx, req)
-	case req.HTTPMethod == http.MethodGet && strings.Contains(req.Path, fmt.Sprintf("%s/", router.ResourceName)):
+	case req.HTTPMethod == http.MethodGet && strings.Compare(string(req.Path[0:strLen+1]), fmt.Sprintf("%s/", router.ResourceName)) == 0:
 		res, err = router.GetController.Call(ctx, req)
-	case req.HTTPMethod == http.MethodDelete && strings.Contains(req.Path, fmt.Sprintf("%s/", router.ResourceName)):
+	case req.HTTPMethod == http.MethodDelete &&
+		(strings.Compare(req.Path, fmt.Sprintf("%s/", router.ResourceName)) == 0 || strings.Compare(req.Path, router.ResourceName) == 0):
 		res, err = router.DeleteController.Call(ctx, req)
 	case req.HTTPMethod == http.MethodPost && strings.Compare(req.Path, router.ResourceName) == 0:
 		res, err = router.CreateController.Call(ctx, req)
 	default:
-		return response.NotFoundError(), nil
+		errMsg := fmt.Sprintf("Resource %s not found for method %s", req.Path, req.HTTPMethod)
+		log.Printf(errMsg)
+		return response.BadRequestError(errMsg), nil
 	}
 
 	// Handle errors that the controllers did not know how to handle

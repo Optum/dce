@@ -56,7 +56,7 @@ func TestCreateController_Call(t *testing.T) {
 	}
 
 	successResponse := createSuccessCreateResponse()
-	badRequestResponse := response.ClientErrorWithResponse(fmt.Sprintf("Failed to Parse Request Body: %s", ""))
+	badRequestResponse := response.ClientBadRequestError(fmt.Sprintf("Failed to Parse Request Body: %s", ""))
 	pastRequestResponse := response.BadRequestError("Requested lease has a desired expiry date less than today: 1570627876")
 
 	successArgs := &args{ctx: context.Background(), req: createSuccessfulCreateRequest()}

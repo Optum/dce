@@ -58,7 +58,7 @@ func TestDeleteController_Call(t *testing.T) {
 	}
 
 	successResponse := createSuccessDeleteResponse()
-	badRequestResponse := response.ClientErrorWithResponse(fmt.Sprintf("Failed to Parse Request Body: %s", ""))
+	badRequestResponse := response.ClientBadRequestError(fmt.Sprintf("Failed to Parse Request Body: %s", ""))
 	notFoundRequest := response.NotFoundError()
 
 	successArgs := &args{ctx: context.Background(), req: createSuccessfulDeleteRequest()}

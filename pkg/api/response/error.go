@@ -69,6 +69,12 @@ func ClientErrorWithResponse(message string) events.APIGatewayProxyResponse {
 	)
 }
 
+func ClientBadRequestError(message string) events.APIGatewayProxyResponse {
+	return CreateAPIErrorResponse(
+		http.StatusBadRequest,
+		CreateErrorResponse("ClientError", message),
+	)
+}
 func ServerError() events.APIGatewayProxyResponse {
 	return CreateAPIErrorResponse(
 		500,
@@ -83,10 +89,24 @@ func ServerErrorWithResponse(message string) events.APIGatewayProxyResponse {
 	)
 }
 
+func ServiceUnavailableError(message string) events.APIGatewayProxyResponse {
+	return CreateAPIErrorResponse(
+		http.StatusServiceUnavailable,
+		CreateErrorResponse("ServerError", message),
+	)
+}
+
 func AlreadyExistsError() events.APIGatewayProxyResponse {
 	return CreateAPIErrorResponse(
 		409,
 		CreateErrorResponse("AlreadyExistsError", "The requested resource cannot be created, as it conflicts with an existing resource"),
+	)
+}
+
+func ConflictError(message string) events.APIGatewayProxyResponse {
+	return CreateAPIErrorResponse(
+		http.StatusConflict,
+		CreateErrorResponse("ClientError", message),
 	)
 }
 

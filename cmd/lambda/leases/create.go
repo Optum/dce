@@ -47,7 +47,7 @@ func (c CreateController) Call(ctx context.Context, req *events.APIGatewayProxyR
 		err = json.Unmarshal([]byte(req.Body), requestBody)
 		if err != nil || requestBody.PrincipalID == "" {
 			log.Printf("Failed to Parse Request Body: %s", req.Body)
-			return response.ClientErrorWithResponse(fmt.Sprintf("Failed to Parse Request Body: %s", req.Body)), nil
+			return response.ClientBadRequestError(fmt.Sprintf("Failed to Parse Request Body: %s", req.Body)), nil
 		}
 	}
 
@@ -74,7 +74,7 @@ func (c CreateController) Call(ctx context.Context, req *events.APIGatewayProxyR
 		errStr := fmt.Sprintf("Principal already has an existing Redbox: %s",
 			checkLease.AccountID)
 		log.Printf(errStr)
-		return response.ClientErrorWithResponse(errStr), nil
+		return response.ConflictError(errStr), nil
 	}
 	log.Printf("Principal %s has no Active Leases\n", principalID)
 
@@ -88,7 +88,7 @@ func (c CreateController) Call(ctx context.Context, req *events.APIGatewayProxyR
 	} else if account == nil {
 		errStr := "No Available Redbox Accounts at this moment"
 		log.Printf(errStr)
-		return response.ServerErrorWithResponse(errStr), nil
+		return response.ServiceUnavailableError(errStr), nil
 	}
 	log.Printf("Principal %s will be Leased to Account: %s\n", principalID,
 		account.ID)

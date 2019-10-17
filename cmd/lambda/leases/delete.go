@@ -38,7 +38,7 @@ func (c DeleteController) Call(ctx context.Context, req *events.APIGatewayProxyR
 	err := json.Unmarshal([]byte(req.Body), requestBody)
 	if err != nil || requestBody.PrincipalID == "" {
 		log.Printf("Failed to Parse Request Body: %s", req.Body)
-		return response.ClientErrorWithResponse(fmt.Sprintf("Failed to Parse Request Body: %s", req.Body)), nil
+		return response.ClientBadRequestError(fmt.Sprintf("Failed to Parse Request Body: %s", req.Body)), nil
 	}
 
 	principalID := requestBody.PrincipalID
@@ -54,7 +54,7 @@ func (c DeleteController) Call(ctx context.Context, req *events.APIGatewayProxyR
 	if accts == nil {
 		errStr := fmt.Sprintf("No account leases found for %s", principalID)
 		log.Printf("Error: %s", errStr)
-		return response.NotFoundError(), nil
+		return response.ClientBadRequestError(errStr), nil
 	}
 
 	// Get the Account Lease
@@ -70,11 +70,11 @@ func (c DeleteController) Call(ctx context.Context, req *events.APIGatewayProxyR
 	} else if acct.LeaseStatus != db.Active {
 		errStr := fmt.Sprintf("Account Lease is not active for %s - %s",
 			principalID, accountID)
-		return response.ClientErrorWithResponse(errStr), nil
+		return response.ClientBadRequestError(errStr), nil
 	}
 
 	// Transition the Lease Status
-	_, err = c.Dao.TransitionLeaseStatus(acct.AccountID, principalID,
+	updatedLease, err := c.Dao.TransitionLeaseStatus(acct.AccountID, principalID,
 		db.Active, db.Inactive, db.LeaseDestroyed)
 	if err != nil {
 		log.Printf("Error transitioning lease status: %s", err)
@@ -88,8 +88,6 @@ func (c DeleteController) Call(ctx context.Context, req *events.APIGatewayProxyR
 		return response.ServerErrorWithResponse(fmt.Sprintf("Failed Decommission on Account Lease %s - %s", principalID, accountID)), nil
 	}
 
-	// return createAPIResponse(http.StatusOK, *message)
-	return events.APIGatewayProxyResponse{
-		StatusCode: http.StatusOK,
-	}, nil
+	leaseResponse := response.LeaseResponse(*updatedLease)
+	return response.CreateJSONResponse(http.StatusOK, leaseResponse), nil
 }
