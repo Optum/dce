@@ -12,15 +12,15 @@ data "template_file" "aws_redbox_api_swagger" {
   template = file("${path.module}/swaggerRedbox.yaml")
 
   vars = {
-    leases_lambda   = aws_lambda_function.leases.invoke_arn
-    accounts_lambda = aws_lambda_function.accounts_lambda.invoke_arn
-    usages_lambda   = aws_lambda_function.usage.invoke_arn
+    leases_lambda   = module.leases_lambda.invoke_arn
+    accounts_lambda = module.accounts_lambda.invoke_arn
+    usages_lambda   = module.usage_lambda.invoke_arn
     namespace       = "AWS_Redbox-${var.namespace}"
   }
 }
 
 resource "aws_lambda_permission" "allow_api_gateway" {
-  function_name = aws_lambda_function.leases.arn
+  function_name = module.leases_lambda.arn
   statement_id  = "AllowExecutionFromApiGateway"
   action        = "lambda:InvokeFunction"
   principal     = "apigateway.amazonaws.com"
@@ -28,7 +28,7 @@ resource "aws_lambda_permission" "allow_api_gateway" {
 }
 
 resource "aws_lambda_permission" "allow_api_gateway_accounts_accounts_lambda" {
-  function_name = aws_lambda_function.accounts_lambda.arn
+  function_name = module.accounts_lambda.arn
   statement_id  = "AllowExecutionFromApiGateway"
   action        = "lambda:InvokeFunction"
   principal     = "apigateway.amazonaws.com"
@@ -36,7 +36,7 @@ resource "aws_lambda_permission" "allow_api_gateway_accounts_accounts_lambda" {
 }
 
 resource "aws_lambda_permission" "allow_api_gateway_usages_lambda" {
-  function_name = aws_lambda_function.usage.arn
+  function_name = module.usage_lambda.arn
   statement_id  = "AllowExecutionFromApiGateway"
   action        = "lambda:InvokeFunction"
   principal     = "apigateway.amazonaws.com"
