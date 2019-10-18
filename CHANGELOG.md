@@ -7,6 +7,10 @@
 - Changed check_budget to update_lease_status and added check for expiration date.
 - Changed SQS and SNS notifications for lease status change to be triggered by lease status change in DB.
 
+## v0.18.1
+
+- Fix IAM policy for DCE principal, to allow full access to CloudWatch logs
+
 ## v0.18.0
 
 - Minor fixes to `scripts/deploy_local/deploy_local_build.sh` for options to be recognized.

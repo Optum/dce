@@ -14,6 +14,7 @@ trigger:
 # Run builds for PRs against `master`
 pr:
   - master
+  - release/*
 
 steps:
 # Setup Python
