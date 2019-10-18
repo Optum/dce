@@ -1,3 +1,7 @@
+## v0.18.1
+
+- Fix IAM policy for DCE principal, to allow full access to CloudWatch logs
+
 ## v0.18.0
 
 - Minor fixes to `scripts/deploy_local/deploy_local_build.sh` for options to be recognized.
