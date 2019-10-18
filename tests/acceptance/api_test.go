@@ -558,7 +558,7 @@ func TestApi(t *testing.T) {
 				CreatedOn:           int64(postResJSON["createdOn"].(float64)),
 				AdminRoleArn:        adminRoleArn,
 				PrincipalRoleArn:    expectedPrincipalRoleArn,
-				PrincipalPolicyHash: "\"76807b34385a7bc4cf758c71071e2697\"",
+				PrincipalPolicyHash: dbAccount.PrincipalPolicyHash,
 			}, dbAccount)
 
 			// Check that the IAM Principal Role was created
