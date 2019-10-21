@@ -46,7 +46,7 @@ resource "aws_sns_topic_subscription" "update_redbox_principal_policy_on_lease_c
 }
 
 resource "aws_lambda_permission" "update_redbox_principal_policy_on_lease_create" {
-  statement_id  = "AllowExecutionFromSNS"
+  statement_id  = "AllowInvokeFromLeaseAddedTopic"
   action        = "lambda:InvokeFunction"
   function_name = module.update_redbox_principal_policy.name
   principal     = "sns.amazonaws.com"
