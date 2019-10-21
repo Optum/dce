@@ -66,7 +66,7 @@ func (c DeleteController) Call(ctx context.Context, req *events.APIGatewayProxyR
 		}
 	}
 	if acct == nil {
-		return response.NotFoundError(), nil
+		return response.ClientBadRequestError(fmt.Sprintf("No active account leases found for %s", principalID)), nil
 	} else if acct.LeaseStatus != db.Active {
 		errStr := fmt.Sprintf("Account Lease is not active for %s - %s",
 			principalID, accountID)
