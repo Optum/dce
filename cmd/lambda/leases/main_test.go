@@ -40,7 +40,8 @@ func TestCreateAPIErrorResponse(t *testing.T) {
 			ExpectedResponse: events.APIGatewayProxyResponse{
 				StatusCode: http.StatusInternalServerError,
 				Headers: map[string]string{
-					"Content-Type": "application/json",
+					"Content-Type":                "application/json",
+					"Access-Control-Allow-Origin": "*",
 				},
 				Body: "{\"error\":{\"code\":\"ServerError\",\"message\":\"Server Side Error\"}}",
 			},
@@ -53,7 +54,8 @@ func TestCreateAPIErrorResponse(t *testing.T) {
 			ExpectedResponse: events.APIGatewayProxyResponse{
 				StatusCode: http.StatusBadRequest,
 				Headers: map[string]string{
-					"Content-Type": "application/json",
+					"Content-Type":                "application/json",
+					"Access-Control-Allow-Origin": "*",
 				},
 				Body: "{\"error\":{\"code\":\"ClientError\",\"message\":\"Client Side Error\"}}",
 			},

@@ -337,7 +337,7 @@ func TestDb(t *testing.T) {
 			require.Equal(t, updatedAccount.AccountStatus, db.Ready)
 
 			// Check the account in the db got updated
-			accountAfter, err := dbSvc.GetAccount(acctID)
+			accountAfter, err := getAccount(dbSvc, acctID)
 			require.Nil(t, err)
 			require.NotNil(t, accountAfter)
 			require.Equal(t, accountAfter.AccountStatus, db.Ready)
@@ -885,6 +885,11 @@ func truncateLeaseTable(t *testing.T, dbSvc *db.DB) {
 		},
 	)
 	require.Nil(t, err)
+}
+
+func getAccount(dbSvc *db.DB, accountName string) (*db.RedboxAccount, error) {
+	time.Sleep(2)
+	return dbSvc.GetAccount(accountName)
 }
 
 func truncateDBTables(t *testing.T, dbSvc *db.DB) {

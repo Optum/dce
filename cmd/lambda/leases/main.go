@@ -10,11 +10,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Optum/Redbox/pkg/api"
 	"github.com/Optum/Redbox/pkg/api/response"
 	"github.com/Optum/Redbox/pkg/common"
 	"github.com/Optum/Redbox/pkg/db"
 	"github.com/Optum/Redbox/pkg/provision"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/aws/aws-sdk-go/service/sqs"
 
@@ -399,6 +401,15 @@ func router(ctx context.Context, req *events.APIGatewayProxyRequest) (
 	snsSvc := &common.SNS{
 		Client: snsClient,
 	}
+
+	userGetter := api.UserDetails{
+		CognitoUserPoolID:        common.RequireEnv("COGNITO_USER_POOL_ID"),
+		RolesAttributesAdminName: common.RequireEnv("COGNITO_ROLES_ATTRIBUTE_ADMIN_NAME"),
+		CognitoClient:            cognitoidentityprovider.New(awsSession),
+	}
+
+	requestUser := userGetter.GetUser(req)
+	fmt.Printf("%+v\n", requestUser)
 
 	// Execute the correct action based on the HTTP method
 	switch req.HTTPMethod {

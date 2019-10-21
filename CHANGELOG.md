@@ -6,6 +6,7 @@
 - Simplified lease status model to include only two statuses: Inactive and Active.
 - Changed check_budget to update_lease_status and added check for expiration date.
 - Changed SQS and SNS notifications for lease status change to be triggered by lease status change in DB.
+- Add functions to evaluate who is calling an API and what their role is
 
 ## v0.18.1
 
