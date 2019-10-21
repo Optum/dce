@@ -4,7 +4,7 @@ nav:
   - Quickstart: quickstart.md
   - "Using the CLI": using-the-cli.md
   - "API Documentation": api-documentation.md
-  - "Advanced Deployment With Terrform": advanced-use-with-terraform.md
+  - "Advanced Deployment With Terrform": advanced-deployment-with-terraform.md
   - Contributing: CONTRIBUTING.md
   - Changes: CHANGELOG.md
 theme: readthedocs

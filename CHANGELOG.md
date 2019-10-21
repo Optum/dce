@@ -52,9 +52,6 @@ To specify a override nuke config, upload your own YAML file to an S3 bucket, an
 
 This release also disables `aws-nuke` by default, to prevent accidental destruction of critical AWS account resources. To re-enable `aws-nuke`, set the `reset_nuke_toggle` Terraform variable to `"true"`. 
 
-See [README.md for details](./README.md#configuring-aws-nuke) on aws-nuke configuration
-
-
 ## v0.12.3
 
 - Added EKS services to allowed services in policy file, redboxprincipal.go

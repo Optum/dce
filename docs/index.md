@@ -42,6 +42,10 @@ for other people to lease.
 
 To get started using DCE, see the [Quickstart](/quickstart).
 
+## Viewing the source
+
+The source code for DCE can be found on [GitHub]().
+
 ## Project layout
 
     mkdocs.yml    # The configuration file.

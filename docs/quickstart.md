@@ -21,9 +21,9 @@ Before you can deploy and use DCE, you will need the following:
 
 1. An AWS account for the master account, and **sufficient credentials**
 for deploying DCE into the account.
-1. AWS account(s) to add to the lease pool. As of the time of this writing, 
-DCE does not _create_ any AWS accounts. You will need to bring your own AWS
-accounts for adding to the lease pool.
+1. One or more AWS account to add to the lease pool. As of the time of this writing, 
+DCE does not _create_ any AWS accounts for you. You will need to bring your own 
+AWS accounts for adding to the lease pool.
 1. In each account you add to the lease pool, you will create an IAM role
 that allows DCE to control the leased account. This is detailed later 
 in this quickstart.
@@ -37,3 +37,10 @@ greater detail below):
 1. Provision the IAM role in the lease account.
 1. Add each lease account to the lease pool by using the 
 [CLI](/using-the-cli/) or [REST API](/api-documentation/).
+
+Each of these steps is covered in greater detail in the sections below.
+
+### Deploying DCE to the master account
+
+To deploy DCE into the "master" account, you will need to start out with
+an existing AWS account. The

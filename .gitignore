@@ -6,6 +6,7 @@ local_terraform.tfvars
 ## Documentation
 docs/CHANGELOG.md
 docs/CONTRIBUTING.md
+html-docs
 
 ## Terraform
 # Local .terraform directories
