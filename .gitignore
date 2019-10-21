@@ -6,6 +6,8 @@ local_terraform.tfvars
 ## Documentation
 docs/CHANGELOG.md
 docs/CONTRIBUTING.md
+docs/CODE_OF_CONDUCT.md
+docs/INDIVIDUAL_CONTRIBUTOR_LICENSE.md
 html-docs
 
 ## Terraform
