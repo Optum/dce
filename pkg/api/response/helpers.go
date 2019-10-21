@@ -3,9 +3,10 @@ package response
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/aws/aws-lambda-go/events"
 	"log"
 	"net/http"
+
+	"github.com/aws/aws-lambda-go/events"
 )
 
 // CreateAPIResponse is a helper function to create and return a valid response
@@ -20,6 +21,7 @@ func CreateAPIResponse(status int, body string) events.APIGatewayProxyResponse {
 	}
 }
 
+// CreateJSONResponse - Create a JSON response
 func CreateJSONResponse(status int, response interface{}) events.APIGatewayProxyResponse {
 	body, err := json.Marshal(response)
 

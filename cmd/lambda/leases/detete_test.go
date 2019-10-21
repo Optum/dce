@@ -44,11 +44,35 @@ func TestDeleteController_Call(t *testing.T) {
 	mockDB := &mockDB.DBer{}
 	mockSNS := &commonMock.Notificationer{}
 
+	lease := &db.RedboxLease{
+		AccountID:   "987654321",
+		PrincipalID: "67890",
+		LeaseStatus: db.Inactive,
+	}
+
+	otherLease := &db.RedboxLease{
+		AccountID:   "123456789",
+		PrincipalID: "23456",
+		LeaseStatus: db.Inactive,
+	}
+
 	// Set up the mocks...
+
+	// A bad request. What this means in lease delete world is that we have failed to
+	// parse the request body becausse it is empty.
+
+	// Another bad request. There are no accounts for the principal that is in the lease
+	// request
+
+	// A client error, because there is no active account for the principal ID
+
+	// Successful delete
+
 	mockDB.On("FindLeasesByPrincipal", "12345").Return(createEmptyAccountListForDelete(), nil)
 	mockDB.On("FindLeasesByPrincipal", "23456").Return(createNonMatchingAccountListForDelete(), nil)
 	mockDB.On("FindLeasesByPrincipal", "67890").Return(createValidAccountListForDelete(), nil)
-	mockDB.On("TransitionLeaseStatus", "987654321", "67890", db.Active, db.Inactive, db.LeaseDestroyed).Return(nil, nil)
+	mockDB.On("TransitionLeaseStatus", "987654321", "67890", db.Active, db.Inactive, db.LeaseDestroyed).Return(lease, nil)
+	mockDB.On("TransitionLeaseStatus", "987654321", "23456", db.Active, db.Inactive, db.LeaseDestroyed).Return(otherLease, nil)
 	mockDB.On("TransitionAccountStatus", "987654321", db.Leased, db.NotReady).Return(nil, nil)
 	mockSNS.On("PublishMessage", &leaseTopicARN, mock.Anything, true).Return(&messageID, nil)
 
@@ -76,7 +100,7 @@ func TestDeleteController_Call(t *testing.T) {
 		{name: "Bad request.", fields: *testFields, args: *badArgs, want: badRequestResponse, wantErr: false},
 		{name: "No matching leases.", fields: *testFields, args: *noExistingLeaseArgs, want: notFoundRequest, wantErr: false},
 		{name: "No matching accounts.", fields: *testFields, args: *noMatchingAccountsArgs, want: notFoundRequest, wantErr: false},
-		{name: "Successful delete.", fields: *testFields, args: *successArgs, want: *successResponse, wantErr: false},
+		{name: "Successful delete.", fields: *testFields, args: *successArgs, want: successResponse, wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -153,7 +177,7 @@ func createValidAccountListForDelete() []*db.RedboxLease {
 func createNonMatchingAccountListForDelete() []*db.RedboxLease {
 	leases := []*db.RedboxLease{
 		{
-			AccountID:   "123456789",
+			AccountID:   "987654321",
 			PrincipalID: "67890",
 			LeaseStatus: db.Active,
 		},
@@ -167,8 +191,12 @@ func createAccountForDelete() *db.RedboxAccount {
 	}
 }
 
-func createSuccessDeleteResponse() *events.APIGatewayProxyResponse {
-	return &events.APIGatewayProxyResponse{
-		StatusCode: http.StatusOK,
+func createSuccessDeleteResponse() events.APIGatewayProxyResponse {
+	lease := &db.RedboxLease{
+		PrincipalID: "67890",
+		AccountID:   "123456789",
+		LeaseStatus: db.Inactive,
 	}
+	leaseResponse := response.LeaseResponse(*lease)
+	return response.CreateJSONResponse(http.StatusOK, leaseResponse)
 }
