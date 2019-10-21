@@ -31,37 +31,6 @@ const (
 	LimitParam           = "limit"
 )
 
-// createAPIResponse is a helper function to create and return a valid response
-// for an API Gateway
-func createAPIResponse(status int, body string) events.APIGatewayProxyResponse {
-	return events.APIGatewayProxyResponse{
-		StatusCode: status,
-		Headers: map[string]string{
-			"Content-Type": "application/json",
-		},
-		Body: body,
-	}
-}
-
-// createAPIErrorResponse is a helper function to create and return a valid error
-// response message for the API
-func createAPIErrorResponse(responseCode int,
-	errResp response.ErrorResponse) events.APIGatewayProxyResponse {
-	// Create the Error Response
-	apiResponse, err := json.Marshal(errResp)
-
-	// Should most likely not return an error since response.ErrorResponse
-	// is structured to be json compatible
-	if err != nil {
-		log.Printf("Failed to Create Valid Error Response: %s", err)
-		return createAPIResponse(http.StatusInternalServerError, fmt.Sprintf(
-			"{\"error\":\"Failed to Create Valid Error Response: %s\"", err))
-	}
-
-	// Return an error
-	return createAPIResponse(responseCode, string(apiResponse))
-}
-
 // publishLease is a helper function to create and publish an lease
 // structured message to an SNS Topic
 func publishLease(snsSvc common.Notificationer,
@@ -135,7 +104,7 @@ func provisionAccount(request *requestBody, dbSvc db.DBer,
 	if request.ExpiresOn != 0 && request.ExpiresOn <= time.Now().Unix() {
 		errStr := fmt.Sprintf("Requested lease has a desired expiry date less than today: %d", request.ExpiresOn)
 		log.Printf(errStr)
-		return createAPIErrorResponse(http.StatusBadRequest,
+		return response.CreateAPIErrorResponse(http.StatusBadRequest,
 			response.CreateErrorResponse("ClientError", errStr))
 	}
 
@@ -144,7 +113,7 @@ func provisionAccount(request *requestBody, dbSvc db.DBer,
 	checkLease, err := prov.FindActiveLeaseForPrincipal(principalID)
 	if err != nil {
 		log.Printf("Failed to Check Principal Active Leases: %s", err)
-		return createAPIErrorResponse(http.StatusInternalServerError,
+		return response.CreateAPIErrorResponse(http.StatusInternalServerError,
 			response.CreateErrorResponse("ServerError",
 				fmt.Sprintf("Cannot verify if Principal has existing Redbox Account : %s",
 					err)))
@@ -152,7 +121,7 @@ func provisionAccount(request *requestBody, dbSvc db.DBer,
 		errStr := fmt.Sprintf("Principal already has an existing Redbox: %s",
 			checkLease.AccountID)
 		log.Printf(errStr)
-		return createAPIErrorResponse(http.StatusConflict,
+		return response.CreateAPIErrorResponse(http.StatusConflict,
 			response.CreateErrorResponse("ClientError", errStr))
 	}
 	log.Printf("Principal %s has no Active Leases\n", principalID)
@@ -162,13 +131,13 @@ func provisionAccount(request *requestBody, dbSvc db.DBer,
 	account, err := dbSvc.GetReadyAccount()
 	if err != nil {
 		log.Printf("Failed to Check Ready Accounts: %s", err)
-		return createAPIErrorResponse(http.StatusInternalServerError,
+		return response.CreateAPIErrorResponse(http.StatusInternalServerError,
 			response.CreateErrorResponse("ServerError",
 				fmt.Sprintf("Cannot get Available Redbox Accounts : %s", err)))
 	} else if account == nil {
 		errStr := "No Available Redbox Accounts at this moment"
 		log.Printf(errStr)
-		return createAPIErrorResponse(http.StatusServiceUnavailable,
+		return response.CreateAPIErrorResponse(http.StatusServiceUnavailable,
 			response.CreateErrorResponse("ServerError", errStr))
 	}
 	log.Printf("Principal %s will be Leased to Account: %s\n", principalID,
@@ -179,7 +148,7 @@ func provisionAccount(request *requestBody, dbSvc db.DBer,
 		account.ID)
 	if err != nil {
 		log.Printf("Failed to Check Leases with Account: %s", err)
-		return createAPIErrorResponse(http.StatusInternalServerError,
+		return response.CreateAPIErrorResponse(http.StatusInternalServerError,
 			response.CreateErrorResponse("ServerError",
 				fmt.Sprintf("Cannot get Available Redbox Accounts : %s", err)))
 	}
@@ -190,7 +159,7 @@ func provisionAccount(request *requestBody, dbSvc db.DBer,
 		account.ID, request.BudgetAmount, request.BudgetCurrency, request.BudgetNotificationEmails, request.ExpiresOn)
 	if err != nil {
 		log.Printf("Failed to Activate Account Lease: %s", err)
-		return createAPIErrorResponse(http.StatusInternalServerError,
+		return response.CreateAPIErrorResponse(http.StatusInternalServerError,
 			response.CreateErrorResponse("ServerError",
 				fmt.Sprintf("Failed to Create Lease for Account : %s", account.ID)))
 	}
@@ -213,7 +182,7 @@ func provisionAccount(request *requestBody, dbSvc db.DBer,
 	}
 
 	// Return the response back to API
-	return createAPIResponse(201, *message)
+	return response.CreateAPIResponse(201, *message)
 }
 
 // rollbackProvision is a helper function to execute rollback for account
@@ -235,7 +204,7 @@ func rollbackProvision(prov provision.Provisioner, err error,
 	}
 
 	// Return an error
-	return createAPIErrorResponse(http.StatusInternalServerError,
+	return response.CreateAPIErrorResponse(http.StatusInternalServerError,
 		response.CreateErrorResponse("ServerError", string(message)))
 }
 
@@ -251,7 +220,7 @@ func decommissionAccount(request *requestBody, queueURL *string, dbSvc db.DBer,
 	accts, err := dbSvc.FindLeasesByPrincipal(principalID)
 	if err != nil {
 		log.Printf("Error finding leases for Principal %s: %s", principalID, err)
-		return createAPIErrorResponse(http.StatusInternalServerError,
+		return response.CreateAPIErrorResponse(http.StatusInternalServerError,
 			response.CreateErrorResponse("ServerError",
 				fmt.Sprintf("Cannot verify if Principal %s has a Redbox Lease",
 					principalID)))
@@ -259,7 +228,7 @@ func decommissionAccount(request *requestBody, queueURL *string, dbSvc db.DBer,
 	if accts == nil {
 		errStr := fmt.Sprintf("No account leases found for %s", principalID)
 		log.Printf("Error: %s", errStr)
-		return createAPIErrorResponse(http.StatusBadRequest,
+		return response.CreateAPIErrorResponse(http.StatusBadRequest,
 			response.CreateErrorResponse("ClientError", errStr))
 	}
 
@@ -273,12 +242,12 @@ func decommissionAccount(request *requestBody, queueURL *string, dbSvc db.DBer,
 	}
 	if acct == nil {
 		errStr := fmt.Sprintf("No active account leases found for %s", principalID)
-		return createAPIErrorResponse(http.StatusBadRequest,
+		return response.CreateAPIErrorResponse(http.StatusBadRequest,
 			response.CreateErrorResponse("ClientError", errStr))
 	} else if acct.LeaseStatus != db.Active {
 		errStr := fmt.Sprintf("Account Lease is not active for %s - %s",
 			principalID, accountID)
-		return createAPIErrorResponse(http.StatusBadRequest,
+		return response.CreateAPIErrorResponse(http.StatusBadRequest,
 			response.CreateErrorResponse("ClientError", errStr))
 	}
 
@@ -287,7 +256,7 @@ func decommissionAccount(request *requestBody, queueURL *string, dbSvc db.DBer,
 		db.Active, db.Inactive, db.LeaseDestroyed)
 	if err != nil {
 		log.Printf("Error transitioning lease status: %s", err)
-		return createAPIErrorResponse(http.StatusInternalServerError,
+		return response.CreateAPIErrorResponse(http.StatusInternalServerError,
 			response.CreateErrorResponse("ServerError",
 				fmt.Sprintf("Failed Decommission on Account Lease %s - %s", principalID,
 					accountID)))
@@ -297,7 +266,7 @@ func decommissionAccount(request *requestBody, queueURL *string, dbSvc db.DBer,
 	_, err = dbSvc.TransitionAccountStatus(acct.AccountID, db.Leased,
 		db.NotReady)
 	if err != nil {
-		return createAPIErrorResponse(http.StatusInternalServerError, response.CreateErrorResponse("ServerError",
+		return response.CreateAPIErrorResponse(http.StatusInternalServerError, response.CreateErrorResponse("ServerError",
 			fmt.Sprintf("Failed Decommission on Account Lease %s - %s", principalID,
 				accountID)))
 	}
@@ -308,7 +277,7 @@ func decommissionAccount(request *requestBody, queueURL *string, dbSvc db.DBer,
 		errStr := fmt.Sprintf("Failed to add Account %s to be Reset.",
 			acct.AccountID)
 		log.Printf("Error: %s", errStr)
-		return createAPIErrorResponse(http.StatusInternalServerError, response.CreateErrorResponse("ServerError",
+		return response.CreateAPIErrorResponse(http.StatusInternalServerError, response.CreateErrorResponse("ServerError",
 			fmt.Sprintf("Failed Decommission on Account Lease %s - %s", principalID,
 				accountID)))
 	}
@@ -317,13 +286,13 @@ func decommissionAccount(request *requestBody, queueURL *string, dbSvc db.DBer,
 	message, err := publishLease(snsSvc, lease, topic)
 	if err != nil {
 		log.Printf("Error Publish Lease to Topic: %s", err)
-		return createAPIErrorResponse(http.StatusInternalServerError, response.CreateErrorResponse("ServerError",
+		return response.CreateAPIErrorResponse(http.StatusInternalServerError, response.CreateErrorResponse("ServerError",
 			fmt.Sprintf("Failed Decommission on Account Lease %s - %s", principalID,
 				accountID)))
 	}
 
 	// Return the response back to API
-	return createAPIResponse(http.StatusOK, *message)
+	return response.CreateAPIResponse(http.StatusOK, *message)
 }
 
 // parseGetLeasesInput creates a GetLeasesInput from the query parameters
@@ -405,7 +374,7 @@ func router(ctx context.Context, req *events.APIGatewayProxyRequest) (
 		err = json.Unmarshal([]byte(req.Body), requestBody)
 		if err != nil || requestBody.PrincipalID == "" {
 			log.Printf("Failed to Parse Request Body: %s", req.Body)
-			return createAPIErrorResponse(http.StatusBadRequest,
+			return response.CreateAPIErrorResponse(http.StatusBadRequest,
 				response.CreateErrorResponse("ClientError",
 					fmt.Sprintf("Failed to Parse Request Body: %s", req.Body))), nil
 		}
@@ -415,7 +384,7 @@ func router(ctx context.Context, req *events.APIGatewayProxyRequest) (
 	dbSvc, err := db.NewFromEnv()
 	if err != nil {
 		log.Printf("Failed to Initialize Database: %s", err)
-		return createAPIErrorResponse(http.StatusInternalServerError,
+		return response.CreateAPIErrorResponse(http.StatusInternalServerError,
 			response.CreateErrorResponse(
 				"ServerError", "Failed Database Initialization")), nil
 	}
@@ -458,7 +427,7 @@ func router(ctx context.Context, req *events.APIGatewayProxyRequest) (
 			return response.ServerErrorWithResponse(fmt.Sprintf("Error serializing response: %s", err)), nil
 		}
 
-		res := createAPIResponse(http.StatusOK, string(responseBytes))
+		res := response.CreateAPIResponse(http.StatusOK, string(responseBytes))
 
 		// If the DB result has next keys, then the URL to retrieve the next page is put into the Link header.
 		if len(result.NextKeys) > 0 {
@@ -481,7 +450,7 @@ func router(ctx context.Context, req *events.APIGatewayProxyRequest) (
 		if requestBody.AccountID == "" {
 			log.Printf("Failed to Parse Account ID from Request Body: %s",
 				req.Body)
-			return createAPIErrorResponse(http.StatusBadRequest,
+			return response.CreateAPIErrorResponse(http.StatusBadRequest,
 				response.CreateErrorResponse("ClientError",
 					fmt.Sprintf("Failed to Parse Accountr ID Request Body: %s",
 						req.Body))), nil
@@ -499,7 +468,7 @@ func router(ctx context.Context, req *events.APIGatewayProxyRequest) (
 		return decommissionAccount(requestBody, &queueURL, dbSvc, queue,
 			snsSvc, &topic), nil
 	default:
-		return createAPIErrorResponse(http.StatusMethodNotAllowed,
+		return response.CreateAPIErrorResponse(http.StatusMethodNotAllowed,
 			response.CreateErrorResponse("ClientError",
 				"Methods GET/POST/DELETE are only allowed")), nil
 	}
