@@ -172,3 +172,8 @@ variable "cognito_identity_providers" {
   type    = list(string)
   default = ["COGNITO"]
 }
+
+variable "cognito_roles_attribute_admin_name" {
+  type    = string
+  default = ""
+}

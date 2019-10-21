@@ -19,6 +19,7 @@ type ListController struct {
 }
 
 func (c ListController) Call(ctx context.Context, req *events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+
 	getLeasesInput, err := parseGetLeasesInput(req.QueryStringParameters)
 
 	if err != nil {

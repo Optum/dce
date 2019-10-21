@@ -10,6 +10,7 @@ import (
 	"github.com/Optum/Redbox/pkg/db"
 	"github.com/Optum/Redbox/pkg/provision"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/aws/aws-sdk-go/service/sqs"
 
@@ -79,6 +80,11 @@ func main() {
 			Provisioner:   prov,
 			SNS:           snsSvc,
 			LeaseTopicARN: &provisionLeaseTopicARN,
+		},
+		UserDetails: api.UserDetails{
+			CognitoUserPoolID:        common.RequireEnv("COGNITO_USER_POOL_ID"),
+			RolesAttributesAdminName: common.RequireEnv("COGNITO_ROLES_ATTRIBUTE_ADMIN_NAME"),
+			CognitoClient:            cognitoidentityprovider.New(awsSession),
 		},
 	}
 

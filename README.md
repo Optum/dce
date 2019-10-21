@@ -243,6 +243,26 @@ The DCE API is authorized via IAM. To access the API, you must have access to an
 
 All API requests must be signed with Signature Version 4. See [AWS documentation for signing requests](https://docs.aws.amazon.com/general/latest/gr/sigv4_signing.html).
 
+#### Cognito
+
+Cognito is used to allow an admin to add users to DCE.  This can be done by using the Cognito User Pool.  Additionally any IdP supported by Cognito User Pools can also be used.
+
+#### Roles
+
+##### Admins
+
+Admins have full control to all APIs and will not get back filtered results when querying APIs. 
+
+There are three different ways a user is considered an admin:
+
+1. They have an IAM user/role/etc with a policy that gives them access to the API
+1. A Cognito user is placed into a Cognito group called `Admins`
+1. A Cognito user has an attribute in `custom:roles` that will match a search criteria specified by the Terraform variable `cognito_roles_attribute_admin_name`
+
+##### Users
+
+Users (by default) are given access to the leasing and usage APIs.  This is done so they can request their own lease and look at the usage of their leases.  Any appropriately authenticated user in Cognito will automatically fall into the `Users` role.
+
 #### IAM Policy for DCE API requests
 
 The IAM principal used to send requests to the DCE API must have sufficient permissions to execute API requests.

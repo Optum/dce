@@ -12,6 +12,7 @@ package awsiface
 
 import (
 	"github.com/aws/aws-sdk-go/aws/client"
+	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider/cognitoidentityprovideriface"
 	"github.com/aws/aws-sdk-go/service/costexplorer/costexploreriface"
 	"github.com/aws/aws-sdk-go/service/iam/iamiface"
 	"github.com/aws/aws-sdk-go/service/lambda/lambdaiface"
@@ -46,4 +47,8 @@ type AwsSession interface {
 
 type CostExplorerAPI interface {
 	costexploreriface.CostExplorerAPI
+}
+
+type CognitoIdentityProviderAPI interface {
+	cognitoidentityprovideriface.CognitoIdentityProviderAPI
 }
