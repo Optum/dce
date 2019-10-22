@@ -5,7 +5,7 @@
 
 NPX_CMD=npx
 NPX_OPTS=swagger-markdown
-SWAGGER_YAML=modules/swaggerRedbox.yaml
+SWAGGER_YAML=modules/swagger.yaml
 API_MARKDOWN=docs/api-documentation.md
 
 if [ ! -x "$(command -v ${NPX_CMD})" ]; then
