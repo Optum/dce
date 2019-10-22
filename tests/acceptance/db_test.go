@@ -808,7 +808,8 @@ func truncateAccountTable(t *testing.T, dbSvc *db.DB) {
 	// Find all records in the RedboxAccount table
 	scanResult, err := dbSvc.Client.Scan(
 		&dynamodb.ScanInput{
-			TableName: aws.String(dbSvc.AccountTableName),
+			TableName:      aws.String(dbSvc.AccountTableName),
+			ConsistentRead: aws.Bool(true),
 		},
 	)
 	require.Nil(t, err)
@@ -838,6 +839,7 @@ func truncateAccountTable(t *testing.T, dbSvc *db.DB) {
 		},
 	)
 	require.Nil(t, err)
+	time.Sleep(2 * time.Second)
 }
 
 /*
@@ -853,7 +855,8 @@ func truncateLeaseTable(t *testing.T, dbSvc *db.DB) {
 	// Find all records in the RedboxAccount table
 	scanResult, err := dbSvc.Client.Scan(
 		&dynamodb.ScanInput{
-			TableName: aws.String(dbSvc.LeaseTableName),
+			TableName:      aws.String(dbSvc.LeaseTableName),
+			ConsistentRead: aws.Bool(true),
 		},
 	)
 	require.Nil(t, err)
@@ -885,6 +888,7 @@ func truncateLeaseTable(t *testing.T, dbSvc *db.DB) {
 		},
 	)
 	require.Nil(t, err)
+	time.Sleep(2 * time.Second)
 }
 
 func truncateDBTables(t *testing.T, dbSvc *db.DB) {
