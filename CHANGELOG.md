@@ -1,3 +1,8 @@
+## vNext
+
+- Added https://readthedocs.org/ style documentation, `make documentation` target
+- Added generation for API documentation from Swagger YAML to https://readthedocs.org/ format.
+
 ## v0.18.0
 
 - Minor fixes to `scripts/deploy_local/deploy_local_build.sh` for options to be recognized.
@@ -11,8 +16,6 @@
 - Simplified lease status model to include only two statuses: Inactive and Active.
 - Changed check_budget to update_lease_status and added check for expiration date.
 - Changed SQS and SNS notifications for lease status change to be triggered by lease status change in DB.
-- Added https://readthedocs.org/ style documentation, `make documentation` target
-- Added generation for API documentation from Swagger YAML to https://readthedocs.org/ format.
 
 ## v0.17.0
 
