@@ -38,6 +38,18 @@ func RequireEnvInt(env string) int {
 	return intVal
 }
 
+// RequireEnvIntWithDefault returns an environment that is required to be an integer
+func RequireEnvIntWithDefault(env string, defaultValue int) int {
+	val := RequireEnv(env)
+	intVal, err := strconv.Atoi(val)
+
+	if err != nil {
+		return defaultValue
+	}
+
+	return intVal
+}
+
 func RequireEnvStringSlice(env string, sep string) []string {
 	val := RequireEnv(env)
 	list := strings.Split(val, sep)

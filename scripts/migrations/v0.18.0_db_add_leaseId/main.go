@@ -41,6 +41,7 @@ type RedboxLeaseMod struct {
 	PrincipalID           string `json:"PrincipalId"`
 	ID                    string `json:"Id"`
 	LeaseStatus           string
+	ExpiresOn             int64
 	CreatedOn             int64
 	LastModifiedOn        int64
 	LeaseStatusModifiedOn int64
@@ -72,6 +73,7 @@ func migrationV18(input *migrationV18Input) (int64, error) {
 	for _, item := range leases {
 		fmt.Printf("AccountId: %s\n", item.AccountID)
 		leaseID := guuid.New()
+		expiresOn := time.Date(2019, time.October, 27, 0, 0, 0, 0, time.Local).Unix()
 		result, err := input.dynDB.UpdateItem(
 			&dynamodb.UpdateItemInput{
 				// Query in Lease Table
@@ -86,10 +88,13 @@ func migrationV18(input *migrationV18Input) (int64, error) {
 					},
 				},
 				// Set Id to a new unique id
-				UpdateExpression: aws.String("set Id=:id"),
+				UpdateExpression: aws.String("set Id=:id, ExpiresOn=:expiresOn"),
 				ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
 					":id": {
 						N: aws.String(leaseID.String()),
+					},
+					":expiresOn": {
+						N: aws.String(string(expiresOn)),
 					},
 				},
 				// Return the updated record

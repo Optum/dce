@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	guuid "github.com/google/uuid"
+
 	"github.com/Optum/Redbox/pkg/common"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -30,6 +32,8 @@ type DB struct {
 	AccountTableName string
 	// Name of the RedboxLease table
 	LeaseTableName string
+	// Default expiry time, in days, of the lease
+	DefaultLeaseLengthInDays int
 }
 
 // The DBer interface includes all methods used by the DB struct to interact with
@@ -355,6 +359,16 @@ func (db *DB) PutAccount(account RedboxAccount) error {
 // the lease that was added
 func (db *DB) PutLease(lease RedboxLease) (
 	*RedboxLease, error) {
+
+	// apply some reasonable DEFAULTS to the lease before saving it.
+	if len(lease.ID) == 0 {
+		lease.ID = guuid.New().String()
+	}
+
+	if lease.ExpiresOn == 0 {
+		lease.ExpiresOn = time.Now().AddDate(0, 0, db.DefaultLeaseLengthInDays).Unix()
+	}
+
 	item, err := dynamodbattribute.MarshalMap(lease)
 	if err != nil {
 		return nil, err
@@ -750,11 +764,12 @@ func unmarshalLease(dbResult map[string]*dynamodb.AttributeValue) (*RedboxLease,
 //
 // Elsewhere, you should generally use `db.NewFromEnv()`
 //
-func New(client *dynamodb.DynamoDB, accountTableName string, leaseTableName string) *DB {
+func New(client *dynamodb.DynamoDB, accountTableName string, leaseTableName string, defaultLeaseLengthInDays int) *DB {
 	return &DB{
-		Client:           client,
-		AccountTableName: accountTableName,
-		LeaseTableName:   leaseTableName,
+		Client:                   client,
+		AccountTableName:         accountTableName,
+		LeaseTableName:           leaseTableName,
+		DefaultLeaseLengthInDays: defaultLeaseLengthInDays,
 	}
 }
 
@@ -778,5 +793,6 @@ func NewFromEnv() (*DB, error) {
 		),
 		common.RequireEnv("ACCOUNT_DB"),
 		common.RequireEnv("LEASE_DB"),
+		common.RequireEnvIntWithDefault("DEFAULT_LEASE_LENGTH_IN_DAYS", 7),
 	), nil
 }

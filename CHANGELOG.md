@@ -6,6 +6,9 @@
 - Simplified lease status model to include only two statuses: Inactive and Active.
 - Changed check_budget to update_lease_status and added check for expiration date.
 - Changed SQS and SNS notifications for lease status change to be triggered by lease status change in DB.
+- Added defaults for leases; if ID isn't specified upon save in the DB a new one will be assigned, and if 
+  the expiration date isn't defined the environment variable `DEFAULT_LEASE_LENGTH_IN_DAYS` will be used and
+  if that is not defined, a default of seven (7) days will be used.
 
 ## v0.18.1
 
