@@ -40,7 +40,12 @@ func RequireEnvInt(env string) int {
 
 // RequireEnvIntWithDefault returns an environment that is required to be an integer
 func RequireEnvIntWithDefault(env string, defaultValue int) int {
-	val := RequireEnv(env)
+	val, ok := os.LookupEnv(env)
+
+	if !ok {
+		return defaultValue
+	}
+
 	intVal, err := strconv.Atoi(val)
 
 	if err != nil {

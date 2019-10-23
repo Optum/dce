@@ -529,12 +529,14 @@ func TestDb(t *testing.T) {
 			uuidThree := uuid.New().String()
 			uuidFour := uuid.New().String()
 
+			expiryDate := time.Now().AddDate(0, 0, 30).Unix()
+
 			// Create some leases in the DB
 			for _, lease := range []db.RedboxLease{
-				{ID: uuidOne, AccountID: "1", PrincipalID: "pid", LeaseStatus: db.Active, LeaseStatusReason: db.LeaseActive},
-				{ID: uuidTwo, AccountID: "2", PrincipalID: "pid", LeaseStatus: db.Inactive, LeaseStatusReason: db.LeaseExpired},
-				{ID: uuidThree, AccountID: "3", PrincipalID: "pid", LeaseStatus: db.Active, LeaseStatusReason: db.LeaseActive},
-				{ID: uuidFour, AccountID: "4", PrincipalID: "pid", LeaseStatus: db.Inactive, LeaseStatusReason: db.LeaseDestroyed},
+				{ID: uuidOne, AccountID: "1", PrincipalID: "pid", LeaseStatus: db.Active, LeaseStatusReason: db.LeaseActive, ExpiresOn: expiryDate},
+				{ID: uuidTwo, AccountID: "2", PrincipalID: "pid", LeaseStatus: db.Inactive, LeaseStatusReason: db.LeaseExpired, ExpiresOn: expiryDate},
+				{ID: uuidThree, AccountID: "3", PrincipalID: "pid", LeaseStatus: db.Active, LeaseStatusReason: db.LeaseActive, ExpiresOn: expiryDate},
+				{ID: uuidFour, AccountID: "4", PrincipalID: "pid", LeaseStatus: db.Inactive, LeaseStatusReason: db.LeaseDestroyed, ExpiresOn: expiryDate},
 			} {
 				_, err := dbSvc.PutLease(lease)
 				require.Nil(t, err)
@@ -544,8 +546,8 @@ func TestDb(t *testing.T) {
 			res, err := dbSvc.FindLeasesByStatus(db.Inactive)
 			require.Nil(t, err)
 			require.Equal(t, []*db.RedboxLease{
-				{ID: uuidTwo, AccountID: "2", PrincipalID: "pid", LeaseStatus: db.Inactive, LeaseStatusReason: db.LeaseExpired},
-				{ID: uuidFour, AccountID: "4", PrincipalID: "pid", LeaseStatus: db.Inactive, LeaseStatusReason: db.LeaseDestroyed},
+				{ID: uuidTwo, AccountID: "2", PrincipalID: "pid", LeaseStatus: db.Inactive, LeaseStatusReason: db.LeaseExpired, ExpiresOn: expiryDate},
+				{ID: uuidFour, AccountID: "4", PrincipalID: "pid", LeaseStatus: db.Inactive, LeaseStatusReason: db.LeaseDestroyed, ExpiresOn: expiryDate},
 			}, res)
 		})
 
