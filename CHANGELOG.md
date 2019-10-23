@@ -8,6 +8,7 @@
 - Changed SQS and SNS notifications for lease status change to be triggered by lease status change in DB.
 - Added https://readthedocs.org/ style documentation, `make documentation` target
 - Added generation for API documentation from Swagger YAML to https://readthedocs.org/ format.
+- Refactored lease API controller and methods to organize methods into files.
 
 ## v0.18.1
 
