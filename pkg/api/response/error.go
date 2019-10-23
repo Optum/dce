@@ -1,6 +1,11 @@
 package response
 
-import "github.com/aws/aws-lambda-go/events"
+import (
+	"fmt"
+	"net/http"
+
+	"github.com/aws/aws-lambda-go/events"
+)
 
 // CreateErrorResponse creates and returns a formatted JSON string of the
 // structured ErrorResponse
@@ -36,6 +41,13 @@ type ErrorBase struct {
 	Message string `json:"message"`
 }
 
+func BadRequestError(message string) events.APIGatewayProxyResponse {
+	return CreateAPIErrorResponse(
+		http.StatusBadRequest,
+		CreateErrorResponse("ClientError", message),
+	)
+}
+
 func RequestValidationError(message string) events.APIGatewayProxyResponse {
 	return CreateAPIErrorResponse(
 		400,
@@ -43,6 +55,26 @@ func RequestValidationError(message string) events.APIGatewayProxyResponse {
 	)
 }
 
+func UnsupportedMethodError(method string) events.APIGatewayProxyResponse {
+	return CreateAPIErrorResponse(
+		http.StatusMethodNotAllowed,
+		CreateErrorResponse("ClientError", fmt.Sprintf("Method %s is not allowed", method)),
+	)
+}
+
+func ClientErrorWithResponse(message string) events.APIGatewayProxyResponse {
+	return CreateAPIErrorResponse(
+		500,
+		CreateErrorResponse("ClientError", message),
+	)
+}
+
+func ClientBadRequestError(message string) events.APIGatewayProxyResponse {
+	return CreateAPIErrorResponse(
+		http.StatusBadRequest,
+		CreateErrorResponse("ClientError", message),
+	)
+}
 func ServerError() events.APIGatewayProxyResponse {
 	return CreateAPIErrorResponse(
 		500,
@@ -57,10 +89,24 @@ func ServerErrorWithResponse(message string) events.APIGatewayProxyResponse {
 	)
 }
 
+func ServiceUnavailableError(message string) events.APIGatewayProxyResponse {
+	return CreateAPIErrorResponse(
+		http.StatusServiceUnavailable,
+		CreateErrorResponse("ServerError", message),
+	)
+}
+
 func AlreadyExistsError() events.APIGatewayProxyResponse {
 	return CreateAPIErrorResponse(
 		409,
 		CreateErrorResponse("AlreadyExistsError", "The requested resource cannot be created, as it conflicts with an existing resource"),
+	)
+}
+
+func ConflictError(message string) events.APIGatewayProxyResponse {
+	return CreateAPIErrorResponse(
+		http.StatusConflict,
+		CreateErrorResponse("ClientError", message),
 	)
 }
 
