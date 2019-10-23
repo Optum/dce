@@ -33,6 +33,9 @@ func TestDb(t *testing.T) {
 		tfOut["dynamodb_table_account_name"].(string),
 		tfOut["redbox_lease_db_table_name"].(string),
 	)
+	// Set consistent reads to improve testing without a bunch of sleeps
+	// for eventual consistency
+	dbSvc.ConsistendRead = true
 
 	// Truncate tables, to make sure we're starting off clean
 	truncateDBTables(t, dbSvc)
@@ -219,8 +222,8 @@ func TestDb(t *testing.T) {
 			require.Nil(t, err, "Expected no errors saving a new lease to the db.")
 			require.Equal(t, db.RedboxLease{}, *putAssgn) // should return an empty account lease since its new
 			leaseBefore, err := dbSvc.GetLease(acctID, principalID)
-			time.Sleep(1 * time.Second) // Ensure LastModifiedOn and LeaseStatusModifiedOn changes
 
+			time.Sleep(1 * time.Second) // Ensure LastModifiedOn and LeaseStatusModifiedOn changes
 			// Set a ResetLock on the Lease
 			updatedLease, err := dbSvc.TransitionLeaseStatus(
 				acctID, principalID,
@@ -322,8 +325,8 @@ func TestDb(t *testing.T) {
 			err := dbSvc.PutAccount(account)
 			require.Nil(t, err)
 			accountBefore, err := dbSvc.GetAccount(acctID)
-			time.Sleep(2 * time.Second) // Ensure LastModifiedOn changes
 
+			time.Sleep(1 * time.Second) // Ensure LastModifiedOn and LeaseStatusModifiedOn changes
 			// Set a ResetLock on the Lease
 			updatedAccount, err := dbSvc.TransitionAccountStatus(
 				acctID,
@@ -808,7 +811,8 @@ func truncateAccountTable(t *testing.T, dbSvc *db.DB) {
 	// Find all records in the RedboxAccount table
 	scanResult, err := dbSvc.Client.Scan(
 		&dynamodb.ScanInput{
-			TableName: aws.String(dbSvc.AccountTableName),
+			TableName:      aws.String(dbSvc.AccountTableName),
+			ConsistentRead: aws.Bool(true),
 		},
 	)
 	require.Nil(t, err)
@@ -838,6 +842,7 @@ func truncateAccountTable(t *testing.T, dbSvc *db.DB) {
 		},
 	)
 	require.Nil(t, err)
+	time.Sleep(2 * time.Second)
 }
 
 /*
@@ -853,7 +858,8 @@ func truncateLeaseTable(t *testing.T, dbSvc *db.DB) {
 	// Find all records in the RedboxAccount table
 	scanResult, err := dbSvc.Client.Scan(
 		&dynamodb.ScanInput{
-			TableName: aws.String(dbSvc.LeaseTableName),
+			TableName:      aws.String(dbSvc.LeaseTableName),
+			ConsistentRead: aws.Bool(true),
 		},
 	)
 	require.Nil(t, err)
@@ -885,6 +891,7 @@ func truncateLeaseTable(t *testing.T, dbSvc *db.DB) {
 		},
 	)
 	require.Nil(t, err)
+	time.Sleep(2 * time.Second)
 }
 
 func truncateDBTables(t *testing.T, dbSvc *db.DB) {
