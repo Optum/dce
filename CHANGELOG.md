@@ -10,6 +10,7 @@
   the expiration date isn't defined the environment variable `DEFAULT_LEASE_LENGTH_IN_DAYS` will be used and
   if that is not defined, a default of seven (7) days will be used.
 - Added migration for the leases to all be set to Inactive if they're anything but Active.
+- Lease added SNS topic updates principal policy
 - Refactored lease API controller and methods to organize methods into files.
 
 ## v0.18.1
