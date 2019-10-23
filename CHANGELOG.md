@@ -1,5 +1,6 @@
 ## vNext
 
+- Add ECR to DCE user principal policy
 - Add email with attachment
 - Add ID to the Leases table
 - Added expiration date for lease ends
