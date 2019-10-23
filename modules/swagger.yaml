@@ -182,7 +182,7 @@ paths:
         - application/json
       responses:
         200:
-           $ref: "#/definitions/lease"
+          $ref: "#/definitions/lease"
         400:
           description: >
             "Failed to Parse Request Body" if the request body is blank or incorrectly formatted.
@@ -252,7 +252,8 @@ paths:
             items:
               $ref: "#/definitions/lease"
         400:
-          description: "Error parsing query params" if the provided query parameters were unable to be parsed.
+          description: >
+            "Failed to Parse Request Body" if the request body is blank or incorrectly formatted.
         403:
           description: "Failed to authenticate request"
       x-amazon-apigateway-integration:
@@ -404,28 +405,31 @@ definitions:
       "Inactive": The lease has become inactive, either through expiring, exceeding budget, or by request.
   leaseStatusReason:
     type: string
-    enum: 
-      - "LeaseExpired" 
+    enum:
+      - "LeaseExpired"
       - "LeaseOverBudget"
       - "LeaseDestroyed"
       - "LeaseActive"
       - "LeaseRolledBack"
     description: |
-      A reason behind the lease status. 
-      "LeaseExpired": The lease exceeded its expiration time ("expiresOn") and the associated account was reset and 
-      returned to the account pool.
-      "LeaseOverBudget": The lease exceeded its budgeted amount and the associated account was reset and returned
-      to the account pool.
-      "LeaseDestroyed": The lease was adminstratively ended, which can be done via the leases API.
+      A reason behind the lease status.
+      "LeaseExpired": The lease exceeded its expiration time ("expiresOn") and
+      the associated account was reset and returned to the account pool.
+      "LeaseOverBudget": The lease exceeded its budgeted amount and the
+      associated account was reset and returned to the account pool.
+      "LeaseDestroyed": The lease was adminstratively ended, which can be done
+      via the leases API.
       "LeaseActive": The lease is active.
-      "LeaseRolledBack": A system error occurred while provisioning the lease, and it was rolled back.
+      "LeaseRolledBack": A system error occurred while provisioning the lease.
+      and it was rolled back.
   usage:
     description: "usage cost of the aws account from start date to end date"
     type: object
     properties:
       principalId:
         type: string
-        description: principalId of the user who owns the lease of the AWS account
+        description: >
+          principalId of the user who owns the lease of the AWS account
       accountId:
         type: string
         description: accountId of the AWS account
