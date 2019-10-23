@@ -186,6 +186,123 @@ func TestApi(t *testing.T) {
 
 	})
 
+	t.Run("API permissions are properly configured for Users", func(t *testing.T) {
+		// Don't run this test, if using `go test -short` flag
+		if testing.Short() {
+			t.Skip("Skipping tests in short mode. IAM role takes a while to propagate...")
+		}
+
+		// Grab policy name from Terraform outputs
+		policyArn := terraform.Output(t, tfOpts, "role_user_policy")
+		require.NotNil(t, policyArn)
+
+		// Configure IAM service
+		awsSession, err := session.NewSession()
+		require.Nil(t, err)
+		iamSvc := iam.New(awsSession)
+
+		// Create a Role we can assume, to test out our policy
+		accountID := aws2.GetAccountId(t)
+		assumeRolePolicy := fmt.Sprintf(`{
+	"Version": "2012-10-17",
+	"Statement": [
+	{
+		"Effect": "Allow",
+		"Principal": {
+		"AWS": "arn:aws:iam::%s:root"
+		},
+		"Action": "sts:AssumeRole",
+		"Condition": {}
+	}
+	]
+}`, accountID)
+		roleName := "redbox-api-execute-test-role-" + fmt.Sprintf("%v", time.Now().Unix())
+		roleRes, err := iamSvc.CreateRole(&iam.CreateRoleInput{
+			AssumeRolePolicyDocument: aws.String(assumeRolePolicy),
+			Path:                     aws.String("/"),
+			RoleName:                 aws.String(roleName),
+		})
+		require.Nil(t, err)
+
+		// Cleanup: Delete the Role
+		defer func() {
+			_, err = iamSvc.DeleteRole(&iam.DeleteRoleInput{
+				RoleName: aws.String(roleName),
+			})
+			require.Nil(t, err)
+		}()
+
+		// Attach our managed API access policy to the roleRes
+		_, err = iamSvc.AttachRolePolicy(&iam.AttachRolePolicyInput{
+			PolicyArn: aws.String(policyArn),
+			RoleName:  aws.String(roleName),
+		})
+		require.Nil(t, err)
+
+		// Cleanup: Detach the policy from the role (required to delete the Role)
+		defer func() {
+			_, err = iamSvc.DetachRolePolicy(&iam.DetachRolePolicyInput{
+				PolicyArn: aws.String(policyArn),
+				RoleName:  aws.String(roleName),
+			})
+			require.Nil(t, err)
+		}()
+
+		// IAM Role takes a while to propagate....
+		time.Sleep(10 * time.Second)
+
+		t.Run("should not fail when getting a lease", func(t *testing.T) {
+			// Don't run this test, if using `go test -short` flag
+
+			// Assume the roleRes we just created
+			roleCreds := stscreds.NewCredentials(awsSession, *roleRes.Role.Arn)
+
+			// Attempt to hit the API with using our assumed role
+			resp := apiRequest(t, &apiRequestInput{
+				method: "GET",
+				url:    apiURL + "/leases",
+				creds:  roleCreds,
+			})
+
+			require.NotEqual(t, http.StatusForbidden, resp.StatusCode,
+				"Should not return an IAM authorization error")
+		})
+
+		t.Run("should fail when getting accounts", func(t *testing.T) {
+
+			// Assume the roleRes we just created
+			roleCreds := stscreds.NewCredentials(awsSession, *roleRes.Role.Arn)
+
+			// Attempt to hit the API with using our assumed role
+			resp := apiRequest(t, &apiRequestInput{
+				method: "GET",
+				url:    apiURL + "/accounts",
+				creds:  roleCreds,
+			})
+
+			require.Equal(t, http.StatusForbidden, resp.StatusCode,
+				"Should return an IAM authorization error")
+		})
+
+		t.Run("should not fail when getting usage", func(t *testing.T) {
+			// Don't run this test, if using `go test -short` flag
+
+			// Assume the roleRes we just created
+			roleCreds := stscreds.NewCredentials(awsSession, *roleRes.Role.Arn)
+
+			// Attempt to hit the API with using our assumed role
+			resp := apiRequest(t, &apiRequestInput{
+				method: "GET",
+				url:    apiURL + "/usage",
+				creds:  roleCreds,
+			})
+
+			require.NotEqual(t, http.StatusForbidden, resp.StatusCode,
+				"Should not return an IAM authorization error")
+		})
+
+	})
+
 	t.Run("Provisioning and Decommissioning", func(t *testing.T) {
 
 		t.Run("Should be able to provision and decommission", func(t *testing.T) {
@@ -1097,13 +1214,15 @@ type apiResponse struct {
 	json interface{}
 }
 
+var chainCredentials *credentials.Credentials = credentials.NewChainCredentials([]credentials.Provider{
+	&credentials.EnvProvider{},
+	&credentials.SharedCredentialsProvider{Filename: "", Profile: ""},
+})
+
 func apiRequest(t *testing.T, input *apiRequestInput) *apiResponse {
 	// Set defaults
 	if input.creds == nil {
-		input.creds = credentials.NewChainCredentials([]credentials.Provider{
-			&credentials.EnvProvider{},
-			&credentials.SharedCredentialsProvider{Filename: "", Profile: ""},
-		})
+		input.creds = chainCredentials
 	}
 	if input.region == "" {
 		input.region = "us-east-1"

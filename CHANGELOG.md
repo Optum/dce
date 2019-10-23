@@ -7,6 +7,7 @@
 - Changed check_budget to update_lease_status and added check for expiration date.
 - Changed SQS and SNS notifications for lease status change to be triggered by lease status change in DB.
 - Lease added SNS topic updates principal policy
+- Refactored lease API controller and methods to organize methods into files.
 
 ## v0.18.1
 

@@ -35,7 +35,7 @@ func TestGetLeaseByID(t *testing.T) {
 		mockDb.On("GetLeaseByID", "unique-id").Return(expectdLease, nil)
 		mockRequest := events.APIGatewayProxyRequest{HTTPMethod: http.MethodGet, Path: "/leases/unique-id"}
 
-		controller := getController{
+		controller := GetController{
 			Dao: &mockDb,
 		}
 
@@ -56,7 +56,7 @@ func TestGetLeaseByID(t *testing.T) {
 		mockDb.On("GetLeaseByID", "unique-id").Return(nil, expectedError)
 		mockRequest := events.APIGatewayProxyRequest{HTTPMethod: http.MethodGet, Path: "/accounts/unique-id"}
 
-		controller := getController{
+		controller := GetController{
 			Dao: &mockDb,
 		}
 

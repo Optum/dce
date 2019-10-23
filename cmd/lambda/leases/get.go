@@ -13,12 +13,12 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 )
 
-type getController struct {
+type GetController struct {
 	Dao db.DBer
 }
 
 // Call - function to return a specific AWS Lease record to the request
-func (controller getController) Call(ctx context.Context, req *events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+func (controller GetController) Call(ctx context.Context, req *events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	// Fetch the account.
 	leaseID := path.Base(req.Path)
 	lease, err := controller.Dao.GetLeaseByID(leaseID)
