@@ -39,6 +39,20 @@ resource "aws_lambda_permission" "update_redbox_principal_policy" {
   source_arn    = aws_sns_topic.lease_unlocked.arn
 }
 
+resource "aws_sns_topic_subscription" "update_redbox_principal_policy_on_lease_create" {
+  topic_arn = aws_sns_topic.lease_added.arn
+  protocol  = "lambda"
+  endpoint  = module.update_redbox_principal_policy.arn
+}
+
+resource "aws_lambda_permission" "update_redbox_principal_policy_on_lease_create" {
+  statement_id  = "AllowInvokeFromLeaseAddedTopic"
+  action        = "lambda:InvokeFunction"
+  function_name = module.update_redbox_principal_policy.name
+  principal     = "sns.amazonaws.com"
+  source_arn    = aws_sns_topic.lease_added.arn
+}
+
 resource "aws_iam_role_policy" "update_redbox_principal_policy" {
   role   = module.update_redbox_principal_policy.execution_role_name
   policy = <<POLICY
