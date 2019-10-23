@@ -51,4 +51,4 @@ install:
 	go install 
 
 clean:
-	rm -rf ./bin ./vendor ./html-doc
+	rm -rf ./bin ./vendor ./html-doc ./site

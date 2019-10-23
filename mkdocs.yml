@@ -1,6 +1,7 @@
 site_name: DCE Documentation
 nav:
   - Home: index.md
+  - Glossary: glossary.md
   - Quickstart: quickstart.md
   - "Using the CLI": using-the-cli.md
   - "API Documentation": api-documentation.md

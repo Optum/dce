@@ -19,10 +19,9 @@ These resources are created in the AWS account using [Hashicorp Terraform](https
 
 With a DCE account, you have a safe environment to experiment with in the
 cloud. With near-administrative access to your own personal AWS account, you
-can click around the AWS web console, run AWS CLI commands from your terminal,
-or run Jenkins pipelines however you want. As a developer in an organization,
-you don't need to worry about cost management, orphaned resources, or lengthy
-cloud intake processes.
+can click around the AWS web console or run AWS CLI commands from your terminal. 
+As a developer in an organization, you don't need to worry about cost management, 
+orphaned resources, or lengthy cloud intake processes.
 
 ### Budget limits
 
@@ -45,10 +44,3 @@ To get started using DCE, see the [Quickstart](/quickstart).
 ## Viewing the source
 
 The source code for DCE can be found on [GitHub]().
-
-## Project layout
-
-    mkdocs.yml    # The configuration file.
-    docs/
-        index.md  # The documentation homepage.
-        ...       # Other markdown pages, images and other files.
