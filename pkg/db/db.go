@@ -34,6 +34,8 @@ type DB struct {
 	LeaseTableName string
 	// Default expiry time, in days, of the lease
 	DefaultLeaseLengthInDays int
+	// Use Consistend Reads when scanning or querying.  When possbile.
+	ConsistendRead bool
 }
 
 // The DBer interface includes all methods used by the DB struct to interact with
@@ -68,6 +70,7 @@ func (db *DB) GetAccount(accountID string) (*RedboxAccount, error) {
 					S: aws.String(accountID),
 				},
 			},
+			ConsistentRead: aws.Bool(db.ConsistendRead),
 		},
 	)
 	if err != nil {
@@ -85,7 +88,8 @@ func (db *DB) GetAccount(accountID string) (*RedboxAccount, error) {
 // TODO implement pagination and query support
 func (db *DB) GetAccounts() ([]*RedboxAccount, error) {
 	input := &dynamodb.ScanInput{
-		TableName: aws.String(db.AccountTableName),
+		TableName:      aws.String(db.AccountTableName),
+		ConsistentRead: aws.Bool(db.ConsistendRead),
 	}
 
 	// Execute and verify the query
@@ -118,6 +122,7 @@ func (db *DB) GetReadyAccount() (*RedboxAccount, error) {
 		},
 		FilterExpression: aws.String("AccountStatus = :acctstatus"),
 		TableName:        aws.String(db.AccountTableName),
+		ConsistentRead:   aws.Bool(db.ConsistendRead),
 	}
 
 	// Make and verify the query
@@ -170,6 +175,7 @@ func (db *DB) FindAccountsByPrincipalID(principalID string) ([]*RedboxAccount, e
 			},
 		},
 		KeyConditionExpression: aws.String("PrincipalId = :pid"),
+		ConsistentRead:         aws.Bool(db.ConsistendRead),
 	})
 
 	accounts := []*RedboxAccount{}
@@ -233,6 +239,7 @@ func (db *DB) GetLease(accountID string, principalID string) (*RedboxLease, erro
 					S: aws.String(principalID),
 				},
 			},
+			ConsistentRead: aws.Bool(db.ConsistendRead),
 		},
 	)
 
@@ -257,6 +264,7 @@ func (db *DB) FindLeasesByAccount(accountID string) ([]*RedboxLease, error) {
 		},
 		KeyConditionExpression: aws.String("AccountId = :a1"),
 		TableName:              aws.String(db.LeaseTableName),
+		ConsistentRead:         aws.Bool(db.ConsistendRead),
 	}
 
 	resp, err := db.Client.Query(input)
@@ -637,8 +645,9 @@ func (db *DB) GetLeases(input GetLeasesInput) (GetLeasesOutput, error) {
 	}
 
 	scanInput := &dynamodb.ScanInput{
-		TableName: aws.String(db.LeaseTableName),
-		Limit:     &limit,
+		TableName:      aws.String(db.LeaseTableName),
+		Limit:          &limit,
+		ConsistentRead: aws.Bool(db.ConsistendRead),
 	}
 
 	// Build the filter clauses.
@@ -770,6 +779,7 @@ func New(client *dynamodb.DynamoDB, accountTableName string, leaseTableName stri
 		AccountTableName:         accountTableName,
 		LeaseTableName:           leaseTableName,
 		DefaultLeaseLengthInDays: defaultLeaseLengthInDays,
+		ConsistendRead:           false,
 	}
 }
 
