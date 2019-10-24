@@ -1,13 +1,21 @@
 ## vNext
 
+- Add ECR to DCE user principal policy
 - Add email with attachment
 - Add ID to the Leases table
 - Added expiration date for lease ends
 - Simplified lease status model to include only two statuses: Inactive and Active.
 - Changed check_budget to update_lease_status and added check for expiration date.
 - Changed SQS and SNS notifications for lease status change to be triggered by lease status change in DB.
+<<<<<<< HEAD
 - Added https://readthedocs.org/ style documentation, `make documentation` target
 - Added generation for API documentation from Swagger YAML to https://readthedocs.org/ format.
+=======
+- Added defaults for leases; if ID isn't specified upon save in the DB a new one will be assigned, and if 
+  the expiration date isn't defined the environment variable `DEFAULT_LEASE_LENGTH_IN_DAYS` will be used and
+  if that is not defined, a default of seven (7) days will be used.
+- Added migration for the leases to all be set to Inactive if they're anything but Active.
+>>>>>>> origin/master
 - Lease added SNS topic updates principal policy
 - Refactored lease API controller and methods to organize methods into files.
 
