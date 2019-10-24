@@ -110,29 +110,11 @@ func (db *DB) GetAccounts() ([]*RedboxAccount, error) {
 // GetReadyAccount returns an available Redbox account record with a
 // corresponding status of 'Ready'
 func (db *DB) GetReadyAccount() (*RedboxAccount, error) {
-	// Construct the query to only grab the first available account
-	input := &dynamodb.ScanInput{
-		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-			":acctstatus": {
-				S: aws.String("Ready"),
-			},
-		},
-		FilterExpression: aws.String("AccountStatus = :acctstatus"),
-		TableName:        aws.String(db.AccountTableName),
-		ConsistentRead:   aws.Bool(db.ConsistendRead),
-	}
-
-	// Make and verify the query
-	resp, err := db.Client.Scan(input)
-	if err != nil {
+	accounts, err := db.FindAccountsByStatus(Ready)
+	if len(accounts) < 1 {
 		return nil, err
 	}
-	if len(resp.Items) == 0 {
-		return nil, nil
-	}
-
-	// Return the Redbox Account
-	return unmarshalAccount(resp.Items[0])
+	return accounts[0], err
 }
 
 func (db *DB) FindAccountsByStatus(status AccountStatus) ([]*RedboxAccount, error) {
