@@ -468,6 +468,36 @@ paths:
         passthroughBehavior: "when_no_match"
       security:
         - sigv4: []
+  "/leases/{id}/auth":
+    get:
+      summary: Get lease authentication by Id
+      produces:
+        - application/json
+      parameters:
+        - in: path
+          name: id
+          type: string
+          required: true
+          description: Id for lease
+      responses:
+        200:
+          $ref: "#/definitions/leaseAuth"
+          headers:
+            Access-Control-Allow-Headers:
+              type: "string"
+            Access-Control-Allow-Methods:
+              type: "string"
+            Access-Control-Allow-Origin:
+              type: "string"
+        403:
+          description: "Failed to retrieve lease authentication"
+      x-amazon-apigateway-integration:
+        uri: ${lease_auth_lambda}
+        httpMethod: "POST"
+        type: "aws_proxy"
+        passthroughBehavior: "when_no_match"
+      security:
+        - sigv4: []
   "/usage":
     options:
       summary: CORS support
@@ -585,6 +615,22 @@ definitions:
       requestedLeaseEnd:
         type: number
         description: date lease should expire in epoch seconds
+  leaseAuth:
+    description: "Lease Authentication"
+    type: object
+    properties:
+      accessKeyId:
+        type: string
+        description: Access Key ID for access to the AWS API
+      secretAccessKey:
+        type: string
+        description: Secret Access Key for access to the AWS API
+      sessionToken:
+        type: string
+        description: Session Token for access to the AWS API
+      consoleUrl:
+        type: string
+        description: URL to access the AWS Console
   account:
     description: "Account Details"
     type: object
