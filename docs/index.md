@@ -18,17 +18,18 @@ These resources are created in the AWS account using [Hashicorp Terraform](https
 > **Disposable Cloud Environments (DCE) are a playground in the cloud.**
 
 With a DCE account, you have a safe environment to experiment with in the
-cloud. With near-administrative access to your own personal AWS account, you
+cloud. With near-administrative access to an AWS account, you
 can click around the AWS web console or run AWS CLI commands from your terminal. 
 As a developer in an organization, you don't need to worry about cost management, 
 orphaned resources, or lengthy cloud intake processes.
 
 ### Budget limits
 
-DCE leases can be configured to expire based on a budgeted amount for usage. 
+DCE can be configured to expire account _leases_ (see [Glossary](/glossary/)) 
+based on a budgeted amount for usage. 
 
-No surprise bills at the end of the month. Once the account hits a weekly 
-spending limit, the account will be automatically wiped clean to stop the bleeding.
+Once the account hits a weekly spending limit, the account will be automatically
+wiped clean so there are no surprise bills at the end of the month.
 
 ### Timed leases
 
@@ -39,7 +40,7 @@ for other people to lease.
 
 ## Getting started
 
-To get started using DCE, see the [Quickstart](/quickstart).
+To get started using DCE, see the [Quickstart](/quickstart/).
 
 ## Viewing the source
 
