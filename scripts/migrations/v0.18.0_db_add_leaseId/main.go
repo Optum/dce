@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/Optum/Redbox/pkg/common"
+	data "github.com/Optum/Redbox/pkg/db"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -41,6 +42,7 @@ type RedboxLeaseMod struct {
 	PrincipalID           string `json:"PrincipalId"`
 	ID                    string `json:"Id"`
 	LeaseStatus           string
+	ExpiresOn             int64
 	CreatedOn             int64
 	LastModifiedOn        int64
 	LeaseStatusModifiedOn int64
@@ -72,6 +74,13 @@ func migrationV18(input *migrationV18Input) (int64, error) {
 	for _, item := range leases {
 		fmt.Printf("AccountId: %s\n", item.AccountID)
 		leaseID := guuid.New()
+		expiresOn := time.Date(2019, time.October, 27, 0, 0, 0, 0, time.Local).Unix()
+		// There are only two statuses for lease now--either Active or Inactive. If
+		// it's not Active, any other status is now considered Inactive.
+		updatedLeaseStatus := item.LeaseStatus
+		if updatedLeaseStatus != string(data.Active) {
+			updatedLeaseStatus = string(data.Inactive)
+		}
 		result, err := input.dynDB.UpdateItem(
 			&dynamodb.UpdateItemInput{
 				// Query in Lease Table
@@ -86,10 +95,16 @@ func migrationV18(input *migrationV18Input) (int64, error) {
 					},
 				},
 				// Set Id to a new unique id
-				UpdateExpression: aws.String("set Id=:id"),
+				UpdateExpression: aws.String("set Id=:id, ExpiresOn=:expiresOn, LeaseStatus=:leaseStatus"),
 				ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
 					":id": {
 						N: aws.String(leaseID.String()),
+					},
+					":expiresOn": {
+						N: aws.String(string(expiresOn)),
+					},
+					":leaseStatus": {
+						N: aws.String(updatedLeaseStatus),
 					},
 				},
 				// Return the updated record

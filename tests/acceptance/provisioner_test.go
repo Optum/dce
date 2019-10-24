@@ -31,6 +31,7 @@ func TestProvisioner(t *testing.T) {
 		),
 		tfOut["dynamodb_table_account_name"].(string),
 		tfOut["redbox_lease_db_table_name"].(string),
+		7,
 	)
 
 	// Configure the Provisioner service

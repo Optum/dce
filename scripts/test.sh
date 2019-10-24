@@ -7,7 +7,7 @@ mkdir -p junit-report
 go test -v -coverprofile=coverage.txt -covermode count \
   ./pkg/...  ./cmd/... 2>&1 | \
   tee test.output.txt | \
-  go-junit-report -set-exit-code > junit-report/report.xml
+  tee >(go-junit-report -set-exit-code > junit-report/report.xml)
 
 # Echo Test Output
 cat test.output.txt
