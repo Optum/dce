@@ -142,6 +142,6 @@ func createAccount() *db.RedboxAccount {
 func createSuccessCreateResponse() *events.APIGatewayProxyResponse {
 	return &events.APIGatewayProxyResponse{
 		StatusCode: 201,
-		Body:       "{\"accountId\":\"\",\"principalId\":\"\",\"id\":\"\",\"leaseStatus\":\"\",\"leaseStatusReturn\":\"\",\"createdOn\":0,\"lastModifiedOn\":0,\"budgetAmount\":0,\"budgetCurrency\":\"\",\"budgetNotificationEmails\":null,\"leaseStatusModifiedOn\":0,\"expiresOn\":0}",
+		Body:       "{\"accountId\":\"\",\"principalId\":\"\",\"id\":\"\",\"leaseStatus\":\"\",\"leaseStatusReason\":\"\",\"createdOn\":0,\"lastModifiedOn\":0,\"budgetAmount\":0,\"budgetCurrency\":\"\",\"budgetNotificationEmails\":null,\"leaseStatusModifiedOn\":0,\"expiresOn\":0}",
 	}
 }

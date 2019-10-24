@@ -786,6 +786,6 @@ func NewFromEnv() (*DB, error) {
 		),
 		common.RequireEnv("ACCOUNT_DB"),
 		common.RequireEnv("LEASE_DB"),
-		common.RequireEnvIntWithDefault("DEFAULT_LEASE_LENGTH_IN_DAYS", 7),
+		common.GetEnvInt("DEFAULT_LEASE_LENGTH_IN_DAYS", 7),
 	), nil
 }

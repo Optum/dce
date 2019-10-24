@@ -38,8 +38,8 @@ func RequireEnvInt(env string) int {
 	return intVal
 }
 
-// RequireEnvIntWithDefault returns an environment that is required to be an integer
-func RequireEnvIntWithDefault(env string, defaultValue int) int {
+// GetEnvInt returns an environment that is required to be an integer
+func GetEnvInt(env string, defaultValue int) int {
 	val, ok := os.LookupEnv(env)
 
 	if !ok {
