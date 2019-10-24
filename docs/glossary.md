@@ -70,7 +70,14 @@ is "Destroyed".
 
 ### Active
 
+A lease with an _Active_ status reason is an active lease.
 
+### Rollback
+
+A lease with the _Rollback_ lease status reason has experienced a failure
+while DCE was getting the child account ready from the account pool. In the
+event of a failure, DCE sets the lease status to _Inactive_ and the reason 
+to _Rollback_ and returns the child account to the child pool.
 
 ## Account Pool
 
