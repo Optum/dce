@@ -70,6 +70,11 @@ resource "aws_iam_role_policy_attachment" "gateway_logs" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs"
 }
 
+resource "aws_iam_role_policy_attachment" "cognito_read_only" {
+  role       = aws_iam_role.redbox_lambda_execution.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonCognitoReadOnly"
+}
+
 # Allow Lambda to assume roles
 resource "aws_iam_role_policy" "lambda_assume_role" {
   role   = aws_iam_role.redbox_lambda_execution.name

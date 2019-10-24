@@ -1,9 +1,10 @@
-package api
+package api_test
 
 import (
 	"context"
 	"testing"
 
+	"github.com/Optum/Redbox/pkg/api"
 	mockController "github.com/Optum/Redbox/pkg/api/mocks"
 	"github.com/aws/aws-lambda-go/events"
 )
@@ -36,7 +37,7 @@ func TestRouter_Route(t *testing.T) {
 		HTTPMethod: "DELETE",
 	}
 
-	router := &Router{
+	router := &api.Router{
 		ResourceName:     "/leases",
 		CreateController: mockCreateController,
 		ListController:   mockListController,
@@ -50,37 +51,51 @@ func TestRouter_Route(t *testing.T) {
 		ctx                context.Context
 		expectedController *mockController.Controller
 		expectedErr        error
+		user               api.User
 	}{
 		{
 			name:               "GET (list) HTTP...",
 			request:            *listLeasesRequest,
 			ctx:                ctx,
 			expectedController: mockListController,
+			user: api.User{
+				Role: api.AdminGroupName,
+			},
 		},
 		{
 			name:               "GET (single) HTTP...",
 			request:            *getLeaseRequest,
 			ctx:                ctx,
 			expectedController: mockGetController,
+			user: api.User{
+				Role: api.AdminGroupName,
+			},
 		},
 		{
 			name:               "DELETE HTTP...",
 			request:            *deleteLeaseRequest,
 			ctx:                ctx,
 			expectedController: mockDeleteController,
+			user: api.User{
+				Role: api.AdminGroupName,
+			},
 		},
 		{
 			name:               "POST (create) HTTP...",
 			request:            *createLeaseRequest,
 			ctx:                ctx,
 			expectedController: mockCreateController,
+			user: api.User{
+				Role: api.AdminGroupName,
+			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			res := &events.APIGatewayProxyResponse{}
-			tt.expectedController.On("Call", tt.ctx, &tt.request).Return(*res, nil)
+			ctxWIthUser := context.WithValue(tt.ctx, api.DceCtxKey, tt.user)
+			tt.expectedController.On("Call", ctxWIthUser, &tt.request).Return(*res, nil)
 			_, _ = router.Route(tt.ctx, &tt.request)
 			tt.expectedController.AssertExpectations(t)
 		})
