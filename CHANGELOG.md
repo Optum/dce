@@ -15,6 +15,7 @@
 - Added migration for the leases to all be set to Inactive if they're anything but Active.
 - Lease added SNS topic updates principal policy
 - Refactored lease API controller and methods to organize methods into files.
+- Add functions to evaluate who is calling an API and what their role is
 
 ## v0.18.1
 

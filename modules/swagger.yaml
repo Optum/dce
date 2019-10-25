@@ -6,6 +6,43 @@ schemes:
   - https
 paths:
   "/accounts":
+    options:
+      summary: CORS support
+      description: |
+        Enable CORS by returning correct headers
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      tags:
+        - CORS
+      x-amazon-apigateway-integration:
+        type: mock
+        requestTemplates:
+          application/json: |
+            {
+              "statusCode" : 200
+            }
+        responses:
+          "default":
+            statusCode: "200"
+            responseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'*'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+            responseTemplates:
+              application/json: |
+                {}
+      responses:
+        200:
+          description: Default response for CORS method
+          headers:
+            Access-Control-Allow-Headers:
+              type: "string"
+            Access-Control-Allow-Methods:
+              type: "string"
+            Access-Control-Allow-Origin:
+              type: "string"
     get:
       summary: Lists accounts
       produces:
@@ -17,6 +54,13 @@ paths:
             type: array
             items:
               $ref: "#/definitions/account"
+          headers:
+            Access-Control-Allow-Headers:
+              type: "string"
+            Access-Control-Allow-Methods:
+              type: "string"
+            Access-Control-Allow-Origin:
+              type: "string"
         403:
           description: "Unauthorized"
       x-amazon-apigateway-integration:
@@ -52,6 +96,13 @@ paths:
       responses:
         201:
           $ref: "#/definitions/account"
+          headers:
+            Access-Control-Allow-Headers:
+              type: "string"
+            Access-Control-Allow-Methods:
+              type: "string"
+            Access-Control-Allow-Origin:
+              type: "string"
         403:
           description: "Failed to authenticate request"
       x-amazon-apigateway-integration:
@@ -62,6 +113,43 @@ paths:
       security:
         - sigv4: []
   "/accounts/{id}":
+    options:
+      summary: CORS support
+      description: |
+        Enable CORS by returning correct headers
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      tags:
+        - CORS
+      x-amazon-apigateway-integration:
+        type: mock
+        requestTemplates:
+          application/json: |
+            {
+              "statusCode" : 200
+            }
+        responses:
+          "default":
+            statusCode: "200"
+            responseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'*'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+            responseTemplates:
+              application/json: |
+                {}
+      responses:
+        200:
+          description: Default response for CORS method
+          headers:
+            Access-Control-Allow-Headers:
+              type: "string"
+            Access-Control-Allow-Methods:
+              type: "string"
+            Access-Control-Allow-Origin:
+              type: "string"
     get:
       summary: Get a specific account by an account ID
       produces:
@@ -75,6 +163,13 @@ paths:
       responses:
         200:
           $ref: "#/definitions/account"
+          headers:
+            Access-Control-Allow-Headers:
+              type: "string"
+            Access-Control-Allow-Methods:
+              type: "string"
+            Access-Control-Allow-Origin:
+              type: "string"
         403:
           description: "Failed to retrieve account"
       x-amazon-apigateway-integration:
@@ -95,6 +190,13 @@ paths:
       responses:
         204:
           description: "The account has been successfully deleted."
+          headers:
+            Access-Control-Allow-Headers:
+              type: "string"
+            Access-Control-Allow-Methods:
+              type: "string"
+            Access-Control-Allow-Origin:
+              type: "string"
         403:
           description: "Unauthorized."
         404:
@@ -109,6 +211,43 @@ paths:
       security:
         - sigv4: []
   "/leases":
+    options:
+      summary: CORS support
+      description: |
+        Enable CORS by returning correct headers
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      tags:
+        - CORS
+      x-amazon-apigateway-integration:
+        type: mock
+        requestTemplates:
+          application/json: |
+            {
+              "statusCode" : 200
+            }
+        responses:
+          "default":
+            statusCode: "200"
+            responseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'*'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+            responseTemplates:
+              application/json: |
+                {}
+      responses:
+        200:
+          description: Default response for CORS method
+          headers:
+            Access-Control-Allow-Headers:
+              type: "string"
+            Access-Control-Allow-Methods:
+              type: "string"
+            Access-Control-Allow-Origin:
+              type: "string"
     post:
       summary: Creates a new lease.
       consumes:
@@ -142,6 +281,13 @@ paths:
       responses:
         201:
           $ref: "#/definitions/lease"
+          headers:
+            Access-Control-Allow-Headers:
+              type: "string"
+            Access-Control-Allow-Methods:
+              type: "string"
+            Access-Control-Allow-Origin:
+              type: "string"
         400:
           description: >
             If the "expiresOn" date specified is non-zero but less than the current epoch date, 
@@ -247,6 +393,12 @@ paths:
             Link:
               type: string
               description: Appears only when there is another page of results in the query. The value contains the URL for the next page of the results and follows the `<url>; rel="next"` convention.
+            Access-Control-Allow-Headers:
+              type: "string"
+            Access-Control-Allow-Methods:
+              type: "string"
+            Access-Control-Allow-Origin:
+              type: "string"
           schema:
             type: array
             items:
@@ -264,6 +416,43 @@ paths:
       security:
         - sigv4: []
   "/leases/{id}":
+    options:
+      summary: CORS support
+      description: |
+        Enable CORS by returning correct headers
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      tags:
+        - CORS
+      x-amazon-apigateway-integration:
+        type: mock
+        requestTemplates:
+          application/json: |
+            {
+              "statusCode" : 200
+            }
+        responses:
+          "default":
+            statusCode: "200"
+            responseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'*'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+            responseTemplates:
+              application/json: |
+                {}
+      responses:
+        200:
+          description: Default response for CORS method
+          headers:
+            Access-Control-Allow-Headers:
+              type: "string"
+            Access-Control-Allow-Methods:
+              type: "string"
+            Access-Control-Allow-Origin:
+              type: "string"
     get:
       summary: Get a lease by Id
       produces:
@@ -277,6 +466,13 @@ paths:
       responses:
         200:
           $ref: "#/definitions/lease"
+          headers:
+            Access-Control-Allow-Headers:
+              type: "string"
+            Access-Control-Allow-Methods:
+              type: "string"
+            Access-Control-Allow-Origin:
+              type: "string"
         403:
           description: "Failed to retrieve lease"
       x-amazon-apigateway-integration:
@@ -287,6 +483,43 @@ paths:
       security:
         - sigv4: []
   "/usage":
+    options:
+      summary: CORS support
+      description: |
+        Enable CORS by returning correct headers
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      tags:
+        - CORS
+      x-amazon-apigateway-integration:
+        type: mock
+        requestTemplates:
+          application/json: |
+            {
+              "statusCode" : 200
+            }
+        responses:
+          "default":
+            statusCode: "200"
+            responseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'*'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+            responseTemplates:
+              application/json: |
+                {}
+      responses:
+        200:
+          description: Default response for CORS method
+          headers:
+            Access-Control-Allow-Headers:
+              type: "string"
+            Access-Control-Allow-Methods:
+              type: "string"
+            Access-Control-Allow-Origin:
+              type: "string"
     get:
       summary: Get usage records by date range
       produces:
@@ -305,6 +538,13 @@ paths:
       responses:
         200:
           $ref: "#/definitions/usage"
+          headers:
+            Access-Control-Allow-Headers:
+              type: "string"
+            Access-Control-Allow-Methods:
+              type: "string"
+            Access-Control-Allow-Origin:
+              type: "string"
         403:
           description: "Failed to authenticate request"
       x-amazon-apigateway-integration:

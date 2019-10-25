@@ -23,7 +23,7 @@ func (controller GetController) Call(ctx context.Context, req *events.APIGateway
 	leaseID := path.Base(req.Path)
 	lease, err := controller.Dao.GetLeaseByID(leaseID)
 	if err != nil {
-		log.Printf("Error Getting Lease for Id: %s", err)
+		log.Printf("Error Getting Lease for Id: %s", leaseID)
 		return response.CreateAPIErrorResponse(http.StatusInternalServerError,
 			response.CreateErrorResponse("ServerError",
 				fmt.Sprintf("Failed Get on Lease %s",

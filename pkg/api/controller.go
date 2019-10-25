@@ -9,6 +9,7 @@ import (
 
 	"github.com/Optum/Redbox/pkg/api/response"
 	"github.com/aws/aws-lambda-go/events"
+	"github.com/aws/aws-sdk-go/aws/session"
 )
 
 // Controller is the base controller interface for API Gateway Lambda handlers.
@@ -25,6 +26,7 @@ type Router struct {
 	DeleteController Controller
 	GetController    Controller
 	CreateController Controller
+	UserDetails      UserDetails
 }
 
 // Route - provides a router for the given resource
@@ -33,16 +35,20 @@ func (router *Router) Route(ctx context.Context, req *events.APIGatewayProxyRequ
 	var res events.APIGatewayProxyResponse
 	var err error
 	strLen := len(router.ResourceName)
+
+	requestUser := router.UserDetails.GetUser(req)
+	ctxWithUser := context.WithValue(ctx, DceCtxKey, *requestUser)
+
 	switch {
 	case req.HTTPMethod == http.MethodGet && strings.Compare(req.Path, router.ResourceName) == 0:
-		res, err = router.ListController.Call(ctx, req)
+		res, err = router.ListController.Call(ctxWithUser, req)
 	case req.HTTPMethod == http.MethodGet && strings.Compare(string(req.Path[0:strLen+1]), fmt.Sprintf("%s/", router.ResourceName)) == 0:
-		res, err = router.GetController.Call(ctx, req)
+		res, err = router.GetController.Call(ctxWithUser, req)
 	case req.HTTPMethod == http.MethodDelete &&
 		(strings.Compare(req.Path, fmt.Sprintf("%s/", router.ResourceName)) == 0 || strings.Compare(req.Path, router.ResourceName) == 0):
-		res, err = router.DeleteController.Call(ctx, req)
+		res, err = router.DeleteController.Call(ctxWithUser, req)
 	case req.HTTPMethod == http.MethodPost && strings.Compare(req.Path, router.ResourceName) == 0:
-		res, err = router.CreateController.Call(ctx, req)
+		res, err = router.CreateController.Call(ctxWithUser, req)
 	default:
 		errMsg := fmt.Sprintf("Resource %s not found for method %s", req.Path, req.HTTPMethod)
 		log.Printf(errMsg)
@@ -56,4 +62,13 @@ func (router *Router) Route(ctx context.Context, req *events.APIGatewayProxyRequ
 	}
 
 	return res, nil
+}
+
+func newAWSSession() *session.Session {
+	awsSession, err := session.NewSession()
+	if err != nil {
+		errorMessage := fmt.Sprintf("Failed to create AWS session: %s", err)
+		log.Fatal(errorMessage)
+	}
+	return awsSession
 }

@@ -39,7 +39,7 @@ type LeaseResponse struct {
 	PrincipalID              string               `json:"principalId"`
 	ID                       string               `json:"id"`
 	LeaseStatus              db.LeaseStatus       `json:"leaseStatus"`
-	LeaseStatusReason        db.LeaseStatusReason `json:"leaseStatusReturn"`
+	LeaseStatusReason        db.LeaseStatusReason `json:"leaseStatusReason"`
 	CreatedOn                int64                `json:"createdOn"`
 	LastModifiedOn           int64                `json:"lastModifiedOn"`
 	BudgetAmount             float64              `json:"budgetAmount"`
