@@ -1,15 +1,3 @@
-// dbAddLeaseModOn.go
-// This script is intended for one time use in the prod deployment of Redbox
-// Its sole purpose is to add LeaseStatusModifiedOn field, with current epoch seconds value,
-// to the Prod Leases table for AWS_Redbox
-//
-// It is intended to be run as a Golang script:
-// "go run dbAddLeaseModOn.go"
-//
-// This script requires 2 environment variables to be set for its use:
-// "export AWS_CURRENT_REGION=us-east-1"  - The region the database resides in
-// "export LEASE_DB=RedboxLeasetProd"  - Name of the Lease table for Accounts. This is the new table to which items from SOURCE_DB will be added to
-
 package main
 
 import (
@@ -74,7 +62,7 @@ func migrationV18(input *migrationV18Input) (int64, error) {
 	for _, item := range leases {
 		fmt.Printf("AccountId: %s\n", item.AccountID)
 		leaseID := guuid.New()
-		expiresOn := time.Date(2019, time.October, 27, 0, 0, 0, 0, time.Local).Unix()
+		expiresOn := time.Date(2019, time.November, 3, 0, 0, 0, 0, time.Local).Unix()
 		// There are only two statuses for lease now--either Active or Inactive. If
 		// it's not Active, any other status is now considered Inactive.
 		updatedLeaseStatus := item.LeaseStatus
