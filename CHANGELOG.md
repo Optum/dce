@@ -1,6 +1,6 @@
 ## v0.19.0
 
-**BREAKING**
+**BREAKING CHANGES**
 
 - Add unique ID to Leases DB and API records
 - Move to an _Expiring Leases model_ (see below for details)
@@ -29,12 +29,11 @@ In order to upgrade your DCE deployment to v0.19.0, you will need to:
 
 ### _Expiring Leases Model_
 
-Prior to v0.19.0, leases were held in perpetuity by principals, or until the principal removed their lease via the `DELETE /leases`. Leased accounts would be "reset" at the end of the week. During reset, the lease would be marked as _Locked_, and then marked as _Active_ again after the reset was complete.
+Prior to v0.19.0, leases were held in perpetuity by principals, or until the principal removed their lease via the `DELETE /leases` endpoint. Leased accounts would be "reset" at the end of the week. During reset, the lease would be marked as _Locked_, and then marked as _Active_ again after the reset was complete.
 
-As of v0.19.0, leases are held for a defined time period (defined by the `expiresOn` property), and then destroyed (marked as `Inactive`). Accounts are reset after leases expires. There is no longer any type of `*Locked` state, as leases are always either `Active` or `Inactive`.  
+As of v0.19.0, leases are held for a defined time period (defined by the `expiresOn` property), and then destroyed (marked as `Inactive`). Accounts are reset after the leases expires. There is no longer any type of `*Locked` state, as leases are always either `Active` or `Inactive`.  
 
 Changes for this new behavior include:
-
 
 - Simplified lease status model to include only two statuses: Inactive and Active.
 - Changed check_budget to update_lease_status and added check for expiration date.
