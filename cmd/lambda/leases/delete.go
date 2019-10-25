@@ -16,11 +16,8 @@ import (
 
 // requestBody is the structured object of the Request Called to the Router
 type deleteLeaseRequest struct {
-	PrincipalID              string   `json:"principalId"`
-	AccountID                string   `json:"accountId"`
-	BudgetAmount             float64  `json:"budgetAmount"`
-	BudgetCurrency           string   `json:"budgetCurrency"`
-	BudgetNotificationEmails []string `json:"budgetNotificationEmails"`
+	PrincipalID string `json:"principalId"`
+	AccountID   string `json:"accountId"`
 }
 
 type DeleteController struct {
