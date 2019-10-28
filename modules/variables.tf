@@ -178,7 +178,7 @@ variable "cognito_roles_attribute_admin_name" {
   default = ""
 }
 
-variable "max_lease_budget" {
+variable "max_lease_budget_amount" {
   type    = number
   default = 1000
 }
@@ -186,4 +186,14 @@ variable "max_lease_budget" {
 variable "max_lease_period" {
   type    = number
   default = 604800
+}
+
+variable "principal_budget_amount" {
+  type    = number
+  default = 1000
+}
+
+variable "principal_budget_period" {
+  type    = string
+  default = "WEEKLY"
 }
