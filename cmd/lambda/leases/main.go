@@ -9,6 +9,7 @@ import (
 	"github.com/Optum/Redbox/pkg/common"
 	"github.com/Optum/Redbox/pkg/db"
 	"github.com/Optum/Redbox/pkg/provision"
+	"github.com/Optum/Redbox/pkg/usage"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
 	"github.com/aws/aws-sdk-go/service/sns"
@@ -56,6 +57,12 @@ func main() {
 		Client: sqsClient,
 	}
 
+	usageSvc, err := usage.NewFromEnv()
+	if err != nil {
+		errorMessage := fmt.Sprintf("Failed to initialize usage service: %s", err)
+		log.Fatal(errorMessage)
+	}
+
 	provisionLeaseTopicARN := common.RequireEnv("PROVISION_TOPIC")
 	accountDeletedTopicArn := common.RequireEnv("DECOMMISSION_TOPIC")
 	resetQueueURL := common.RequireEnv("RESET_SQS_URL")
@@ -80,6 +87,7 @@ func main() {
 			Provisioner:   prov,
 			SNS:           snsSvc,
 			LeaseTopicARN: &provisionLeaseTopicARN,
+			UsageSvc:      usageSvc,
 		},
 		UserDetails: api.UserDetails{
 			CognitoUserPoolID:        common.RequireEnv("COGNITO_USER_POOL_ID"),
