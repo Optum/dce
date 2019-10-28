@@ -1,3 +1,7 @@
+## v0.19.1
+
+- Fixed issue with lease status reason not being set when the lease was newly created.
+
 ## v0.19.0
 
 **BREAKING CHANGES**
