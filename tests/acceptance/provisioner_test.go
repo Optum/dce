@@ -60,6 +60,7 @@ func TestProvisioner(t *testing.T) {
 			require.Equal(t, principalID, result.PrincipalID)
 			require.Equal(t, acctID, result.AccountID)
 			require.Equal(t, db.Active, result.LeaseStatus)
+			require.Equal(t, db.LeaseActive, result.LeaseStatusReason)
 			require.NotEqual(t, 0, result.CreatedOn)
 			require.NotEqual(t, 0, result.LastModifiedOn)
 			require.NotEqual(t, 0, result.LastModifiedOn)
@@ -73,6 +74,8 @@ func TestProvisioner(t *testing.T) {
 			require.Equal(t, result.AccountID, assgnAfter.AccountID)
 			require.Equal(t, result.LeaseStatus,
 				assgnAfter.LeaseStatus)
+			require.Equal(t, result.LeaseStatusReason,
+				assgnAfter.LeaseStatusReason)
 			require.Equal(t, result.CreatedOn, assgnAfter.CreatedOn)
 			require.Equal(t, result.LastModifiedOn, assgnAfter.LastModifiedOn)
 			require.Equal(t, result.LeaseStatusModifiedOn, assgnAfter.LeaseStatusModifiedOn)
