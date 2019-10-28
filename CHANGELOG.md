@@ -1,3 +1,7 @@
+## v0.19.1
+
+- Resolved issue that lease active reason was not set upon lease creation.
+
 ## v0.19.0
 
 **BREAKING CHANGES**
