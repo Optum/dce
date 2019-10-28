@@ -1,9 +1,40 @@
-## vNext
+## v0.19.0
+
+**BREAKING CHANGES**
+
+- Add unique ID to Leases DB and API records
+- Move to an _Expiring Leases model_ (see below for details)
+
+_Other Changes_
 
 - Add ECR to DCE user principal policy
 - Add email with attachment
-- Add ID to the Leases table
 - Added expiration date for lease ends
+- Lease added SNS topic updates principal policy
+- Refactored lease API controller and methods to organize methods into files.
+- Add functions to evaluate who is calling an API and what their role is
+
+
+### Migration Notes for v0.19.0
+
+In order to upgrade your DCE deployment to v0.19.0, you will need to:
+
+- Run the migration script located in [/scripts/migrations/v0.19.0_db_expiring_leases](./scripts/migrations/v0.19.0_db_expiring_leases)
+  - Adds a new `id` field to all existing `Lease` records
+  - Sets a default expiration date for all existing `Lease` records
+    - **IMPORTANT** you must override [the default expiration date](https://github.com/Optum/Redbox/blob/master/scripts/migrations/v0.19.0_db_expiring_leases/main.go#L65)
+  - Marks all `*Locked` leases as `Inactive`
+- Update any DCE API clients to include the `expiresOn` property in their `Lease` record. 
+
+
+### _Expiring Leases Model_
+
+Prior to v0.19.0, leases were held in perpetuity by principals, or until the principal removed their lease via the `DELETE /leases` endpoint. Leased accounts would be "reset" at the end of the week. During reset, the lease would be marked as _Locked_, and then marked as _Active_ again after the reset was complete.
+
+As of v0.19.0, leases are held for a defined time period (defined by the `expiresOn` property), and then destroyed (marked as `Inactive`). Accounts are reset after the leases expires. There is no longer any type of `*Locked` state, as leases are always either `Active` or `Inactive`.  
+
+Changes for this new behavior include:
+
 - Simplified lease status model to include only two statuses: Inactive and Active.
 - Changed check_budget to update_lease_status and added check for expiration date.
 - Changed SQS and SNS notifications for lease status change to be triggered by lease status change in DB.
@@ -13,9 +44,6 @@
   the expiration date isn't defined the environment variable `DEFAULT_LEASE_LENGTH_IN_DAYS` will be used and
   if that is not defined, a default of seven (7) days will be used.
 - Added migration for the leases to all be set to Inactive if they're anything but Active.
-- Lease added SNS topic updates principal policy
-- Refactored lease API controller and methods to organize methods into files.
-- Add functions to evaluate who is calling an API and what their role is
 
 ## v0.18.1
 
