@@ -23,7 +23,7 @@ _Other Changes_
 
 In order to upgrade your DCE deployment to v0.19.0, you will need to:
 
-- Run the migration script located in [/scripts/migrations/v0.19.0_db_expiring_leases](./scripts/migrations/v0.19.0_db_expiring_leases)
+- Run the migration script located in `scripts/migrations/v0.19.0_db_expiring_leases`
   - Adds a new `id` field to all existing `Lease` records
   - Sets a default expiration date for all existing `Lease` records
     - **IMPORTANT** you must override [the default expiration date](https://github.com/Optum/Redbox/blob/master/scripts/migrations/v0.19.0_db_expiring_leases/main.go#L65)
