@@ -177,3 +177,13 @@ variable "cognito_roles_attribute_admin_name" {
   type    = string
   default = ""
 }
+
+variable "max_lease_budget" {
+  type    = number
+  default = 1000
+}
+
+variable "max_lease_period" {
+  type    = number
+  default = 604800
+}
