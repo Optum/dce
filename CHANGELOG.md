@@ -1,3 +1,7 @@
+## vNext
+
+- Add Lease Validation for budget & period
+
 ## v0.19.0
 
 **BREAKING CHANGES**
