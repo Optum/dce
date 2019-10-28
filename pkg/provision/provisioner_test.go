@@ -203,9 +203,10 @@ type testActivateLeaseInput struct {
 func TestActivateLease(t *testing.T) {
 	// Construct test scenarios
 	lease := &db.RedboxLease{
-		AccountID:   "123",
-		PrincipalID: "abc",
-		LeaseStatus: db.Active,
+		AccountID:         "123",
+		PrincipalID:       "abc",
+		LeaseStatus:       db.Active,
+		LeaseStatusReason: db.LeaseActive,
 	}
 	tests := []testActivateLeaseInput{
 		// Happy Path - Create
@@ -221,6 +222,7 @@ func TestActivateLease(t *testing.T) {
 				AccountID:             "123",
 				PrincipalID:           "abc",
 				LeaseStatus:           db.Active,
+				LeaseStatusReason:     db.LeaseActive,
 				LastModifiedOn:        456,
 				LeaseStatusModifiedOn: 789,
 			},
