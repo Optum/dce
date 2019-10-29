@@ -9,10 +9,12 @@ import (
 	"time"
 
 	"github.com/Optum/Redbox/pkg/usage"
+	"github.com/Optum/Redbox/tests/acceptance/testutil"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/gruntwork-io/terratest/modules/terraform"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -88,39 +90,41 @@ func TestUsageDb(t *testing.T) {
 			}
 		}
 
-		// GetUsageByDateRange for testStartDate and 3-days.
-		actualUsages, err := dbSvc.GetUsageByDateRange(testStartDate, testStartDate.AddDate(0, 0, 3))
-		require.Nil(t, err)
-		fmt.Println(&actualUsages)
+		testutil.Retry(t, 10, 10*time.Millisecond, func(r *testutil.R) {
+			// GetUsageByDateRange for testStartDate and 3-days.
+			actualUsages, err := dbSvc.GetUsageByDateRange(testStartDate, testStartDate.AddDate(0, 0, 3))
+			require.Nil(t, err)
+			fmt.Println(&actualUsages)
 
-		sort.Slice(expectedUsages, func(i, j int) bool {
-			if expectedUsages[i].StartDate < expectedUsages[j].StartDate {
-				return true
+			sort.Slice(expectedUsages, func(i, j int) bool {
+				if expectedUsages[i].StartDate < expectedUsages[j].StartDate {
+					return true
+				}
+				if expectedUsages[i].StartDate > expectedUsages[j].StartDate {
+					return false
+				}
+				return expectedUsages[i].PrincipalID < expectedUsages[j].PrincipalID
+			})
+			sort.Slice(actualUsages, func(i, j int) bool {
+				if actualUsages[i].StartDate < actualUsages[j].StartDate {
+					return true
+				}
+				if actualUsages[i].StartDate > actualUsages[j].StartDate {
+					return false
+				}
+				return actualUsages[i].PrincipalID < actualUsages[j].PrincipalID
+			})
+
+			for _, eUsage := range expectedUsages {
+				fmt.Printf("Expected: %v\n", *eUsage)
 			}
-			if expectedUsages[i].StartDate > expectedUsages[j].StartDate {
-				return false
+
+			for _, aUsage := range actualUsages {
+				fmt.Printf("Actual: %v\n", *aUsage)
 			}
-			return expectedUsages[i].PrincipalID < expectedUsages[j].PrincipalID
+
+			assert.Equal(r, expectedUsages, actualUsages)
 		})
-		sort.Slice(actualUsages, func(i, j int) bool {
-			if actualUsages[i].StartDate < actualUsages[j].StartDate {
-				return true
-			}
-			if actualUsages[i].StartDate > actualUsages[j].StartDate {
-				return false
-			}
-			return actualUsages[i].PrincipalID < actualUsages[j].PrincipalID
-		})
-
-		for _, eUsage := range expectedUsages {
-			fmt.Printf("Expected: %v\n", *eUsage)
-		}
-
-		for _, aUsage := range actualUsages {
-			fmt.Printf("Actual: %v\n", *aUsage)
-		}
-
-		require.Equal(t, expectedUsages, actualUsages)
 	})
 }
 
@@ -135,7 +139,8 @@ func truncateUsageTable(t *testing.T, dbSvc *usage.DB) {
 	// Find all records in the Usage table
 	scanResult, err := dbSvc.Client.Scan(
 		&dynamodb.ScanInput{
-			TableName: aws.String(dbSvc.UsageTableName),
+			TableName:      aws.String(dbSvc.UsageTableName),
+			ConsistentRead: aws.Bool(true),
 		},
 	)
 	require.Nil(t, err)
