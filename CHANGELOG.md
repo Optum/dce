@@ -1,6 +1,10 @@
+## v0.19.2
+
+- Fixed issue with the lease check logic that was expiring non-expired leases.
+
 ## v0.19.1
 
-- Resolved issue that lease active reason was not set upon lease creation.
+- Fixed issue with lease status reason not being set when the lease was newly created.
 
 ## v0.19.0
 
