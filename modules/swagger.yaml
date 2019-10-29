@@ -469,8 +469,45 @@ paths:
       security:
         - sigv4: []
   "/leases/{id}/auth":
-    get:
-      summary: Get lease authentication by Id
+    options:
+      summary: CORS support
+      description: |
+        Enable CORS by returning correct headers
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      tags:
+        - CORS
+      x-amazon-apigateway-integration:
+        type: mock
+        requestTemplates:
+          application/json: |
+            {
+              "statusCode" : 200
+            }
+        responses:
+          "default":
+            statusCode: "200"
+            responseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'*'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+            responseTemplates:
+              application/json: |
+                {}
+      responses:
+        200:
+          description: Default response for CORS method
+          headers:
+            Access-Control-Allow-Headers:
+              type: "string"
+            Access-Control-Allow-Methods:
+              type: "string"
+            Access-Control-Allow-Origin:
+              type: "string"
+    post:
+      summary: Create lease authentication by Id
       produces:
         - application/json
       parameters:
@@ -480,8 +517,9 @@ paths:
           required: true
           description: Id for lease
       responses:
-        200:
-          $ref: "#/definitions/leaseAuth"
+        201:
+          schema:
+            $ref: "#/definitions/leaseAuth"
           headers:
             Access-Control-Allow-Headers:
               type: "string"
@@ -491,6 +529,10 @@ paths:
               type: "string"
         403:
           description: "Failed to retrieve lease authentication"
+        500:
+          description: "Server failure"
+        401:
+          description: "Unauthorized"
       x-amazon-apigateway-integration:
         uri: ${lease_auth_lambda}
         httpMethod: "POST"

@@ -37,8 +37,8 @@ func main() {
 	cognitoSvc := cognitoidentityprovider.New(awsSession)
 
 	router := &api.Router{
-		ResourceName: "/leases",
-		GetController: GetController{
+		ResourceName: "/auth",
+		CreateController: CreateController{
 			Dao:           dao,
 			TokenService:  tokenSvc,
 			FederationURL: federationURL,

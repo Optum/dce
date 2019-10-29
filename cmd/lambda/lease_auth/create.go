@@ -19,8 +19,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/sts"
 )
 
-// GetController - Gets Lease Authentication Information
-type GetController struct {
+// CreateController - Create Lease Authentication Information
+type CreateController struct {
 	Dao           db.DBer
 	TokenService  common.TokenService
 	ConsoleURL    string
@@ -29,7 +29,7 @@ type GetController struct {
 }
 
 // Call - function to return a specific AWS Lease record to the request
-func (controller GetController) Call(ctx context.Context, req *events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+func (controller CreateController) Call(ctx context.Context, req *events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 
 	leaseID := req.PathParameters["id"]
 
@@ -78,9 +78,13 @@ func (controller GetController) Call(ctx context.Context, req *events.APIGateway
 	}
 
 	log.Printf("Assuming Role: %s", account.PrincipalRoleArn)
+	roleSessionName := user.Username
+	if roleSessionName == "" {
+		roleSessionName = lease.PrincipalID
+	}
 	assumeRoleInputs := sts.AssumeRoleInput{
 		RoleArn:         &account.PrincipalRoleArn,
-		RoleSessionName: aws.String("DceUser"),
+		RoleSessionName: aws.String(roleSessionName),
 	}
 	assumeRoleOutput, err := controller.TokenService.AssumeRole(
 		&assumeRoleInputs,
@@ -101,10 +105,10 @@ func (controller GetController) Call(ctx context.Context, req *events.APIGateway
 		SessionToken:    *assumeRoleOutput.Credentials.SessionToken,
 		ConsoleURL:      consoleURL,
 	}
-	return response.CreateJSONResponse(http.StatusOK, result), nil
+	return response.CreateJSONResponse(http.StatusCreated, result), nil
 }
 
-func (controller GetController) buildConsoleURL(creds sts.Credentials) (string, error) {
+func (controller CreateController) buildConsoleURL(creds sts.Credentials) (string, error) {
 
 	signinToken, err := controller.getSigninToken(creds)
 	if err != nil {
@@ -130,7 +134,7 @@ func (controller GetController) buildConsoleURL(creds sts.Credentials) (string, 
 	return req.URL.String(), nil
 }
 
-func (controller GetController) getSigninToken(creds sts.Credentials) (string, error) {
+func (controller CreateController) getSigninToken(creds sts.Credentials) (string, error) {
 	type signinCredentialsInput struct {
 		AccessKeyID     string `json:"sessionId"`
 		SecretAccessKey string `json:"sessionKey"`
