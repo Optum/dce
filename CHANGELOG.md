@@ -5,7 +5,6 @@
 ## v0.19.1
 
 - Fixed issue with lease status reason not being set when the lease was newly created.
-- Fixed a bug in a migration script
 
 ## v0.19.0
 
