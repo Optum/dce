@@ -98,6 +98,7 @@ has exceeded its budget of $100. Actual spend is $150
 				BudgetCurrency:           "USD",
 				BudgetNotificationEmails: []string{"recipA@example.com", "recipB@example.com"},
 				LeaseStatusModifiedOn:    time.Unix(100, 0).Unix(),
+				ExpiresOn:                time.Now().AddDate(0, 0, +1000).Unix(), //Make sure it expires in the distant future as we aren't testing that
 			},
 			awsSession:                             &awsMocks.AwsSession{},
 			tokenSvc:                               tokenSvc,
@@ -309,19 +310,19 @@ func Test_isLeaseExpired(t *testing.T) {
 	nonExpiredLeaseTestArgs := &args{
 		lease,
 		&leaseContext{
-			time.Now().AddDate(0, 0, +1).Unix(),
+			time.Now().AddDate(0, 0, -1).Unix(),
 			10}}
 
 	expiredLeaseTestArgs := &args{
 		lease,
 		&leaseContext{
-			time.Now().AddDate(0, 0, -1).Unix(),
+			time.Now().AddDate(0, 0, +1).Unix(),
 			10}}
 
 	overBudgetTest := &args{
 		lease,
 		&leaseContext{
-			time.Now().AddDate(0, 0, +1).Unix(),
+			time.Now().AddDate(0, 0, -1).Unix(),
 			5000}}
 
 	tests := []struct {
