@@ -1,6 +1,7 @@
 ## v0.19.2
 
 - Fixed issue with the lease check logic that was expiring non-expired leases.
+- Migration script to fix wrongly expired leases
 
 ## v0.19.1
 
