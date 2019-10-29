@@ -2,6 +2,10 @@
 
 - Fixed a bug in a migration script
 
+## v0.19.2
+
+- Fixed issue with the lease check logic that was expiring non-expired leases.
+
 ## v0.19.1
 
 - Fixed issue with lease status reason not being set when the lease was newly created.
