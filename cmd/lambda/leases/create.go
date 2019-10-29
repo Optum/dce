@@ -259,8 +259,7 @@ func getBeginningOfCurrentBillingPeriod(input string) time.Time {
 		}
 
 		return time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 0, 0, 0, 0, time.UTC)
-	} else {
-		// Default is starting of current month
-		return time.Date(currentTime.Year(), currentTime.Month(), 1, 0, 0, 0, 0, time.UTC)
 	}
+
+	return time.Date(currentTime.Year(), currentTime.Month(), 1, 0, 0, 0, 0, time.UTC)
 }
