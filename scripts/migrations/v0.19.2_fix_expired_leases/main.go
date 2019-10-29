@@ -33,8 +33,8 @@ func main() {
 	leaseTableName := os.Getenv("LEASE_TABLE_NAME")
 	leaseRes, err := dynDB.Scan(&dynamodb.ScanInput{
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-			":status":  {S: aws.String("Inactive")},
-			":reason":  {S: aws.String("Expired")},
+			":status": {S: aws.String("Inactive")},
+			":reason": {S: aws.String("Expired")},
 			// Hardcoded ExpiresOn from v0.19.0 migration
 			":expires": {N: aws.String("1572739200")},
 		},
