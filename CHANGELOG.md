@@ -1,6 +1,22 @@
 ## vNext
 
+
 - Add Lease Validation for budget & period
+- Fixed a bug in a migration script
+- Fixed output from publish_lease_events that was generating confusing log entries.
+- Cleaned up naming for scheduling the update_lease_status lambda
+- Cleaned up naming for scheduling populate_reset_queue lambda to remove 
+  "weekly" and scheduled the lambda for every six hours instead of weekly.
+
+## v0.19.2
+
+- Fixed issue with the lease check logic that was expiring non-expired leases.
+- Migration script to fix wrongly expired leases
+
+## v0.19.1
+
+- Fixed issue with lease status reason not being set when the lease was newly created.
+
 
 ## v0.19.0
 

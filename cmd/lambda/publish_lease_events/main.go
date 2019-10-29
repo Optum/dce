@@ -122,11 +122,10 @@ func handleRecord(input *handleRecordInput) error {
 				aws.String(input.resetQueueURL),
 				aws.String(redboxLease.AccountID),
 			)
-			log.Printf("Error: %s", err)
 
 			if err != nil {
 				errMsg := fmt.Sprintf("Failed to add account to reset queue for lease %s @ %s: %s", redboxLease.PrincipalID, redboxLease.AccountID, err)
-				log.Printf(errMsg)
+				log.Println(errMsg)
 				// throw the error. Because if we could not enqueue the lease reset, we want
 				// the Lambda to error out so it can be re-tried per the retry policy of
 				// the event source.
