@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"os"
 	"reflect"
 	"testing"
 	"time"
@@ -19,6 +21,11 @@ import (
 	provisionMock "github.com/Optum/Redbox/pkg/provision/mocks"
 	"github.com/aws/aws-lambda-go/events"
 )
+
+func TestMain(m *testing.M) {
+	os.Setenv("PROVISION_TOPIC", "Test_Provision_Topic")
+	os.Exit(m.Run())
+}
 
 func TestCreateController_Call(t *testing.T) {
 	type fields struct {
@@ -76,13 +83,12 @@ func TestCreateController_Call(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := CreateController{
-				Dao:           tt.fields.Dao,
-				Provisioner:   tt.fields.Provisioner,
-				SNS:           tt.fields.SNS,
-				LeaseTopicARN: tt.fields.LeaseTopicARN,
-			}
-			got, err := c.Call(tt.args.ctx, tt.args.req)
+			DbSvc = tt.fields.Dao
+			Provisioner = tt.fields.Provisioner
+			SnsSvc = tt.fields.SNS
+			leaseTopicARN = *tt.fields.LeaseTopicARN
+
+			got, err := Handler(tt.args.ctx, *tt.args.req)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("CreateController.Call() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -96,7 +102,7 @@ func TestCreateController_Call(t *testing.T) {
 }
 
 func createSuccessfulCreateRequest() *events.APIGatewayProxyRequest {
-	createLeaseRequest := &createLeaseRequest{
+	createLeaseRequest := &CreateLeaseRequest{
 		PrincipalID:              "123456",
 		AccountID:                "987654321",
 		BudgetAmount:             50,
@@ -106,7 +112,9 @@ func createSuccessfulCreateRequest() *events.APIGatewayProxyRequest {
 	}
 	requestBodyBytes, _ := json.Marshal(createLeaseRequest)
 	return &events.APIGatewayProxyRequest{
-		Body: string(requestBodyBytes),
+		Body:       string(requestBodyBytes),
+		HTTPMethod: http.MethodPost,
+		Path:       "/leases",
 	}
 }
 
@@ -115,7 +123,7 @@ func createBadCreateRequest() *events.APIGatewayProxyRequest {
 }
 
 func createPastCreateRequest() *events.APIGatewayProxyRequest {
-	createLeaseRequest := &createLeaseRequest{
+	createLeaseRequest := &CreateLeaseRequest{
 		PrincipalID:              "123456",
 		AccountID:                "987654321",
 		BudgetAmount:             50,
@@ -125,7 +133,9 @@ func createPastCreateRequest() *events.APIGatewayProxyRequest {
 	}
 	requestBodyBytes, _ := json.Marshal(createLeaseRequest)
 	return &events.APIGatewayProxyRequest{
-		Body: string(requestBodyBytes),
+		Body:       string(requestBodyBytes),
+		HTTPMethod: http.MethodPost,
+		Path:       "/leases",
 	}
 }
 

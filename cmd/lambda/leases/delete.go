@@ -15,7 +15,7 @@ import (
 )
 
 // requestBody is the structured object of the Request Called to the Router
-type deleteLeaseRequest struct {
+type DeleteLeaseRequest struct {
 	PrincipalID string `json:"principalId"`
 	AccountID   string `json:"accountId"`
 }
@@ -30,7 +30,7 @@ type DeleteController struct {
 
 func (c DeleteController) Call(ctx context.Context, req *events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 
-	requestBody := &deleteLeaseRequest{}
+	requestBody := &DeleteLeaseRequest{}
 
 	err := json.Unmarshal([]byte(req.Body), requestBody)
 	if err != nil || requestBody.PrincipalID == "" {

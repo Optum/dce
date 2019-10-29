@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -15,15 +14,7 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 )
 
-// CreateController is responsible for handling API events for creating leases.
-type CreateController struct {
-	Dao           db.DBer
-	Provisioner   provision.Provisioner
-	SNS           common.Notificationer
-	LeaseTopicARN *string
-}
-
-type createLeaseRequest struct {
+type CreateLeaseRequest struct {
 	PrincipalID              string   `json:"principalId"`
 	AccountID                string   `json:"accountId"`
 	BudgetAmount             float64  `json:"budgetAmount"`
@@ -32,23 +23,22 @@ type createLeaseRequest struct {
 	ExpiresOn                int64    `json:"expiresOn"`
 }
 
-// Call - Function to validate the account request to add into the pool and
+// CreateLease - Function to validate the account request to add into the pool and
 // publish the account creation to its respective client
 // This function returns both a proxy response and an error. In this case,
 // if we know how to handle the error (such as a bad request), then the err
 // returned is nil. It's only not nil if we get an error that we don't know
 // what to do with, in which case the calling router will handle it.
-func (c CreateController) Call(ctx context.Context, req *events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+func CreateLease(w http.ResponseWriter, r *http.Request) {
 
 	// Extract the Body from the Request
-	requestBody := &createLeaseRequest{}
+	requestBody := &CreateLeaseRequest{}
 	var err error
-	if req.HTTPMethod != "GET" {
-		err = json.Unmarshal([]byte(req.Body), requestBody)
-		if err != nil || requestBody.PrincipalID == "" {
-			log.Printf("Failed to Parse Request Body: %s", req.Body)
-			return response.ClientBadRequestError(fmt.Sprintf("Failed to Parse Request Body: %s", req.Body)), nil
-		}
+	decoder := json.NewDecoder(r.Body)
+	err = decoder.Decode(&requestBody)
+	if err != nil || requestBody.PrincipalID == "" {
+		log.Printf("Failed to Parse Request Body: %s", r.Body)
+		ServerErrorWithResponse(w, fmt.Sprintf("Failed to Parse Request Body: %s", r.Body))
 	}
 
 	principalID := requestBody.PrincipalID
@@ -60,79 +50,82 @@ func (c CreateController) Call(ctx context.Context, req *events.APIGatewayProxyR
 	if requestBody.ExpiresOn != 0 && requestBody.ExpiresOn <= time.Now().Unix() {
 		errStr := fmt.Sprintf("Requested lease has a desired expiry date less than today: %d", requestBody.ExpiresOn)
 		log.Printf(errStr)
-		return response.BadRequestError(errStr), nil
+		ServerErrorWithResponse(w, fmt.Sprintf("Failed to Parse Request Body: %s", r.Body))
+		// return response.BadRequestError(errStr), nil
 	}
 
 	// Check if the principal has any existing Active/FinanceLock/ResetLock
 	// Leases
-	checkLease, err := c.Provisioner.FindActiveLeaseForPrincipal(principalID)
+	checkLease, err := Provisioner.FindActiveLeaseForPrincipal(principalID)
 	if err != nil {
 		log.Printf("Failed to Check Principal Active Leases: %s", err)
-		return response.ServerErrorWithResponse(fmt.Sprintf("Cannot verify if Principal has existing Redbox Account : %s",
-			err)), nil
+		ServerErrorWithResponse(w, fmt.Sprintf("Cannot verify if Principal has existing Redbox Account : %s", err))
 	} else if checkLease.PrincipalID == principalID {
 		errStr := fmt.Sprintf("Principal already has an existing Redbox: %s",
 			checkLease.AccountID)
 		log.Printf(errStr)
-		return response.ConflictError(errStr), nil
+		ServerErrorWithResponse(w, fmt.Sprintf("Failed to Parse Request Body: %s", r.Body))
+		// return response.ConflictError(errStr), nil
 	}
 	log.Printf("Principal %s has no Active Leases\n", principalID)
 
 	// Get the First Ready Account
 	// Exit if there's an error or no ready accounts
-	account, err := c.Dao.GetReadyAccount()
+	account, err := DbSvc.GetReadyAccount()
 	if err != nil {
 		log.Printf("Failed to Check Ready Accounts: %s", err)
-		return response.ServerErrorWithResponse(
-			fmt.Sprintf("Cannot get Available Redbox Accounts : %s", err)), nil
+		ServerErrorWithResponse(w, fmt.Sprintf("Failed to Parse Request Body: %s", r.Body))
+		// return response.ServerErrorWithResponse(
+		//	fmt.Sprintf("Cannot get Available Redbox Accounts : %s", err)), nil
 	} else if account == nil {
 		errStr := "No Available Redbox Accounts at this moment"
 		log.Printf(errStr)
-		return response.ServiceUnavailableError(errStr), nil
+		ServerErrorWithResponse(w, fmt.Sprintf("Failed to Parse Request Body: %s", r.Body))
+		// return response.ServiceUnavailableError(errStr), nil
 	}
 	log.Printf("Principal %s will be Leased to Account: %s\n", principalID,
 		account.ID)
 
 	// Check if the Principal and Account has been leased before
-	lease, err := c.Provisioner.FindLeaseWithAccount(principalID,
+	lease, err := Provisioner.FindLeaseWithAccount(principalID,
 		account.ID)
 	if err != nil {
 		log.Printf("Failed to Check Leases with Account: %s", err)
-		return response.ServerErrorWithResponse(fmt.Sprintf("Cannot get Available Redbox Accounts : %s", err)), nil
+		ServerErrorWithResponse(w, fmt.Sprintf("Failed to Parse Request Body: %s", r.Body))
+		// return response.ServerErrorWithResponse(fmt.Sprintf("Cannot get Available Redbox Accounts : %s", err)), nil
 	}
 
 	// Create/Update a Redbox Account Lease to Active
 	create := lease.AccountID == ""
-	lease, err = c.Provisioner.ActivateAccount(create, principalID,
+	lease, err = Provisioner.ActivateAccount(create, principalID,
 		account.ID, requestBody.BudgetAmount, requestBody.BudgetCurrency, requestBody.BudgetNotificationEmails,
 		requestBody.ExpiresOn)
 	if err != nil {
 		log.Printf("Failed to Activate Account Lease: %s", err)
-		return response.ServerErrorWithResponse(fmt.Sprintf("Failed to Create Lease for Account : %s", account.ID)), nil
+		ServerErrorWithResponse(w, fmt.Sprintf("Failed to Parse Request Body: %s", r.Body))
+		// return response.ServerErrorWithResponse(fmt.Sprintf("Failed to Create Lease for Account : %s", account.ID)), nil
 	}
 
 	// Set the Account as leased
 	log.Printf("Set Account %s Status to Leased for Principal %s\n", principalID,
 		account.ID)
-	_, err = c.Dao.TransitionAccountStatus(account.ID, db.Ready, db.Leased)
+	_, err = DbSvc.TransitionAccountStatus(account.ID, db.Ready, db.Leased)
 	if err != nil {
 		// Rollback
 		log.Printf("Error to Transition Account Status: %s", err)
-		return rollbackProvision(c.Provisioner, err, false, principalID, account.ID), nil
+		ServerErrorWithResponse(w, fmt.Sprintf("Failed to Parse Request Body: %s", r.Body))
+		// return rollbackProvision(c.Provisioner, err, false, principalID, account.ID), nil
 	}
 
 	// Publish Lease to the topic
-	message, err := publishLease(c.SNS, lease, c.LeaseTopicARN)
+	message, err := publishLease(SnsSvc, lease, ProvisionTopicArn)
 	if err != nil {
 		log.Printf("Error Publish Lease to Topic: %s", err)
-		return rollbackProvision(c.Provisioner, err, true, principalID, account.ID), nil
+		ServerErrorWithResponse(w, fmt.Sprintf("Failed to Parse Request Body: %s", r.Body))
+		// return rollbackProvision(c.Provisioner, err, true, principalID, account.ID), nil
 	}
 
-	// Return the response back to API
-	return events.APIGatewayProxyResponse{
-		StatusCode: http.StatusCreated,
-		Body:       *message,
-	}, nil
+	json.NewEncoder(w).Encode(*message)
 }
 
 // publishLease is a helper function to create and publish an lease

@@ -1,21 +1,20 @@
 package main
 
 import (
+	"context"
 	"fmt"
-
 	"log"
+	"os"
 
-	"github.com/Optum/Redbox/pkg/api"
 	"github.com/Optum/Redbox/pkg/common"
 	"github.com/Optum/Redbox/pkg/db"
 	"github.com/Optum/Redbox/pkg/provision"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
-	"github.com/aws/aws-sdk-go/service/sns"
-	"github.com/aws/aws-sdk-go/service/sqs"
-
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/sns"
+	"github.com/awslabs/aws-lambda-go-api-proxy/gorillamux"
 )
 
 const (
@@ -34,61 +33,45 @@ type messageBody struct {
 	Body    string `json:"Body"`
 }
 
+var muxLambda *gorillamux.GorillaMuxAdapter
+
+// DbSvc - Create a DB service
+var (
+	DbSvc             db.DBer
+	Provisioner       provision.Provisioner
+	SnsSvc            common.Notificationer
+	ProvisionTopicArn *string
+)
+
+func init() {
+
+	log.Println("Gorilla Mux cold start")
+	r := NewRouter()
+
+	muxLambda = gorillamux.New(r)
+}
+
 // buildBaseURL returns a base API url from the request properties.
 func buildBaseURL(req *events.APIGatewayProxyRequest) string {
 	return fmt.Sprintf("https://%s/%s", req.Headers["Host"], req.RequestContext.Stage)
 }
 
+// Handler - Handle the lambda function
+func Handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	// If no name is provided in the HTTP request body, throw an error
+	return muxLambda.ProxyWithContext(ctx, req)
+}
+
 func main() {
 
-	// Create the Database Service from the environment
-	dao := newDBer()
-
-	// Create the SNS Service
-	awsSession := newAWSSession()
-	snsSvc := &common.SNS{Client: sns.New(awsSession)}
-	prov := &provision.AccountProvision{
-		DBSvc: dao,
+	awsSession, _ := session.NewSession()
+	ProvisionTopicArn = aws.String(os.Getenv("PROVISION_TOPIC"))
+	SnsSvc = &common.SNS{Client: sns.New(awsSession)}
+	DbSvc = newDBer()
+	Provisioner = &provision.AccountProvision{
+		DBSvc: DbSvc,
 	}
-
-	sqsClient := sqs.New(awsSession)
-	queue := common.SQSQueue{
-		Client: sqsClient,
-	}
-
-	provisionLeaseTopicARN := common.RequireEnv("PROVISION_TOPIC")
-	accountDeletedTopicArn := common.RequireEnv("DECOMMISSION_TOPIC")
-	resetQueueURL := common.RequireEnv("RESET_SQS_URL")
-
-	router := &api.Router{
-		ResourceName: "/leases",
-		GetController: GetController{
-			Dao: dao,
-		},
-		ListController: ListController{
-			Dao: dao,
-		},
-		DeleteController: DeleteController{
-			Dao:                    dao,
-			SNS:                    snsSvc,
-			AccountDeletedTopicArn: accountDeletedTopicArn,
-			ResetQueueURL:          resetQueueURL,
-			Queue:                  queue,
-		},
-		CreateController: CreateController{
-			Dao:           dao,
-			Provisioner:   prov,
-			SNS:           snsSvc,
-			LeaseTopicARN: &provisionLeaseTopicARN,
-		},
-		UserDetails: api.UserDetails{
-			CognitoUserPoolID:        common.RequireEnv("COGNITO_USER_POOL_ID"),
-			RolesAttributesAdminName: common.RequireEnv("COGNITO_ROLES_ATTRIBUTE_ADMIN_NAME"),
-			CognitoClient:            cognitoidentityprovider.New(awsSession),
-		},
-	}
-
-	lambda.Start(router.Route)
+	lambda.Start(Handler)
 }
 
 func newDBer() db.DBer {
