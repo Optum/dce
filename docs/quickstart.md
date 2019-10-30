@@ -18,7 +18,7 @@ You will need to bring your own AWS accounts for adding to the account pool.
 that allows DCE to control the child account. This is detailed later 
 in this quickstart.
 
-## Basic steps
+## Basic steps (using the REST API)
 
 To deploy and start using DCE, follow these basic steps (explained in 
 greater detail below):
@@ -30,11 +30,15 @@ greater detail below):
 
 Each of these steps is covered in greater detail in the sections below.
 
-### Deploying DCE to the master account
+## Using the CLI
 
 To deploy DCE into the "master" account, you will need to start out with
 an existing AWS account. The `dce` [command line interface](dce/dce/) (CLI) 
 is the easiest way to deploy DCE into your master account.
+
+## Using the REST API
+
+### Deploying DCE to the master account
 
 You can also download DCE from the [Github repository](https://github.com/Optum/Redbox)
 and install it directly. To do so, you will need the following installed:
@@ -44,8 +48,8 @@ and install it directly. To do so, you will need the following installed:
 1. Hashicorp [Terraform](https://www.terraform.io/) 0.12+
 1. The [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html) 1.16+
 
-Once you have the requirements intalled, you can deploy DCE into u
-your account by following these steps:
+Once you have the requirements installed, you can deploy DCE into your account 
+by following these steps:
 
 1. Clone the [Github repository](https://github.com/Optum/Redbox) by using the 
 command as shown here:
@@ -73,9 +77,6 @@ as shown:
 
 When the last command is complete, you will have DCE deployed into your master
 account.
-
-### Provisioning the IAM role in the child account
-
 
 ### Adding child accounts to the account pool
 
@@ -226,7 +227,7 @@ HTTP/1.1 200 OK
 Once you see the first lease provisioned in the system, you are ready to use your
 first lease! See [logging into your leased account](#logging-into-your-leased-account).
 
-## Listing leases
+### Listing leases
 
 To list the leases, use an HTTP GET request to the *${api_url}/leases* endpoint
 to see the response as shown here:
@@ -265,7 +266,7 @@ x-amzn-RequestId: d306e800-dfd1-4a53-88b1-2a5d469c9cd6
 ]
 ```
 
-## Destroying leases
+### Destroying leases
 
 Leases can automatically expire based on a date or a budget amount, but
 leases may also be administratively destroyed at any time. To destroy
@@ -301,4 +302,3 @@ HTTP/1.1 200 OK
     "principalId": "RedboxPrincipal-nathangood"
 }
 ```
-
