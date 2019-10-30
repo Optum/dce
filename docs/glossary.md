@@ -134,7 +134,7 @@ principal assumes in order to access the resources in the account.
 
 ## Budget
 
-A _budget_ is a fixed amount of spending allowed for the lease. 
+A _budget_ is the amount of maximum spending that should be incurred during the lease. 
 If the usage in the account exceeds the budget amount, DCE [resets](#reset) the 
 account. 
 
