@@ -39,8 +39,16 @@ deploy_local: build
 destroy_local:
 	./scripts/deploy_local/destroy_local_build.sh
 
+documentation:
+	cp -f CONTRIBUTING.md ./docs/CONTRIBUTING.md > /dev/null
+	cp -f CHANGELOG.md ./docs/CHANGELOG.md > /dev/null
+	cp -f CODE_OF_CONDUCT.md ./docs/CODE_OF_CONDUCT.md > /dev/null
+	cp -f INDIVIDUAL_CONTRIBUTOR_LICENSE.md ./docs/INDIVIDUAL_CONTRIBUTOR_LICENSE.md > /dev/null
+	./scripts/generate-docs.sh
+
+
 install:
 	go install 
 
 clean:
-	rm -rf ./bin ./vendor
+	rm -rf ./bin ./vendor ./html-doc ./site

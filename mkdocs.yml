@@ -1,0 +1,11 @@
+site_name: DCE Documentation
+nav:
+  - Home: index.md
+  - Glossary: glossary.md
+  - Quickstart: quickstart.md
+  - "Using the CLI": dce/dce.md
+  - "API Documentation": api-documentation.md
+  - "Advanced Deployment With Terrform": advanced-deployment-with-terraform.md
+  - Contributing: CONTRIBUTING.md
+  - Changes: CHANGELOG.md
+theme: readthedocs

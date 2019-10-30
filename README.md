@@ -1,6 +1,6 @@
 # AWS DCE
 
-# The premier repository for AWS Disposable Cloud Environments (DCE).
+# The premier repository for AWS Disposable Cloud Environment (DCE).
 
 <!--
 Generated with markdown-toc
@@ -47,9 +47,9 @@ markdown-toc -i README.md --maxdepth 3
 
 <!-- tocstop -->
 
-## What is Disposable Cloud Environments (DCE)?
+## What is Disposable Cloud Environment (DCE)?
 
-The Disposable Cloud Environments (DCE) is a mechanism for providing temporary, limited Amazon Web Services (AWS)
+The Disposable Cloud Environment (DCE) is a mechanism for providing temporary, limited Amazon Web Services (AWS)
 accounts. Accounts can be "leased" for a period of seven days (by default). After the time has expired, the 
 account is _reset_ and returned to a pool of accounts to be leased again.
 

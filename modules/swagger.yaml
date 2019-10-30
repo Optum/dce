@@ -274,6 +274,8 @@ paths:
                 type: array
                 items:
                   type: string
+              expiresOn:
+                type: number
       produces:
         - application/json
       responses:
@@ -286,8 +288,17 @@ paths:
               type: "string"
             Access-Control-Allow-Origin:
               type: "string"
+        400:
+          description: >
+            If the "expiresOn" date specified is non-zero but less than the current epoch date, 
+            "Requested lease has a desired expiry date less than today: <date>" or
+            "Failed to Parse Request Body" if the request body is blank or incorrectly formatted.
         403:
           description: "Failed to authenticate request"
+        409:
+          description: Conflict if there is an existing lease already active with the provided principal and account.
+        500:
+          description: Server errors if the database cannot be reached.
       x-amazon-apigateway-integration:
         uri: ${leases_lambda}
         httpMethod: "POST"
@@ -316,17 +327,17 @@ paths:
       produces:
         - application/json
       responses:
-        201:
-          description: "Lease successfully removed"
-          headers:
-            Access-Control-Allow-Headers:
-              type: "string"
-            Access-Control-Allow-Methods:
-              type: "string"
-            Access-Control-Allow-Origin:
-              type: "string"
+        200:
+          $ref: "#/definitions/lease"
+        400:
+          description: >
+            "Failed to Parse Request Body" if the request body is blank or incorrectly formatted.
+            or if there are no account leases found for the specified accountId or if the account
+            specified is not already Active.
         403:
           description: "Failed to authenticate request"
+        500:
+          description: Server errors if the database cannot be reached.
       x-amazon-apigateway-integration:
         uri: ${leases_lambda}
         httpMethod: "POST"
@@ -392,6 +403,9 @@ paths:
             type: array
             items:
               $ref: "#/definitions/lease"
+        400:
+          description: >
+            "Failed to Parse Request Body" if the request body is blank or incorrectly formatted.
         403:
           description: "Failed to authenticate request"
       x-amazon-apigateway-integration:
@@ -562,6 +576,8 @@ definitions:
         description: accountId of the AWS account
       leaseStatus:
         $ref: "#/definitions/leaseStatus"
+      leaseStatusReason:
+        $ref: "#/definitions/leaseStatusReason"
       createdOn:
         type: number
         description: creation date in epoch seconds
@@ -582,7 +598,7 @@ definitions:
       leaseStatusModifiedOn:
         type: number
         description: date lease status was last modified in epoch seconds
-      requestedLeaseEnd:
+      expiresOn:
         type: number
         description: date lease should expire in epoch seconds
   account:
@@ -622,28 +638,38 @@ definitions:
       "Leased": The account is leased to a principal
   leaseStatus:
     type: string
-    enum:
-      [
-        "Active",
-        "Decommissioned",
-        "FinanceLock",
-        "ResetLock",
-        "ResetFinanceLock",
-      ]
+    enum: ["Active", "Inactive"]
     description: |
       Status of the Lease.
       "Active": The principal is leased and has access to the account
-      "Decommissioned": The principal was previously leased to the account, but now is not.
-      "FinanceLock": The principal is leased to the account, but has hit a budget threshold, and is locked out of the account.
-      "ResetLock": The principal is leased to the account, but the account is being reset. The principal's access is temporarily revoked, and will be given back after the reset process is complete.
-      "ResetFinanceLock": The principal is leased to the account, but has been locked out for hitting a budget threshold. Additionally, the account is being reset. After reset, the principal's access will _not_ be restored, and the LeaseStatus will be set back to `ResetLock`.
+      "Inactive": The lease has become inactive, either through expiring, exceeding budget, or by request.
+  leaseStatusReason:
+    type: string
+    enum:
+      - "LeaseExpired"
+      - "LeaseOverBudget"
+      - "LeaseDestroyed"
+      - "LeaseActive"
+      - "LeaseRolledBack"
+    description: |
+      A reason behind the lease status.
+      "LeaseExpired": The lease exceeded its expiration time ("expiresOn") and
+      the associated account was reset and returned to the account pool.
+      "LeaseOverBudget": The lease exceeded its budgeted amount and the
+      associated account was reset and returned to the account pool.
+      "LeaseDestroyed": The lease was adminstratively ended, which can be done
+      via the leases API.
+      "LeaseActive": The lease is active.
+      "LeaseRolledBack": A system error occurred while provisioning the lease.
+      and it was rolled back.
   usage:
     description: "usage cost of the aws account from start date to end date"
     type: object
     properties:
       principalId:
         type: string
-        description: principalId of the user who owns the lease of the AWS account
+        description: >
+          principalId of the user who owns the lease of the AWS account
       accountId:
         type: string
         description: accountId of the AWS account

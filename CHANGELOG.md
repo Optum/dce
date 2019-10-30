@@ -36,7 +36,7 @@ _Other Changes_
 
 In order to upgrade your DCE deployment to v0.19.0, you will need to:
 
-- Run the migration script located in [/scripts/migrations/v0.19.0_db_expiring_leases](./scripts/migrations/v0.19.0_db_expiring_leases)
+- Run the migration script located in `scripts/migrations/v0.19.0_db_expiring_leases`
   - Adds a new `id` field to all existing `Lease` records
   - Sets a default expiration date for all existing `Lease` records
     - **IMPORTANT** you must override [the default expiration date](https://github.com/Optum/Redbox/blob/master/scripts/migrations/v0.19.0_db_expiring_leases/main.go#L65)
@@ -55,6 +55,8 @@ Changes for this new behavior include:
 - Simplified lease status model to include only two statuses: Inactive and Active.
 - Changed check_budget to update_lease_status and added check for expiration date.
 - Changed SQS and SNS notifications for lease status change to be triggered by lease status change in DB.
+- Added https://readthedocs.org/ style documentation, `make documentation` target
+- Added generation for API documentation from Swagger YAML to https://readthedocs.org/ format.
 - Added defaults for leases; if ID isn't specified upon save in the DB a new one will be assigned, and if 
   the expiration date isn't defined the environment variable `DEFAULT_LEASE_LENGTH_IN_DAYS` will be used and
   if that is not defined, a default of seven (7) days will be used.
@@ -111,9 +113,6 @@ This release removes a number of Optum-specific configurations from the default 
 To specify a override nuke config, upload your own YAML file to an S3 bucket, and specify the S3 location using the `reset_nuke_template_bucket` and `reset_nuke_template_key` Terraform variables.
 
 This release also disables `aws-nuke` by default, to prevent accidental destruction of critical AWS account resources. To re-enable `aws-nuke`, set the `reset_nuke_toggle` Terraform variable to `"true"`. 
-
-See [README.md for details](./README.md#configuring-aws-nuke) on aws-nuke configuration
-
 
 ## v0.12.3
 
