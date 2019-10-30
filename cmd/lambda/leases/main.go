@@ -67,6 +67,11 @@ func main() {
 	accountDeletedTopicArn := common.RequireEnv("DECOMMISSION_TOPIC")
 	resetQueueURL := common.RequireEnv("RESET_SQS_URL")
 
+	principalBudgetAmount := common.RequireEnvFloat("PRINCIPAL_BUDGET_AMOUNT")
+	principalBudgetPeriod := common.RequireEnv("PRINCIPAL_BUDGET_PERIOD")
+	maxLeaseBudgetAmount := common.RequireEnvFloat("MAX_LEASE_BUDGET_AMOUNT")
+	maxLeasePeriod := common.RequireEnvInt("MAX_LEASE_PERIOD")
+
 	router := &api.Router{
 		ResourceName: "/leases",
 		GetController: GetController{
@@ -83,11 +88,15 @@ func main() {
 			Queue:                  queue,
 		},
 		CreateController: CreateController{
-			Dao:           dao,
-			Provisioner:   prov,
-			SNS:           snsSvc,
-			LeaseTopicARN: &provisionLeaseTopicARN,
-			UsageSvc:      usageSvc,
+			Dao:                   dao,
+			Provisioner:           prov,
+			SNS:                   snsSvc,
+			LeaseTopicARN:         &provisionLeaseTopicARN,
+			UsageSvc:              usageSvc,
+			PrincipalBudgetAmount: &principalBudgetAmount,
+			PrincipalBudgetPeriod: &principalBudgetPeriod,
+			MaxLeaseBudgetAmount:  &maxLeaseBudgetAmount,
+			MaxLeasePeriod:        &maxLeasePeriod,
 		},
 		UserDetails: api.UserDetails{
 			CognitoUserPoolID:        common.RequireEnv("COGNITO_USER_POOL_ID"),

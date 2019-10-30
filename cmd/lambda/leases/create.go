@@ -18,11 +18,15 @@ import (
 
 // CreateController is responsible for handling API events for creating leases.
 type CreateController struct {
-	Dao           db.DBer
-	Provisioner   provision.Provisioner
-	SNS           common.Notificationer
-	LeaseTopicARN *string
-	UsageSvc      usage.Service
+	Dao                   db.DBer
+	Provisioner           provision.Provisioner
+	SNS                   common.Notificationer
+	LeaseTopicARN         *string
+	UsageSvc              usage.Service
+	PrincipalBudgetAmount *float64
+	PrincipalBudgetPeriod *string
+	MaxLeaseBudgetAmount  *float64
+	MaxLeasePeriod        *int
 }
 
 type createLeaseRequest struct {
@@ -66,18 +70,15 @@ func (c CreateController) Call(ctx context.Context, req *events.APIGatewayProxyR
 	}
 
 	// Check requested lease budget amount is greater than MAX_LEASE_BUDGET_AMOUNT. If it's, then throw an error
-	maxLeaseBudgetAmount := common.RequireEnvFloat("MAX_LEASE_BUDGET_AMOUNT")
-
-	if requestBody.BudgetAmount > maxLeaseBudgetAmount {
-		errStr := fmt.Sprintf("Requested lease has a budget amount of %f, which is greater than max lease budget amount of %f", requestBody.BudgetAmount, maxLeaseBudgetAmount)
+	if requestBody.BudgetAmount > *c.MaxLeaseBudgetAmount {
+		errStr := fmt.Sprintf("Requested lease has a budget amount of %f, which is greater than max lease budget amount of %f", requestBody.BudgetAmount, *c.MaxLeaseBudgetAmount)
 		log.Printf(errStr)
 		return response.BadRequestError(errStr), nil
 	}
 
 	// Check requested lease budget period is greater than MAX_LEASE_BUDGET_PERIOD. If it's, then throw an error
 	currentTime := time.Now()
-	maxLeasePeriod := common.RequireEnvInt("MAX_LEASE_PERIOD")
-	maxLeaseExpiresOn := currentTime.Add(time.Second * time.Duration(maxLeasePeriod))
+	maxLeaseExpiresOn := currentTime.Add(time.Second * time.Duration(*c.MaxLeasePeriod))
 
 	if requestBody.ExpiresOn > maxLeaseExpiresOn.Unix() {
 		errStr := fmt.Sprintf("Requested lease has a budget expires on of %d, which is greater than max lease period of %d", requestBody.ExpiresOn, maxLeaseExpiresOn.Unix())
@@ -101,8 +102,7 @@ func (c CreateController) Call(ctx context.Context, req *events.APIGatewayProxyR
 	log.Printf("Principal %s has no Active Leases\n", principalID)
 
 	//Get sum of total spent by PrinicpalID for current billing period
-	principalBudgetAmount := common.RequireEnvFloat("PRINCIPAL_BUDGET_AMOUNT")
-	usageStartTime := getBeginningOfCurrentBillingPeriod(common.RequireEnv("PRINCIPAL_BUDGET_PERIOD"))
+	usageStartTime := getBeginningOfCurrentBillingPeriod(*c.PrincipalBudgetPeriod)
 	usageEndTime := time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 23, 59, 59, 0, time.UTC)
 
 	usageRecords, err := c.UsageSvc.GetUsageByDateRange(usageStartTime, usageEndTime)
@@ -121,7 +121,7 @@ func (c CreateController) Call(ctx context.Context, req *events.APIGatewayProxyR
 		}
 	}
 
-	if spent > principalBudgetAmount {
+	if spent > *c.PrincipalBudgetAmount {
 		errStr := fmt.Sprintf("Principal budget amount for current billing period is already used by Principal: %s",
 			checkLease.PrincipalID)
 		log.Printf(errStr)
