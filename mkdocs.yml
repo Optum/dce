@@ -3,7 +3,7 @@ nav:
   - Home: index.md
   - Glossary: glossary.md
   - Quickstart: quickstart.md
-  - "Using the CLI": using-the-cli.md
+  - "Using the CLI": dce/dce.md
   - "API Documentation": api-documentation.md
   - "Advanced Deployment With Terrform": advanced-deployment-with-terraform.md
   - Contributing: CONTRIBUTING.md

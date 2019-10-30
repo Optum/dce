@@ -11,6 +11,7 @@ docs/INDIVIDUAL_CONTRIBUTOR_LICENSE.md
 # The API documentation is also generated.
 docs/api-documentation.md
 /html-docs
+docs/dce/
 
 ## Terraform
 # Local .terraform directories

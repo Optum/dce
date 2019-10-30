@@ -1,6 +1,6 @@
-# Disposable Cloud Environments (DCE)
+# Disposable Cloud Environment (DCE)
 
-The Disposable Cloud Environments (DCE) provide temporary,
+The Disposable Cloud Environment (DCE) provide temporary,
 limited Amazon Web Services (AWS) accounts. Accounts can be "leased" for a
 period of time or up to a pre-determined budget amount. When the period of
 time is reached or the maximum budgeted amount is exceeded, the lease is
@@ -15,7 +15,7 @@ These resources are created in the AWS account using [Hashicorp Terraform](https
 
 ## Why DCE?
 
-> **Disposable Cloud Environments (DCE) are a playground in the cloud.**
+> **Disposable Cloud Environment (DCE) are a playground in the cloud.**
 
 With a DCE account, you have a safe environment to experiment with in the
 cloud. With near-administrative access to an AWS account, you
@@ -44,4 +44,4 @@ To get started using DCE, see the [Quickstart](/quickstart/).
 
 ## Viewing the source
 
-The source code for DCE can be found on [GitHub]().
+The source code for DCE can be found on [GitHub](https://github.com/Optum/Redbox).

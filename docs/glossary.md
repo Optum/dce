@@ -2,7 +2,7 @@
 
 ## DCE
 
-_Disposable Cloud Environments (DCE)_ provide temporary, limited access to Amazon Web 
+_Disposable Cloud Environment (DCE)_ provide temporary, limited access to Amazon Web 
 Services (AWS) accounts. Administrators can configure this limited access to expire based on time or budget. When the access expires, DCE destroys all of the resources in the account and returns the [account to the [account pool](#account-pool)
 
 ## Account

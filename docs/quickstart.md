@@ -33,11 +33,48 @@ Each of these steps is covered in greater detail in the sections below.
 ### Deploying DCE to the master account
 
 To deploy DCE into the "master" account, you will need to start out with
-an existing AWS account. The `dce` command line interface (CLI) is the easiest
-way to deploy DCE into your master account.
+an existing AWS account. The `dce` [command line interface](dce/dce/) (CLI) 
+is the easiest way to deploy DCE into your master account.
+
+You can also download DCE from the [Github repository](https://github.com/Optum/Redbox)
+and install it directly. To do so, you will need the following installed:
+
+1. [GNU Make](https://www.gnu.org/software/make/) 3.81+
+1. [Go](https://golang.org/) 1.12.x+
+1. Hashicorp [Terraform](https://www.terraform.io/) 0.12+
+1. The [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html) 1.16+
+
+Once you have the requirements intalled, you can deploy DCE into u
+your account by following these steps:
+
+1. Clone the [Github repository](https://github.com/Optum/Redbox) by using the 
+command as shown here:
+
+        $ git clone https://github.com/Optum/Redbox.git dce
+
+1. Verify that the AWS CLI is [configured](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html).
+with an IAM user that has admin-level permissions in your AWS 
+[master account](/glossary/#master-account).
+1. Make sure that the AWS region is set to *us-east-1* by using the command
+as shown:
+
+        $ aws configure list
+            Name                    Value             Type    Location
+            ----                    -----             ----    --------
+        profile                <not set>             None    None
+        access_key     ****************NXAW shared-credentials-file    
+        secret_key     ****************ymwP shared-credentials-file    
+        region                us-east-1      config-file    ~/.aws/config
+
+1. Change into the base directory and use `make` to deploy the code as shown here:
+
+        $ cd dce
+        $ make deploy_local
+
+When the last command is complete, you will have DCE deployed into your master
+account.
 
 ### Provisioning the IAM role in the child account
-
 
 
 ### Adding child accounts to the account pool
@@ -47,8 +84,8 @@ To create an account using the API, use an HTTP POST to the URL
 
 ```json
 {
-    "adminRoleArn": "arn:aws:iam::519777115644:role/DCEAdmin",
-    "id": "519777115644"
+    "adminRoleArn": "arn:aws:iam::123456789012:role/DCEAdmin",
+    "id": "123456789012"
 }
 ```
 
@@ -71,13 +108,13 @@ x-amzn-RequestId: 5ef9f032-bed2-45e2-abf8-7051d15ef966
 
 {
     "accountStatus": "NotReady",
-    "adminRoleArn": "arn:aws:iam::519777115644:role/DCEAdmin",
+    "adminRoleArn": "arn:aws:iam::123456789012:role/DCEAdmin",
     "createdOn": 1572379783,
-    "id": "519777115644",
+    "id": "123456789012",
     "lastModifiedOn": 1572379783,
     "metadata": null,
     "principalPolicyHash": "\"852ee9abbf1220a111c435a8c0e65490\"",
-    "principalRoleArn": "arn:aws:iam::519777115644:role/RedboxPrincipal-nathangood"
+    "principalRoleArn": "arn:aws:iam::123456789012:role/RedboxPrincipal-myuser"
 }
 ```
 
@@ -102,13 +139,13 @@ x-amzn-RequestId: ab46c728-60cf-48ee-a838-e0d076025667
 [
     {
         "accountStatus": "Ready",
-        "adminRoleArn": "arn:aws:iam::519777115644:role/DCEAdmin",
+        "adminRoleArn": "arn:aws:iam::123456789012:role/DCEAdmin",
         "createdOn": 1572379783,
-        "id": "519777115644",
+        "id": "123456789012",
         "lastModifiedOn": 1572379888,
         "metadata": null,
         "principalPolicyHash": "\"852ee9abbf1220a111c435a8c0e65490\"",
-        "principalRoleArn": "arn:aws:iam::519777115644:role/RedboxPrincipal-nathangood"
+        "principalRoleArn": "arn:aws:iam::123456789012:role/RedboxPrincipal-myuser"
     }
 ]
 ```
@@ -121,12 +158,12 @@ content to the *${api_url}/leases* endpoint:
 
 ```json
 {
-    "principalId": "RedboxPrincipal-nathangood",
-    "accountId": "519777115644",
+    "principalId": "RedboxPrincipal-myuser",
+    "accountId": "123456789012",
     "budgetAmount": 20,
     "budgetCurrency": "USD",
     "budgetNotificationEmails": [
-        "nathan@galenhousesoftware.com"
+        "myuser@example.com"
     ],
     "expiresOn": 1572382800
 }
@@ -149,11 +186,11 @@ x-amz-apigw-id: CV5-yF_coAMFd4A=
 x-amzn-RequestId: f4848ef9-d577-4465-a0d2-dd33e792f4a5
 
 {
-    "accountId": "519777115644",
+    "accountId": "123456789012",
     "budgetAmount": 20,
     "budgetCurrency": "USD",
     "budgetNotificationEmails": [
-        "nathan@galenhousesoftware.com"
+        "myuser@example.com"
     ],
     "createdOn": 1572381585,
     "expiresOn": 1572382800,
@@ -162,7 +199,7 @@ x-amzn-RequestId: f4848ef9-d577-4465-a0d2-dd33e792f4a5
     "leaseStatus": "Active",
     "leaseStatusModifiedOn": 1572381585,
     "leaseStatusReason": "",
-    "principalId": "RedboxPrincipal-nathangood"
+    "principalId": "RedboxPrincipal-myuser"
 }
 ```
 
@@ -176,14 +213,92 @@ HTTP/1.1 200 OK
 [
     {
         "accountStatus": "Leased",
-        "adminRoleArn": "arn:aws:iam::519777115644:role/DCEAdmin",
+        "adminRoleArn": "arn:aws:iam::123456789012:role/DCEAdmin",
         "createdOn": 1572379783,
-        "id": "519777115644",
+        "id": "123456789012",
         "lastModifiedOn": 1572381585,
         "metadata": null,
         "principalPolicyHash": "\"852ee9abbf1220a111c435a8c0e65490\"",
-        "principalRoleArn": "arn:aws:iam::519777115644:role/RedboxPrincipal-nathangood"
+        "principalRoleArn": "arn:aws:iam::123456789012:role/RedboxPrincipal-myuser"
     }
 ]
+```
+Once you see the first lease provisioned in the system, you are ready to use your
+first lease! See [logging into your leased account](#logging-into-your-leased-account).
+
+## Listing leases
+
+To list the leases, use an HTTP GET request to the *${api_url}/leases* endpoint
+to see the response as shown here:
+
+```json
+HTTP/1.1 200 OK
+Connection: keep-alive
+Content-Length: 380
+Content-Type: application/json
+Date: Wed, 30 Oct 2019 12:47:46 GMT
+Via: 1.1 0e31b6655e8230805e58fd71c1351ba1.cloudfront.net (CloudFront)
+X-Amz-Cf-Id: pGPruQ4PEi2KGd3O-R2eUl48fuEUesNdR1UhOnrNgf_fYlJ0SQwzaA==
+X-Amz-Cf-Pop: ORD52-C1
+X-Amzn-Trace-Id: Root=1-5db98671-b6dd22900fc6c8367b3b6084;Sampled=0
+X-Cache: Miss from cloudfront
+x-amz-apigw-id: CYHxsH2VoAMFwxQ=
+x-amzn-RequestId: d306e800-dfd1-4a53-88b1-2a5d469c9cd6
+
+[
+    {
+        "accountId": "123456789012",
+        "budgetAmount": 20,
+        "budgetCurrency": "USD",
+        "budgetNotificationEmails": [
+            "myuser@example.com"
+        ],
+        "createdOn": 1572381585,
+        "expiresOn": 1572382800,
+        "id": "94503268-426b-4892-9b53-3c73ab38aeff",
+        "lastModifiedOn": 1572381585,
+        "leaseStatus": "Active",
+        "leaseStatusModifiedOn": 1572381585,
+        "leaseStatusReason": "Active",
+        "principalId": "RedboxPrincipal-myuser"
+    }
+]
+```
+
+## Destroying leases
+
+Leases can automatically expire based on a date or a budget amount, but
+leases may also be administratively destroyed at any time. To destroy
+a lease with the API, send a DELETE request to *${api_url}/leases
+with the following request body:
+
+```json
+{
+    "principalId": "RedboxPrincipal-myuser",
+    "accountId": "123456789012"
+}
+```
+
+The API response for a successful lease destroy looks like this:
+
+```json
+HTTP/1.1 200 OK
+// snipped...
+{
+    "accountId": "519777115644",
+    "budgetAmount": 20,
+    "budgetCurrency": "USD",
+    "budgetNotificationEmails": [
+        "nathan@galenhousesoftware.com"
+    ],
+    "createdOn": 1572381585,
+    "expiresOn": 1572382800,
+    "id": "94503268-426b-4892-9b53-3c73ab38aeff",
+    "lastModifiedOn": 1572442028,
+    "leaseStatus": "Inactive",
+    "leaseStatusModifiedOn": 1572442028,
+    "leaseStatusReason": "Destroyed",
+    "principalId": "RedboxPrincipal-nathangood"
+}
 ```
 
