@@ -190,7 +190,7 @@ func lambdaHandler(input *lambdaHandlerInput) error {
 // expired, given the context.
 func isLeaseExpired(lease *db.RedboxLease, context *leaseContext) (bool, db.LeaseStatusReason) {
 
-	if context.expireDate <= lease.ExpiresOn {
+	if context.expireDate >= lease.ExpiresOn {
 		return true, db.LeaseExpired
 	} else if context.actualSpend >= lease.BudgetAmount {
 		return true, db.LeaseOverBudget

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	"github.com/Optum/Redbox/pkg/common"
@@ -62,7 +63,7 @@ func migrationV18(input *migrationV18Input) (int64, error) {
 	for _, item := range leases {
 		fmt.Printf("AccountId: %s\n", item.AccountID)
 		leaseID := guuid.New()
-		expiresOn := time.Date(2019, time.November, 3, 0, 0, 0, 0, time.Local).Unix()
+		expiresOn := strconv.Itoa(int(time.Date(2019, time.November, 3, 0, 0, 0, 0, time.Local).Unix()))
 		// There are only two statuses for lease now--either Active or Inactive. If
 		// it's not Active, any other status is now considered Inactive.
 		updatedLeaseStatus := item.LeaseStatus
@@ -86,13 +87,13 @@ func migrationV18(input *migrationV18Input) (int64, error) {
 				UpdateExpression: aws.String("set Id=:id, ExpiresOn=:expiresOn, LeaseStatus=:leaseStatus"),
 				ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
 					":id": {
-						N: aws.String(leaseID.String()),
+						S: aws.String(leaseID.String()),
 					},
 					":expiresOn": {
-						N: aws.String(string(expiresOn)),
+						N: aws.String(expiresOn),
 					},
 					":leaseStatus": {
-						N: aws.String(updatedLeaseStatus),
+						S: aws.String(updatedLeaseStatus),
 					},
 				},
 				// Return the updated record

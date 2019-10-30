@@ -59,9 +59,9 @@ variable "reset_nuke_toggle" {
   default     = "false"
 }
 
-variable "weekly_reset_cron_expression" {
-  description = "The Weekly Reset Cron Expression used with CloudWatch to enqueue accounts for Reset."
-  default     = "cron(0 5 ? * SUN *)" // Runs 5am GMT on Sunday / 12am on Sunday Morning
+variable "populate_reset_queue_schedule_expression" {
+  description = "The schedule used with CloudWatch to enqueue accounts for reset."
+  default     = "rate(6 hours)" // Runs every six hours
 }
 
 variable "principal_iam_deny_tags" {
@@ -141,7 +141,7 @@ variable "redbox_principal_policy" {
   default     = ""
 }
 
-variable "update_lease_status_schedule_expression" {
+variable "fan_out_update_lease_status_schedule_expression" {
   type        = string
   description = "Update lease status schedule"
   default     = "rate(6 hours)"

@@ -62,11 +62,11 @@ POLICY
 }
 
 // Run the fan-out-update-lease-status-lambda lambda on a timer (cloudwatch event)
-module "dbbackup_lambda_schedule" {
+module "fan_out_update_lease_status_lambda_schedule" {
   source              = "./cloudwatch_event"
   name                = "fan_out_update_lease_status-${var.namespace}"
   lambda_function_arn = module.fan_out_update_lease_status_lambda.arn
-  schedule_expression = var.update_lease_status_schedule_expression
+  schedule_expression = var.fan_out_update_lease_status_schedule_expression
   description         = "Initiates the update lease status lambda. Invokes an update-lease-statuslamdba for each active lease"
   enabled             = var.update_lease_status_enabled
 }

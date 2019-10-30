@@ -32,6 +32,7 @@ import (
 
 	"github.com/Optum/Redbox/pkg/db"
 	"github.com/Optum/Redbox/pkg/usage"
+	"github.com/Optum/Redbox/tests/acceptance/testutil"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 )
 
@@ -972,27 +973,28 @@ func TestApi(t *testing.T) {
 				}
 			}
 
-			// Send an API request
-			resp := apiRequest(t, &apiRequestInput{
-				method: "GET",
-				url:    apiURL + "/usage?startDate=1557014400&endDate=1557273599",
-				json:   nil,
+			testutil.Retry(t, 10, 10*time.Millisecond, func(r *testutil.R) {
+
+				resp := apiRequest(t, &apiRequestInput{
+					method: "GET",
+					url:    apiURL + "/usage?startDate=1557014400&endDate=1557273599",
+					json:   nil,
+				})
+
+				// Verify response code
+				assert.Equal(r, http.StatusOK, resp.StatusCode)
+
+				// Parse response json
+				data := parseResponseArrayJSON(t, resp)
+
+				//Verify response json
+				if data[0] != nil {
+					usageJSON := data[0]
+					assert.Equal(r, "TestUser1", usageJSON["principalId"].(string))
+					assert.Equal(r, "TestAcct1", usageJSON["accountId"].(string))
+					assert.Equal(r, 60.00, usageJSON["costAmount"].(float64))
+				}
 			})
-
-			// Verify response code
-			require.Equal(t, http.StatusOK, resp.StatusCode)
-
-			// Parse response json
-			data := parseResponseArrayJSON(t, resp)
-			fmt.Printf("data : %v", data)
-
-			//Verify response json
-			if data[0] != nil {
-				usageJSON := data[0]
-				require.Equal(t, "TestUser1", usageJSON["principalId"].(string))
-				require.Equal(t, "TestAcct1", usageJSON["accountId"].(string))
-				require.Equal(t, 60.00, usageJSON["costAmount"].(float64))
-			}
 		})
 	})
 
@@ -1092,102 +1094,113 @@ func TestApi(t *testing.T) {
 		})
 
 		t.Run("When there is an account ID parameter", func(t *testing.T) {
-			resp := apiRequest(t, &apiRequestInput{
-				method: "GET",
-				url:    apiURL + "/leases?accountId=" + accountIDOne,
-				json:   nil,
-			})
+			testutil.Retry(t, 10, 10*time.Millisecond, func(r *testutil.R) {
+				resp := apiRequest(t, &apiRequestInput{
+					method: "GET",
+					url:    apiURL + "/leases?accountId=" + accountIDOne,
+					json:   nil,
+				})
 
-			results := parseResponseArrayJSON(t, resp)
-			assert.Equal(t, 3, len(results), "only three leases should be returned")
+				results := parseResponseArrayJSON(t, resp)
+				assert.Equal(r, 3, len(results), "only three leases should be returned")
+			})
 		})
 
 		t.Run("When there is an principal ID parameter", func(t *testing.T) {
-			resp := apiRequest(t, &apiRequestInput{
-				method: "GET",
-				url:    apiURL + "/leases?principalId=" + principalIDOne,
-				json:   nil,
-			})
+			testutil.Retry(t, 10, 10*time.Millisecond, func(r *testutil.R) {
+				resp := apiRequest(t, &apiRequestInput{
+					method: "GET",
+					url:    apiURL + "/leases?principalId=" + principalIDOne,
+					json:   nil,
+				})
 
-			results := parseResponseArrayJSON(t, resp)
-			assert.Equal(t, 2, len(results), "only two leases should be returned")
+				results := parseResponseArrayJSON(t, resp)
+				assert.Equal(t, 2, len(results), "only two leases should be returned")
+			})
 		})
 
 		t.Run("When there is a limit parameter", func(t *testing.T) {
-			resp := apiRequest(t, &apiRequestInput{
-				method: "GET",
-				url:    apiURL + "/leases?limit=1",
-				json:   nil,
-			})
+			testutil.Retry(t, 10, 10*time.Millisecond, func(r *testutil.R) {
+				resp := apiRequest(t, &apiRequestInput{
+					method: "GET",
+					url:    apiURL + "/leases?limit=1",
+					json:   nil,
+				})
 
-			results := parseResponseArrayJSON(t, resp)
-			assert.Equal(t, 1, len(results), "only one lease should be returned")
+				results := parseResponseArrayJSON(t, resp)
+				assert.Equal(t, 1, len(results), "only one lease should be returned")
+			})
 		})
 
 		t.Run("When there is a status parameter", func(t *testing.T) {
-			resp := apiRequest(t, &apiRequestInput{
-				method: "GET",
-				url:    apiURL + "/leases?status=" + string(db.Inactive),
-				json:   nil,
-			})
+			testutil.Retry(t, 10, 10*time.Millisecond, func(r *testutil.R) {
+				resp := apiRequest(t, &apiRequestInput{
+					method: "GET",
+					url:    apiURL + "/leases?status=" + string(db.Inactive),
+					json:   nil,
+				})
 
-			results := parseResponseArrayJSON(t, resp)
-			assert.Equal(t, 2, len(results), "only two leases should be returned")
+				results := parseResponseArrayJSON(t, resp)
+				assert.Equal(t, 2, len(results), "only two leases should be returned")
+			})
 		})
 
 		t.Run("When there is a Link header", func(t *testing.T) {
 			nextPageRegex := regexp.MustCompile(`<(.+)>`)
 
-			respOne := apiRequest(t, &apiRequestInput{
-				method: "GET",
-				url:    apiURL + "/leases?limit=2",
-				json:   nil,
+			testutil.Retry(t, 10, 10*time.Millisecond, func(r *testutil.R) {
+
+				respOne := apiRequest(t, &apiRequestInput{
+					method: "GET",
+					url:    apiURL + "/leases?limit=2",
+					json:   nil,
+				})
+
+				linkHeader, ok := respOne.Header["Link"]
+				assert.True(t, ok, "Link header should exist")
+
+				resultsOne := parseResponseArrayJSON(t, respOne)
+				assert.Equal(t, 2, len(resultsOne), "only two leases should be returned")
+
+				nextPage := nextPageRegex.FindStringSubmatch(linkHeader[0])[1]
+
+				_, err := url.ParseRequestURI(nextPage)
+				assert.Nil(t, err, "Link header should contain a valid URL")
+
+				respTwo := apiRequest(t, &apiRequestInput{
+					method: "GET",
+					url:    nextPage,
+					json:   nil,
+				})
+
+				linkHeader, ok = respTwo.Header["Link"]
+				assert.True(t, ok, "Link header should exist")
+
+				resultsTwo := parseResponseArrayJSON(t, respTwo)
+				assert.Equal(t, 2, len(resultsTwo), "only two leases should be returned")
+
+				nextPage = nextPageRegex.FindStringSubmatch(linkHeader[0])[1]
+
+				_, err = url.ParseRequestURI(nextPage)
+				assert.Nil(t, err, "Link header should contain a valid URL")
+
+				respThree := apiRequest(t, &apiRequestInput{
+					method: "GET",
+					url:    nextPage,
+					json:   nil,
+				})
+
+				linkHeader, ok = respThree.Header["Link"]
+				assert.False(t, ok, "Link header should not exist in last page")
+
+				resultsThree := parseResponseArrayJSON(t, respThree)
+				assert.Equal(t, 1, len(resultsThree), "only one lease should be returned")
+
+				results := append(resultsOne, resultsTwo...)
+				results = append(results, resultsThree...)
+
+				assert.Equal(t, 5, len(results), "All five releases should be returned")
 			})
-
-			linkHeader, ok := respOne.Header["Link"]
-			assert.True(t, ok, "Link header should exist")
-
-			resultsOne := parseResponseArrayJSON(t, respOne)
-			assert.Equal(t, 2, len(resultsOne), "only two leases should be returned")
-
-			nextPage := nextPageRegex.FindStringSubmatch(linkHeader[0])[1]
-
-			_, err := url.ParseRequestURI(nextPage)
-			assert.Nil(t, err, "Link header should contain a valid URL")
-
-			respTwo := apiRequest(t, &apiRequestInput{
-				method: "GET",
-				url:    nextPage,
-				json:   nil,
-			})
-
-			linkHeader, ok = respTwo.Header["Link"]
-			assert.True(t, ok, "Link header should exist")
-
-			resultsTwo := parseResponseArrayJSON(t, respTwo)
-			assert.Equal(t, 2, len(resultsTwo), "only two leases should be returned")
-
-			nextPage = nextPageRegex.FindStringSubmatch(linkHeader[0])[1]
-
-			_, err = url.ParseRequestURI(nextPage)
-			assert.Nil(t, err, "Link header should contain a valid URL")
-
-			respThree := apiRequest(t, &apiRequestInput{
-				method: "GET",
-				url:    nextPage,
-				json:   nil,
-			})
-
-			linkHeader, ok = respThree.Header["Link"]
-			assert.False(t, ok, "Link header should not exist in last page")
-
-			resultsThree := parseResponseArrayJSON(t, respThree)
-			assert.Equal(t, 1, len(resultsThree), "only one lease should be returned")
-
-			results := append(resultsOne, resultsTwo...)
-			results = append(results, resultsThree...)
-
-			assert.Equal(t, 5, len(results), "All five releases should be returned")
 		})
 	})
 }
