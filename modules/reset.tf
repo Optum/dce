@@ -29,26 +29,26 @@ module "populate_reset_queue" {
   }
 }
 
-# Trigger Global Reset Lambda function weekly
+# Trigger Global Reset Lambda function on a periodic basis
 # https://stackoverflow.com/a/35895316
-resource "aws_cloudwatch_event_rule" "weekly_reset" {
-  name                = "redbox-weekly-reset-${var.namespace}"
-  description         = "Trigger Redbox weekly reset"
-  schedule_expression = var.weekly_reset_cron_expression
+resource "aws_cloudwatch_event_rule" "populate_reset_queue" {
+  name                = "populate-reset-queue-${var.namespace}"
+  description         = "Trigger populate_reset_queue Lambda function"
+  schedule_expression = var.populate_reset_queue_schedule_expression
 }
 
-resource "aws_cloudwatch_event_target" "weekly_reset" {
-  rule      = aws_cloudwatch_event_rule.weekly_reset.name
-  target_id = "redbox_global_reset_${var.namespace}"
+resource "aws_cloudwatch_event_target" "populate_reset_queue" {
+  rule      = aws_cloudwatch_event_rule.populate_reset_queue.name
+  target_id = "populate_reset_queue_${var.namespace}"
   arn       = module.populate_reset_queue.arn
 }
 
-resource "aws_lambda_permission" "allow_cloudwatch_weekly_reset" {
-  statement_id  = "AllowCloudWatchWeeklyReset${title(var.namespace)}"
+resource "aws_lambda_permission" "allow_populate_reset_queue" {
+  statement_id  = "AllowCloudWatchPopulateResetQueue${title(var.namespace)}"
   action        = "lambda:InvokeFunction"
   function_name = module.populate_reset_queue.name
   principal     = "events.amazonaws.com"
-  source_arn    = aws_cloudwatch_event_rule.weekly_reset.arn
+  source_arn    = aws_cloudwatch_event_rule.populate_reset_queue.arn
 }
 
 # Lambda function to execute account reset
