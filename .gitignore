@@ -65,6 +65,7 @@ junit-report/
 test.output.txt
 coverage.json
 coverage.txt
+coverage.xml
 tf-lsp.log
 
 # Python
@@ -80,3 +81,4 @@ venv.bak/
 
 # mkdocs documentation
 /site
+
