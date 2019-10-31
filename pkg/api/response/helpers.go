@@ -35,7 +35,7 @@ func CreateJSONResponse(status int, response interface{}) events.APIGatewayProxy
 	return CreateAPIResponse(status, string(body))
 }
 
-// createAPIErrorResponse is a helper function to create and return a valid error
+// CreateAPIErrorResponse is a helper function to create and return a valid error
 // response message for the API
 func CreateAPIErrorResponse(responseCode int,
 	errResp ErrorResponse) events.APIGatewayProxyResponse {
