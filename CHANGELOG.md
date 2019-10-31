@@ -1,4 +1,4 @@
-## vNext
+## v0.20.0
 
 - Fixed a bug in a migration script
 - Fixed output from publish_lease_events that was generating confusing log entries.
