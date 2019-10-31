@@ -47,7 +47,8 @@ func (c ListController) Call(ctx context.Context, req *events.APIGatewayProxyReq
 	res := events.APIGatewayProxyResponse{
 		StatusCode: http.StatusOK,
 		Headers: map[string]string{
-			"Content-Type": "application/json",
+			"Content-Type":                "application/json",
+			"Access-Control-Allow-Origin": "*",
 		},
 		Body: string(responseBytes),
 	}

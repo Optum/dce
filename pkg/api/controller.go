@@ -40,14 +40,14 @@ func (router *Router) Route(ctx context.Context, req *events.APIGatewayProxyRequ
 	ctxWithUser := context.WithValue(ctx, DceCtxKey, *requestUser)
 
 	switch {
-	case req.HTTPMethod == http.MethodGet && strings.Compare(req.Path, router.ResourceName) == 0:
+	case req.HTTPMethod == http.MethodGet && strings.HasSuffix(req.Path, router.ResourceName):
 		res, err = router.ListController.Call(ctxWithUser, req)
 	case req.HTTPMethod == http.MethodGet && strings.Compare(string(req.Path[0:strLen+1]), fmt.Sprintf("%s/", router.ResourceName)) == 0:
 		res, err = router.GetController.Call(ctxWithUser, req)
 	case req.HTTPMethod == http.MethodDelete &&
 		(strings.Compare(req.Path, fmt.Sprintf("%s/", router.ResourceName)) == 0 || strings.Compare(req.Path, router.ResourceName) == 0):
 		res, err = router.DeleteController.Call(ctxWithUser, req)
-	case req.HTTPMethod == http.MethodPost && strings.Compare(req.Path, router.ResourceName) == 0:
+	case req.HTTPMethod == http.MethodPost && strings.HasSuffix(req.Path, router.ResourceName):
 		res, err = router.CreateController.Call(ctxWithUser, req)
 	default:
 		errMsg := fmt.Sprintf("Resource %s not found for method %s", req.Path, req.HTTPMethod)

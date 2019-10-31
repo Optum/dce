@@ -116,3 +116,10 @@ func NotFoundError() events.APIGatewayProxyResponse {
 		CreateErrorResponse("NotFound", "The requested resource could not be found."),
 	)
 }
+
+func UnauthorizedError() events.APIGatewayProxyResponse {
+	return CreateAPIErrorResponse(
+		401,
+		CreateErrorResponse("Unauthorized", "Could not access the resource requested."),
+	)
+}

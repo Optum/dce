@@ -23,15 +23,24 @@ data "template_file" "api_swagger" {
   template = file("${path.module}/swagger.yaml")
 
   vars = {
-    leases_lambda   = module.leases_lambda.invoke_arn
-    accounts_lambda = module.accounts_lambda.invoke_arn
-    usages_lambda   = module.usage_lambda.invoke_arn
-    namespace       = "${var.namespace_prefix}-${var.namespace}"
+    leases_lambda     = module.leases_lambda.invoke_arn
+    lease_auth_lambda = module.lease_auth_lambda.invoke_arn
+    accounts_lambda   = module.accounts_lambda.invoke_arn
+    usages_lambda     = module.usage_lambda.invoke_arn
+    namespace         = "${var.namespace_prefix}-${var.namespace}"
   }
 }
 
 resource "aws_lambda_permission" "allow_api_gateway" {
   function_name = module.leases_lambda.arn
+  statement_id  = "AllowExecutionFromApiGateway"
+  action        = "lambda:InvokeFunction"
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_api_gateway_rest_api.gateway_api.execution_arn}/*/*"
+}
+
+resource "aws_lambda_permission" "allow_api_gateway_lease_auth_lambda" {
+  function_name = module.lease_auth_lambda.arn
   statement_id  = "AllowExecutionFromApiGateway"
   action        = "lambda:InvokeFunction"
   principal     = "apigateway.amazonaws.com"
