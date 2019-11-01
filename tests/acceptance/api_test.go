@@ -1236,7 +1236,7 @@ func TestApi(t *testing.T) {
 			// Get nested json in response json
 			err := data["error"].(map[string]interface{})
 			require.Equal(t, "ClientError", err["code"].(string))
-			require.Equal(t, "Requested lease has a budget amount of 30000.00, which is greater than max lease budget amount of 1000.00",
+			require.Equal(t, "Requested lease has a budget amount of 30000.000000, which is greater than max lease budget amount of 1000.000000",
 				err["message"].(string))
 
 		})
