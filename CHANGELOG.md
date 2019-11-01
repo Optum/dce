@@ -1,7 +1,7 @@
 
 ## vNext
 
-- Add Lease Validation for budget & period
+- Added Lease Validation for check against max budget amount, max budget period, budget billing amount and budget billing period
 
 ## v0.20.0
 
