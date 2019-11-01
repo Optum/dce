@@ -1214,6 +1214,7 @@ func TestApi(t *testing.T) {
 			// Create the Provision Request Body
 			body := leaseRequest2{
 				PrincipalID:  principalID,
+				AccountID:    "123",
 				BudgetAmount: 30000.00,
 				ExpiresOn:    expiresOn,
 			}
@@ -1248,6 +1249,7 @@ func TestApi(t *testing.T) {
 			// Create the Provision Request Body
 			body := leaseRequest2{
 				PrincipalID:  principalID,
+				AccountID:    "123",
 				BudgetAmount: 300.00,
 				ExpiresOn:    expiresOnAfterOneYear,
 			}
