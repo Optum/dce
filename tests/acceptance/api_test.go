@@ -1209,11 +1209,13 @@ func TestApi(t *testing.T) {
 		t.Run("Should validate requested budget amount", func(t *testing.T) {
 
 			principalID := "user"
+			expiresOn := time.Now().AddDate(1, 0, 5).Unix()
 
 			// Create the Provision Request Body
 			body := leaseRequest2{
 				PrincipalID:  principalID,
-				BudgetAmount: "30000",
+				BudgetAmount: 30000.00,
+				ExpiresOn:    expiresOn,
 			}
 
 			// Send an API request
@@ -1246,7 +1248,7 @@ func TestApi(t *testing.T) {
 			// Create the Provision Request Body
 			body := leaseRequest2{
 				PrincipalID:  principalID,
-				BudgetAmount: "300",
+				BudgetAmount: 300.00,
 				ExpiresOn:    expiresOnAfterOneYear,
 			}
 
@@ -1281,10 +1283,10 @@ type leaseRequest struct {
 }
 
 type leaseRequest2 struct {
-	PrincipalID  string `json:"principalId"`
-	AccountID    string `json:"accountId"`
-	BudgetAmount string `json:"budgetAmount"`
-	ExpiresOn    int64  `json:"expiresOn"`
+	PrincipalID  string  `json:"principalId"`
+	AccountID    string  `json:"accountId"`
+	BudgetAmount float64 `json:"budgetAmount"`
+	ExpiresOn    int64   `json:"expiresOn"`
 }
 
 type createAccountRequest struct {
