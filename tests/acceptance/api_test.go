@@ -1211,7 +1211,7 @@ func TestApi(t *testing.T) {
 			principalID := "user"
 
 			// Create the Provision Request Body
-			body := leaseRequest{
+			body := leaseRequest2{
 				PrincipalID:  principalID,
 				BudgetAmount: "30000",
 			}
@@ -1244,7 +1244,7 @@ func TestApi(t *testing.T) {
 			expiresOnAfterOneYear := time.Now().AddDate(1, 0, 0).Unix()
 
 			// Create the Provision Request Body
-			body := leaseRequest{
+			body := leaseRequest2{
 				PrincipalID:  principalID,
 				BudgetAmount: "300",
 				ExpiresOn:    expiresOnAfterOneYear,
@@ -1276,6 +1276,11 @@ func TestApi(t *testing.T) {
 }
 
 type leaseRequest struct {
+	PrincipalID string `json:"principalId"`
+	AccountID   string `json:"accountId"`
+}
+
+type leaseRequest2 struct {
 	PrincipalID  string `json:"principalId"`
 	AccountID    string `json:"accountId"`
 	BudgetAmount string `json:"budgetAmount"`
