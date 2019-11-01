@@ -324,7 +324,8 @@ func TestApi(t *testing.T) {
 
 			// Create the Provision Request Body
 			body := leaseRequest{
-				PrincipalID: principalID,
+				PrincipalID:  principalID,
+				BudgetAmount: "30000",
 			}
 
 			// Send an API request
@@ -1206,8 +1207,9 @@ func TestApi(t *testing.T) {
 }
 
 type leaseRequest struct {
-	PrincipalID string `json:"principalId"`
-	AccountID   string `json:"accountId"`
+	PrincipalID  string `json:"principalId"`
+	AccountID    string `json:"accountId"`
+	BudgetAmount string `json:"budgetAmount"`
 }
 
 type createAccountRequest struct {
