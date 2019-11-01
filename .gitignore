@@ -3,6 +3,16 @@ bin
 bin/*
 local_terraform.tfvars
 
+## Documentation
+docs/CHANGELOG.md
+docs/CONTRIBUTING.md
+docs/CODE_OF_CONDUCT.md
+docs/INDIVIDUAL_CONTRIBUTOR_LICENSE.md
+# The API documentation is also generated.
+docs/api-documentation.md
+/html-docs
+docs/dce/
+
 ## Terraform
 # Local .terraform directories
 **/.terraform/*
@@ -55,4 +65,20 @@ junit-report/
 test.output.txt
 coverage.json
 coverage.txt
+coverage.xml
 tf-lsp.log
+
+# Python
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# mkdocs documentation
+/site
+

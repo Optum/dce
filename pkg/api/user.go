@@ -13,6 +13,7 @@ import (
 
 type dceCtxKeyType string
 
+// DceCtxKey - Context Key
 const DceCtxKey dceCtxKeyType = "dce"
 
 // UserGroupName - Has the string to define Users
@@ -30,8 +31,6 @@ type User struct {
 // UserDetailer - used for mocking tests
 type UserDetailer interface {
 	GetUser(event *events.APIGatewayProxyRequest) *User
-	isUserInAdminGroup(username string) (bool, error)
-	isUserInAdminFromList(groups *string) bool
 }
 
 // UserDetails - Gets User information
@@ -74,7 +73,7 @@ func (u *UserDetails) GetUser(event *events.APIGatewayProxyRequest) *User {
 
 	for _, attribute := range users.Users[0].Attributes {
 		if *attribute.Name == "custom:roles" {
-			if u.isUserInAdminFromList(attribute.Value) {
+			if u.isUserInAdminFromList(*attribute.Value) {
 				user.Role = AdminGroupName
 				return user
 			}
@@ -112,9 +111,9 @@ func (u *UserDetails) isUserInAdminGroup(username string) (bool, error) {
 	return false, nil
 }
 
-func (u *UserDetails) isUserInAdminFromList(groups *string) bool {
+func (u *UserDetails) isUserInAdminFromList(groups string) bool {
 
-	for _, group := range strings.Split(*groups, ",") {
+	for _, group := range strings.Split(groups, ",") {
 		if strings.TrimSpace(group) == u.RolesAttributesAdminName {
 			return true
 		}
