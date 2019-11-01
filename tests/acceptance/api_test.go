@@ -324,8 +324,7 @@ func TestApi(t *testing.T) {
 
 			// Create the Provision Request Body
 			body := leaseRequest{
-				PrincipalID:  principalID,
-				BudgetAmount: "30000",
+				PrincipalID: principalID,
 			}
 
 			// Send an API request
@@ -1204,12 +1203,83 @@ func TestApi(t *testing.T) {
 			})
 		})
 	})
+
+	t.Run("Post Lease validations", func(t *testing.T) {
+
+		t.Run("Should validate requested budget amount", func(t *testing.T) {
+
+			principalID := "user"
+
+			// Create the Provision Request Body
+			body := leaseRequest{
+				PrincipalID:  principalID,
+				BudgetAmount: "30000",
+			}
+
+			// Send an API request
+			resp := apiRequest(t, &apiRequestInput{
+				method: "POST",
+				url:    apiURL + "/leases",
+				json:   body,
+			})
+
+			// Verify response code
+			require.Equal(t, http.StatusBadRequest, resp.StatusCode)
+
+			// Parse response json
+			data := parseResponseJSON(t, resp)
+
+			// Verify error response json
+			// Get nested json in response json
+			err := data["error"].(map[string]interface{})
+			require.Equal(t, "ClientError", err["code"].(string))
+			require.Equal(t, "Requested lease has a budget amount of 30000.00, which is greater than max lease budget amount of 1000.00",
+				err["message"].(string))
+
+		})
+
+		t.Run("Should validate requested budget period", func(t *testing.T) {
+
+			principalID := "user"
+			expiresOnAfterOneYear := time.Now().AddDate(1, 0, 0).Unix()
+
+			// Create the Provision Request Body
+			body := leaseRequest{
+				PrincipalID:  principalID,
+				BudgetAmount: "300",
+				ExpiresOn:    expiresOnAfterOneYear,
+			}
+
+			// Send an API request
+			resp := apiRequest(t, &apiRequestInput{
+				method: "POST",
+				url:    apiURL + "/leases",
+				json:   body,
+			})
+
+			// Verify response code
+			require.Equal(t, http.StatusBadRequest, resp.StatusCode)
+
+			// Parse response json
+			data := parseResponseJSON(t, resp)
+
+			// Verify error response json
+			// Get nested json in response json
+			err := data["error"].(map[string]interface{})
+			errStr := fmt.Sprintf("Requested lease has a budget expires on of %d, which is greater than max lease period of", expiresOnAfterOneYear)
+			require.Equal(t, "ClientError", err["code"].(string))
+			require.Contains(t, err["message"].(string), errStr)
+
+		})
+	})
+
 }
 
 type leaseRequest struct {
 	PrincipalID  string `json:"principalId"`
 	AccountID    string `json:"accountId"`
 	BudgetAmount string `json:"budgetAmount"`
+	ExpiresOn    int64  `json:"expiresOn"`
 }
 
 type createAccountRequest struct {
