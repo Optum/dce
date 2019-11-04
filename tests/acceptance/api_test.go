@@ -960,7 +960,7 @@ func TestApi(t *testing.T) {
 						AccountID:    strings.Join(testAccountID, ""),
 						StartDate:    startDate.Unix(),
 						EndDate:      endDate.Unix(),
-						CostAmount:   20.00,
+						CostAmount:   2000.00,
 						CostCurrency: "USD",
 						TimeToLive:   timeToLive.Unix(),
 					}
@@ -992,7 +992,7 @@ func TestApi(t *testing.T) {
 					usageJSON := data[0]
 					assert.Equal(r, "TestUser1", usageJSON["principalId"].(string))
 					assert.Equal(r, "TestAcct1", usageJSON["accountId"].(string))
-					assert.Equal(r, 60.00, usageJSON["costAmount"].(float64))
+					assert.Equal(r, 6000.00, usageJSON["costAmount"].(float64))
 				}
 			})
 		})
@@ -1206,10 +1206,44 @@ func TestApi(t *testing.T) {
 
 	t.Run("Post Lease validations", func(t *testing.T) {
 
+		t.Run("Should validate requested lease has a desired expiry date less than today", func(t *testing.T) {
+
+			principalID := "user"
+			expiresOn := time.Now().AddDate(0, 0, -1).Unix()
+
+			// Create the Provision Request Body
+			body := leaseRequest2{
+				PrincipalID:  principalID,
+				AccountID:    "123",
+				BudgetAmount: 200.00,
+				ExpiresOn:    expiresOn,
+			}
+
+			// Send an API request
+			resp := apiRequest(t, &apiRequestInput{
+				method: "POST",
+				url:    apiURL + "/leases",
+				json:   body,
+			})
+
+			// Verify response code
+			require.Equal(t, http.StatusBadRequest, resp.StatusCode)
+
+			// Parse response json
+			data := parseResponseJSON(t, resp)
+
+			// Verify error response json
+			// Get nested json in response json
+			err := data["error"].(map[string]interface{})
+			require.Equal(t, "ClientError", err["code"].(string))
+			errStr := fmt.Sprintf("Requested lease has a desired expiry date less than today: %d", expiresOn)
+			require.Equal(t, errStr, err["message"].(string))
+		})
+
 		t.Run("Should validate requested budget amount", func(t *testing.T) {
 
 			principalID := "user"
-			expiresOn := time.Now().AddDate(1, 0, 5).Unix()
+			expiresOn := time.Now().AddDate(0, 0, 5).Unix()
 
 			// Create the Provision Request Body
 			body := leaseRequest2{
@@ -1275,8 +1309,43 @@ func TestApi(t *testing.T) {
 			require.Contains(t, err["message"].(string), errStr)
 
 		})
-	})
 
+		t.Run("Should validate requested budget amount against principal budget amount", func(t *testing.T) {
+
+			principalID := "TestUser1"
+			expiresOn := time.Now().AddDate(0, 0, 6).Unix()
+
+			// Create the Provision Request Body
+			body := leaseRequest2{
+				PrincipalID:  principalID,
+				AccountID:    "123",
+				BudgetAmount: 430.00,
+				ExpiresOn:    expiresOn,
+			}
+
+			// Send an API request
+			resp := apiRequest(t, &apiRequestInput{
+				method: "POST",
+				url:    apiURL + "/leases",
+				json:   body,
+			})
+
+			// Verify response code
+			require.Equal(t, http.StatusBadRequest, resp.StatusCode)
+
+			// Parse response json
+			data := parseResponseJSON(t, resp)
+
+			// Verify error response json
+			// Get nested json in response json
+			err := data["error"].(map[string]interface{})
+			errStr := fmt.Sprintf("Principal budget amount for current billing period is already used by Principal: %s",
+				principalID)
+			require.Equal(t, "ClientError", err["code"].(string))
+			require.Equal(t, errStr, err["message"].(string))
+		})
+
+	})
 }
 
 type leaseRequest struct {
