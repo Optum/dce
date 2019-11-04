@@ -957,7 +957,7 @@ func TestApi(t *testing.T) {
 					usageJSON := data[0]
 					assert.Equal(r, "TestUser1", usageJSON["principalId"].(string))
 					assert.Equal(r, "TestAccount1", usageJSON["accountId"].(string))
-					assert.Equal(r, 200.00, usageJSON["costAmount"].(float64))
+					assert.Equal(r, 2000.00, usageJSON["costAmount"].(float64))
 				}
 			})
 		})
