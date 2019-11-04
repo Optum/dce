@@ -9,8 +9,8 @@ module "publish_lease_events_lambda" {
 
   environment = {
     AWS_CURRENT_REGION       = var.aws_region
-    ACCOUNT_DB               = aws_dynamodb_table.redbox_account.id
-    LEASE_DB                 = aws_dynamodb_table.redbox_lease.id
+    ACCOUNT_DB               = aws_dynamodb_table.accounts.id
+    LEASE_DB                 = aws_dynamodb_table.leases.id
     LEASE_LOCKED_TOPIC_ARN   = aws_sns_topic.lease_locked.arn
     LEASE_UNLOCKED_TOPIC_ARN = aws_sns_topic.lease_unlocked.arn
     RESET_QUEUE_URL          = aws_sqs_queue.account_reset.id
@@ -18,7 +18,7 @@ module "publish_lease_events_lambda" {
 }
 
 resource "aws_lambda_event_source_mapping" "publish_lease_events_from_dynamo_db" {
-  event_source_arn  = aws_dynamodb_table.redbox_lease.stream_arn
+  event_source_arn  = aws_dynamodb_table.leases.stream_arn
   function_name     = module.publish_lease_events_lambda.name
   batch_size        = 1
   starting_position = "LATEST"
@@ -38,7 +38,7 @@ resource "aws_iam_role_policy" "publish_lease_events_lambda_dynamo_db" {
             "dynamodb:GetShardIterator",
             "dynamodb:ListStreams"
         ],
-        "Resource": "${aws_dynamodb_table.redbox_lease.stream_arn}"
+        "Resource": "${aws_dynamodb_table.leases.stream_arn}"
     },
     {
         "Effect": "Allow",

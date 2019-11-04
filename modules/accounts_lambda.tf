@@ -16,9 +16,9 @@ module "accounts_lambda" {
     DEBUG                          = "false"
     NAMESPACE                      = var.namespace
     AWS_CURRENT_REGION             = var.aws_region
-    ACCOUNT_DB                     = aws_dynamodb_table.redbox_account.id
+    ACCOUNT_DB                     = aws_dynamodb_table.accounts.id
     ARTIFACTS_BUCKET               = aws_s3_bucket.artifacts.id
-    LEASE_DB                       = aws_dynamodb_table.redbox_lease.id
+    LEASE_DB                       = aws_dynamodb_table.leases.id
     RESET_SQS_URL                  = aws_sqs_queue.account_reset.id
     ACCOUNT_CREATED_TOPIC_ARN      = aws_sns_topic.account_created.arn
     ACCOUNT_DELETED_TOPIC_ARN      = aws_sns_topic.account_deleted.arn

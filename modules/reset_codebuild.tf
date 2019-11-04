@@ -85,13 +85,13 @@ resource "aws_codebuild_project" "reset_build" {
 
     environment_variable {
       name  = "ACCOUNT_DB"
-      value = aws_dynamodb_table.redbox_account.id
+      value = aws_dynamodb_table.accounts.id
       type  = "PLAINTEXT"
     }
 
     environment_variable {
       name  = "LEASE_DB"
-      value = aws_dynamodb_table.redbox_lease.id
+      value = aws_dynamodb_table.leases.id
       type  = "PLAINTEXT"
     }
 
