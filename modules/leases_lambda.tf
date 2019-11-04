@@ -12,8 +12,8 @@ module "leases_lambda" {
     NAMESPACE                          = var.namespace
     AWS_CURRENT_REGION                 = var.aws_region
     RESET_SQS_URL                      = aws_sqs_queue.account_reset.id
-    ACCOUNT_DB                         = aws_dynamodb_table.redbox_account.id
-    LEASE_DB                           = aws_dynamodb_table.redbox_lease.id
+    ACCOUNT_DB                         = aws_dynamodb_table.accounts.id
+    LEASE_DB                           = aws_dynamodb_table.leases.id
     PROVISION_TOPIC                    = aws_sns_topic.lease_added.arn
     DECOMMISSION_TOPIC                 = aws_sns_topic.lease_removed.arn
     COGNITO_USER_POOL_ID               = module.api_gateway_authorizer.user_pool_id

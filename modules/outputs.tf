@@ -1,25 +1,25 @@
 output "redbox_account_db_table_name" {
-  value = aws_dynamodb_table.redbox_account.name
+  value = aws_dynamodb_table.accounts.name
 }
 
 output "redbox_account_db_table_arn" {
-  value = aws_dynamodb_table.redbox_account.arn
+  value = aws_dynamodb_table.accounts.arn
 }
 
 output "redbox_account_lease_db_table_name" {
-  value = aws_dynamodb_table.redbox_lease.name
+  value = aws_dynamodb_table.leases.name
 }
 
 output "redbox_account_lease_db_table_arn" {
-  value = aws_dynamodb_table.redbox_lease.arn
+  value = aws_dynamodb_table.leases.arn
 }
 
 output "redbox_lease_db_table_name" {
-  value = aws_dynamodb_table.redbox_lease.name
+  value = aws_dynamodb_table.leases.name
 }
 
 output "redbox_lease_db_table_arn" {
-  value = aws_dynamodb_table.redbox_lease.arn
+  value = aws_dynamodb_table.leases.arn
 }
 
 output "sqs_reset_queue_url" {
@@ -47,7 +47,7 @@ output "aws_region" {
 }
 
 output "dynamodb_table_account_name" {
-  value = aws_dynamodb_table.redbox_account.name
+  value = aws_dynamodb_table.accounts.name
 }
 
 output "lease_added_topic_id" {
@@ -128,11 +128,11 @@ output "redbox_principal_policy_name" {
 }
 
 output "usage_cache_table_name" {
-  value = aws_dynamodb_table.usage_cache.name
+  value = aws_dynamodb_table.usage.name
 }
 
 output "usage_cache_table_arn" {
-  value = aws_dynamodb_table.usage_cache.arn
+  value = aws_dynamodb_table.usage.arn
 }
 
 output cognito_user_pool_id {
