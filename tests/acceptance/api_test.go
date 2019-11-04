@@ -1345,7 +1345,7 @@ type apiResponse struct {
 	json interface{}
 }
 
-var chainCredentials *credentials.Credentials = credentials.NewChainCredentials([]credentials.Provider{
+var chainCredentials = credentials.NewChainCredentials([]credentials.Provider{
 	&credentials.EnvProvider{},
 	&credentials.SharedCredentialsProvider{Filename: "", Profile: ""},
 })

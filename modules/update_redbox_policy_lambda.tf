@@ -11,8 +11,8 @@ module "update_redbox_principal_policy" {
     DEBUG                          = "false"
     NAMESPACE                      = var.namespace
     AWS_CURRENT_REGION             = var.aws_region
-    ACCOUNT_DB                     = aws_dynamodb_table.redbox_account.id
-    LEASE_DB                       = aws_dynamodb_table.redbox_lease.id
+    ACCOUNT_DB                     = aws_dynamodb_table.accounts.id
+    LEASE_DB                       = aws_dynamodb_table.leases.id
     ARTIFACTS_BUCKET               = aws_s3_bucket.artifacts.id
     PRINCIPAL_ROLE_NAME            = local.redbox_principal_role_name
     PRINCIPAL_POLICY_NAME          = local.redbox_principal_policy_name
@@ -64,7 +64,7 @@ resource "aws_iam_role_policy" "update_redbox_principal_policy" {
         "Action": [
             "dynamodb:GetItem"
         ],
-        "Resource": "${aws_dynamodb_table.redbox_account.arn}"
+        "Resource": "${aws_dynamodb_table.accounts.arn}"
     },
     {
         "Effect": "Allow",

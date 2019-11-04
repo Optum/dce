@@ -1,13 +1,22 @@
+/*
+DEPRECRATED as of v0.21.0
+
+As part of the v0.21.0 release, we are renaming all our DynamoDB tables
+to remove the "Redbox" prefix, and to standardize naming conventions.
+
+	RedboxAccountProd 	--> Accounts
+	RedboxLeaseProd 		--> Leases
+	UsageCache					--> Usage
+
+We are keeping this configuration around for a release cycle,
+so we can migrate data off the old tables before destroying
+them.
+*/
+
 # Redbox Account table
 # Tracks the status of AWS Accounts in our pool
-locals {
-  // Suffix table names with var.namesapce,
-  // unless we're on prod (then no suffix)
-  table_suffix = var.namespace == "prod" ? "" : title(var.namespace)
-}
-
-resource "aws_dynamodb_table" "accounts" {
-  name             = "Accounts${local.table_suffix}"
+resource "aws_dynamodb_table" "redbox_account" {
+  name             = "RedboxAccount${title(var.namespace)}"
   read_capacity    = 5
   write_capacity   = 5
   hash_key         = "Id"
@@ -50,8 +59,8 @@ resource "aws_dynamodb_table" "accounts" {
   */
 }
 
-resource "aws_dynamodb_table" "leases" {
-  name             = "Leases${local.table_suffix}"
+resource "aws_dynamodb_table" "redbox_lease" {
+  name             = "RedboxLease${title(var.namespace)}"
   read_capacity    = 5
   write_capacity   = 5
   hash_key         = "AccountId"
@@ -124,8 +133,8 @@ resource "aws_dynamodb_table" "leases" {
   */
 }
 
-resource "aws_dynamodb_table" "usage" {
-  name             = "Usage${local.table_suffix}"
+resource "aws_dynamodb_table" "usage_cache" {
+  name             = "UsageCache${title(var.namespace)}"
   read_capacity    = 5
   write_capacity   = 5
   hash_key         = "StartDate"

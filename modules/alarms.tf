@@ -12,7 +12,7 @@ resource "aws_cloudwatch_metric_alarm" "dynamodb-account-systemerrors-alarm" {
   alarm_actions             = [aws_sns_topic.alarms_topic.arn]
 
   dimensions = {
-    TableName = aws_dynamodb_table.redbox_account.name
+    TableName = aws_dynamodb_table.accounts.name
   }
 }
 
@@ -29,7 +29,7 @@ resource "aws_cloudwatch_metric_alarm" "dynamodb-lease-systemerrors-alarm" {
   alarm_actions             = [aws_sns_topic.alarms_topic.arn]
 
   dimensions = {
-    TableName = aws_dynamodb_table.redbox_lease.name
+    TableName = aws_dynamodb_table.leases.name
   }
 }
 
@@ -46,7 +46,7 @@ resource "aws_cloudwatch_metric_alarm" "dynamodb-account-usererrors-alarm" {
   alarm_actions             = [aws_sns_topic.alarms_topic.arn]
 
   dimensions = {
-    TableName = aws_dynamodb_table.redbox_account.name
+    TableName = aws_dynamodb_table.accounts.name
   }
 }
 
@@ -63,7 +63,7 @@ resource "aws_cloudwatch_metric_alarm" "dynamodb-lease-usererrors-alarm" {
   alarm_actions             = [aws_sns_topic.alarms_topic.arn]
 
   dimensions = {
-    TableName = aws_dynamodb_table.redbox_lease.name
+    TableName = aws_dynamodb_table.leases.name
   }
 }
 

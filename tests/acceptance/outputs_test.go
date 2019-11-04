@@ -17,12 +17,12 @@ func TestTerraformOutputs(t *testing.T) {
 	tfOut := terraform.OutputAll(t, tfOpts)
 
 	assert.Regexp(t,
-		regexp.MustCompile("^RedboxAccount"),
+		regexp.MustCompile("^Accounts"),
 		tfOut["redbox_account_db_table_name"].(string),
 		"redbox_account_db_table_name",
 	)
 	assert.Regexp(t,
-		regexp.MustCompile(`^RedboxLease`),
+		regexp.MustCompile(`^Leases`),
 		tfOut["redbox_lease_db_table_name"].(string),
 		"redbox_lease_db_table_name",
 	)
