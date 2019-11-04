@@ -261,6 +261,29 @@ func (_m *DBer) GetReadyAccount() (*db.Account, error) {
 	return r0, r1
 }
 
+// OrphanAccount provides a mock function with given fields: accountID
+func (_m *DBer) OrphanAccount(accountID string) (*db.Account, error) {
+	ret := _m.Called(accountID)
+
+	var r0 *db.Account
+	if rf, ok := ret.Get(0).(func(string) *db.Account); ok {
+		r0 = rf(accountID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*db.Account)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(accountID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // PutAccount provides a mock function with given fields: account
 func (_m *DBer) PutAccount(account db.Account) error {
 	ret := _m.Called(account)

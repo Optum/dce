@@ -69,7 +69,14 @@ func parseGetLeasesInput(queryParams map[string]string) (db.GetLeasesInput, erro
 
 	status, ok := queryParams[StatusParam]
 	if ok && len(status) > 0 {
-		query.Status = status
+		switch strings.ToLower(status) {
+		case "active":
+			query.Status = db.Active
+		case "inactive":
+			query.Status = db.Inactive
+		default:
+			query.Status = db.Active
+		}
 	}
 
 	limit, ok := queryParams[LimitParam]

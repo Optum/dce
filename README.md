@@ -338,7 +338,7 @@ This message includes a payload as JSON, with the following fields:
 | Field          | Type                             | Description                                                                                                 |
 | -------------- | -------------------------------- | ----------------------------------------------------------------------------------------------------------- |
 | id             | string                           | AWS Account ID                                                                                              |
-| accountStatus  | "Ready", "NotReady", or "Leased" | Account status                                                                                              |
+| accountStatus  | "Ready", "NotReady", "Orphaned", or "Leased" | Account status                                                                                              |
 | adminRoleArn   | string                           | ARN for the IAM role used by the DCE master account to manage the account                                |
 | lastModifiedOn | int                              | Last modified timestamp                                                                                     |
 | createdOn      | int                              | Last modified timestamp                                                                                     |

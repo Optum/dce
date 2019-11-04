@@ -723,7 +723,7 @@ definitions:
         description: Any organization specific data pertaining to the account that needs to be persisted
   accountStatus:
     type: string
-    enum: ["Ready", "NotReady", "Leased"]
+    enum: ["Ready", "NotReady", "Leased", "Orphaned"]
     description: |
       Status of the Account.
       "Ready": The account is clean and ready for lease

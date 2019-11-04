@@ -56,6 +56,8 @@ const (
 	NotReady AccountStatus = "NotReady"
 	// Leased status
 	Leased AccountStatus = "Leased"
+	// Orphaned status
+	Orphaned AccountStatus = "Orphaned"
 )
 
 // ParseAccountStatus - parses the string into an account status.
@@ -96,4 +98,7 @@ const (
 	// LeaseRolledBack means something happened in the system that caused the lease to be inactive
 	// based on an error happening and rollback occuring
 	LeaseRolledBack LeaseStatusReason = "Rollback"
+	// AccountOrphaned means that the health of the account was compromised.  The account has been orphaned
+	// which means the leases are also made Inactive
+	AccountOrphaned LeaseStatusReason = "AccountOrphaned"
 )
