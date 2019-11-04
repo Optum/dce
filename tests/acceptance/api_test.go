@@ -956,7 +956,7 @@ func TestApi(t *testing.T) {
 				if data[0] != nil {
 					usageJSON := data[0]
 					assert.Equal(r, "TestUser1", usageJSON["principalId"].(string))
-					assert.Equal(r, "TestAcct1", usageJSON["accountId"].(string))
+					assert.Equal(r, "TestAccount1", usageJSON["accountId"].(string))
 					assert.Equal(r, 200.00, usageJSON["costAmount"].(float64))
 				}
 			})
@@ -1235,7 +1235,7 @@ func TestApi(t *testing.T) {
 			// Get nested json in response json
 			err := data["error"].(map[string]interface{})
 			require.Equal(t, "ClientError", err["code"].(string))
-			require.Equal(t, "Requested lease has a budget amount of 30000, which is greater than max lease budget amount of 1000",
+			require.Equal(t, "Requested lease has a budget amount of 30000.000000, which is greater than max lease budget amount of 1000.000000",
 				err["message"].(string))
 
 		})
@@ -1509,7 +1509,7 @@ func createUsage(t *testing.T, apiURL string, usageSvc usage.Service) error {
 			AccountID:    testAccountID,
 			StartDate:    startDate.Unix(),
 			EndDate:      endDate.Unix(),
-			CostAmount:   200.00,
+			CostAmount:   2000.00,
 			CostCurrency: "USD",
 			TimeToLive:   timeToLive.Unix(),
 		}
@@ -1546,7 +1546,7 @@ func createUsage(t *testing.T, apiURL string, usageSvc usage.Service) error {
 			usageJSON := data[0]
 			assert.Equal(r, "TestUser1", usageJSON["principalId"].(string))
 			assert.Equal(r, "TestAcct1", usageJSON["accountId"].(string))
-			assert.Equal(r, 1000.00, usageJSON["costAmount"].(float64))
+			assert.Equal(r, 10000.00, usageJSON["costAmount"].(float64))
 		}
 	})
 	return nil
