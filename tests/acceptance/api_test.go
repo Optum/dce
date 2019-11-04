@@ -1312,6 +1312,7 @@ func TestApi(t *testing.T) {
 
 		t.Run("Should validate requested budget amount against principal budget amount", func(t *testing.T) {
 
+			createUsage(t, apiURL, usageSvc)
 			principalID := "TestUser1"
 			expiresOn := time.Now().AddDate(0, 0, 6).Unix()
 
@@ -1512,4 +1513,75 @@ func createAdminRole(t *testing.T, awsSession client.ConfigProvider) *createAdmi
 		adminRoleArn: adminRoleArn,
 		accountID:    currentAccountID,
 	}
+}
+
+func createUsage(t *testing.T, apiURL string, usageSvc usage.Service) error {
+	// Create usage
+	// Setup usage dates
+	const ttl int = 3
+	currentDate := time.Now()
+	testStartDate := time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), 0, 0, 0, 0, time.UTC)
+	testEndDate := time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), 23, 59, 59, 59, time.UTC)
+
+	// Create mock usage
+	expectedUsages := []*usage.Usage{}
+
+	usageStartDate := testStartDate
+	usageEndDate := testEndDate
+	startDate := testStartDate
+	endDate := testEndDate
+
+	timeToLive := startDate.AddDate(0, 0, ttl)
+
+	var testPrincipalID = "TestUser1"
+	var testAccountID = "TestAccount1"
+
+	for i := 1; i <= 5; i++ {
+
+		input := usage.Usage{
+			PrincipalID:  testPrincipalID,
+			AccountID:    testAccountID,
+			StartDate:    startDate.Unix(),
+			EndDate:      endDate.Unix(),
+			CostAmount:   200.00,
+			CostCurrency: "USD",
+			TimeToLive:   timeToLive.Unix(),
+		}
+		err := usageSvc.PutUsage(input)
+		if err != nil {
+			return err
+		}
+
+		expectedUsages = append(expectedUsages, &input)
+
+		usageEndDate = endDate
+		startDate = startDate.AddDate(0, 0, -1)
+		endDate = endDate.AddDate(0, 0, -1)
+	}
+
+	testutil.Retry(t, 10, 10*time.Millisecond, func(r *testutil.R) {
+
+		queryString := fmt.Sprintf("/usage?startDate=%d&endDate=%d", usageStartDate, usageEndDate)
+
+		resp := apiRequest(t, &apiRequestInput{
+			method: "GET",
+			url:    apiURL + queryString,
+			json:   nil,
+		})
+
+		// Verify response code
+		assert.Equal(r, http.StatusOK, resp.StatusCode)
+
+		// Parse response json
+		data := parseResponseArrayJSON(t, resp)
+
+		//Verify response json
+		if data[0] != nil {
+			usageJSON := data[0]
+			assert.Equal(r, "TestUser1", usageJSON["principalId"].(string))
+			assert.Equal(r, "TestAcct1", usageJSON["accountId"].(string))
+			assert.Equal(r, 1000.00, usageJSON["costAmount"].(float64))
+		}
+	})
+	return nil
 }
