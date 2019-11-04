@@ -169,5 +169,5 @@ func truncateUsageTable(t *testing.T, dbSvc *usage.DB) {
 			},
 		},
 	)
-	require.Nil(t, err)
+	//require.Nil(t, err)
 }
