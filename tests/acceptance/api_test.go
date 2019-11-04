@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -1236,7 +1235,7 @@ func TestApi(t *testing.T) {
 			// Get nested json in response json
 			err := data["error"].(map[string]interface{})
 			require.Equal(t, "ClientError", err["code"].(string))
-			require.Equal(t, "Requested lease has a budget amount of 30000.000000, which is greater than max lease budget amount of 1000.000000",
+			require.Equal(t, "Requested lease has a budget amount of 30000, which is greater than max lease budget amount of 1000",
 				err["message"].(string))
 
 		})
@@ -1308,8 +1307,7 @@ func TestApi(t *testing.T) {
 			// Verify error response json
 			// Get nested json in response json
 			err := data["error"].(map[string]interface{})
-			errStr := fmt.Sprintf("Principal budget amount for current billing period is already used by Principal: %s",
-				principalID)
+			errStr := fmt.Sprintf("Unable to create lease: User principal %s has already spent 1000 of their weekly principal budget", principalID)
 			require.Equal(t, "ClientError", err["code"].(string))
 			require.Equal(t, errStr, err["message"].(string))
 		})
