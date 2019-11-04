@@ -179,25 +179,25 @@ variable "cognito_roles_attribute_admin_name" {
 }
 
 variable "max_lease_budget_amount" {
-  type    = number
+  type        = number
   description = "Lease budget amount for given lease budget period"
-  default = 1000
+  default     = 1000
 }
 
 variable "max_lease_period" {
-  type    = number
+  type        = number
   description = "Lease's maximum period in seconds"
-  default = 604800
+  default     = 604800
 }
 
 variable "principal_budget_amount" {
-  type    = number
+  type        = number
   description = "User Principal's budget amount for given principal budget period"
-  default = 1000
+  default     = 1000
 }
 
 variable "principal_budget_period" {
-  type    = string
+  type        = string
   description = "Principal budget period must be WEEKLY or MONTHLY"
-  default = "WEEKLY"
+  default     = "WEEKLY"
 }
