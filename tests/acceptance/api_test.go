@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -35,6 +36,14 @@ import (
 	"github.com/Optum/Redbox/tests/acceptance/testutil"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 )
+
+var adminRoleName = "redbox-api-test-admin-role-" + fmt.Sprintf("%v", time.Now().Unix())
+
+func TestMain(m *testing.M) {
+	code := m.Run()
+	deleteAdminRole()
+	os.Exit(code)
+}
 
 func TestApi(t *testing.T) {
 	// Grab the API url from Terraform output
@@ -94,13 +103,14 @@ func TestApi(t *testing.T) {
 
 		t.Run("should allow IAM authenticated requests", func(t *testing.T) {
 			// Send an API request
-			resp := apiRequest(t, &apiRequestInput{
+			apiRequest(t, &apiRequestInput{
 				method: "GET",
 				url:    apiURL + "/leases",
+				f: func(r *testutil.R, apiResp *apiResponse) {
+					// Defaults to returning 200
+					assert.Equal(r, http.StatusOK, apiResp.StatusCode)
+				},
 			})
-
-			// Defaults to returning 200
-			require.Equal(t, http.StatusOK, resp.StatusCode)
 		})
 
 	})
@@ -169,21 +179,23 @@ func TestApi(t *testing.T) {
 				require.Nil(t, err)
 			}()
 
-			// IAM Role takes a while to propagate....
-			time.Sleep(10 * time.Second)
+			//time.Sleep(10 * time.Second)
 
 			// Assume the roleRes we just created
-			roleCreds := stscreds.NewCredentials(awsSession, *roleRes.Role.Arn)
+			roleCreds := NewCredentials(t, awsSession, *roleRes.Role.Arn)
 
 			// Attempt to hit the API with using our assumed role
-			resp := apiRequest(t, &apiRequestInput{
+			apiRequest(t, &apiRequestInput{
 				method: "GET",
 				url:    apiURL + "/leases",
 				creds:  roleCreds,
+				f: func(r *testutil.R, apiResp *apiResponse) {
+					// Defaults to not being unauthorized
+					assert.NotEqual(r, http.StatusForbidden, apiResp.StatusCode,
+						"Should not return an IAM authorization error")
+				},
 			})
 
-			require.NotEqual(t, http.StatusForbidden, resp.StatusCode,
-				"Should not return an IAM authorization error")
 		})
 
 	})
@@ -250,57 +262,62 @@ func TestApi(t *testing.T) {
 			require.Nil(t, err)
 		}()
 
-		// IAM Role takes a while to propagate....
-		time.Sleep(10 * time.Second)
+		//time.Sleep(10 * time.Second)
 
 		t.Run("should not fail when getting a lease", func(t *testing.T) {
 			// Don't run this test, if using `go test -short` flag
 
 			// Assume the roleRes we just created
-			roleCreds := stscreds.NewCredentials(awsSession, *roleRes.Role.Arn)
+			roleCreds := NewCredentials(t, awsSession, *roleRes.Role.Arn)
 
 			// Attempt to hit the API with using our assumed role
-			resp := apiRequest(t, &apiRequestInput{
+			apiRequest(t, &apiRequestInput{
 				method: "GET",
 				url:    apiURL + "/leases",
 				creds:  roleCreds,
+				f: func(r *testutil.R, apiResp *apiResponse) {
+					// Defaults to not being unauthorized
+					assert.NotEqual(r, http.StatusForbidden, apiResp.StatusCode,
+						"Should not return an IAM authorization error")
+				},
 			})
-
-			require.NotEqual(t, http.StatusForbidden, resp.StatusCode,
-				"Should not return an IAM authorization error")
 		})
 
 		t.Run("should fail when getting accounts", func(t *testing.T) {
 
 			// Assume the roleRes we just created
-			roleCreds := stscreds.NewCredentials(awsSession, *roleRes.Role.Arn)
+			roleCreds := NewCredentials(t, awsSession, *roleRes.Role.Arn)
 
 			// Attempt to hit the API with using our assumed role
-			resp := apiRequest(t, &apiRequestInput{
+			apiRequest(t, &apiRequestInput{
 				method: "GET",
 				url:    apiURL + "/accounts",
 				creds:  roleCreds,
+				f: func(r *testutil.R, apiResp *apiResponse) {
+					// Defaults to not being unauthorized
+					assert.Equal(r, http.StatusForbidden, apiResp.StatusCode,
+						"Should return an IAM authorization error")
+				},
 			})
-
-			require.Equal(t, http.StatusForbidden, resp.StatusCode,
-				"Should return an IAM authorization error")
 		})
 
 		t.Run("should not fail when getting usage", func(t *testing.T) {
 			// Don't run this test, if using `go test -short` flag
 
 			// Assume the roleRes we just created
-			roleCreds := stscreds.NewCredentials(awsSession, *roleRes.Role.Arn)
+			roleCreds := NewCredentials(t, awsSession, *roleRes.Role.Arn)
 
 			// Attempt to hit the API with using our assumed role
-			resp := apiRequest(t, &apiRequestInput{
+			apiRequest(t, &apiRequestInput{
 				method: "GET",
 				url:    apiURL + "/usage",
 				creds:  roleCreds,
+				f: func(r *testutil.R, apiResp *apiResponse) {
+					// Defaults to not being unauthorized
+					assert.NotEqual(r, http.StatusForbidden, apiResp.StatusCode,
+						"Should not return an IAM authorization error")
+				},
 			})
-
-			require.NotEqual(t, http.StatusForbidden, resp.StatusCode,
-				"Should not return an IAM authorization error")
 		})
 
 	})
@@ -360,44 +377,47 @@ func TestApi(t *testing.T) {
 				method: "DELETE",
 				url:    apiURL + "/leases",
 				json:   body,
+				f: func(r *testutil.R, apiResp *apiResponse) {
+					// Verify response code
+					assert.Equal(r, http.StatusOK, apiResp.StatusCode)
+				},
 			})
-
-			// Verify response code
-			require.Equal(t, http.StatusOK, resp.StatusCode)
 
 			// Parse response json
 			data = parseResponseJSON(t, resp)
 
 			// Verify provisioned response json
-			require.Equal(t, principalID, data["principalId"].(string))
-			require.Equal(t, acctID, data["accountId"].(string))
-			require.Equal(t, string(db.Inactive),
+			assert.Equal(t, principalID, data["principalId"].(string))
+			assert.Equal(t, acctID, data["accountId"].(string))
+			assert.Equal(t, string(db.Inactive),
 				data["leaseStatus"].(string))
-			require.NotNil(t, data["createdOn"])
-			require.NotNil(t, data["lastModifiedOn"])
-			require.NotNil(t, data["leaseStatusModifiedOn"])
+			assert.NotNil(t, data["createdOn"])
+			assert.NotNil(t, data["lastModifiedOn"])
+			assert.NotNil(t, data["leaseStatusModifiedOn"])
 
 		})
 
 		t.Run("Should not be able to provision with empty json", func(t *testing.T) {
 			// Send an API request
-			resp := apiRequest(t, &apiRequestInput{
+			apiRequest(t, &apiRequestInput{
 				method: "POST",
 				url:    apiURL + "/leases",
+				f: func(r *testutil.R, apiResp *apiResponse) {
+					// Verify response code
+					assert.Equal(r, http.StatusBadRequest, apiResp.StatusCode)
+
+					// Parse response json
+					data := parseResponseJSON(t, apiResp)
+
+					// Verify error response json
+					// Get nested json in response json
+					err := data["error"].(map[string]interface{})
+					assert.Equal(r, "ClientError", err["code"].(string))
+					assert.Equal(r, "Failed to Parse Request Body: ",
+						err["message"].(string))
+				},
 			})
 
-			// Verify response code
-			require.Equal(t, http.StatusBadRequest, resp.StatusCode)
-
-			// Parse response json
-			data := parseResponseJSON(t, resp)
-
-			// Verify error response json
-			// Get nested json in response json
-			err := data["error"].(map[string]interface{})
-			require.Equal(t, "ClientError", err["code"].(string))
-			require.Equal(t, "Failed to Parse Request Body: ",
-				err["message"].(string))
 		})
 
 		t.Run("Should not be able to provision with no available accounts", func(t *testing.T) {
@@ -408,24 +428,26 @@ func TestApi(t *testing.T) {
 			}
 
 			// Send an API request
-			resp := apiRequest(t, &apiRequestInput{
+			apiRequest(t, &apiRequestInput{
 				method: "POST",
 				url:    apiURL + "/leases",
 				json:   body,
+				f: func(r *testutil.R, apiResp *apiResponse) {
+					// Verify response code
+					assert.Equal(r, http.StatusServiceUnavailable, apiResp.StatusCode)
+
+					// Parse response json
+					data := parseResponseJSON(t, apiResp)
+
+					// Verify error response json
+					// Get nested json in response json
+					err := data["error"].(map[string]interface{})
+					assert.Equal(r, "ServerError", err["code"].(string))
+					assert.Equal(r, "No Available Redbox Accounts at this moment",
+						err["message"].(string))
+				},
 			})
 
-			// Verify response code
-			require.Equal(t, http.StatusServiceUnavailable, resp.StatusCode)
-
-			// Parse response json
-			data := parseResponseJSON(t, resp)
-
-			// Verify error response json
-			// Get nested json in response json
-			err := data["error"].(map[string]interface{})
-			require.Equal(t, "ServerError", err["code"].(string))
-			require.Equal(t, "No Available Redbox Accounts at this moment",
-				err["message"].(string))
 		})
 
 		t.Run("Should not be able to provision with an existing account", func(t *testing.T) {
@@ -461,45 +483,49 @@ func TestApi(t *testing.T) {
 			}
 
 			// Send an API request
-			resp := apiRequest(t, &apiRequestInput{
+			apiRequest(t, &apiRequestInput{
 				method: "POST",
 				url:    apiURL + "/leases",
 				json:   body,
+				f: func(r *testutil.R, apiResp *apiResponse) {
+					// Verify response code
+					assert.Equal(r, http.StatusConflict, apiResp.StatusCode)
+
+					// Parse response json
+					data := parseResponseJSON(t, apiResp)
+
+					// Verify error response json
+					// Get nested json in response json
+					errResp := data["error"].(map[string]interface{})
+					assert.Equal(r, "ClientError", errResp["code"].(string))
+					assert.Equal(r, "Principal already has an existing Redbox: 123",
+						errResp["message"].(string))
+				},
 			})
 
-			// Verify response code
-			require.Equal(t, http.StatusConflict, resp.StatusCode)
-
-			// Parse response json
-			data := parseResponseJSON(t, resp)
-
-			// Verify error response json
-			// Get nested json in response json
-			errResp := data["error"].(map[string]interface{})
-			require.Equal(t, "ClientError", errResp["code"].(string))
-			require.Equal(t, "Principal already has an existing Redbox: 123",
-				errResp["message"].(string))
 		})
 
 		t.Run("Should not be able to decommission with empty json", func(t *testing.T) {
 			// Send an API request
-			resp := apiRequest(t, &apiRequestInput{
+			apiRequest(t, &apiRequestInput{
 				method: "DELETE",
 				url:    apiURL + "/leases",
+				f: func(r *testutil.R, apiResp *apiResponse) {
+					// Verify response code
+					assert.Equal(r, http.StatusBadRequest, apiResp.StatusCode)
+
+					// Parse response json
+					data := parseResponseJSON(t, apiResp)
+
+					// Verify error response json
+					// Get nested json in response json
+					err := data["error"].(map[string]interface{})
+					assert.Equal(r, "ClientError", err["code"].(string))
+					assert.Equal(r, "Failed to Parse Request Body: ",
+						err["message"].(string))
+				},
 			})
 
-			// Verify response code
-			require.Equal(t, http.StatusBadRequest, resp.StatusCode)
-
-			// Parse response json
-			data := parseResponseJSON(t, resp)
-
-			// Verify error response json
-			// Get nested json in response json
-			err := data["error"].(map[string]interface{})
-			require.Equal(t, "ClientError", err["code"].(string))
-			require.Equal(t, "Failed to Parse Request Body: ",
-				err["message"].(string))
 		})
 
 		t.Run("Should not be able to decommission with no leases", func(t *testing.T) {
@@ -512,24 +538,26 @@ func TestApi(t *testing.T) {
 			}
 
 			// Send an API request
-			resp := apiRequest(t, &apiRequestInput{
+			apiRequest(t, &apiRequestInput{
 				method: "DELETE",
 				url:    apiURL + "/leases",
 				json:   body,
+				f: func(r *testutil.R, apiResp *apiResponse) {
+					// Verify response code
+					assert.Equal(r, http.StatusBadRequest, apiResp.StatusCode)
+
+					// Parse response json
+					data := parseResponseJSON(t, apiResp)
+
+					// Verify error response json
+					// Get nested json in response json
+					err := data["error"].(map[string]interface{})
+					assert.Equal(r, "ClientError", err["code"].(string))
+					assert.Equal(r, "No account leases found for user",
+						err["message"].(string))
+				},
 			})
 
-			// Verify response code
-			require.Equal(t, http.StatusBadRequest, resp.StatusCode)
-
-			// Parse response json
-			data := parseResponseJSON(t, resp)
-
-			// Verify error response json
-			// Get nested json in response json
-			err := data["error"].(map[string]interface{})
-			require.Equal(t, "ClientError", err["code"].(string))
-			require.Equal(t, "No account leases found for user",
-				err["message"].(string))
 		})
 
 		t.Run("Should not be able to decommission with wrong account", func(t *testing.T) {
@@ -564,24 +592,26 @@ func TestApi(t *testing.T) {
 			}
 
 			// Send an API request
-			resp := apiRequest(t, &apiRequestInput{
+			apiRequest(t, &apiRequestInput{
 				method: "DELETE",
 				url:    apiURL + "/leases",
 				json:   body,
+				f: func(r *testutil.R, apiResp *apiResponse) {
+					// Verify response code
+					assert.Equal(r, http.StatusBadRequest, apiResp.StatusCode)
+
+					// Parse response json
+					data := parseResponseJSON(t, apiResp)
+
+					// Verify error response json
+					// Get nested json in response json
+					errResp := data["error"].(map[string]interface{})
+					assert.Equal(r, "ClientError", errResp["code"].(string))
+					assert.Equal(r, "No active account leases found for user",
+						errResp["message"].(string))
+				},
 			})
 
-			// Verify response code
-			require.Equal(t, http.StatusBadRequest, resp.StatusCode)
-
-			// Parse response json
-			data := parseResponseJSON(t, resp)
-
-			// Verify error response json
-			// Get nested json in response json
-			errResp := data["error"].(map[string]interface{})
-			require.Equal(t, "ClientError", errResp["code"].(string))
-			require.Equal(t, "No active account leases found for user",
-				errResp["message"].(string))
 		})
 
 		t.Run("Should not be able to decommission with decommissioned account", func(t *testing.T) {
@@ -615,24 +645,26 @@ func TestApi(t *testing.T) {
 			}
 
 			// Send an API request
-			resp := apiRequest(t, &apiRequestInput{
+			apiRequest(t, &apiRequestInput{
 				method: "DELETE",
 				url:    apiURL + "/leases",
 				json:   body,
+				f: func(r *testutil.R, apiResp *apiResponse) {
+					// Verify response code
+					assert.Equal(r, http.StatusBadRequest, apiResp.StatusCode)
+
+					// Parse response json
+					data := parseResponseJSON(t, apiResp)
+
+					// Verify error response json
+					// Get nested json in response json
+					errResp := data["error"].(map[string]interface{})
+					assert.Equal(r, "ClientError", errResp["code"].(string))
+					assert.Equal(r, "Account Lease is not active for user - 123",
+						errResp["message"].(string))
+				},
 			})
 
-			// Verify response code
-			require.Equal(t, http.StatusBadRequest, resp.StatusCode)
-
-			// Parse response json
-			data := parseResponseJSON(t, resp)
-
-			// Verify error response json
-			// Get nested json in response json
-			errResp := data["error"].(map[string]interface{})
-			require.Equal(t, "ClientError", errResp["code"].(string))
-			require.Equal(t, "Account Lease is not active for user - 123",
-				errResp["message"].(string))
 		})
 
 	})
@@ -642,6 +674,7 @@ func TestApi(t *testing.T) {
 		truncateDBTables(t, dbSvc)
 
 		// Create an adminRole for the account
+
 		adminRoleRes := createAdminRole(t, awsSession)
 		accountID := adminRoleRes.accountID
 		adminRoleArn := adminRoleRes.adminRoleArn
@@ -659,10 +692,12 @@ func TestApi(t *testing.T) {
 					ID:           accountID,
 					AdminRoleArn: adminRoleArn,
 				},
+				f: func(r *testutil.R, apiResp *apiResponse) {
+					assert.Equal(r, apiResp.StatusCode, 201)
+				},
 			})
 
 			// Check the response
-			require.Equal(t, createAccountRes.StatusCode, 201)
 			postResJSON := parseResponseJSON(t, createAccountRes)
 			require.Equal(t, accountID, postResJSON["id"])
 			require.Equal(t, "NotReady", postResJSON["accountStatus"])
@@ -706,41 +741,45 @@ func TestApi(t *testing.T) {
 
 			t.Run("STEP: Get Account by ID", func(t *testing.T) {
 				// Send GET /accounts/id
-				getRes := apiRequest(t, &apiRequestInput{
+				apiRequest(t, &apiRequestInput{
 					method: "GET",
 					url:    apiURL + "/accounts/" + accountID,
+					f: func(r *testutil.R, apiResp *apiResponse) {
+						// Check the GET /accounts response
+						assert.Equal(r, apiResp.StatusCode, 200)
+						getResJSON := apiResp.json.(map[string]interface{})
+						assert.Equal(r, accountID, getResJSON["id"])
+						assert.Equal(r, "NotReady", getResJSON["accountStatus"])
+						assert.Equal(r, adminRoleArn, getResJSON["adminRoleArn"])
+						expectedPrincipalRoleArn := fmt.Sprintf("arn:aws:iam::%s:role/%s", accountID, tfOut["redbox_principal_role_name"])
+						assert.Equal(r, expectedPrincipalRoleArn, getResJSON["principalRoleArn"])
+						assert.True(r, getResJSON["lastModifiedOn"].(float64) > 1561518000)
+						assert.True(r, getResJSON["createdOn"].(float64) > 1561518000)
+					},
 				})
 
-				// Check the GET /accounts response
-				require.Equal(t, getRes.StatusCode, 200)
-				getResJSON := getRes.json.(map[string]interface{})
-				require.Equal(t, accountID, getResJSON["id"])
-				require.Equal(t, "NotReady", getResJSON["accountStatus"])
-				require.Equal(t, adminRoleArn, getResJSON["adminRoleArn"])
-				expectedPrincipalRoleArn := fmt.Sprintf("arn:aws:iam::%s:role/%s", accountID, tfOut["redbox_principal_role_name"])
-				require.Equal(t, expectedPrincipalRoleArn, getResJSON["principalRoleArn"])
-				require.True(t, getResJSON["lastModifiedOn"].(float64) > 1561518000)
-				require.True(t, getResJSON["createdOn"].(float64) > 1561518000)
 			})
 
 			t.Run("STEP: List Accounts", func(t *testing.T) {
 				// Send GET /accounts
-				listRes := apiRequest(t, &apiRequestInput{
+				apiRequest(t, &apiRequestInput{
 					method: "GET",
 					url:    apiURL + "/accounts",
+					f: func(r *testutil.R, apiResp *apiResponse) {
+						// Check the response
+						assert.Equal(r, apiResp.StatusCode, 200)
+						listResJSON := parseResponseArrayJSON(t, apiResp)
+						accountJSON := listResJSON[0]
+						assert.Equal(r, accountID, accountJSON["id"])
+						assert.Equal(r, "NotReady", accountJSON["accountStatus"])
+						assert.Equal(r, adminRoleArn, accountJSON["adminRoleArn"])
+						expectedPrincipalRoleArn := fmt.Sprintf("arn:aws:iam::%s:role/%s", accountID, tfOut["redbox_principal_role_name"])
+						assert.Equal(r, expectedPrincipalRoleArn, accountJSON["principalRoleArn"])
+						assert.True(r, accountJSON["lastModifiedOn"].(float64) > 1561518000)
+						assert.True(r, accountJSON["createdOn"].(float64) > 1561518000)
+					},
 				})
 
-				// Check the response
-				require.Equal(t, listRes.StatusCode, 200)
-				listResJSON := parseResponseArrayJSON(t, listRes)
-				accountJSON := listResJSON[0]
-				require.Equal(t, accountID, accountJSON["id"])
-				require.Equal(t, "NotReady", accountJSON["accountStatus"])
-				require.Equal(t, adminRoleArn, accountJSON["adminRoleArn"])
-				expectedPrincipalRoleArn := fmt.Sprintf("arn:aws:iam::%s:role/%s", accountID, tfOut["redbox_principal_role_name"])
-				require.Equal(t, expectedPrincipalRoleArn, accountJSON["principalRoleArn"])
-				require.True(t, accountJSON["lastModifiedOn"].(float64) > 1561518000)
-				require.True(t, accountJSON["createdOn"].(float64) > 1561518000)
 			})
 
 			t.Run("STEP: Create Lease", func(t *testing.T) {
@@ -767,9 +806,11 @@ func TestApi(t *testing.T) {
 						BudgetCurrency:           "USD",
 						BudgetNotificationEmails: budgetNotificationEmails,
 					},
+					f: func(r *testutil.R, apiResp *apiResponse) {
+						assert.Equal(r, 201, apiResp.StatusCode)
+					},
 				})
 
-				require.Equal(t, 201, res.StatusCode)
 				resJSON := parseResponseJSON(t, res)
 
 				s := make([]interface{}, len(budgetNotificationEmails))
@@ -798,7 +839,7 @@ func TestApi(t *testing.T) {
 
 				t.Run("STEP: Delete Account (with Lease)", func(t *testing.T) {
 					// Request a lease
-					res := apiRequest(t, &apiRequestInput{
+					apiRequest(t, &apiRequestInput{
 						method: "DELETE",
 						url:    apiURL + "/accounts/" + accountID,
 						json: struct {
@@ -806,14 +847,16 @@ func TestApi(t *testing.T) {
 						}{
 							PrincipalID: "test-user",
 						},
+						f: func(r *testutil.R, apiResp *apiResponse) {
+							assert.Equal(r, 409, apiResp.StatusCode)
+						},
 					})
 
-					require.Equal(t, 409, res.StatusCode)
 				})
 
 				t.Run("STEP: Delete Lease", func(t *testing.T) {
 					// Delete the lease
-					res := apiRequest(t, &apiRequestInput{
+					apiRequest(t, &apiRequestInput{
 						method: "DELETE",
 						url:    apiURL + "/leases",
 						json: struct {
@@ -823,9 +866,10 @@ func TestApi(t *testing.T) {
 							PrincipalID: "test-user",
 							AccountID:   accountID,
 						},
+						f: func(r *testutil.R, apiResp *apiResponse) {
+							assert.Equal(r, 200, apiResp.StatusCode)
+						},
 					})
-
-					require.Equal(t, 200, res.StatusCode)
 
 					// Check the lease is decommissioned
 					// (since we dont' yet have a GET /leases endpoint
@@ -835,18 +879,22 @@ func TestApi(t *testing.T) {
 
 					t.Run("STEP: Delete Account", func(t *testing.T) {
 						// Delete the account
-						res := apiRequest(t, &apiRequestInput{
+						apiRequest(t, &apiRequestInput{
 							method: "DELETE",
 							url:    apiURL + "/accounts/" + accountID,
+							f: func(r *testutil.R, apiResp *apiResponse) {
+								assert.Equal(r, 204, apiResp.StatusCode)
+							},
 						})
-						require.Equal(t, 204, res.StatusCode)
 
 						// Attempt to get the deleted account (should 404)
-						getRes := apiRequest(t, &apiRequestInput{
+						apiRequest(t, &apiRequestInput{
 							method: "GET",
 							url:    apiURL + "/accounts/" + accountID,
+							f: func(r *testutil.R, apiResp *apiResponse) {
+								assert.Equal(t, 404, apiResp.StatusCode)
+							},
 						})
-						require.Equal(t, 404, getRes.StatusCode)
 
 						// Check that the Principal Role was deleted
 						_, err = iamSvc.GetRole(&iam.GetRoleInput{
@@ -873,12 +921,13 @@ func TestApi(t *testing.T) {
 	t.Run("Delete Account", func(t *testing.T) {
 
 		t.Run("when the account does not exists", func(t *testing.T) {
-			resp := apiRequest(t, &apiRequestInput{
+			apiRequest(t, &apiRequestInput{
 				method: "DELETE",
 				url:    apiURL + "/accounts/1234523456",
+				f: func(r *testutil.R, apiResp *apiResponse) {
+					assert.Equal(r, http.StatusNotFound, apiResp.StatusCode, "it returns a 404")
+				},
 			})
-
-			require.Equal(t, http.StatusNotFound, resp.StatusCode, "it returns a 404")
 		})
 
 	})
@@ -892,10 +941,11 @@ func TestApi(t *testing.T) {
 				method: "GET",
 				url:    apiURL + "/usage?startDate=2019-09-2&endDate=2019-09-2",
 				json:   nil,
+				f: func(r *testutil.R, apiResp *apiResponse) {
+					// Verify response code
+					assert.Equal(r, http.StatusBadRequest, apiResp.StatusCode)
+				},
 			})
-
-			// Verify response code
-			require.Equal(t, http.StatusBadRequest, resp.StatusCode)
 
 			// Parse response json
 			data := parseResponseJSON(t, resp)
@@ -915,10 +965,11 @@ func TestApi(t *testing.T) {
 				method: "GET",
 				url:    apiURL + "/usage?startDate=1568937600&endDate=1569023999",
 				json:   nil,
+				f: func(r *testutil.R, apiResp *apiResponse) {
+					// Verify response code
+					assert.Equal(r, http.StatusOK, apiResp.StatusCode)
+				},
 			})
-
-			// Verify response code
-			require.Equal(t, http.StatusOK, resp.StatusCode)
 
 			// Parse response json
 			data := parseResponseArrayJSON(t, resp)
@@ -973,28 +1024,25 @@ func TestApi(t *testing.T) {
 				}
 			}
 
-			testutil.Retry(t, 10, 10*time.Millisecond, func(r *testutil.R) {
-
-				resp := apiRequest(t, &apiRequestInput{
-					method: "GET",
-					url:    apiURL + "/usage?startDate=1557014400&endDate=1557273599",
-					json:   nil,
-				})
-
-				// Verify response code
-				assert.Equal(r, http.StatusOK, resp.StatusCode)
-
-				// Parse response json
-				data := parseResponseArrayJSON(t, resp)
-
-				//Verify response json
-				if data[0] != nil {
-					usageJSON := data[0]
-					assert.Equal(r, "TestUser1", usageJSON["principalId"].(string))
-					assert.Equal(r, "TestAcct1", usageJSON["accountId"].(string))
-					assert.Equal(r, 60.00, usageJSON["costAmount"].(float64))
-				}
+			resp := apiRequest(t, &apiRequestInput{
+				method: "GET",
+				url:    apiURL + "/usage?startDate=1557014400&endDate=1557273599",
+				json:   nil,
+				f: func(r *testutil.R, apiResp *apiResponse) {
+					// Verify response code
+					assert.Equal(r, http.StatusOK, apiResp.StatusCode)
+				},
 			})
+
+			// Parse response json
+			data := parseResponseArrayJSON(t, resp)
+
+			//Verify response json
+			assert.Len(t, data, 2)
+			usageJSON := data[0]
+			assert.Equal(t, "TestUser1", usageJSON["principalId"].(string))
+			assert.Equal(t, "TestAcct1", usageJSON["accountId"].(string))
+			assert.Equal(t, 60.00, usageJSON["costAmount"].(float64))
 		})
 	})
 
@@ -1094,113 +1142,102 @@ func TestApi(t *testing.T) {
 		})
 
 		t.Run("When there is an account ID parameter", func(t *testing.T) {
-			testutil.Retry(t, 10, 10*time.Millisecond, func(r *testutil.R) {
-				resp := apiRequest(t, &apiRequestInput{
-					method: "GET",
-					url:    apiURL + "/leases?accountId=" + accountIDOne,
-					json:   nil,
-				})
-
-				results := parseResponseArrayJSON(t, resp)
-				assert.Equal(r, 3, len(results), "only three leases should be returned")
+			resp := apiRequest(t, &apiRequestInput{
+				method: "GET",
+				url:    apiURL + "/leases?accountId=" + accountIDOne,
+				json:   nil,
 			})
+
+			results := parseResponseArrayJSON(t, resp)
+			assert.Equal(t, 3, len(results), "only three leases should be returned")
 		})
 
 		t.Run("When there is an principal ID parameter", func(t *testing.T) {
-			testutil.Retry(t, 10, 10*time.Millisecond, func(r *testutil.R) {
-				resp := apiRequest(t, &apiRequestInput{
-					method: "GET",
-					url:    apiURL + "/leases?principalId=" + principalIDOne,
-					json:   nil,
-				})
-
-				results := parseResponseArrayJSON(t, resp)
-				assert.Equal(t, 2, len(results), "only two leases should be returned")
+			resp := apiRequest(t, &apiRequestInput{
+				method: "GET",
+				url:    apiURL + "/leases?principalId=" + principalIDOne,
+				json:   nil,
 			})
+
+			results := parseResponseArrayJSON(t, resp)
+			assert.Equal(t, 2, len(results), "only two leases should be returned")
 		})
 
 		t.Run("When there is a limit parameter", func(t *testing.T) {
-			testutil.Retry(t, 10, 10*time.Millisecond, func(r *testutil.R) {
-				resp := apiRequest(t, &apiRequestInput{
-					method: "GET",
-					url:    apiURL + "/leases?limit=1",
-					json:   nil,
-				})
-
-				results := parseResponseArrayJSON(t, resp)
-				assert.Equal(t, 1, len(results), "only one lease should be returned")
+			resp := apiRequest(t, &apiRequestInput{
+				method: "GET",
+				url:    apiURL + "/leases?limit=1",
+				json:   nil,
 			})
+
+			results := parseResponseArrayJSON(t, resp)
+			assert.Equal(t, 1, len(results), "only one lease should be returned")
 		})
 
 		t.Run("When there is a status parameter", func(t *testing.T) {
-			testutil.Retry(t, 10, 10*time.Millisecond, func(r *testutil.R) {
-				resp := apiRequest(t, &apiRequestInput{
-					method: "GET",
-					url:    apiURL + "/leases?status=" + string(db.Inactive),
-					json:   nil,
-				})
-
-				results := parseResponseArrayJSON(t, resp)
-				assert.Equal(t, 2, len(results), "only two leases should be returned")
+			resp := apiRequest(t, &apiRequestInput{
+				method: "GET",
+				url:    apiURL + "/leases?status=" + string(db.Inactive),
+				json:   nil,
 			})
+
+			results := parseResponseArrayJSON(t, resp)
+			assert.Equal(t, 2, len(results), "only two leases should be returned")
 		})
 
 		t.Run("When there is a Link header", func(t *testing.T) {
 			nextPageRegex := regexp.MustCompile(`<(.+)>`)
 
-			testutil.Retry(t, 10, 10*time.Millisecond, func(r *testutil.R) {
-
-				respOne := apiRequest(t, &apiRequestInput{
-					method: "GET",
-					url:    apiURL + "/leases?limit=2",
-					json:   nil,
-				})
-
-				linkHeader, ok := respOne.Header["Link"]
-				assert.True(t, ok, "Link header should exist")
-
-				resultsOne := parseResponseArrayJSON(t, respOne)
-				assert.Equal(t, 2, len(resultsOne), "only two leases should be returned")
-
-				nextPage := nextPageRegex.FindStringSubmatch(linkHeader[0])[1]
-
-				_, err := url.ParseRequestURI(nextPage)
-				assert.Nil(t, err, "Link header should contain a valid URL")
-
-				respTwo := apiRequest(t, &apiRequestInput{
-					method: "GET",
-					url:    nextPage,
-					json:   nil,
-				})
-
-				linkHeader, ok = respTwo.Header["Link"]
-				assert.True(t, ok, "Link header should exist")
-
-				resultsTwo := parseResponseArrayJSON(t, respTwo)
-				assert.Equal(t, 2, len(resultsTwo), "only two leases should be returned")
-
-				nextPage = nextPageRegex.FindStringSubmatch(linkHeader[0])[1]
-
-				_, err = url.ParseRequestURI(nextPage)
-				assert.Nil(t, err, "Link header should contain a valid URL")
-
-				respThree := apiRequest(t, &apiRequestInput{
-					method: "GET",
-					url:    nextPage,
-					json:   nil,
-				})
-
-				linkHeader, ok = respThree.Header["Link"]
-				assert.False(t, ok, "Link header should not exist in last page")
-
-				resultsThree := parseResponseArrayJSON(t, respThree)
-				assert.Equal(t, 1, len(resultsThree), "only one lease should be returned")
-
-				results := append(resultsOne, resultsTwo...)
-				results = append(results, resultsThree...)
-
-				assert.Equal(t, 5, len(results), "All five releases should be returned")
+			respOne := apiRequest(t, &apiRequestInput{
+				method: "GET",
+				url:    apiURL + "/leases?limit=2",
+				json:   nil,
 			})
+
+			linkHeader, ok := respOne.Header["Link"]
+			assert.True(t, ok, "Link header should exist")
+
+			resultsOne := parseResponseArrayJSON(t, respOne)
+			assert.Equal(t, 2, len(resultsOne), "only two leases should be returned")
+
+			nextPage := nextPageRegex.FindStringSubmatch(linkHeader[0])[1]
+
+			_, err := url.ParseRequestURI(nextPage)
+			assert.Nil(t, err, "Link header should contain a valid URL")
+
+			respTwo := apiRequest(t, &apiRequestInput{
+				method: "GET",
+				url:    nextPage,
+				json:   nil,
+			})
+
+			linkHeader, ok = respTwo.Header["Link"]
+			assert.True(t, ok, "Link header should exist")
+
+			resultsTwo := parseResponseArrayJSON(t, respTwo)
+			assert.Equal(t, 2, len(resultsTwo), "only two leases should be returned")
+
+			nextPage = nextPageRegex.FindStringSubmatch(linkHeader[0])[1]
+
+			_, err = url.ParseRequestURI(nextPage)
+			assert.Nil(t, err, "Link header should contain a valid URL")
+
+			respThree := apiRequest(t, &apiRequestInput{
+				method: "GET",
+				url:    nextPage,
+				json:   nil,
+			})
+
+			linkHeader, ok = respThree.Header["Link"]
+			assert.False(t, ok, "Link header should not exist in last page")
+
+			resultsThree := parseResponseArrayJSON(t, respThree)
+			assert.Equal(t, 1, len(resultsThree), "only one lease should be returned")
+
+			results := append(resultsOne, resultsTwo...)
+			results = append(results, resultsThree...)
+
+			assert.Equal(t, 5, len(results), "All five releases should be returned")
 		})
 	})
 }
@@ -1221,6 +1258,7 @@ type apiRequestInput struct {
 	creds  *credentials.Credentials
 	region string
 	json   interface{}
+	f      func(r *testutil.R, apiResp *apiResponse)
 }
 
 type apiResponse struct {
@@ -1244,52 +1282,57 @@ func apiRequest(t *testing.T, input *apiRequestInput) *apiResponse {
 
 	// Create API request
 	req, err := http.NewRequest(input.method, input.url, nil)
-	require.Nil(t, err)
+	assert.Nil(t, err)
 
 	// Sign our API request, using sigv4
 	// See https://docs.aws.amazon.com/general/latest/gr/sigv4_signing.html
 	signer := sigv4.NewSigner(input.creds)
 	now := time.Now().Add(time.Duration(30) * time.Second)
 	var signedHeaders http.Header
+	var apiResp *apiResponse
+	testutil.Retry(t, 10, 2*time.Second, func(r *testutil.R) {
+		// If there's a json provided, add it when signing
+		// Body does not matter if added before the signing, it will be overwritten
+		if input.json != nil {
+			payload, err := json.Marshal(input.json)
+			assert.Nil(t, err)
+			req.Header.Set("Content-Type", "application/json")
+			signedHeaders, err = signer.Sign(req, bytes.NewReader(payload),
+				"execute-api", input.region, now)
+		} else {
+			signedHeaders, err = signer.Sign(req, nil, "execute-api",
+				input.region, now)
+		}
+		assert.NoError(r, err)
+		assert.NotNil(r, signedHeaders)
 
-	// If there's a json provided, add it when signing
-	// Body does not matter if added before the signing, it will be overwritten
-	if input.json != nil {
-		payload, err := json.Marshal(input.json)
-		require.Nil(t, err)
-		req.Header.Set("Content-Type", "application/json")
-		signedHeaders, err = signer.Sign(req, bytes.NewReader(payload),
-			"execute-api", input.region, now)
-	} else {
-		signedHeaders, err = signer.Sign(req, nil, "execute-api",
-			input.region, now)
-	}
-	require.Nil(t, err)
-	require.NotNil(t, signedHeaders)
+		// Send the API requests
+		// resp, err := http.DefaultClient.Do(req)
+		httpClient := http.Client{
+			Timeout: 60 * time.Second,
+		}
+		resp, err := httpClient.Do(req)
+		assert.NoError(r, err)
 
-	// Send the API requests
-	// resp, err := http.DefaultClient.Do(req)
-	httpClient := http.Client{
-		Timeout: 60 * time.Second,
-	}
-	resp, err := httpClient.Do(req)
-	require.Nil(t, err)
+		// Parse the JSON response
+		apiResp = &apiResponse{
+			Response: *resp,
+		}
+		defer resp.Body.Close()
+		var data interface{}
 
-	// Parse the JSON response
-	apiResp := &apiResponse{
-		Response: *resp,
-	}
-	defer resp.Body.Close()
-	var data interface{}
+		body, err := ioutil.ReadAll(resp.Body)
+		assert.NoError(r, err)
 
-	body, err := ioutil.ReadAll(resp.Body)
-	require.Nil(t, err)
+		err = json.Unmarshal([]byte(body), &data)
+		if err == nil {
+			apiResp.json = data
+		}
 
-	err = json.Unmarshal([]byte(body), &data)
-	if err == nil {
-		apiResp.json = data
-	}
-
+		if input.f != nil {
+			input.f(r, apiResp)
+		}
+	})
 	return apiResp
 }
 
@@ -1316,6 +1359,7 @@ func parseResponseArrayJSON(t *testing.T, resp *apiResponse) []map[string]interf
 
 type createAdminRoleOutput struct {
 	accountID    string
+	roleName     string
 	adminRoleArn string
 }
 
@@ -1338,7 +1382,6 @@ func createAdminRole(t *testing.T, awsSession client.ConfigProvider) *createAdmi
 				}
 			]
 		}`, currentAccountID)
-	adminRoleName := "redbox-api-test-admin-role-" + fmt.Sprintf("%v", time.Now().Unix())
 	roleRes, err := iamSvc.CreateRole(&iam.CreateRoleInput{
 		AssumeRolePolicyDocument: aws.String(assumeRolePolicy),
 		Path:                     aws.String("/"),
@@ -1356,10 +1399,30 @@ func createAdminRole(t *testing.T, awsSession client.ConfigProvider) *createAdmi
 	require.Nil(t, err)
 
 	// IAM Role takes a while to propagate....
-	time.Sleep(10 * time.Second)
+	//time.Sleep(10 * time.Second)
 
 	return &createAdminRoleOutput{
 		adminRoleArn: adminRoleArn,
+		roleName:     adminRoleName,
 		accountID:    currentAccountID,
 	}
+}
+
+func NewCredentials(t *testing.T, awsSession *session.Session, roleArn string) *credentials.Credentials {
+
+	var creds *credentials.Credentials
+	testutil.Retry(t, 10, 2*time.Second, func(r *testutil.R) {
+
+		creds = stscreds.NewCredentials(awsSession, roleArn)
+		assert.NotNil(r, creds)
+	})
+	return creds
+}
+
+func deleteAdminRole() {
+	awsSession, _ := session.NewSession()
+	iamSvc := iam.New(awsSession)
+	_, _ = iamSvc.DeleteRole(&iam.DeleteRoleInput{
+		RoleName: aws.String(adminRoleName),
+	})
 }
