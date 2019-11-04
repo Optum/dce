@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/stretchr/testify/require"
 	"net/http"
 	"strings"
 	"testing"
@@ -531,6 +532,143 @@ func TestCreate(t *testing.T) {
 			MockAPIErrorResponse(http.StatusInternalServerError, "ServerError", "Internal server error"),
 			res)
 	})
+
+	t.Run("should allow setting metadata", func(t *testing.T) {
+		stubAllServices()
+
+		// Mock the DB
+		mockDB := &dbMocks.DBer{}
+		Dao = mockDB
+
+		// Should write account w/metadata to DB
+		mockDB.On("PutAccount",
+			mock.MatchedBy(func(acct db.Account) bool {
+				assert.Equal(t, acct.Metadata, map[string]interface{}{
+					"foo": "bar",
+					"faz": "baz",
+				})
+
+				return true
+			}),
+		).Return(nil)
+
+		// stub out other DB methods
+		mockDB.On("GetAccount", mock.Anything).
+			Return(nil, nil)
+
+		// Call the controller with metadata
+		request := createAccountAPIRequest(t, map[string]interface{}{
+			"id":           "123456789012",
+			"adminRoleArn": "roleArn",
+			"metadata": map[string]interface{}{
+				"foo": "bar",
+				"faz": "baz",
+			},
+		})
+		res, err := Handler(context.TODO(), request)
+		require.Nil(t, err)
+
+		// Check the response body
+		resJSON := unmarshal(t, res.Body)
+
+		require.Equal(t, map[string]interface{}{
+			"foo": "bar",
+			"faz": "baz",
+		}, resJSON["metadata"])
+
+		mockDB.AssertExpectations(t)
+	})
+
+	t.Run("should allow any data type within metadata", func(t *testing.T) {
+		stubAllServices()
+
+		// Call the controller with a bunch of different data types
+		request := createAccountAPIRequest(t, map[string]interface{}{
+			"id":           "123456789012",
+			"adminRoleArn": "roleArn",
+			"metadata": map[string]interface{}{
+				"string": "foobar",
+				"int":    7,
+				"float":  0.5,
+				"bool":   true,
+				"obj": map[string]interface{}{
+					"nested": map[string]interface{}{
+						"object": "value",
+					},
+				},
+				"null": nil,
+			},
+		})
+		res, err := Handler(context.TODO(), request)
+		require.Nil(t, err)
+
+		// Check the response body
+		resJSON := unmarshal(t, res.Body)
+		require.Equal(t, map[string]interface{}{
+			"string": "foobar",
+			// something weird with json parsing types here
+			// that we have to cast it,
+			// but the point is that the API accepted the value, and returned it back
+			"int":   float64(7),
+			"float": 0.5,
+			"bool":  true,
+			"obj": map[string]interface{}{
+				"nested": map[string]interface{}{
+					"object": "value",
+				},
+			},
+			"null": nil,
+		}, resJSON["metadata"])
+	})
+
+	t.Run("should return an empty metadata JSON object if none is provided", func(t *testing.T) {
+		stubAllServices()
+
+		// Call the controller with no metadata param
+		request := createAccountAPIRequest(t, map[string]interface{}{
+			"id":           "123456789012",
+			"adminRoleArn": "roleArn",
+		})
+		res, err := Handler(context.TODO(), request)
+		require.Nil(t, err)
+
+		// Check the response body
+		// should return empty JSON object for metadata
+		resJSON := unmarshal(t, res.Body)
+		require.Equal(t, map[string]interface{}{}, resJSON["metadata"])
+	})
+
+	t.Run("should not allow non-object types for metadata", func(t *testing.T) {
+		stubAllServices()
+
+		invalidValues := []interface{}{
+			"string",
+			14.5,
+			true,
+		}
+
+		for _, metadata := range invalidValues {
+			// Call the controller with no metadata param
+			request := createAccountAPIRequest(t, map[string]interface{}{
+				"id":           "123456789012",
+				"adminRoleArn": "roleArn",
+				"metadata":     metadata,
+			})
+			res, err := Handler(context.TODO(), request)
+			require.Nil(t, err)
+
+			// Check the error response
+			require.Equalf(t, 400, res.StatusCode, "status code for %v", metadata)
+			resJSON := unmarshal(t, res.Body)
+			require.Equalf(t, map[string]interface{}{
+				"error": map[string]interface{}{
+					"code":    "ClientError",
+					"message": "invalid request parameters",
+				},
+			}, resJSON, "res JSON for %v", metadata)
+		}
+
+	})
 }
 
 // dbStub creates a mock DBer instance,
@@ -580,13 +718,22 @@ func tokenServiceStub() common.TokenService {
 	return tokenServiceMock
 }
 
-func StoragerMock() common.Storager {
+func storageStub() common.Storager {
 	storagerMock := &commonMocks.Storager{}
 
 	storagerMock.On("GetTemplateObject", mock.Anything, mock.Anything, mock.Anything).
 		Return("", "", nil)
 
 	return storagerMock
+}
+
+func stubAllServices() {
+	TokenSvc = tokenServiceStub()
+	RoleManager = roleManagerStub()
+	StorageSvc = storageStub()
+	Queue = queueStub()
+	Dao = dbStub()
+	SnsSvc = snsStub()
 }
 
 func roleManagerStub() *roleManagerMocks.RoleManager {
@@ -614,7 +761,7 @@ func roleManagerStub() *roleManagerMocks.RoleManager {
 	return roleManagerMock
 }
 
-func createAccountAPIRequest(t *testing.T, req CreateRequest) events.APIGatewayProxyRequest {
+func createAccountAPIRequest(t *testing.T, req interface{}) events.APIGatewayProxyRequest {
 	requestBody, err := json.Marshal(&req)
 	assert.Nil(t, err)
 	return events.APIGatewayProxyRequest{

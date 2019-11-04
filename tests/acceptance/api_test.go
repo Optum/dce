@@ -75,6 +75,11 @@ func TestApi(t *testing.T) {
 		tfOut["usage_table_name"].(string),
 	)
 
+	// Create an adminRole for the test account
+	adminRoleRes := createAdminRole(t, awsSession)
+	accountID := adminRoleRes.accountID
+	adminRoleArn := adminRoleRes.adminRoleArn
+
 	// Cleanup tables before and after tests
 	truncateAccountTable(t, dbSvc)
 	truncateLeaseTable(t, dbSvc)
@@ -680,11 +685,6 @@ func TestApi(t *testing.T) {
 		defer truncateDBTables(t, dbSvc)
 		defer truncateUsageTable(t, usageSvc)
 
-		// Create an adminRole for the account
-		adminRoleRes := createAdminRole(t, awsSession)
-		accountID := adminRoleRes.accountID
-		adminRoleArn := adminRoleRes.adminRoleArn
-
 		t.Run("STEP: Create Account", func(t *testing.T) {
 
 			// Add the current account to the account pool
@@ -982,6 +982,68 @@ func TestApi(t *testing.T) {
 
 		})
 
+	})
+
+	t.Run("Create account with metadata", func(t *testing.T) {
+		// Make sure the DB is clean
+		truncateDBTables(t, dbSvc)
+		defer truncateDBTables(t, dbSvc)
+
+		// Create an account with metadata
+		res := apiRequest(t, &apiRequestInput{
+			method: "POST",
+			url:    apiURL + "/accounts",
+			json: map[string]interface{}{
+				"id":           accountID,
+				"adminRoleArn": adminRoleArn,
+				"metadata": map[string]interface{}{
+					"foo": map[string]interface{}{
+						"bar": "baz",
+					},
+					"hello": "you",
+				},
+			},
+			f: func(r *testutil.R, apiResp *apiResponse) {
+				assert.Equal(r, 201, apiResp.StatusCode)
+			},
+		})
+
+		// Check the response
+		require.Equal(t, res.StatusCode, 201)
+		resJSON := parseResponseJSON(t, res)
+		require.Equal(t, map[string]interface{}{
+			"foo": map[string]interface{}{
+				"bar": "baz",
+			},
+			"hello": "you",
+		}, resJSON["metadata"])
+
+		// Check the DB record
+		dbAccount, err := dbSvc.GetAccount(accountID)
+		require.Nil(t, err)
+		require.Equal(t, map[string]interface{}{
+			"foo": map[string]interface{}{
+				"bar": "baz",
+			},
+			"hello": "you",
+		}, dbAccount.Metadata)
+
+		// Check the GET /accounts API response
+		getRes := apiRequest(t, &apiRequestInput{
+			method: "GET",
+			url:    apiURL + "/accounts/" + accountID,
+			f: func(r *testutil.R, apiResp *apiResponse) {
+				assert.Equal(r, 200, apiResp.StatusCode)
+			},
+		})
+		require.Equal(t, getRes.StatusCode, 200)
+		getResJSON := parseResponseJSON(t, getRes)
+		require.Equal(t, map[string]interface{}{
+			"foo": map[string]interface{}{
+				"bar": "baz",
+			},
+			"hello": "you",
+		}, getResJSON["metadata"])
 	})
 
 	t.Run("Delete Account", func(t *testing.T) {
@@ -1448,10 +1510,13 @@ type apiRequestInput struct {
 	// Callback function to assert API responses.
 	// apiRequest() will continue to retry until this
 	// function passes assertions.
+	//
 	// eg.
 	//		f: func(r *testutil.R, apiResp *apiResponse) {
 	//			assert.Equal(r, 200, apiResp.StatusCode)
 	//		},
+	//
+	// By default, this will check that the API returns a 2XX response
 	f func(r *testutil.R, apiResp *apiResponse)
 }
 

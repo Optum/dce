@@ -37,8 +37,6 @@ var (
 	Dao db.DBer
 	// SnsSvc - SNS service
 	SnsSvc common.Notificationer
-	// ProvisionTopicArn - ARN for SNS topic for the provisioner.
-	ProvisionTopicArn *string
 	// Queue - SQS Queue client
 	Queue common.Queue
 	// TokenSvc - Token service client

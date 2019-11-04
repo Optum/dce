@@ -63,6 +63,11 @@ func CreateAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Set default metadata={}
+	if request.Metadata == nil {
+		request.Metadata = map[string]interface{}{}
+	}
+
 	// Validate the request body
 	isValid, validationRes := request.Validate()
 	if !isValid {
@@ -106,6 +111,7 @@ func CreateAccount(w http.ResponseWriter, r *http.Request) {
 		LastModifiedOn: now,
 		CreatedOn:      now,
 		AdminRoleArn:   request.AdminRoleArn,
+		Metadata:       request.Metadata,
 	}
 
 	// Create an IAM Role for the principal (end-user) to login to
@@ -162,10 +168,10 @@ func CreateAccount(w http.ResponseWriter, r *http.Request) {
 	)
 }
 
-// CreateRequest - The create account request
 type CreateRequest struct {
-	ID           string `json:"id"`
-	AdminRoleArn string `json:"adminRoleArn"`
+	ID           string                 `json:"id"`
+	AdminRoleArn string                 `json:"adminRoleArn"`
+	Metadata     map[string]interface{} `json:"metadata"`
 }
 
 // Validate - Checks if the Account Request has the provided id and adminRoleArn

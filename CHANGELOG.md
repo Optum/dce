@@ -1,3 +1,7 @@
+## vNext
+
+- Support `metadata` parameter in `/accounts` API endpoints
+
 ## v0.23.0
 
 - Added `/accounts?accountStatus=<status>` URL for querying accounts by status.
