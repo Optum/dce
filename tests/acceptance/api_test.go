@@ -1277,7 +1277,7 @@ func TestApi(t *testing.T) {
 
 		t.Run("Should validate requested budget amount against principal budget amount", func(t *testing.T) {
 
-			defer truncateUsageTable(t, usageSvc)
+			//defer truncateUsageTable(t, usageSvc)
 
 			createUsage(t, apiURL, usageSvc)
 			principalID := "TestUser1"
