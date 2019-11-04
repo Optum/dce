@@ -936,13 +936,13 @@ func TestApi(t *testing.T) {
 			testStartDate := time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), 0, 0, 0, 0, time.UTC)
 			testEndDate := time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), 23, 59, 59, 59, time.UTC)
 			queryString := fmt.Sprintf("/usage?startDate=%d&endDate=%d", testStartDate.Unix(), testEndDate.Unix())
-			requestUrl := apiURL + queryString
+			requestURL := apiURL + queryString
 
 			testutil.Retry(t, 10, 10*time.Millisecond, func(r *testutil.R) {
 
 				resp := apiRequest(t, &apiRequestInput{
 					method: "GET",
-					url:    requestUrl,
+					url:    requestURL,
 					json:   nil,
 				})
 
