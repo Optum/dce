@@ -1576,7 +1576,7 @@ func createUsage(t *testing.T, apiURL string, usageSvc usage.Service) error {
 		data := parseResponseArrayJSON(t, resp)
 
 		//Verify response json
-		if data[0] != nil {
+		if len(data) >= 0 && data[0] != nil {
 			usageJSON := data[0]
 			assert.Equal(r, "TestUser1", usageJSON["principalId"].(string))
 			assert.Equal(r, "TestAcct1", usageJSON["accountId"].(string))
