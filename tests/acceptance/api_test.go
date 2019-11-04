@@ -930,55 +930,20 @@ func TestApi(t *testing.T) {
 
 		t.Run("Should be able to get usage", func(t *testing.T) {
 
-			// Create usage
-			// Setup usage dates
-			const ttl int = 3
-			testStartDate := time.Date(2019, 5, 5, 0, 0, 0, 0, time.UTC)
-			testEndDate := time.Date(2019, 5, 5, 23, 59, 59, 0, time.UTC)
+			defer truncateUsageTable(t, usageSvc)
+			createUsage(t, apiURL, usageSvc)
 
-			// Create mock usage
-			expectedUsages := []*usage.Usage{}
-			for a := 1; a <= 1; a++ {
-
-				startDate := testStartDate
-				endDate := testEndDate
-
-				timeToLive := startDate.AddDate(0, 0, ttl)
-
-				var testPrinciplaID []string
-				var testAccountID []string
-
-				testPrinciplaID = append(testPrinciplaID, "TestUser")
-				testPrinciplaID = append(testPrinciplaID, strconv.Itoa(a))
-
-				testAccountID = append(testAccountID, "TestAcct")
-				testAccountID = append(testAccountID, strconv.Itoa(a))
-
-				for i := 1; i <= 3; i++ {
-
-					input := usage.Usage{
-						PrincipalID:  strings.Join(testPrinciplaID, ""),
-						AccountID:    strings.Join(testAccountID, ""),
-						StartDate:    startDate.Unix(),
-						EndDate:      endDate.Unix(),
-						CostAmount:   2000.00,
-						CostCurrency: "USD",
-						TimeToLive:   timeToLive.Unix(),
-					}
-					err = usageSvc.PutUsage(input)
-					require.Nil(t, err)
-					expectedUsages = append(expectedUsages, &input)
-
-					startDate = startDate.AddDate(0, 0, 1)
-					endDate = endDate.AddDate(0, 0, 1)
-				}
-			}
+			currentDate := time.Now()
+			testStartDate := time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), 0, 0, 0, 0, time.UTC)
+			testEndDate := time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), 23, 59, 59, 59, time.UTC)
+			queryString := fmt.Sprintf("/usage?startDate=%d&endDate=%d", testStartDate.Unix(), testEndDate.Unix())
+			requestUrl := apiURL + queryString
 
 			testutil.Retry(t, 10, 10*time.Millisecond, func(r *testutil.R) {
 
 				resp := apiRequest(t, &apiRequestInput{
 					method: "GET",
-					url:    apiURL + "/usage?startDate=1557014400&endDate=1557273599",
+					url:    requestUrl,
 					json:   nil,
 				})
 
@@ -993,7 +958,7 @@ func TestApi(t *testing.T) {
 					usageJSON := data[0]
 					assert.Equal(r, "TestUser1", usageJSON["principalId"].(string))
 					assert.Equal(r, "TestAcct1", usageJSON["accountId"].(string))
-					assert.Equal(r, 6000.00, usageJSON["costAmount"].(float64))
+					assert.Equal(r, 200.00, usageJSON["costAmount"].(float64))
 				}
 			})
 		})
@@ -1213,7 +1178,7 @@ func TestApi(t *testing.T) {
 			expiresOn := time.Now().AddDate(0, 0, -1).Unix()
 
 			// Create the Provision Request Body
-			body := leaseRequest2{
+			body := inputLeaseRequest{
 				PrincipalID:  principalID,
 				AccountID:    "123",
 				BudgetAmount: 200.00,
@@ -1247,7 +1212,7 @@ func TestApi(t *testing.T) {
 			expiresOn := time.Now().AddDate(0, 0, 5).Unix()
 
 			// Create the Provision Request Body
-			body := leaseRequest2{
+			body := inputLeaseRequest{
 				PrincipalID:  principalID,
 				AccountID:    "123",
 				BudgetAmount: 30000.00,
@@ -1282,7 +1247,7 @@ func TestApi(t *testing.T) {
 			expiresOnAfterOneYear := time.Now().AddDate(1, 0, 0).Unix()
 
 			// Create the Provision Request Body
-			body := leaseRequest2{
+			body := inputLeaseRequest{
 				PrincipalID:  principalID,
 				AccountID:    "123",
 				BudgetAmount: 300.00,
@@ -1320,7 +1285,7 @@ func TestApi(t *testing.T) {
 			expiresOn := time.Now().AddDate(0, 0, 6).Unix()
 
 			// Create the Provision Request Body
-			body := leaseRequest2{
+			body := inputLeaseRequest{
 				PrincipalID:  principalID,
 				AccountID:    "123",
 				BudgetAmount: 430.00,
@@ -1357,7 +1322,7 @@ type leaseRequest struct {
 	AccountID   string `json:"accountId"`
 }
 
-type leaseRequest2 struct {
+type inputLeaseRequest struct {
 	PrincipalID  string  `json:"principalId"`
 	AccountID    string  `json:"accountId"`
 	BudgetAmount float64 `json:"budgetAmount"`
@@ -1527,7 +1492,7 @@ func createUsage(t *testing.T, apiURL string, usageSvc usage.Service) error {
 	testEndDate := time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), 23, 59, 59, 59, time.UTC)
 
 	// Create mock usage
-	expectedUsages := []*usage.Usage{}
+	var expectedUsages []*usage.Usage
 
 	usageStartDate := testStartDate
 	usageEndDate := testEndDate
@@ -1562,9 +1527,9 @@ func createUsage(t *testing.T, apiURL string, usageSvc usage.Service) error {
 		endDate = endDate.AddDate(0, 0, -1)
 	}
 
-	testutil.Retry(t, 10, 10*time.Millisecond, func(r *testutil.R) {
+	queryString := fmt.Sprintf("/usage?startDate=%d&endDate=%d", usageStartDate.Unix(), usageEndDate.Unix())
 
-		queryString := fmt.Sprintf("/usage?startDate=%d&endDate=%d", usageStartDate.Unix(), usageEndDate.Unix())
+	testutil.Retry(t, 10, 10*time.Millisecond, func(r *testutil.R) {
 
 		resp := apiRequest(t, &apiRequestInput{
 			method: "GET",

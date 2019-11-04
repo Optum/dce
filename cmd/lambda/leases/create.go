@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math"
 	"net/http"
 	"time"
 
@@ -71,7 +72,7 @@ func (c CreateController) Call(ctx context.Context, req *events.APIGatewayProxyR
 
 	// Check requested lease budget amount is greater than MAX_LEASE_BUDGET_AMOUNT. If it's, then throw an error
 	if requestBody.BudgetAmount > *c.MaxLeaseBudgetAmount {
-		errStr := fmt.Sprintf("Requested lease has a budget amount of %f, which is greater than max lease budget amount of %f", requestBody.BudgetAmount, *c.MaxLeaseBudgetAmount)
+		errStr := fmt.Sprintf("Requested lease has a budget amount of %f, which is greater than max lease budget amount of %f", math.Round(requestBody.BudgetAmount), math.Round(*c.MaxLeaseBudgetAmount))
 		log.Printf(errStr)
 		return response.BadRequestError(errStr), nil
 	}
@@ -122,8 +123,7 @@ func (c CreateController) Call(ctx context.Context, req *events.APIGatewayProxyR
 	}
 
 	if spent > *c.PrincipalBudgetAmount {
-		errStr := fmt.Sprintf("Principal budget amount for current billing period is already used by Principal: %s",
-			checkLease.PrincipalID)
+		errStr := fmt.Sprintf("Unable to create lease: User principal %s has already spent %s %f of their weekly principal budget", checkLease.PrincipalID, checkLease.BudgetCurrency, math.Round(*c.PrincipalBudgetAmount))
 		log.Printf(errStr)
 		return response.BadRequestError(errStr), nil
 	}
