@@ -1561,7 +1561,7 @@ func createUsage(t *testing.T, apiURL string, usageSvc usage.Service) error {
 
 	testutil.Retry(t, 10, 10*time.Millisecond, func(r *testutil.R) {
 
-		queryString := fmt.Sprintf("/usage?startDate=%d&endDate=%d", usageStartDate, usageEndDate)
+		queryString := fmt.Sprintf("/usage?startDate=%d&endDate=%d", usageStartDate.Unix(), usageEndDate.Unix())
 
 		resp := apiRequest(t, &apiRequestInput{
 			method: "GET",
