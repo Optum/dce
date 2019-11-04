@@ -305,9 +305,9 @@ func TestApi(t *testing.T) {
 
 	})
 
-	t.Run("Provisioning and Decommissioning", func(t *testing.T) {
+	t.Run("Creating/Destroying leases", func(t *testing.T) {
 
-		t.Run("Should be able to provision and decommission", func(t *testing.T) {
+		t.Run("Should be able to create and destroy leases", func(t *testing.T) {
 			defer truncateAccountTable(t, dbSvc)
 			defer truncateLeaseTable(t, dbSvc)
 
@@ -379,7 +379,7 @@ func TestApi(t *testing.T) {
 
 		})
 
-		t.Run("Should not be able to provision with empty json", func(t *testing.T) {
+		t.Run("Should not be able to create lease with empty json", func(t *testing.T) {
 			// Send an API request
 			resp := apiRequest(t, &apiRequestInput{
 				method: "POST",
@@ -400,7 +400,7 @@ func TestApi(t *testing.T) {
 				err["message"].(string))
 		})
 
-		t.Run("Should not be able to provision with no available accounts", func(t *testing.T) {
+		t.Run("Should not be able to create lease with no available accounts", func(t *testing.T) {
 			// Create the Provision Request Body
 			principalID := "user"
 			body := leaseRequest{
@@ -428,7 +428,7 @@ func TestApi(t *testing.T) {
 				err["message"].(string))
 		})
 
-		t.Run("Should not be able to provision with an existing account", func(t *testing.T) {
+		t.Run("Should not be able to create lease with an existing account", func(t *testing.T) {
 			defer truncateAccountTable(t, dbSvc)
 			defer truncateLeaseTable(t, dbSvc)
 
@@ -481,7 +481,7 @@ func TestApi(t *testing.T) {
 				errResp["message"].(string))
 		})
 
-		t.Run("Should not be able to decommission with empty json", func(t *testing.T) {
+		t.Run("Should not be able to destroy lease with empty json", func(t *testing.T) {
 			// Send an API request
 			resp := apiRequest(t, &apiRequestInput{
 				method: "DELETE",
@@ -502,7 +502,7 @@ func TestApi(t *testing.T) {
 				err["message"].(string))
 		})
 
-		t.Run("Should not be able to decommission with no leases", func(t *testing.T) {
+		t.Run("Should not be able to destroy lease with no leases", func(t *testing.T) {
 			// Create the Provision Request Body
 			principalID := "user"
 			acctID := "123"
@@ -532,7 +532,7 @@ func TestApi(t *testing.T) {
 				err["message"].(string))
 		})
 
-		t.Run("Should not be able to decommission with wrong account", func(t *testing.T) {
+		t.Run("Should not be able to destroy lease with wrong account", func(t *testing.T) {
 			// Create an Account Entry
 			acctID := "123"
 			principalID := "user"
@@ -584,7 +584,7 @@ func TestApi(t *testing.T) {
 				errResp["message"].(string))
 		})
 
-		t.Run("Should not be able to decommission with decommissioned account", func(t *testing.T) {
+		t.Run("Should not be able to destroy lease inactive lease", func(t *testing.T) {
 			// Create an Account Entry
 			acctID := "123"
 			principalID := "user"
@@ -868,6 +868,67 @@ func TestApi(t *testing.T) {
 
 		})
 
+	})
+
+	t.Run("Create account with metadata", func(t *testing.T) {
+		// Make sure the DB is clean
+		truncateDBTables(t, dbSvc)
+		defer truncateDBTables(t, dbSvc)
+
+		// Create an adminRole for the account
+		adminRoleRes := createAdminRole(t, awsSession)
+		accountID := adminRoleRes.accountID
+		adminRoleArn := adminRoleRes.adminRoleArn
+
+		// Create an account with metadata
+		res := apiRequest(t, &apiRequestInput{
+			method: "POST",
+			url:    apiURL + "/accounts",
+			json: map[string]interface{}{
+				"id":           accountID,
+				"adminRoleArn": adminRoleArn,
+				"metadata": map[string]interface{}{
+					"foo": map[string]interface{}{
+						"bar": "baz",
+					},
+					"hello": "you",
+				},
+			},
+		})
+
+		// Check the response
+		require.Equal(t, res.StatusCode, 201)
+		resJSON := parseResponseJSON(t, res)
+		require.Equal(t, map[string]interface{}{
+			"foo": map[string]interface{}{
+				"bar": "baz",
+			},
+			"hello": "you",
+		}, resJSON["metadata"])
+
+		// Check the DB record
+		dbAccount, err := dbSvc.GetAccount(accountID)
+		require.Nil(t, err)
+		require.Equal(t, map[string]interface{}{
+			"foo": map[string]interface{}{
+				"bar": "baz",
+			},
+			"hello": "you",
+		}, dbAccount.Metadata)
+
+		// Check the GET /accounts API response
+		getRes := apiRequest(t, &apiRequestInput{
+			method: "POST",
+			url:    apiURL + "/accounts/" + accountID,
+		})
+		require.Equal(t, getRes.StatusCode, 200)
+		getResJSON := parseResponseJSON(t, getRes)
+		require.Equal(t, map[string]interface{}{
+			"foo": map[string]interface{}{
+				"bar": "baz",
+			},
+			"hello": "you",
+		}, getResJSON["metadata"])
 	})
 
 	t.Run("Delete Account", func(t *testing.T) {
@@ -1228,7 +1289,7 @@ type apiResponse struct {
 	json interface{}
 }
 
-var chainCredentials *credentials.Credentials = credentials.NewChainCredentials([]credentials.Provider{
+var chainCredentials = credentials.NewChainCredentials([]credentials.Provider{
 	&credentials.EnvProvider{},
 	&credentials.SharedCredentialsProvider{Filename: "", Profile: ""},
 })

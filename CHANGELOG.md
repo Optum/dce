@@ -1,3 +1,7 @@
+## vNext
+
+- Support `metadata` parameter in `/accounts` API endpoints
+
 ## v0.20.0
 
 - Fixed a bug in a migration script

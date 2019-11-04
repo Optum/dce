@@ -31,7 +31,7 @@ func TestCreate(t *testing.T) {
 
 	t.Run("should return a RedboxAccount object", func(t *testing.T) {
 		// Send request
-		req := createAccountAPIRequest(t, createRequest{
+		req := createRequest(t, accountCreateRequest{
 			ID:           "1234567890",
 			AdminRoleArn: "arn:*:*:*",
 		})
@@ -51,7 +51,7 @@ func TestCreate(t *testing.T) {
 
 	t.Run("should fail if adminRoleArn is missing", func(t *testing.T) {
 		// Send request, missing AdminRoleArn
-		req := createAccountAPIRequest(t, createRequest{
+		req := createRequest(t, accountCreateRequest{
 			ID:           "1234567890",
 			AdminRoleArn: "",
 		})
@@ -69,7 +69,7 @@ func TestCreate(t *testing.T) {
 
 	t.Run("should fail if accountID is missing", func(t *testing.T) {
 		// Send request, missing AdminRoleArn
-		req := createAccountAPIRequest(t, createRequest{
+		req := createRequest(t, accountCreateRequest{
 			ID:           "",
 			AdminRoleArn: "arn:mock",
 		})
@@ -105,7 +105,7 @@ func TestCreate(t *testing.T) {
 		// Call the controller
 		res, err := controller.Call(
 			context.TODO(),
-			createAccountAPIRequest(t, createRequest{
+			createRequest(t, accountCreateRequest{
 				ID:           "1234567890",
 				AdminRoleArn: "arn:iam:adminRole",
 			}),
@@ -139,7 +139,7 @@ func TestCreate(t *testing.T) {
 		defer mockDb.AssertExpectations(t)
 
 		// Send an API request
-		req := createAccountAPIRequest(t, createRequest{
+		req := createRequest(t, accountCreateRequest{
 			ID:           "1234567890",
 			AdminRoleArn: "arn:mock",
 		})
@@ -158,7 +158,7 @@ func TestCreate(t *testing.T) {
 			Return(&db.RedboxAccount{}, nil)
 
 		// Send an API request
-		req := createAccountAPIRequest(t, createRequest{
+		req := createRequest(t, accountCreateRequest{
 			ID:           "1234567890",
 			AdminRoleArn: "arn:mock",
 		})
@@ -178,7 +178,7 @@ func TestCreate(t *testing.T) {
 			Return(nil, errors.New("mock error"))
 
 		// Send an API request
-		req := createAccountAPIRequest(t, createRequest{
+		req := createRequest(t, accountCreateRequest{
 			ID:           "1234567890",
 			AdminRoleArn: "arn:mock",
 		})
@@ -202,7 +202,7 @@ func TestCreate(t *testing.T) {
 			Return(errors.New("mock error"))
 
 		// Send an API request
-		req := createAccountAPIRequest(t, createRequest{
+		req := createRequest(t, accountCreateRequest{
 			ID:           "1234567890",
 			AdminRoleArn: "arn:mock",
 		})
@@ -227,7 +227,7 @@ func TestCreate(t *testing.T) {
 		defer mockQueue.AssertExpectations(t)
 
 		// Send request
-		req := createAccountAPIRequest(t, createRequest{
+		req := createRequest(t, accountCreateRequest{
 			ID:           "1234567890",
 			AdminRoleArn: "arn:mock",
 		})
@@ -253,7 +253,7 @@ func TestCreate(t *testing.T) {
 		defer mockQueue.AssertExpectations(t)
 
 		// Send request
-		req := createAccountAPIRequest(t, createRequest{
+		req := createRequest(t, accountCreateRequest{
 			ID:           "1234567890",
 			AdminRoleArn: "arn:mock",
 		})
@@ -305,7 +305,7 @@ func TestCreate(t *testing.T) {
 		// Call the controller with the account
 		res, err := controller.Call(
 			context.TODO(),
-			createAccountAPIRequest(t, createRequest{
+			createRequest(t, accountCreateRequest{
 				ID:           "1234567890",
 				AdminRoleArn: "arn:mockAdmin",
 			}),
@@ -327,7 +327,7 @@ func TestCreate(t *testing.T) {
 		// Call the controller with the account
 		res, err := controller.Call(
 			context.TODO(),
-			createAccountAPIRequest(t, createRequest{
+			createRequest(t, accountCreateRequest{
 				ID:           "1234567890",
 				AdminRoleArn: "arn:mockAdmin",
 			}),
@@ -412,7 +412,7 @@ func TestCreate(t *testing.T) {
 		// Call the controller with the account
 		_, err := controller.Call(
 			context.TODO(),
-			createAccountAPIRequest(t, createRequest{
+			createRequest(t, accountCreateRequest{
 				ID:           "1234567890",
 				AdminRoleArn: "arn:mockAdmin",
 			}),
@@ -437,7 +437,7 @@ func TestCreate(t *testing.T) {
 		// Call the controller
 		res, err := controller.Call(
 			context.TODO(),
-			createAccountAPIRequest(t, createRequest{
+			createRequest(t, accountCreateRequest{
 				ID:           "1234567890",
 				AdminRoleArn: "arn:mockAdmin",
 			}),
@@ -446,6 +446,140 @@ func TestCreate(t *testing.T) {
 
 		// Should return a 500 Server Error
 		require.Equal(t, response.ServerError(), res)
+	})
+
+	t.Run("should allow setting metadata", func(t *testing.T) {
+		controller := newCreateController()
+
+		// Mock the DB
+		mockDB := &dbMocks.DBer{}
+		controller.Dao = mockDB
+
+		// Should write account w/metadata to DB
+		mockDB.On("PutAccount",
+			mock.MatchedBy(func(acct db.RedboxAccount) bool {
+				assert.Equal(t, acct.Metadata, map[string]interface{}{
+					"foo": "bar",
+					"faz": "baz",
+				})
+
+				return true
+			}),
+		).Return(nil)
+
+		// stub out other DB methods
+		mockDB.On("GetAccount", mock.Anything).
+			Return(nil, nil)
+
+		// Call the controller with metadata
+		request := createRequest(t, map[string]interface{}{
+			"id":           "123456789012",
+			"adminRoleArn": "roleArn",
+			"metadata": map[string]interface{}{
+				"foo": "bar",
+				"faz": "baz",
+			},
+		})
+		res, err := controller.Call(context.TODO(), request)
+		require.Nil(t, err)
+
+		// Check the response body
+		resJSON := unmarshal(t, res.Body)
+
+		require.Equal(t, map[string]interface{}{
+			"foo": "bar",
+			"faz": "baz",
+		}, resJSON["metadata"])
+
+		mockDB.AssertExpectations(t)
+	})
+
+	t.Run("should allow any data type within metadata", func(t *testing.T) {
+		controller := newCreateController()
+
+		// Call the controller with a bunch of different data types
+		request := createRequest(t, map[string]interface{}{
+			"id":           "123456789012",
+			"adminRoleArn": "roleArn",
+			"metadata": map[string]interface{}{
+				"string": "foobar",
+				"int":    7,
+				"float":  0.5,
+				"bool":   true,
+				"obj": map[string]interface{}{
+					"nested": map[string]interface{}{
+						"object": "value",
+					},
+				},
+				"null": nil,
+			},
+		})
+		res, err := controller.Call(context.TODO(), request)
+		require.Nil(t, err)
+
+		// Check the response body
+		resJSON := unmarshal(t, res.Body)
+		require.Equal(t, map[string]interface{}{
+			"string": "foobar",
+			// something weird with json parsing types here
+			// that we have to cast it,
+			// but the point is that the API accepted the value, and returned it back
+			"int":   float64(7),
+			"float": 0.5,
+			"bool":  true,
+			"obj": map[string]interface{}{
+				"nested": map[string]interface{}{
+					"object": "value",
+				},
+			},
+			"null": nil,
+		}, resJSON["metadata"])
+	})
+
+	t.Run("should return an empty metadata JSON object if none is provided", func(t *testing.T) {
+		controller := newCreateController()
+
+		// Call the controller with no metadata param
+		request := createRequest(t, map[string]interface{}{
+			"id":           "123456789012",
+			"adminRoleArn": "roleArn",
+		})
+		res, err := controller.Call(context.TODO(), request)
+		require.Nil(t, err)
+
+		// Check the response body
+		// should return empty JSON object for metadata
+		resJSON := unmarshal(t, res.Body)
+		require.Equal(t, map[string]interface{}{}, resJSON["metadata"])
+	})
+
+	t.Run("should not allow non-object types for metadata", func(t *testing.T) {
+		controller := newCreateController()
+
+		invalidValues := []interface{}{
+			"string",
+			14.5,
+			true,
+		}
+
+		for _, metadata := range invalidValues {
+			// Call the controller with no metadata param
+			request := createRequest(t, map[string]interface{}{
+				"id":           "123456789012",
+				"adminRoleArn": "roleArn",
+				"metadata":     metadata,
+			})
+			res, err := controller.Call(context.TODO(), request)
+			require.Nil(t, err)
+
+			// Check the error response
+			require.Equalf(t,
+				response.RequestValidationError("invalid request parameters"),
+				res,
+				"should fail for %v", metadata,
+			)
+		}
+
 	})
 }
 
@@ -530,7 +664,7 @@ func roleManagerStub() *roleManagerMocks.RoleManager {
 	return roleManagerMock
 }
 
-func createAccountAPIRequest(t *testing.T, req createRequest) *events.APIGatewayProxyRequest {
+func createRequest(t *testing.T, req interface{}) *events.APIGatewayProxyRequest {
 	requestBody, err := json.Marshal(&req)
 	require.Nil(t, err)
 	return &events.APIGatewayProxyRequest{

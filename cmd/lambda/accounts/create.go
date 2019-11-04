@@ -47,10 +47,15 @@ type createController struct {
 // publish the account creation to its respective client
 func (c createController) Call(ctx context.Context, req *events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	// Marshal the request JSON into a CreateRequest object
-	var request createRequest
+	var request accountCreateRequest
 	err := json.Unmarshal([]byte(req.Body), &request)
 	if err != nil {
 		return response.RequestValidationError("invalid request parameters"), nil
+	}
+
+	// Set default metadata={}
+	if request.Metadata == nil {
+		request.Metadata = map[string]interface{}{}
 	}
 
 	// Validate the request body
@@ -90,6 +95,7 @@ func (c createController) Call(ctx context.Context, req *events.APIGatewayProxyR
 		LastModifiedOn: now,
 		CreatedOn:      now,
 		AdminRoleArn:   request.AdminRoleArn,
+		Metadata:       request.Metadata,
 	}
 
 	// Create an IAM Role for the Redbox principal (end-user) to login to
@@ -135,14 +141,15 @@ func (c createController) Call(ctx context.Context, req *events.APIGatewayProxyR
 	), nil
 }
 
-type createRequest struct {
-	ID           string `json:"id"`
-	AdminRoleArn string `json:"adminRoleArn"`
+type accountCreateRequest struct {
+	ID           string                 `json:"id"`
+	AdminRoleArn string                 `json:"adminRoleArn"`
+	Metadata     map[string]interface{} `json:"metadata"`
 }
 
 // Validate - Checks if the Account Request has the provided id and adminRoleArn
 // fields
-func (req *createRequest) Validate() (bool, *events.APIGatewayProxyResponse) {
+func (req *accountCreateRequest) Validate() (bool, *events.APIGatewayProxyResponse) {
 	isValid := true
 	var validationErrors []error
 	if req.ID == "" {
