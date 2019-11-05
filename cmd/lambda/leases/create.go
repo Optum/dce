@@ -117,7 +117,7 @@ func (c CreateController) Call(ctx context.Context, req *events.APIGatewayProxyR
 	spent := 0.0
 	for _, usage := range usageRecords {
 		log.Printf("usage records retrieved: %v", usage)
-		if usage.PrincipalID == checkLease.PrincipalID {
+		if usage.PrincipalID == principalID {
 			spent = spent + usage.CostAmount
 		}
 	}
