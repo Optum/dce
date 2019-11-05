@@ -36,6 +36,9 @@ func TestUsageDb(t *testing.T) {
 		tfOut["usage_cache_table_name"].(string),
 	)
 
+	// For testing purposes support consistent reads
+	dbSvc.ConsistendRead = true
+
 	// ttl is set to 3-days
 	const ttl int = 3
 

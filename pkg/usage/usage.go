@@ -24,6 +24,8 @@ type DB struct {
 	Client *dynamodb.DynamoDB
 	// Name of the Usage table
 	UsageTableName string
+	// Use Consistend Reads when scanning or querying.  When possbile.
+	ConsistendRead bool
 }
 
 // Usage item
@@ -83,7 +85,7 @@ func (db *DB) GetUsageByDateRange(startDate time.Time, endDate time.Time) ([]*Us
 
 	for {
 
-		var resp, err = db.Client.Query(getQueryInput(db.UsageTableName, usageStartDate, nil))
+		var resp, err = db.Client.Query(getQueryInput(db.UsageTableName, usageStartDate, nil, db.ConsistendRead))
 		if err != nil {
 			errorMessage := fmt.Sprintf("Failed to query usage record for start date \"%s\": %s.", startDate, err)
 			log.Print(errorMessage)
@@ -93,7 +95,7 @@ func (db *DB) GetUsageByDateRange(startDate time.Time, endDate time.Time) ([]*Us
 
 		// pagination
 		for len(resp.LastEvaluatedKey) > 0 {
-			var resp, err = db.Client.Query(getQueryInput(db.UsageTableName, usageStartDate, resp.LastEvaluatedKey))
+			var resp, err = db.Client.Query(getQueryInput(db.UsageTableName, usageStartDate, resp.LastEvaluatedKey, db.ConsistendRead))
 			if err != nil {
 				errorMessage := fmt.Sprintf("Failed to query usage record for start date \"%s\": %s.", startDate, err)
 				log.Print(errorMessage)
@@ -133,6 +135,7 @@ func New(client *dynamodb.DynamoDB, usageTableName string) *DB {
 	return &DB{
 		Client:         client,
 		UsageTableName: usageTableName,
+		ConsistendRead: false,
 	}
 }
 
@@ -170,7 +173,7 @@ func unmarshalUsageRecord(dbResult map[string]*dynamodb.AttributeValue) (*Usage,
 	return &usageRecord, nil
 }
 
-func getQueryInput(tableName string, startDate time.Time, startKey map[string]*dynamodb.AttributeValue) *dynamodb.QueryInput {
+func getQueryInput(tableName string, startDate time.Time, startKey map[string]*dynamodb.AttributeValue, consistentRead bool) *dynamodb.QueryInput {
 
 	return &dynamodb.QueryInput{
 		TableName:         aws.String(tableName),
@@ -185,5 +188,6 @@ func getQueryInput(tableName string, startDate time.Time, startKey map[string]*d
 				},
 			},
 		},
+		ConsistentRead: aws.Bool(consistentRead),
 	}
 }
