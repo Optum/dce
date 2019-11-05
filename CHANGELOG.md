@@ -14,6 +14,8 @@ For example:
 - SNS topics have been renamed (eg `redbox-account-created` is now `account-created`)
 - The name of the IAM Principal role and policy have been renamed (`DCEPrincipal` / `DCEPrincipalDefaultPolicy`)
 
+This release also removes the deprecated DynamoDB tables with "Redbox" prefixes.
+
 ## v0.21.0
 
 **BREAKING CHANGES**
