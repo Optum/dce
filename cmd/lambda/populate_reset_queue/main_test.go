@@ -5,9 +5,9 @@ import (
 
 	"github.com/pkg/errors"
 
-	commock "github.com/Optum/Redbox/pkg/common/mocks"
-	"github.com/Optum/Redbox/pkg/db"
-	dbmock "github.com/Optum/Redbox/pkg/db/mocks"
+	commock "github.com/Optum/dce/pkg/common/mocks"
+	"github.com/Optum/dce/pkg/db"
+	dbmock "github.com/Optum/dce/pkg/db/mocks"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )

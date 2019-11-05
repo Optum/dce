@@ -11,7 +11,7 @@ This migration identifies the wrongly expired leases, and sets them back to
 package main
 
 import (
-	"github.com/Optum/Redbox/pkg/db"
+	"github.com/Optum/dce/pkg/db"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"

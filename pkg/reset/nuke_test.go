@@ -2,7 +2,7 @@ package reset
 
 import (
 	"errors"
-	"github.com/Optum/Redbox/pkg/common"
+	"github.com/Optum/dce/pkg/common"
 	"github.com/stretchr/testify/require"
 	"testing"
 

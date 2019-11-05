@@ -6,7 +6,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/Optum/Redbox/pkg/db"
+	"github.com/Optum/dce/pkg/db"
 	guuid "github.com/google/uuid"
 )
 

@@ -10,12 +10,12 @@ import (
 
 	"github.com/stretchr/testify/mock"
 
-	comMocks "github.com/Optum/Redbox/pkg/common/mocks"
-	"github.com/Optum/Redbox/pkg/db"
-	dbMocks "github.com/Optum/Redbox/pkg/db/mocks"
+	comMocks "github.com/Optum/dce/pkg/common/mocks"
+	"github.com/Optum/dce/pkg/db"
+	dbMocks "github.com/Optum/dce/pkg/db/mocks"
 	"github.com/stretchr/testify/require"
 
-	"github.com/Optum/Redbox/pkg/common"
+	"github.com/Optum/dce/pkg/common"
 	"github.com/aws/aws-sdk-go/service/sqs"
 )
 

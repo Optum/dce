@@ -3,7 +3,7 @@
 package mocks
 
 import (
-	db "github.com/Optum/Redbox/pkg/db"
+	db "github.com/Optum/dce/pkg/db"
 	mock "github.com/stretchr/testify/mock"
 )
 

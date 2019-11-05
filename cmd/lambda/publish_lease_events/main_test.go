@@ -5,9 +5,9 @@ import (
 	"log"
 	"testing"
 
-	commonMocks "github.com/Optum/Redbox/pkg/common/mocks"
-	"github.com/Optum/Redbox/pkg/db"
-	dbMocks "github.com/Optum/Redbox/pkg/db/mocks"
+	commonMocks "github.com/Optum/dce/pkg/common/mocks"
+	"github.com/Optum/dce/pkg/db"
+	dbMocks "github.com/Optum/dce/pkg/db/mocks"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/stretchr/testify/assert"

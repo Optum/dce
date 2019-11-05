@@ -1,7 +1,7 @@
 package response
 
 import (
-	"github.com/Optum/Redbox/pkg/db"
+	"github.com/Optum/dce/pkg/db"
 )
 
 // AccountResponse is the serialized JSON Response for a Account

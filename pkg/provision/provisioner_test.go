@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
-	"github.com/Optum/Redbox/pkg/db"
-	"github.com/Optum/Redbox/pkg/db/mocks"
+	"github.com/Optum/dce/pkg/db"
+	"github.com/Optum/dce/pkg/db/mocks"
 )
 
 // testFindActiveLeaseForPrincipalInput is the structure input used for table

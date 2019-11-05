@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Optum/Redbox/pkg/db"
-	"github.com/Optum/Redbox/pkg/provision"
+	"github.com/Optum/dce/pkg/db"
+	"github.com/Optum/dce/pkg/provision"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"

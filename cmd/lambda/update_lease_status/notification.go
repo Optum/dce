@@ -2,8 +2,8 @@ package main
 
 import (
 	"bytes"
-	"github.com/Optum/Redbox/pkg/db"
-	"github.com/Optum/Redbox/pkg/email"
+	"github.com/Optum/dce/pkg/db"
+	"github.com/Optum/dce/pkg/email"
 	"html/template"
 	"log"
 	"sort"

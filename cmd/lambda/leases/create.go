@@ -8,10 +8,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Optum/Redbox/pkg/api/response"
-	"github.com/Optum/Redbox/pkg/common"
-	"github.com/Optum/Redbox/pkg/db"
-	"github.com/Optum/Redbox/pkg/provision"
+	"github.com/Optum/dce/pkg/api/response"
+	"github.com/Optum/dce/pkg/common"
+	"github.com/Optum/dce/pkg/db"
+	"github.com/Optum/dce/pkg/provision"
 	"github.com/aws/aws-lambda-go/events"
 )
 

@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/Optum/Redbox/pkg/common"
-	data "github.com/Optum/Redbox/pkg/db"
+	"github.com/Optum/dce/pkg/common"
+	data "github.com/Optum/dce/pkg/db"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"

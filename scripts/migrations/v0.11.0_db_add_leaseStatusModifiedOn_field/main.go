@@ -18,7 +18,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/Optum/Redbox/pkg/common"
+	"github.com/Optum/dce/pkg/common"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"

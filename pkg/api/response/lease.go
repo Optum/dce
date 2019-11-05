@@ -1,7 +1,7 @@
 package response
 
 import (
-	"github.com/Optum/Redbox/pkg/db"
+	"github.com/Optum/dce/pkg/db"
 )
 
 // CreateLeaseResponse creates an Lease Response based

@@ -44,4 +44,4 @@ To get started using DCE, see the [Quickstart](/quickstart/).
 
 ## Viewing the source
 
-The source code for DCE can be found on [GitHub](https://github.com/Optum/Redbox).
+The source code for DCE can be found on [GitHub](https://github.com/Optum/dce).

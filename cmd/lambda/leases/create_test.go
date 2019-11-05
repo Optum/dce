@@ -10,13 +10,13 @@ import (
 
 	"github.com/stretchr/testify/mock"
 
-	"github.com/Optum/Redbox/pkg/api/response"
-	"github.com/Optum/Redbox/pkg/common"
-	commonMock "github.com/Optum/Redbox/pkg/common/mocks"
-	"github.com/Optum/Redbox/pkg/db"
-	mockDB "github.com/Optum/Redbox/pkg/db/mocks"
-	"github.com/Optum/Redbox/pkg/provision"
-	provisionMock "github.com/Optum/Redbox/pkg/provision/mocks"
+	"github.com/Optum/dce/pkg/api/response"
+	"github.com/Optum/dce/pkg/common"
+	commonMock "github.com/Optum/dce/pkg/common/mocks"
+	"github.com/Optum/dce/pkg/db"
+	mockDB "github.com/Optum/dce/pkg/db/mocks"
+	"github.com/Optum/dce/pkg/provision"
+	provisionMock "github.com/Optum/dce/pkg/provision/mocks"
 	"github.com/aws/aws-lambda-go/events"
 )
 

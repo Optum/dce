@@ -7,11 +7,11 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/Optum/Redbox/pkg/api/response"
+	"github.com/Optum/dce/pkg/api/response"
 	"github.com/aws/aws-lambda-go/events"
 
-	"github.com/Optum/Redbox/pkg/common"
-	"github.com/Optum/Redbox/pkg/db"
+	"github.com/Optum/dce/pkg/common"
+	"github.com/Optum/dce/pkg/db"
 )
 
 // requestBody is the structured object of the Request Called to the Router

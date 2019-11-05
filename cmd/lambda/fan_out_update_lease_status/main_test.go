@@ -5,9 +5,9 @@ import (
 	"errors"
 	"testing"
 
-	awsMocks "github.com/Optum/Redbox/pkg/awsiface/mocks"
-	"github.com/Optum/Redbox/pkg/db"
-	dbMocks "github.com/Optum/Redbox/pkg/db/mocks"
+	awsMocks "github.com/Optum/dce/pkg/awsiface/mocks"
+	"github.com/Optum/dce/pkg/db"
+	dbMocks "github.com/Optum/dce/pkg/db/mocks"
 	"github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"

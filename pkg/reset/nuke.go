@@ -4,7 +4,7 @@ import (
 	"github.com/pkg/errors"
 	"time"
 
-	"github.com/Optum/Redbox/pkg/common"
+	"github.com/Optum/dce/pkg/common"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/rebuy-de/aws-nuke/cmd"
 	"github.com/rebuy-de/aws-nuke/pkg/awsutil"

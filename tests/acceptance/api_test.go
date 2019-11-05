@@ -31,9 +31,9 @@ import (
 	"github.com/gruntwork-io/terratest/modules/terraform"
 	"github.com/stretchr/testify/require"
 
-	"github.com/Optum/Redbox/pkg/db"
-	"github.com/Optum/Redbox/pkg/usage"
-	"github.com/Optum/Redbox/tests/acceptance/testutil"
+	"github.com/Optum/dce/pkg/db"
+	"github.com/Optum/dce/pkg/usage"
+	"github.com/Optum/dce/tests/acceptance/testutil"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 )
 

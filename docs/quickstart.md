@@ -40,7 +40,7 @@ is the easiest way to deploy DCE into your master account.
 
 ### Deploying DCE to the master account
 
-You can also download DCE from the [Github repository](https://github.com/Optum/Redbox)
+You can also download DCE from the [Github repository](https://github.com/Optum/dce)
 and install it directly. To do so, you will need the following installed:
 
 1. [GNU Make](https://www.gnu.org/software/make/) 3.81+
@@ -51,10 +51,10 @@ and install it directly. To do so, you will need the following installed:
 Once you have the requirements installed, you can deploy DCE into your account 
 by following these steps:
 
-1. Clone the [Github repository](https://github.com/Optum/Redbox) by using the 
+1. Clone the [Github repository](https://github.com/Optum/dce) by using the 
 command as shown here:
 
-        $ git clone https://github.com/Optum/Redbox.git dce
+        $ git clone https://github.com/Optum/dce.git dce
 
 1. Verify that the AWS CLI is [configured](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html).
 with an IAM user that has admin-level permissions in your AWS 
