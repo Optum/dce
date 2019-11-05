@@ -1347,7 +1347,7 @@ func TestApi(t *testing.T) {
 			// Verify error response json
 			// Get nested json in response json
 			err := data["error"].(map[string]interface{})
-			errStr := fmt.Sprintf("Unable to create lease: User principal %s has already spent 1000 of their weekly principal budget", principalID)
+			errStr := fmt.Sprintf("Unable to create lease: User principal %s has already spent 1000.000000 of their weekly principal budget", principalID)
 			require.Equal(t, "ClientError", err["code"].(string))
 			require.Equal(t, errStr, err["message"].(string))
 		})
