@@ -1,19 +1,15 @@
 # SQS Queue, for triggering account reset
 resource "aws_sqs_queue" "account_reset" {
-  name = "redbox-account-reset-${var.namespace}"
+  name = "account-reset-${var.namespace}"
   tags = var.global_tags
 }
 
-# Lambda function to enqueue all active
-# Redbox accounts to be reset
-# Queries DB for all accounts
-# where `status != "READY"`, and adds
-# them to an SQS reset queue
+# Lambda function to add all NotReady accounts to the reset queue
 module "populate_reset_queue" {
   source          = "./lambda"
   name            = "populate_reset_queue-${var.namespace}"
   namespace       = var.namespace
-  description     = "Enqueue all active Redbox accounts to be reset."
+  description     = "Enqueue all NotReady accounts to be reset."
   global_tags     = var.global_tags
   handler         = "populate_reset_queue"
   alarm_topic_arn = aws_sns_topic.alarms_topic.arn
@@ -76,14 +72,14 @@ module "process_reset_queue" {
 # Trigger Execute Reset lambda function every few minutes
 # (to continuously poll SQS reset queue)
 resource "aws_cloudwatch_event_rule" "poll_sqs_reset" {
-  name                = "redbox-poll-reset-queue-${var.namespace}"
-  description         = "Poll account reset queue"
+  name                = "process-reset-queue-${var.namespace}"
+  description         = "Process records from the reset queue"
   schedule_expression = "rate(3 minutes)"
 }
 
 resource "aws_cloudwatch_event_target" "poll_sqs_reset" {
   rule      = aws_cloudwatch_event_rule.poll_sqs_reset.name
-  target_id = "redbox-poll-reset-queue-${var.namespace}"
+  target_id = "process-reset-queue-${var.namespace}"
   arn       = module.process_reset_queue.arn
 }
 

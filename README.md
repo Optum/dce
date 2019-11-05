@@ -675,7 +675,7 @@ To restore a DynamoDB table from a backup:
 
 ```
 # Grab the account table name from Terraform state
-table_name=$(cd modules && terraform output redbox_account_db_table_name)
+table_name=$(cd modules && terraform output account_db_table_name)
 
 # Or, grab the leases table name
 table_name=$(cd modules && terraform output dcs_lease_db_table_name)

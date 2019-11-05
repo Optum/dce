@@ -107,7 +107,6 @@ func main() {
 				{Key: aws.String("Terraform"), Value: aws.String("False")},
 				{Key: aws.String("Source"), Value: aws.String("github.com/Optum/dce//cmd/lambda/accounts")},
 				{Key: aws.String("Environment"), Value: aws.String(common.RequireEnv("TAG_ENVIRONMENT"))},
-				{Key: aws.String("Contact"), Value: aws.String(common.RequireEnv("TAG_CONTACT"))},
 				{Key: aws.String("AppName"), Value: aws.String(common.RequireEnv("TAG_APP_NAME"))},
 			},
 		},
