@@ -34,6 +34,8 @@ func TestProvisioner(t *testing.T) {
 		7,
 	)
 
+	dbSvc.ConsistendRead = true
+
 	// Configure the Provisioner service
 	provSvc := provision.AccountProvision{
 		DBSvc: dbSvc,
