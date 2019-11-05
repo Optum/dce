@@ -1,3 +1,19 @@
+## v0.22.0
+
+**BREAKING CHANGES**
+
+This release includes changes to rename every reference of "Redbox" to "DCE". 
+In many cases, we removed namespaces entirely: for example, we'll refer to an `account` rather
+than a `dceAccount` wherever possible.
+
+This release breaks a number of interfaces, which may require updates to DCE clients. 
+
+For example:
+
+- Terraform outputs have been renamed (eg. `redbox_account_db_table_name` is now `accounts_table_name`)
+- SNS topics have been renamed (eg `redbox-account-created` is now `account-created`)
+- The name of the IAM Principal role and policy have been renamed (`DCEPrincipal` / `DCEPrincipalDefaultPolicy`)
+
 ## v0.21.0
 
 **BREAKING CHANGES**
