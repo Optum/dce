@@ -69,9 +69,6 @@ func (db *DB) PutUsage(input Usage) error {
 func (db *DB) GetUsageByDateRange(startDate time.Time, endDate time.Time) ([]*Usage, error) {
 
 	scanOutput := make([]*dynamodb.QueryOutput, 0)
-	log.Println("GetUsage")
-	log.Println(startDate)
-	log.Println(endDate)
 
 	// Convert startDate to the start time of that day
 	usageStartDate := time.Date(startDate.Year(), startDate.Month(), startDate.Day(), 0, 0, 0, 0, time.UTC)

@@ -78,9 +78,7 @@ func TestApi(t *testing.T) {
 	// Cleanup tables, to start out
 	truncateAccountTable(t, dbSvc)
 	truncateLeaseTable(t, dbSvc)
-
-	//truncateUsageTable(t, usageSvc)
-	createUsage(t, apiURL, usageSvc)
+	truncateUsageTable(t, usageSvc)
 
 	t.Run("Authentication", func(t *testing.T) {
 
@@ -982,8 +980,8 @@ func TestApi(t *testing.T) {
 
 		t.Run("Should be able to get usage", func(t *testing.T) {
 
-			//defer truncateUsageTable(t, usageSvc)
-			//createUsage(t, apiURL, usageSvc)
+			defer truncateUsageTable(t, usageSvc)
+			createUsage(t, apiURL, usageSvc)
 
 			currentDate := time.Now()
 			testStartDate := time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), 0, 0, 0, 0, time.UTC)
@@ -1319,8 +1317,9 @@ func TestApi(t *testing.T) {
 
 		t.Run("Should validate requested budget amount against principal budget amount", func(t *testing.T) {
 
-			//defer truncateUsageTable(t, usageSvc)
-			//createUsage(t, apiURL, usageSvc)
+			defer truncateUsageTable(t, usageSvc)
+			createUsage(t, apiURL, usageSvc)
+
 			principalID := "TestUser1"
 			expiresOn := time.Now().AddDate(0, 0, 6).Unix()
 
