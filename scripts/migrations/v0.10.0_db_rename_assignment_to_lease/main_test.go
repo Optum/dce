@@ -18,7 +18,7 @@ func TestMigrationV0_10_0(t *testing.T) {
 	tfOut := terraform.OutputAll(t, tfOpts)
 
 	accountTable := tfOut["redbox_account_db_table_name"].(string)
-	leaseTable := tfOut["redbox_account_lease_db_table_name"].(string)
+	leaseTable := tfOut["leases_table_name"].(string)
 	assignmentTable := tfOut["redbox_assignment_db_table_name"].(string)
 
 	awsSession := session.Must(session.NewSession())

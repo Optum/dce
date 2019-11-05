@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -78,7 +79,7 @@ func (c createController) Call(ctx context.Context, req *events.APIGatewayProxyR
 	})
 	if err != nil {
 		return response.RequestValidationError(
-			"Unable to create Account: adminRole is not assumable by the master account",
+			fmt.Sprintf("Unable to add account %s to pool: adminRole is not assumable by the master account", request.ID),
 		), nil
 	}
 

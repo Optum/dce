@@ -1,16 +1,16 @@
-output "account_table_name" {
+output "accounts_table_name" {
   value = aws_dynamodb_table.accounts.name
 }
 
-output "account_table_arn" {
+output "accounts_table_arn" {
   value = aws_dynamodb_table.accounts.arn
 }
 
-output "lease_table_name" {
+output "leases_table_name" {
   value = aws_dynamodb_table.leases.name
 }
 
-output "lease_table_arn" {
+output "leases_table_arn" {
   value = aws_dynamodb_table.leases.arn
 }
 

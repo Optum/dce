@@ -1,6 +1,6 @@
 package db
 
-// Account is a type corresponding to a Account table record
+// Account is a type corresponding to an account table record
 type Account struct {
 	ID                  string                 `json:"Id"`             // AWS Account ID
 	AccountStatus       AccountStatus          `json:"AccountStatus"`  // Status of the AWS Account

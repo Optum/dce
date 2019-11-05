@@ -18,13 +18,13 @@ func TestTerraformOutputs(t *testing.T) {
 
 	assert.Regexp(t,
 		regexp.MustCompile("^Accounts"),
-		tfOut["account_db_table_name"].(string),
+		tfOut["accounts_table_name"].(string),
 		"account_db_table_name",
 	)
 	assert.Regexp(t,
 		regexp.MustCompile(`^Leases`),
-		tfOut["lease_db_table_name"].(string),
-		"lease_db_table_name",
+		tfOut["leases_table_name"].(string),
+		"leases_table_name",
 	)
 	assert.Regexp(t,
 		regexp.MustCompile(`^https:\/\/sqs\.us-east-1\.amazonaws\.com\/[0-9]+\/account-reset-`),

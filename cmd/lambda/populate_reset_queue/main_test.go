@@ -29,7 +29,7 @@ func TestAddAccountToQueue(t *testing.T) {
 		// SendMessage Failure
 		{
 			ExpectedError: errors.Wrap(errors.New("Send Message Fail"),
-				"Failed to enqueue accounts"),
+				"Failed to add account 123 to queue accounts"),
 			SendMessageError: errors.New("Send Message Fail"),
 		},
 	}

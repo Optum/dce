@@ -62,8 +62,8 @@ func TestApi(t *testing.T) {
 			awsSession,
 			aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
 		),
-		tfOut["dynamodb_table_account_name"].(string),
-		tfOut["lease_db_table_name"].(string),
+		tfOut["accounts_table_name"].(string),
+		tfOut["leases_table_name"].(string),
 		7,
 	)
 
@@ -73,7 +73,7 @@ func TestApi(t *testing.T) {
 			awsSession,
 			aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
 		),
-		tfOut["usage_cache_table_name"].(string),
+		tfOut["usage_table_name"].(string),
 	)
 
 	// Cleanup tables, to start out
@@ -498,7 +498,7 @@ func TestApi(t *testing.T) {
 					// Get nested json in response json
 					errResp := data["error"].(map[string]interface{})
 					assert.Equal(r, "ClientError", errResp["code"].(string))
-					assert.Equal(r, "Principal already has an existing lease: 123",
+					assert.Equal(r, "Principal already has an active lease: 123",
 						errResp["message"].(string))
 				},
 			})
@@ -1290,7 +1290,7 @@ func apiRequest(t *testing.T, input *apiRequestInput) *apiResponse {
 	now := time.Now().Add(time.Duration(30) * time.Second)
 	var signedHeaders http.Header
 	var apiResp *apiResponse
-	testutil.Retry(t, 10, 2*time.Second, func(r *testutil.R) {
+	testutil.Retry(t, 15, 2*time.Second, func(r *testutil.R) {
 		// If there's a json provided, add it when signing
 		// Body does not matter if added before the signing, it will be overwritten
 		if input.json != nil {

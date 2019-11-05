@@ -29,8 +29,8 @@ func TestProvisioner(t *testing.T) {
 			awsSession,
 			aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
 		),
-		tfOut["dynamodb_table_account_name"].(string),
-		tfOut["lease_db_table_name"].(string),
+		tfOut["accounts_table_name"].(string),
+		tfOut["leases_table_name"].(string),
 		7,
 	)
 

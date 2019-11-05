@@ -29,7 +29,7 @@ import (
 
 func TestCreate(t *testing.T) {
 
-	t.Run("should return a Account object", func(t *testing.T) {
+	t.Run("should return an account object", func(t *testing.T) {
 		// Send request
 		req := createAccountAPIRequest(t, createRequest{
 			ID:           "1234567890",
@@ -112,7 +112,7 @@ func TestCreate(t *testing.T) {
 		)
 		require.Nil(t, err)
 		require.Equal(t,
-			response.RequestValidationError("Unable to create account: adminRole is not assumable by the master account"),
+			response.RequestValidationError("Unable to add account 1234567890 to pool: adminRole is not assumable by the master account"),
 			res,
 		)
 	})

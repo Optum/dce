@@ -19,7 +19,7 @@ func TestMigrationV0_11_0(t *testing.T) {
 	}
 	tfOut := terraform.OutputAll(t, tfOpts)
 
-	leaseTable := tfOut["redbox_account_lease_db_table_name"].(string)
+	leaseTable := tfOut["leases_table_name"].(string)
 
 	awsSession := session.Must(session.NewSession())
 	dynDB := dynamodb.New(

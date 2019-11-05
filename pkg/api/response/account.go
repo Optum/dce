@@ -4,7 +4,7 @@ import (
 	"github.com/Optum/dce/pkg/db"
 )
 
-// AccountResponse is the serialized JSON Response for a Account
+// AccountResponse is the serialized JSON Response for an account
 // to be returned for APIs
 // {
 // 	"id": "123",
