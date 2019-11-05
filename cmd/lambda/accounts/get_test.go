@@ -31,11 +31,9 @@ func TestGetAccountByID(t *testing.T) {
 		mockDb.On("GetAccount", "123456789").Return(expectedAccount, nil)
 		mockRequest := events.APIGatewayProxyRequest{HTTPMethod: http.MethodGet, Path: "/accounts/123456789"}
 
-		controller := getController{
-			Dao: &mockDb,
-		}
+		Dao = &mockDb
 
-		actualResponse, err := controller.Call(context.TODO(), &mockRequest)
+		actualResponse, err := Handler(context.TODO(), mockRequest)
 		require.Nil(t, err)
 
 		parsedResponse := &response.AccountResponse{}
@@ -52,11 +50,9 @@ func TestGetAccountByID(t *testing.T) {
 		mockDb.On("GetAccount", "123456789").Return(nil, expectedError)
 		mockRequest := events.APIGatewayProxyRequest{HTTPMethod: http.MethodGet, Path: "/accounts/123456789"}
 
-		controller := getController{
-			Dao: &mockDb,
-		}
+		Dao = &mockDb
 
-		actualResponse, err := controller.Call(context.TODO(), &mockRequest)
+		actualResponse, err := Handler(context.TODO(), mockRequest)
 		require.Nil(t, err)
 
 		require.Equal(t, actualResponse.StatusCode, 500, "Returns a 500.")

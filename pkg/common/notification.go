@@ -2,6 +2,7 @@ package common
 
 import (
 	"encoding/json"
+
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/pkg/errors"
 )

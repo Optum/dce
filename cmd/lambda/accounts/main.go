@@ -2,119 +2,116 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
-	"strings"
 
-	"github.com/Optum/Redbox/pkg/rolemanager"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 
+	"github.com/Optum/Redbox/pkg/api/response"
 	"github.com/Optum/Redbox/pkg/common"
+	"github.com/Optum/Redbox/pkg/rolemanager"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/sts"
 
 	"github.com/Optum/Redbox/pkg/api"
-	"github.com/Optum/Redbox/pkg/api/response"
 	"github.com/Optum/Redbox/pkg/db"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+
+	"github.com/awslabs/aws-lambda-go-api-proxy/gorillamux"
 )
 
-// Router structure holds AccountController instance for request
-type Router struct {
-	ListController   api.Controller
-	DeleteController api.Controller
-	GetController    api.Controller
-	CreateController api.Controller
+var muxLambda *gorillamux.GorillaMuxAdapter
+
+var (
+	// AWSSession - The AWS session
+	AWSSession *session.Session
+	// RoleManager - Manages the roles
+	RoleManager rolemanager.RoleManager
+	// Dao - Database service
+	Dao db.DBer
+	// SnsSvc - SNS service
+	SnsSvc common.Notificationer
+	// ProvisionTopicArn - ARN for SNS topic for the provisioner.
+	ProvisionTopicArn *string
+	// Queue - SQS Queue client
+	Queue common.Queue
+	// TokenSvc - Token service client
+	TokenSvc common.TokenService
+	// StorageSvc - Storage service client
+	StorageSvc common.S3
+	// Config - The configuration client
+	Config common.DefaultEnvConfig
+)
+
+func init() {
+	log.Println("Cold start; creating router for /accounts")
+	accountRoutes := api.Routes{
+		api.Route{
+			"GetAllAccounts",
+			"POST",
+			"/accounts",
+			api.EmptyQueryString,
+			CreateAccount,
+		},
+		api.Route{
+			"GetAccountById",
+			"DELETE",
+			"/accounts/{accountId}",
+			api.EmptyQueryString,
+			DeleteAccount,
+		},
+		api.Route{
+			"GetAllAccounts",
+			"GET",
+			"/accounts",
+			api.EmptyQueryString,
+			GetAllAccounts,
+		},
+		api.Route{
+			"GetAccountByID",
+			"GET",
+			"/accounts/{accountId}",
+			api.EmptyQueryString,
+			GetAccountByID,
+		},
+		api.Route{
+			"GetAccountByStatus",
+			"GET",
+			"/accounts",
+			[]string{"accountStatus"},
+			GetAccountByStatus,
+		},
+	}
+	r := api.NewRouter(accountRoutes)
+	muxLambda = gorillamux.New(r)
 }
 
-func (router *Router) route(ctx context.Context, req *events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	var res events.APIGatewayProxyResponse
-	var err error
-	switch {
-	case req.HTTPMethod == http.MethodGet && strings.Compare(req.Path, "/accounts") == 0:
-		res, err = router.ListController.Call(ctx, req)
-	case req.HTTPMethod == http.MethodGet && strings.Contains(req.Path, "/accounts/"):
-		res, err = router.GetController.Call(ctx, req)
-	case req.HTTPMethod == http.MethodDelete && strings.Contains(req.Path, "/accounts/"):
-		res, err = router.DeleteController.Call(ctx, req)
-	case req.HTTPMethod == http.MethodPost && strings.Compare(req.Path, "/accounts") == 0:
-		res, err = router.CreateController.Call(ctx, req)
-	default:
-		return response.NotFoundError(), nil
-	}
-
-	// Handle errors returned by controllers
-	if err != nil {
-		log.Printf("Controller error: %s", err)
-		return response.ServerError(), nil
-	}
-
-	return res, nil
+// Handler - Handle the lambda function
+func Handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	// If no name is provided in the HTTP request body, throw an error
+	return muxLambda.ProxyWithContext(ctx, req)
 }
 
 func main() {
 	// Setup services
-	dao := newDBer()
-	awsSession := newAWSSession()
-	queue := common.SQSQueue{Client: sqs.New(awsSession)}
-	snsSvc := &common.SNS{Client: sns.New(awsSession)}
-	tokenSvc := common.STS{Client: sts.New(awsSession)}
-	storageSvc := &common.S3{
-		Client:  s3.New(awsSession),
-		Manager: s3manager.NewDownloader(awsSession),
+	Dao = newDBer()
+	AWSSession = newAWSSession()
+	Queue = common.SQSQueue{Client: sqs.New(AWSSession)}
+	SnsSvc = &common.SNS{Client: sns.New(AWSSession)}
+	TokenSvc = common.STS{Client: sts.New(AWSSession)}
+	StorageSvc = common.S3{
+		Client:  s3.New(AWSSession),
+		Manager: s3manager.NewDownloader(AWSSession),
 	}
-
-	// Configure the Router + Controllers
-	router := &Router{
-		ListController: listController{Dao: dao},
-		GetController:  getController{Dao: dao},
-		DeleteController: deleteController{
-			Dao:                    dao,
-			Queue:                  queue,
-			ResetQueueURL:          common.RequireEnv("RESET_SQS_URL"),
-			SNS:                    snsSvc,
-			AccountDeletedTopicArn: common.RequireEnv("ACCOUNT_DELETED_TOPIC_ARN"),
-			TokenService:           tokenSvc,
-			AWSSession:             *awsSession,
-			RoleManager:            &rolemanager.IAMRoleManager{},
-			PrincipalRoleName:      common.RequireEnv("PRINCIPAL_ROLE_NAME"),
-			PrincipalPolicyName:    common.RequireEnv("PRINCIPAL_POLICY_NAME"),
-		},
-		CreateController: createController{
-			Dao:                         dao,
-			Queue:                       queue,
-			ResetQueueURL:               common.RequireEnv("RESET_SQS_URL"),
-			SNS:                         snsSvc,
-			AccountCreatedTopicArn:      common.RequireEnv("ACCOUNT_CREATED_TOPIC_ARN"),
-			AWSSession:                  *awsSession,
-			TokenService:                tokenSvc,
-			StoragerService:             storageSvc,
-			RoleManager:                 &rolemanager.IAMRoleManager{},
-			PrincipalRoleName:           common.RequireEnv("PRINCIPAL_ROLE_NAME"),
-			PrincipalPolicyName:         common.RequireEnv("PRINCIPAL_POLICY_NAME"),
-			PrincipalIAMDenyTags:        strings.Split(common.RequireEnv("PRINCIPAL_IAM_DENY_TAGS"), ","),
-			PrincipalMaxSessionDuration: int64(common.RequireEnvInt("PRINCIPAL_MAX_SESSION_DURATION")),
-			ArtifactsBucket:             common.RequireEnv("ARTIFACTS_BUCKET"),
-			PrincipalPolicyS3Key:        common.RequireEnv("PRINCIPAL_POLICY_S3_KEY"),
-			Tags: []*iam.Tag{
-				{Key: aws.String("Terraform"), Value: aws.String("False")},
-				{Key: aws.String("Source"), Value: aws.String("github.com/Optum/Redbox//cmd/lambda/accounts")},
-				{Key: aws.String("Environment"), Value: aws.String(common.RequireEnv("TAG_ENVIRONMENT"))},
-				{Key: aws.String("Contact"), Value: aws.String(common.RequireEnv("TAG_CONTACT"))},
-				{Key: aws.String("AppName"), Value: aws.String(common.RequireEnv("TAG_APP_NAME"))},
-			},
-		},
-	}
-
+	RoleManager = rolemanager.IAMRoleManager{}
 	// Send Lambda requests to the router
-	lambda.Start(router.route)
+	lambda.Start(Handler)
 }
 
 func newDBer() db.DBer {
@@ -134,4 +131,59 @@ func newAWSSession() *session.Session {
 		log.Fatal(errorMessage)
 	}
 	return awsSession
+}
+
+// WriteServerErrorWithResponse - Writes a server error with the specific message.
+func WriteServerErrorWithResponse(w http.ResponseWriter, message string) {
+	WriteAPIErrorResponse(
+		w,
+		http.StatusInternalServerError,
+		"ServerError",
+		message,
+	)
+}
+
+// WriteAPIErrorResponse - Writes the error response out to the provided ResponseWriter
+func WriteAPIErrorResponse(w http.ResponseWriter, responseCode int,
+	errCode string, errMessage string) {
+	// Create the Error Response
+	errResp := response.CreateErrorResponse(errCode, errMessage)
+	apiResponse, err := json.Marshal(errResp)
+
+	// Should most likely not return an error since response.ErrorResponse
+	// is structured to be json compatible
+	if err != nil {
+		log.Printf("Failed to Create Valid Error Response: %s", err)
+		WriteAPIResponse(w, http.StatusInternalServerError, fmt.Sprintf(
+			"{\"error\":\"Failed to Create Valid Error Response: %s\"", err))
+	}
+
+	// Write an error
+	WriteAPIResponse(w, responseCode, string(apiResponse))
+}
+
+// WriteAPIResponse - Writes the response out to the provided ResponseWriter
+func WriteAPIResponse(w http.ResponseWriter, status int, body string) {
+	w.WriteHeader(status)
+	w.Write([]byte(body))
+}
+
+// WriteAlreadyExistsError - Writes the already exists error.
+func WriteAlreadyExistsError(w http.ResponseWriter) {
+	WriteAPIErrorResponse(
+		w,
+		http.StatusConflict,
+		"AlreadyExistsError",
+		"The requested resource cannot be created, as it conflicts with an existing resource",
+	)
+}
+
+// WriteRequestValidationError - Writes a request validate error with the given message.
+func WriteRequestValidationError(w http.ResponseWriter, message string) {
+	WriteAPIErrorResponse(
+		w,
+		http.StatusBadRequest,
+		"RequestValidationError",
+		message,
+	)
 }

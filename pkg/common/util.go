@@ -38,6 +38,17 @@ func RequireEnvInt(env string) int {
 	return intVal
 }
 
+// GetEnv returns an environment. The defaultValue is returned if the variable does not exist.
+func GetEnv(env string, defaultValue string) string {
+	val, ok := os.LookupEnv(env)
+
+	if !ok || len(env) == 0 {
+		return defaultValue
+	}
+
+	return val
+}
+
 // GetEnvInt returns an environment that is required to be an integer
 func GetEnvInt(env string, defaultValue int) int {
 	val, ok := os.LookupEnv(env)

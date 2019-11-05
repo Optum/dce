@@ -39,11 +39,9 @@ func TestListController_Call(t *testing.T) {
 		mockDb.On("GetAccounts").Return(expectedAccounts, nil)
 		mockRequest := events.APIGatewayProxyRequest{HTTPMethod: http.MethodGet, Path: "/accounts"}
 
-		controller := listController{
-			Dao: &mockDb,
-		}
+		Dao = &mockDb
 
-		actualResponse, err := controller.Call(context.TODO(), &mockRequest)
+		actualResponse, err := Handler(context.TODO(), mockRequest)
 		require.Nil(t, err)
 
 		parsedResponse := &[]*response.AccountResponse{}
@@ -60,11 +58,9 @@ func TestListController_Call(t *testing.T) {
 		mockDb.On("GetAccounts").Return(nil, expectedError)
 		mockRequest := events.APIGatewayProxyRequest{HTTPMethod: http.MethodGet, Path: "/accounts"}
 
-		controller := listController{
-			Dao: &mockDb,
-		}
+		Dao = &mockDb
 
-		actualResponse, err := controller.Call(context.TODO(), &mockRequest)
+		actualResponse, err := Handler(context.TODO(), mockRequest)
 		require.Nil(t, err)
 
 		require.Equal(t, actualResponse.StatusCode, 500, "it returns a 500.")

@@ -31,12 +31,12 @@ func TestCreate(t *testing.T) {
 
 	t.Run("should return a RedboxAccount object", func(t *testing.T) {
 		// Send request
-		req := createAccountAPIRequest(t, createRequest{
+		req := createAccountAPIRequest(t, CreateRequest{
 			ID:           "1234567890",
 			AdminRoleArn: "arn:*:*:*",
 		})
-		controller := newCreateController()
-		res, err := controller.Call(context.TODO(), req)
+
+		res, err := Handler(context.TODO(), req)
 		require.Nil(t, err)
 
 		// Unmarshal the response JSON into an account object
@@ -51,12 +51,11 @@ func TestCreate(t *testing.T) {
 
 	t.Run("should fail if adminRoleArn is missing", func(t *testing.T) {
 		// Send request, missing AdminRoleArn
-		req := createAccountAPIRequest(t, createRequest{
+		req := createAccountAPIRequest(t, CreateRequest{
 			ID:           "1234567890",
 			AdminRoleArn: "",
 		})
-		controller := newCreateController()
-		res, err := controller.Call(context.TODO(), req)
+		res, err := Handler(context.TODO(), req)
 		require.Nil(t, err)
 
 		// Check the error response
@@ -69,12 +68,11 @@ func TestCreate(t *testing.T) {
 
 	t.Run("should fail if accountID is missing", func(t *testing.T) {
 		// Send request, missing AdminRoleArn
-		req := createAccountAPIRequest(t, createRequest{
+		req := createAccountAPIRequest(t, CreateRequest{
 			ID:           "",
 			AdminRoleArn: "arn:mock",
 		})
-		controller := newCreateController()
-		res, err := controller.Call(context.TODO(), req)
+		res, err := Handler(context.TODO(), req)
 		require.Nil(t, err)
 
 		// Check the error response
@@ -87,9 +85,8 @@ func TestCreate(t *testing.T) {
 
 	t.Run("should fail if the adminRoleArn is not assumable", func(t *testing.T) {
 		// Configure a controller with a mock token service
-		controller := newCreateController()
 		tokenService := &commonMocks.TokenService{}
-		controller.TokenService = tokenService
+		TokenSvc = tokenService
 
 		// Should fail to assume role
 		tokenService.On("AssumeRole",
@@ -103,9 +100,9 @@ func TestCreate(t *testing.T) {
 		defer tokenService.AssertExpectations(t)
 
 		// Call the controller
-		res, err := controller.Call(
+		res, err := Handler(
 			context.TODO(),
-			createAccountAPIRequest(t, createRequest{
+			createAccountAPIRequest(t, CreateRequest{
 				ID:           "1234567890",
 				AdminRoleArn: "arn:iam:adminRole",
 			}),
@@ -119,9 +116,7 @@ func TestCreate(t *testing.T) {
 
 	t.Run("should add the account to the RedboxAccounts DB Table, as NotReady", func(t *testing.T) {
 		mockDb := &dbMocks.DBer{}
-		controller := newCreateController()
-		controller.PrincipalRoleName = "RedboxPrincipal"
-		controller.Dao = mockDb
+		Dao = mockDb
 
 		// Mock the DB, so that the account doesn't already exist
 		mockDb.On("GetAccount", "1234567890").
@@ -139,30 +134,29 @@ func TestCreate(t *testing.T) {
 		defer mockDb.AssertExpectations(t)
 
 		// Send an API request
-		req := createAccountAPIRequest(t, createRequest{
+		req := createAccountAPIRequest(t, CreateRequest{
 			ID:           "1234567890",
 			AdminRoleArn: "arn:mock",
 		})
-		res, err := controller.Call(context.TODO(), req)
+		res, err := Handler(context.TODO(), req)
 		require.Nil(t, err)
 		require.Equal(t, 201, res.StatusCode)
 	})
 
 	t.Run("should return a 409 if the account already exists", func(t *testing.T) {
 		mockDb := &dbMocks.DBer{}
-		controller := newCreateController()
-		controller.Dao = mockDb
+		Dao = mockDb
 
 		// Mock the DB, so that the account already exist
 		mockDb.On("GetAccount", "1234567890").
 			Return(&db.RedboxAccount{}, nil)
 
 		// Send an API request
-		req := createAccountAPIRequest(t, createRequest{
+		req := createAccountAPIRequest(t, CreateRequest{
 			ID:           "1234567890",
 			AdminRoleArn: "arn:mock",
 		})
-		res, err := controller.Call(context.TODO(), req)
+		res, err := Handler(context.TODO(), req)
 		require.Nil(t, err)
 
 		require.Equal(t, response.AlreadyExistsError(), res)
@@ -170,19 +164,18 @@ func TestCreate(t *testing.T) {
 
 	t.Run("should handle DB.GetAccount response errors as 500s", func(t *testing.T) {
 		mockDb := &dbMocks.DBer{}
-		controller := newCreateController()
-		controller.Dao = mockDb
+		Dao = mockDb
 
 		// Mock the DB to return an error
 		mockDb.On("GetAccount", "1234567890").
 			Return(nil, errors.New("mock error"))
 
 		// Send an API request
-		req := createAccountAPIRequest(t, createRequest{
+		req := createAccountAPIRequest(t, CreateRequest{
 			ID:           "1234567890",
 			AdminRoleArn: "arn:mock",
 		})
-		res, err := controller.Call(context.TODO(), req)
+		res, err := Handler(context.TODO(), req)
 		require.Nil(t, err)
 
 		require.Equal(t, response.ServerError(), res)
@@ -190,8 +183,7 @@ func TestCreate(t *testing.T) {
 
 	t.Run("should handle DB.PutAccount response errors as 500s", func(t *testing.T) {
 		mockDb := &dbMocks.DBer{}
-		controller := newCreateController()
-		controller.Dao = mockDb
+		Dao = mockDb
 
 		// Account doesn't already exist
 		mockDb.On("GetAccount", "1234567890").
@@ -202,11 +194,11 @@ func TestCreate(t *testing.T) {
 			Return(errors.New("mock error"))
 
 		// Send an API request
-		req := createAccountAPIRequest(t, createRequest{
+		req := createAccountAPIRequest(t, CreateRequest{
 			ID:           "1234567890",
 			AdminRoleArn: "arn:mock",
 		})
-		res, err := controller.Call(context.TODO(), req)
+		res, err := Handler(context.TODO(), req)
 		require.Nil(t, err)
 
 		require.Equal(t, response.ServerError(), res)
@@ -215,9 +207,7 @@ func TestCreate(t *testing.T) {
 	t.Run("should add the account to the reset Queue", func(t *testing.T) {
 		// Configure the controller, with a mock SQS
 		mockQueue := &commonMocks.Queue{}
-		controller := newCreateController()
-		controller.Queue = mockQueue
-		controller.ResetQueueURL = "mock.queue.url"
+		Queue = mockQueue
 
 		// Should add account to Queue
 		mockQueue.On("SendMessage",
@@ -227,11 +217,11 @@ func TestCreate(t *testing.T) {
 		defer mockQueue.AssertExpectations(t)
 
 		// Send request
-		req := createAccountAPIRequest(t, createRequest{
+		req := createAccountAPIRequest(t, CreateRequest{
 			ID:           "1234567890",
 			AdminRoleArn: "arn:mock",
 		})
-		res, err := controller.Call(context.TODO(), req)
+		res, err := Handler(context.TODO(), req)
 		require.Nil(t, err)
 		require.Equal(t, 201, res.StatusCode, res.Body)
 	})
@@ -240,10 +230,8 @@ func TestCreate(t *testing.T) {
 		// Configure the controller, with a mock SQS
 		mockQueue := &commonMocks.Queue{}
 		mockDB := dbStub()
-		controller := newCreateController()
-		controller.Dao = mockDB
-		controller.Queue = mockQueue
-		controller.ResetQueueURL = "mock.queue.url"
+		Dao = mockDB
+		Queue = mockQueue
 
 		// Should fail to add account to Queue
 		mockQueue.On("SendMessage",
@@ -253,11 +241,11 @@ func TestCreate(t *testing.T) {
 		defer mockQueue.AssertExpectations(t)
 
 		// Send request
-		req := createAccountAPIRequest(t, createRequest{
+		req := createAccountAPIRequest(t, CreateRequest{
 			ID:           "1234567890",
 			AdminRoleArn: "arn:mock",
 		})
-		res, err := controller.Call(context.TODO(), req)
+		res, err := Handler(context.TODO(), req)
 		require.Nil(t, err)
 
 		// Should return an InternalServerError
@@ -271,9 +259,7 @@ func TestCreate(t *testing.T) {
 	t.Run("should publish an SNS message, with the account info", func(t *testing.T) {
 		// Configure the controller with mock SNS
 		mockSNS := &commonMocks.Notificationer{}
-		controller := newCreateController()
-		controller.SNS = mockSNS
-		controller.AccountCreatedTopicArn = "mock-account-created-topic"
+		SnsSvc = mockSNS
 
 		// Expect to publish the account to the SNS topic
 		mockSNS.On("PublishMessage",
@@ -303,9 +289,9 @@ func TestCreate(t *testing.T) {
 		defer mockSNS.AssertExpectations(t)
 
 		// Call the controller with the account
-		res, err := controller.Call(
+		res, err := Handler(
 			context.TODO(),
-			createAccountAPIRequest(t, createRequest{
+			createAccountAPIRequest(t, CreateRequest{
 				ID:           "1234567890",
 				AdminRoleArn: "arn:mockAdmin",
 			}),
@@ -317,17 +303,16 @@ func TestCreate(t *testing.T) {
 	t.Run("should return a 500, if the SNS publish fails", func(t *testing.T) {
 		// Configure the controller with mock SNS
 		mockSNS := &commonMocks.Notificationer{}
-		controller := newCreateController()
-		controller.SNS = mockSNS
+		SnsSvc = mockSNS
 
 		// Mock SNS publish to fail
 		mockSNS.On("PublishMessage", mock.Anything, mock.Anything, mock.Anything).
 			Return(aws.String(""), errors.New("mock SNS error"))
 
 		// Call the controller with the account
-		res, err := controller.Call(
+		res, err := Handler(
 			context.TODO(),
-			createAccountAPIRequest(t, createRequest{
+			createAccountAPIRequest(t, CreateRequest{
 				ID:           "1234567890",
 				AdminRoleArn: "arn:mockAdmin",
 			}),
@@ -339,22 +324,10 @@ func TestCreate(t *testing.T) {
 	})
 
 	t.Run("should create a principal role and policy", func(t *testing.T) {
-		// Create the controller
-		controller := newCreateController()
-
-		// Configure some parameters, to make sure these
-		// get passed through to the IAM role
-		controller.PrincipalMaxSessionDuration = 100
-		controller.PrincipalRoleName = "RedboxPrincipal"
-		controller.PrincipalPolicyName = "RedboxPrincipalDefaultPolicy"
-		controller.PrincipalIAMDenyTags = []string{"Redbox", "CantTouchThis"}
-		controller.Tags = []*iam.Tag{{
-			Key: aws.String("Foo"), Value: aws.String("Bar"),
-		}}
 
 		// Mock the TokenService (assumes role into the user account)
 		tokenServiceMock := &commonMocks.TokenService{}
-		controller.TokenService = tokenServiceMock
+		TokenSvc = tokenServiceMock
 
 		// Mock Token Service, to assume adminRoleArn
 		mockAdminRoleSession := &awsMocks.AwsSession{}
@@ -367,7 +340,7 @@ func TestCreate(t *testing.T) {
 
 		// Mock the RoleManager (creates the IAM Role)
 		roleManager := roleManagerMocks.RoleManager{}
-		controller.RoleManager = &roleManager
+		RoleManager = &roleManager
 
 		// RoleManager should use an IAM client,with the assumed role session
 		roleManager.On("SetIAMClient", mock.Anything)
@@ -410,9 +383,9 @@ func TestCreate(t *testing.T) {
 		).Return(&rolemanager.CreateRoleWithPolicyOutput{}, nil)
 
 		// Call the controller with the account
-		_, err := controller.Call(
+		_, err := Handler(
 			context.TODO(),
-			createAccountAPIRequest(t, createRequest{
+			createAccountAPIRequest(t, CreateRequest{
 				ID:           "1234567890",
 				AdminRoleArn: "arn:mockAdmin",
 			}),
@@ -425,19 +398,17 @@ func TestCreate(t *testing.T) {
 
 	t.Run("should return a 500 if creating the principal IAM role fails", func(t *testing.T) {
 		// Create the controller
-		controller := newCreateController()
-
 		// Mock the RoleManager, to return an error on IAM Role Creation
 		roleManager := roleManagerMocks.RoleManager{}
-		controller.RoleManager = &roleManager
+		RoleManager = &roleManager
 		roleManager.On("SetIAMClient", mock.Anything)
 		roleManager.On("CreateRoleWithPolicy", mock.Anything).
 			Return(nil, errors.New("mock error"))
 
 		// Call the controller
-		res, err := controller.Call(
+		res, err := Handler(
 			context.TODO(),
-			createAccountAPIRequest(t, createRequest{
+			createAccountAPIRequest(t, CreateRequest{
 				ID:           "1234567890",
 				AdminRoleArn: "arn:mockAdmin",
 			}),
@@ -530,10 +501,10 @@ func roleManagerStub() *roleManagerMocks.RoleManager {
 	return roleManagerMock
 }
 
-func createAccountAPIRequest(t *testing.T, req createRequest) *events.APIGatewayProxyRequest {
+func createAccountAPIRequest(t *testing.T, req CreateRequest) events.APIGatewayProxyRequest {
 	requestBody, err := json.Marshal(&req)
 	require.Nil(t, err)
-	return &events.APIGatewayProxyRequest{
+	return events.APIGatewayProxyRequest{
 		Body: string(requestBody),
 	}
 }
@@ -546,15 +517,4 @@ func unmarshal(t *testing.T, jsonStr string) map[string]interface{} {
 	)
 
 	return data
-}
-
-func newCreateController() createController {
-	return createController{
-		Dao:             dbStub(),
-		Queue:           queueStub(),
-		SNS:             snsStub(),
-		TokenService:    tokenServiceStub(),
-		RoleManager:     roleManagerStub(),
-		StoragerService: StoragerMock(),
-	}
 }
