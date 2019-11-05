@@ -95,7 +95,7 @@ func TestCreate(t *testing.T) {
 		tokenService.On("AssumeRole",
 			mock.MatchedBy(func(input *sts.AssumeRoleInput) bool {
 				assert.Equal(t, "arn:iam:adminRole", *input.RoleArn)
-				assert.Equal(t, "RedboxMasterAssumeRoleVerification", *input.RoleSessionName)
+				assert.Equal(t, "DCEAssumeRoleVerification", *input.RoleSessionName)
 
 				return true
 			}),
@@ -112,15 +112,15 @@ func TestCreate(t *testing.T) {
 		)
 		require.Nil(t, err)
 		require.Equal(t,
-			response.RequestValidationError("Unable to create Account: adminRole is not assumable by the Redbox master account"),
+			response.RequestValidationError("Unable to create account: adminRole is not assumable by the master account"),
 			res,
 		)
 	})
 
-	t.Run("should add the account to the RedboxAccounts DB Table, as NotReady", func(t *testing.T) {
+	t.Run("should add the account to the Account DB Table, as NotReady", func(t *testing.T) {
 		mockDb := &dbMocks.DBer{}
 		controller := newCreateController()
-		controller.PrincipalRoleName = "RedboxPrincipal"
+		controller.PrincipalRoleName = "DCEPrincipal"
 		controller.Dao = mockDb
 
 		// Mock the DB, so that the account doesn't already exist
@@ -132,7 +132,7 @@ func TestCreate(t *testing.T) {
 			mock.MatchedBy(func(account db.Account) bool {
 				assert.Equal(t, "1234567890", account.ID)
 				assert.Equal(t, "arn:mock", account.AdminRoleArn)
-				assert.Equal(t, "arn:aws:iam::123456789012:role/RedboxPrincipal", account.PrincipalRoleArn)
+				assert.Equal(t, "arn:aws:iam::123456789012:role/DCEPrincipal", account.PrincipalRoleArn)
 				return true
 			}),
 		).Return(nil)
@@ -345,9 +345,9 @@ func TestCreate(t *testing.T) {
 		// Configure some parameters, to make sure these
 		// get passed through to the IAM role
 		controller.PrincipalMaxSessionDuration = 100
-		controller.PrincipalRoleName = "RedboxPrincipal"
-		controller.PrincipalPolicyName = "RedboxPrincipalDefaultPolicy"
-		controller.PrincipalIAMDenyTags = []string{"Redbox", "CantTouchThis"}
+		controller.PrincipalRoleName = "DCEPrincipal"
+		controller.PrincipalPolicyName = "DCEPrincipalDefaultPolicy"
+		controller.PrincipalIAMDenyTags = []string{"Protected", "CantTouchThis"}
 		controller.Tags = []*iam.Tag{{
 			Key: aws.String("Foo"), Value: aws.String("Bar"),
 		}}
@@ -389,18 +389,18 @@ func TestCreate(t *testing.T) {
 		}
 		`)
 
-		// Mock the RoleManager, to create an IAM Role for the Redbox Principal
+		// Mock the RoleManager, to create an IAM Role for the Principal user
 		roleManager.On("CreateRoleWithPolicy",
 			mock.MatchedBy(func(input *rolemanager.CreateRoleWithPolicyInput) bool {
 				// Verify the expected input
-				assert.Equal(t, "RedboxPrincipal", input.RoleName)
-				assert.Equal(t, "Role to be assumed by principal users of Redbox", input.RoleDescription)
+				assert.Equal(t, "DCEPrincipal", input.RoleName)
+				assert.Equal(t, "Role to be assumed by principal users", input.RoleDescription)
 				assert.Equal(t, expectedAssumeRolePolicy, input.AssumeRolePolicyDocument)
 				assert.Equal(t, int64(100), input.MaxSessionDuration)
-				assert.Equal(t, "RedboxPrincipalDefaultPolicy", input.PolicyName)
+				assert.Equal(t, "DCEPrincipalDefaultPolicy", input.PolicyName)
 				assert.Equal(t, []*iam.Tag{
 					{Key: aws.String("Foo"), Value: aws.String("Bar")},
-					{Key: aws.String("Name"), Value: aws.String("RedboxPrincipal")},
+					{Key: aws.String("Name"), Value: aws.String("DCEPrincipal")},
 				}, input.Tags)
 				assert.Equal(t, true, input.IgnoreAlreadyExistsErrors)
 				assert.Equal(t, "", "")
@@ -514,8 +514,8 @@ func roleManagerStub() *roleManagerMocks.RoleManager {
 				return &rolemanager.CreateRoleWithPolicyOutput{
 					RoleName:   input.RoleName,
 					RoleArn:    "arn:aws:iam::123456789012:role/" + input.RoleName,
-					PolicyName: "RedboxPrincipalDefaultPolicy",
-					PolicyArn:  "arn:aws:iam::1234567890:policy/RedboxPrincipalDefaultPolicy",
+					PolicyName: "DCEPrincipalDefaultPolicy",
+					PolicyArn:  "arn:aws:iam::1234567890:policy/DCEPrincipalDefaultPolicy",
 				}
 			}, nil,
 		)

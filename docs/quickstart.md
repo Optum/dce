@@ -115,7 +115,7 @@ x-amzn-RequestId: 5ef9f032-bed2-45e2-abf8-7051d15ef966
     "lastModifiedOn": 1572379783,
     "metadata": null,
     "principalPolicyHash": "\"852ee9abbf1220a111c435a8c0e65490\"",
-    "principalRoleArn": "arn:aws:iam::123456789012:role/RedboxPrincipal-myuser"
+    "principalRoleArn": "arn:aws:iam::123456789012:role/DCEPrincipal"
 }
 ```
 
@@ -146,7 +146,7 @@ x-amzn-RequestId: ab46c728-60cf-48ee-a838-e0d076025667
         "lastModifiedOn": 1572379888,
         "metadata": null,
         "principalPolicyHash": "\"852ee9abbf1220a111c435a8c0e65490\"",
-        "principalRoleArn": "arn:aws:iam::123456789012:role/RedboxPrincipal-myuser"
+        "principalRoleArn": "arn:aws:iam::123456789012:role/DCEPrincipal"
     }
 ]
 ```
@@ -159,7 +159,7 @@ content to the *${api_url}/leases* endpoint:
 
 ```json
 {
-    "principalId": "RedboxPrincipal-myuser",
+    "principalId": "DCEPrincipal",
     "accountId": "123456789012",
     "budgetAmount": 20,
     "budgetCurrency": "USD",
@@ -200,7 +200,7 @@ x-amzn-RequestId: f4848ef9-d577-4465-a0d2-dd33e792f4a5
     "leaseStatus": "Active",
     "leaseStatusModifiedOn": 1572381585,
     "leaseStatusReason": "",
-    "principalId": "RedboxPrincipal-myuser"
+    "principalId": "DCEPrincipal"
 }
 ```
 
@@ -220,7 +220,7 @@ HTTP/1.1 200 OK
         "lastModifiedOn": 1572381585,
         "metadata": null,
         "principalPolicyHash": "\"852ee9abbf1220a111c435a8c0e65490\"",
-        "principalRoleArn": "arn:aws:iam::123456789012:role/RedboxPrincipal-myuser"
+        "principalRoleArn": "arn:aws:iam::123456789012:role/DCEPrincipal"
     }
 ]
 ```
@@ -261,7 +261,7 @@ x-amzn-RequestId: d306e800-dfd1-4a53-88b1-2a5d469c9cd6
         "leaseStatus": "Active",
         "leaseStatusModifiedOn": 1572381585,
         "leaseStatusReason": "Active",
-        "principalId": "RedboxPrincipal-myuser"
+        "principalId": "DCEPrincipal"
     }
 ]
 ```
@@ -275,7 +275,7 @@ with the following request body:
 
 ```json
 {
-    "principalId": "RedboxPrincipal-myuser",
+    "principalId": "DCEPrincipal",
     "accountId": "123456789012"
 }
 ```
@@ -290,7 +290,7 @@ HTTP/1.1 200 OK
     "budgetAmount": 20,
     "budgetCurrency": "USD",
     "budgetNotificationEmails": [
-        "nathan@galenhousesoftware.com"
+        "john.doe@example.com"
     ],
     "createdOn": 1572381585,
     "expiresOn": 1572382800,
@@ -299,6 +299,6 @@ HTTP/1.1 200 OK
     "leaseStatus": "Inactive",
     "leaseStatusModifiedOn": 1572442028,
     "leaseStatusReason": "Destroyed",
-    "principalId": "RedboxPrincipal-nathangood"
+    "principalId": "jdoe123"
 }
 ```

@@ -50,7 +50,7 @@ func main() {
 	}
 
 	// Unmarshal Lease records
-	leases := []db.RedboxLease{}
+	leases := []db.Lease{}
 	err = dynamodbattribute.UnmarshalListOfMaps(leaseRes.Items, &leases)
 	if err != nil {
 		log.Fatalf("failed to unmarshal Lease result items, %v", err)

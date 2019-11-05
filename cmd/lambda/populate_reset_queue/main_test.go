@@ -12,19 +12,18 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// testEnqueueRedbox is the structured input for testing the function
-// enqueueRedbox
-type testEnqueueRedboxesInput struct {
+// testAddAccountToQueueInput is the structured input for testing the function
+type testAddAccountToQueueInput struct {
 	ExpectedError            error
 	SendMessageError         error
 	FindLeasesByAccountError error
 }
 
-// TestEnqueueRedbox tests and verifies the flow of adding all redbox accounts
+// TestAddAccountToQueue tests and verifies the flow of adding all accounts
 // provided into the reset queue and transition the finance lock if necessary
-func TestEnqueueRedbox(t *testing.T) {
+func TestAddAccountToQueue(t *testing.T) {
 	// Construct test scenarios
-	tests := []testEnqueueRedboxesInput{
+	tests := []testAddAccountToQueueInput{
 		// Happy Path
 		{},
 		// SendMessage Failure
@@ -36,7 +35,7 @@ func TestEnqueueRedbox(t *testing.T) {
 	}
 
 	// Iterate through each test in the list
-	redboxes := []*db.Account{
+	accounts := []*db.Account{
 		{
 			ID:            "123",
 			AccountStatus: "Leased",
@@ -50,8 +49,8 @@ func TestEnqueueRedbox(t *testing.T) {
 			test.SendMessageError)
 
 		mockDB := dbmock.DBer{}
-		// Call enqueueRedboxes
-		err := enqueueRedboxes(redboxes, &queueURL, &mockQueue, &mockDB)
+		// Call addAccountToQueue
+		err := addAccountToQueue(accounts, &queueURL, &mockQueue, &mockDB)
 
 		// Assert expectations
 		if test.ExpectedError != nil {

@@ -86,7 +86,7 @@ func processRecord(input processRecordInput) error {
 
 	account, err := input.DbSvc.GetAccount(input.AccountID)
 	if err != nil {
-		log.Printf("Failed to get the redbox account %s: %s",
+		log.Printf("Failed to get account %s: %s",
 			input.AccountID, err.Error())
 		return err
 	}
@@ -110,7 +110,7 @@ func processRecord(input processRecordInput) error {
 		log.Printf("Policy already matches.  Not updating '%s'", principalPolicyArn.String())
 		return nil
 	}
-	// Assume role into the new Redbox account
+	// Assume role into the new child account
 	accountSession, err := input.TokenSvc.NewSession(input.AwsSession, accountRes.AdminRoleArn)
 	if err != nil {
 		log.Printf("Failed to assume role '%s': %s", accountRes.AdminRoleArn, err.Error())

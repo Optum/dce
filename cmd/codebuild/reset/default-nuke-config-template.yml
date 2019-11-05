@@ -1,7 +1,8 @@
 regions:
   - "global"
-  # Redbox principals are currently locked down
+  # DCE Principals roles are currently locked down
   # to only access these two regions
+  # This significantly reduces the run time of nuke.
   - "us-east-1"
   - "us-west-1"
 
@@ -13,7 +14,7 @@ resource-types:
   - S3Object # Let the S3Bucket delete all Objects instead of individual objects (optimization)
 
 accounts:
-  "{{id}}": # Redbox Account
+  "{{id}}": # Child Account
     filters:
       IAMPolicy:
         - type: "contains"
@@ -29,5 +30,5 @@ accounts:
         - type: "contains"
           value: "{{principal_policy}}"
       IAMRolePolicyAttachment:
-        # Do not remove the policy from the Redbox principal user role
+        # Do not remove the policy from the principal user role
         - "{{principal_role}} -> {{principal_policy}}"

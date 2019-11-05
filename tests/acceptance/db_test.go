@@ -31,7 +31,7 @@ func TestDb(t *testing.T) {
 			aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
 		),
 		tfOut["dynamodb_table_account_name"].(string),
-		tfOut["redbox_lease_db_table_name"].(string),
+		tfOut["lease_db_table_name"].(string),
 		7,
 	)
 	// Set consistent reads to improve testing without a bunch of sleeps

@@ -27,7 +27,7 @@ func main() {
 
 	if !config.isNukeEnabled {
 		log.Println("INFO: Nuke is set in Dry Run mode and will not remove " +
-			"any resources and cannot set back the state of Redbox Account " +
+			"any resources and cannot set back the state of the DCE child account " +
 			"Please set 'RESET_NUKE_DRY_RUN' to not 'true' to exit Dry Run " +
 			"mode.")
 	}

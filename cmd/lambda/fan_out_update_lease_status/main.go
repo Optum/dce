@@ -16,7 +16,7 @@ import (
 )
 
 /*
-This lambda initiates the Redbox budget check process. It:
+This lambda initiates the budget check process. It:
 
 - Runs on a CloudWatch scheduled event (eg. every 6 hours)
 - Grabs all active leases from the DB

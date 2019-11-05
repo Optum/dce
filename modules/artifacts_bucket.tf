@@ -1,5 +1,5 @@
 locals {
-  redbox_principal_policy = var.redbox_principal_policy == "" ? "${path.module}/fixtures/policies/redbox_principal_policy.tmpl" : var.redbox_principal_policy
+  redbox_principal_policy = var.redbox_principal_policy == "" ? "${path.module}/fixtures/policies/principal_policy.tmpl" : var.redbox_principal_policy
 }
 
 
@@ -65,7 +65,7 @@ POLICY
 
 resource "aws_s3_bucket_object" "redbox_principal_policy" {
   bucket = aws_s3_bucket.artifacts.id
-  key    = "fixtures/policies/redbox_principal_policy.tmpl"
+  key    = "fixtures/policies/principal_policy.tmpl"
   source = local.redbox_principal_policy
   etag   = "${filemd5(local.redbox_principal_policy)}"
 }

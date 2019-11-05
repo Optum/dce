@@ -25,10 +25,10 @@ func TestCheckBudget(t *testing.T) {
 	emailTemplateHTML := `
 <p>
 {{if .IsOverBudget}}
-AWS Redbox Lease for principal {{.Lease.PrincipalID}} in AWS Account {{.Lease.AccountID}}
+Lease for principal {{.Lease.PrincipalID}} in AWS Account {{.Lease.AccountID}}
 has exceeded its budget of ${{.Lease.BudgetAmount}}. Actual spend is ${{.ActualSpend}}
 {{else}}
-AWS Redbox Lease for principal {{.Lease.PrincipalID}} in AWS Account {{.Lease.AccountID}}
+Lease for principal {{.Lease.PrincipalID}} in AWS Account {{.Lease.AccountID}}
 has exceeded the {{.ThresholdPercentile}}% threshold limit for its budget of ${{.Lease.BudgetAmount}}.
 Actual spend is ${{.ActualSpend}}
 {{end}}
@@ -36,31 +36,31 @@ Actual spend is ${{.ActualSpend}}
 `
 	emailTemplateText := `
 {{if .IsOverBudget}}
-AWS Redbox Lease for principal {{.Lease.PrincipalID}} in AWS Account {{.Lease.AccountID}}
+Lease for principal {{.Lease.PrincipalID}} in AWS Account {{.Lease.AccountID}}
 has exceeded its budget of ${{.Lease.BudgetAmount}}. Actual spend is ${{.ActualSpend}}
 {{else}}
-AWS Redbox Lease for principal {{.Lease.PrincipalID}} in AWS Account {{.Lease.AccountID}}
+Lease for principal {{.Lease.PrincipalID}} in AWS Account {{.Lease.AccountID}}
 has exceeded the {{.ThresholdPercentile}}% threshold limit for its budget of ${{.Lease.BudgetAmount}}.
 Actual spend is ${{.ActualSpend}}
 {{end}}
 `
 	emailTemplateSubject := `
-AWS Redbox Lease {{if .IsOverBudget}}over budget{{else}}at {{.ThresholdPercentile}}% of budget{{end}} [{{.Lease.AccountID}}]
+Lease {{if .IsOverBudget}}over budget{{else}}at {{.ThresholdPercentile}}% of budget{{end}} [{{.Lease.AccountID}}]
 `
 
 	expectedOverBudgetEmailHTML := strings.TrimSpace(`
 <p>
 
-AWS Redbox Lease for principal test-user in AWS Account 1234567890
+Lease for principal test-user in AWS Account 1234567890
 has exceeded its budget of $100. Actual spend is $150
 
 </p>
 `)
 	expectedOverBudgetEmailText := strings.TrimSpace(`
-AWS Redbox Lease for principal test-user in AWS Account 1234567890
+Lease for principal test-user in AWS Account 1234567890
 has exceeded its budget of $100. Actual spend is $150
 `)
-	expectedOverBudgetText := "AWS Redbox Lease over budget [1234567890]"
+	expectedOverBudgetText := "Lease over budget [1234567890]"
 
 	type checkBudgetTestInput struct {
 		budgetAmount                  float64
@@ -228,18 +228,18 @@ has exceeded its budget of $100. Actual spend is $150
 			shouldSQSReset:              false,
 			// Should send notification email
 			shouldSendEmail:      true,
-			expectedEmailSubject: "AWS Redbox Lease at 75% of budget [1234567890]",
+			expectedEmailSubject: "Lease at 75% of budget [1234567890]",
 			expectedEmailBodyHTML: strings.TrimSpace(`
 <p>
 
-AWS Redbox Lease for principal test-user in AWS Account 1234567890
+Lease for principal test-user in AWS Account 1234567890
 has exceeded the 75% threshold limit for its budget of $100.
 Actual spend is $76
 
 </p>
 `),
 			expectedEmailBodyText: strings.TrimSpace(`
-AWS Redbox Lease for principal test-user in AWS Account 1234567890
+Lease for principal test-user in AWS Account 1234567890
 has exceeded the 75% threshold limit for its budget of $100.
 Actual spend is $76
 `),

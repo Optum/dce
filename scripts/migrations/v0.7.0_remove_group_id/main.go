@@ -1,6 +1,5 @@
-// Copyright 2019 Optum, Inc
 // db_group_migrate.go
-// This script is intended for one time use in the prod deployment of Redbox
+// This script is intended for one time use in the prod deployment of DCE
 // Its sole purpose is to remove the values associated with the deprecated
 // "GroupId" field in the dynamo database Account table.
 //

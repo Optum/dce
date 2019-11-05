@@ -37,7 +37,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 )
 
-var adminRoleName = "redbox-api-test-admin-role-" + fmt.Sprintf("%v", time.Now().Unix())
+var adminRoleName = "dce-api-test-admin-role-" + fmt.Sprintf("%v", time.Now().Unix())
 
 func TestMain(m *testing.M) {
 	code := m.Run()
@@ -63,7 +63,7 @@ func TestApi(t *testing.T) {
 			aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
 		),
 		tfOut["dynamodb_table_account_name"].(string),
-		tfOut["redbox_lease_db_table_name"].(string),
+		tfOut["lease_db_table_name"].(string),
 		7,
 	)
 
@@ -117,7 +117,7 @@ func TestApi(t *testing.T) {
 
 	t.Run("api_execute_admin policy", func(t *testing.T) {
 
-		t.Run("should allow executing Redbox APIs", func(t *testing.T) {
+		t.Run("should allow executing DCE APIs", func(t *testing.T) {
 			// Don't run this test, if using `go test -short` flag
 			if testing.Short() {
 				t.Skip("Skipping tests in short mode. IAM role takes a while to propagate...")
@@ -147,7 +147,7 @@ func TestApi(t *testing.T) {
 	}
 	]
 }`, accountID)
-			roleName := "redbox-api-execute-test-role-" + fmt.Sprintf("%v", time.Now().Unix())
+			roleName := "dce-api-execute-test-role-" + fmt.Sprintf("%v", time.Now().Unix())
 			roleRes, err := iamSvc.CreateRole(&iam.CreateRoleInput{
 				AssumeRolePolicyDocument: aws.String(assumeRolePolicy),
 				Path:                     aws.String("/"),
@@ -230,7 +230,7 @@ func TestApi(t *testing.T) {
 	}
 	]
 }`, accountID)
-		roleName := "redbox-api-execute-test-role-" + fmt.Sprintf("%v", time.Now().Unix())
+		roleName := "dce-api-execute-test-role-" + fmt.Sprintf("%v", time.Now().Unix())
 		roleRes, err := iamSvc.CreateRole(&iam.CreateRoleInput{
 			AssumeRolePolicyDocument: aws.String(assumeRolePolicy),
 			Path:                     aws.String("/"),
@@ -443,7 +443,7 @@ func TestApi(t *testing.T) {
 					// Get nested json in response json
 					err := data["error"].(map[string]interface{})
 					assert.Equal(r, "ServerError", err["code"].(string))
-					assert.Equal(r, "No Available Redbox Accounts at this moment",
+					assert.Equal(r, "No Available accounts at this moment",
 						err["message"].(string))
 				},
 			})
@@ -498,7 +498,7 @@ func TestApi(t *testing.T) {
 					// Get nested json in response json
 					errResp := data["error"].(map[string]interface{})
 					assert.Equal(r, "ClientError", errResp["code"].(string))
-					assert.Equal(r, "Principal already has an existing Redbox: 123",
+					assert.Equal(r, "Principal already has an existing lease: 123",
 						errResp["message"].(string))
 				},
 			})
@@ -702,7 +702,7 @@ func TestApi(t *testing.T) {
 			require.Equal(t, accountID, postResJSON["id"])
 			require.Equal(t, "NotReady", postResJSON["accountStatus"])
 			require.Equal(t, adminRoleArn, postResJSON["adminRoleArn"])
-			expectedPrincipalRoleArn := fmt.Sprintf("arn:aws:iam::%s:role/%s", accountID, tfOut["redbox_principal_role_name"])
+			expectedPrincipalRoleArn := fmt.Sprintf("arn:aws:iam::%s:role/%s", accountID, tfOut["principal_role_name"])
 			require.Equal(t, expectedPrincipalRoleArn, postResJSON["principalRoleArn"])
 			require.True(t, postResJSON["lastModifiedOn"].(float64) > 1561518000)
 			require.True(t, postResJSON["createdOn"].(float64) > 1561518000)
@@ -751,7 +751,7 @@ func TestApi(t *testing.T) {
 						assert.Equal(r, accountID, getResJSON["id"])
 						assert.Equal(r, "NotReady", getResJSON["accountStatus"])
 						assert.Equal(r, adminRoleArn, getResJSON["adminRoleArn"])
-						expectedPrincipalRoleArn := fmt.Sprintf("arn:aws:iam::%s:role/%s", accountID, tfOut["redbox_principal_role_name"])
+						expectedPrincipalRoleArn := fmt.Sprintf("arn:aws:iam::%s:role/%s", accountID, tfOut["principal_role_name"])
 						assert.Equal(r, expectedPrincipalRoleArn, getResJSON["principalRoleArn"])
 						assert.True(r, getResJSON["lastModifiedOn"].(float64) > 1561518000)
 						assert.True(r, getResJSON["createdOn"].(float64) > 1561518000)
@@ -773,7 +773,7 @@ func TestApi(t *testing.T) {
 						assert.Equal(r, accountID, accountJSON["id"])
 						assert.Equal(r, "NotReady", accountJSON["accountStatus"])
 						assert.Equal(r, adminRoleArn, accountJSON["adminRoleArn"])
-						expectedPrincipalRoleArn := fmt.Sprintf("arn:aws:iam::%s:role/%s", accountID, tfOut["redbox_principal_role_name"])
+						expectedPrincipalRoleArn := fmt.Sprintf("arn:aws:iam::%s:role/%s", accountID, tfOut["principal_role_name"])
 						assert.Equal(r, expectedPrincipalRoleArn, accountJSON["principalRoleArn"])
 						assert.True(r, accountJSON["lastModifiedOn"].(float64) > 1561518000)
 						assert.True(r, accountJSON["createdOn"].(float64) > 1561518000)
@@ -1391,7 +1391,7 @@ func createAdminRole(t *testing.T, awsSession client.ConfigProvider) *createAdmi
 	adminRoleArn := *roleRes.Role.Arn
 
 	// Give the Admin Role Permission to create other IAM Roles
-	// (so it can create a role for the Redbox principal)
+	// (so it can create a role for the principal)
 	_, err = iamSvc.AttachRolePolicy(&iam.AttachRolePolicyInput{
 		RoleName:  aws.String(adminRoleName),
 		PolicyArn: aws.String("arn:aws:iam::aws:policy/IAMFullAccess"),

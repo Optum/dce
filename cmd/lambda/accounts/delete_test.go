@@ -73,7 +73,7 @@ func TestDeleteController_Call(t *testing.T) {
 		require.Equal(t, http.StatusInternalServerError, response.StatusCode)
 	})
 
-	t.Run("should destroy the redbox principal IAM Role and Policy", func(t *testing.T) {
+	t.Run("should destroy the principal IAM Role and Policy", func(t *testing.T) {
 		controller := newDeleteController()
 
 		// Mock the role manager
@@ -99,7 +99,7 @@ func TestDeleteController_Call(t *testing.T) {
 		roleManager.AssertExpectations(t)
 	})
 
-	t.Run("should return 204, even if the redbox principal role cannot be deleted", func(t *testing.T) {
+	t.Run("should return 204, even if the principal role cannot be deleted", func(t *testing.T) {
 		controller := newDeleteController()
 
 		// Mock the role manager

@@ -83,7 +83,7 @@ func (controller deleteController) sendToResetQueue(accountID string) {
 }
 
 func (controller deleteController) destroyIAMPrincipal(account *db.Account) {
-	// Assume role into the new Redbox account
+	// Assume role into the new account
 	accountSession, err := controller.TokenService.NewSession(&controller.AWSSession, account.AdminRoleArn)
 	if err != nil {
 		log.Printf("Failed to assume role into account %s: %s", account.ID, err)
@@ -99,6 +99,6 @@ func (controller deleteController) destroyIAMPrincipal(account *db.Account) {
 	})
 	// Log error, and continue
 	if err != nil {
-		log.Printf("Failed to destroy Redbox Principal IAM Role and Policy: %s", err)
+		log.Printf("Failed to destroy Principal IAM Role and Policy: %s", err)
 	}
 }

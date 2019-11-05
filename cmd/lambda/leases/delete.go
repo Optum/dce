@@ -46,7 +46,7 @@ func (c DeleteController) Call(ctx context.Context, req *events.APIGatewayProxyR
 	accts, err := c.Dao.FindLeasesByPrincipal(principalID)
 	if err != nil {
 		log.Printf("Error finding leases for Principal %s: %s", principalID, err)
-		return response.ServerErrorWithResponse(fmt.Sprintf("Cannot verify if Principal %s has a Redbox Lease", principalID)), nil
+		return response.ServerErrorWithResponse(fmt.Sprintf("Cannot verify if Principal %s has a lease", principalID)), nil
 	}
 	if accts == nil {
 		errStr := fmt.Sprintf("No account leases found for %s", principalID)

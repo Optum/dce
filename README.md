@@ -225,7 +225,7 @@ See [_Integrating with Identity Providers_](#integrating-with-identity-providers
 
 DCE exposes an API for managing DCE accounts and leases.
 
-See [swaggerRedbox.yaml](./modules/swaggerRedbox.yaml) for endpoint documentation (better Swagger docs to come...).
+See [swagger.yaml](./modules/swagger.yaml) for endpoint documentation (better Swagger docs to come...).
 
 ### API Location
 

@@ -30,11 +30,11 @@ func TestProvisioner(t *testing.T) {
 			aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
 		),
 		tfOut["dynamodb_table_account_name"].(string),
-		tfOut["redbox_lease_db_table_name"].(string),
+		tfOut["lease_db_table_name"].(string),
 		7,
 	)
 
-	dbSvc.ConsistendRead = true
+	dbSvc.ConsistentRead = true
 
 	// Configure the Provisioner service
 	provSvc := provision.AccountProvision{

@@ -17,7 +17,7 @@ import (
 )
 
 // Lease record
-type RedboxLease struct {
+type Lease struct {
 	AccountID      string `json:"AccountId"`
 	PrincipalID    string `json:"PrincipalId"`
 	LeaseStatus    string
@@ -25,8 +25,8 @@ type RedboxLease struct {
 	LastModifiedOn int64
 }
 
-// RedboxLeaseMod New Redbox Lease
-type RedboxLeaseMod struct {
+// LeaseMod New Lease
+type LeaseMod struct {
 	AccountID             string `json:"AccountId"`
 	PrincipalID           string `json:"PrincipalId"`
 	ID                    string `json:"Id"`
@@ -54,7 +54,7 @@ func migrationV18(input *migrationV18Input) (int64, error) {
 	}
 
 	// Unmarshal Lease records
-	leases := []RedboxLease{}
+	leases := []Lease{}
 	err = dynamodbattribute.UnmarshalListOfMaps(leaseScanRes.Items, &leases)
 	if err != nil {
 		log.Fatalf("failed to unmarshal Lease result items, %v", err)

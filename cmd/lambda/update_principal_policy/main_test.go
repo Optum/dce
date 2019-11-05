@@ -20,7 +20,7 @@ import (
 
 // testTransitionFinanceLockInput is the structured input for testing the helper
 // function transitionFinanceLock
-type testUpdateRedboxPrincipalPolicy struct {
+type testUpdatePrincipalPolicy struct {
 	ExpectedError              error
 	GetAccountResult           *db.Account
 	GetAccountError            error
@@ -33,32 +33,32 @@ type testUpdateRedboxPrincipalPolicy struct {
 	StoragerError              error
 }
 
-func TestUpdateRedboxPrincipalPolicy(t *testing.T) {
+func TestUpdatePrincipalPolicy(t *testing.T) {
 
-	tests := []testUpdateRedboxPrincipalPolicy{
+	tests := []testUpdatePrincipalPolicy{
 		// Happy Path Update Principal Policy
 		{
 			GetAccountResult: &db.Account{
 				ID:           "123456789012",
-				AdminRoleArn: "arn:aws:iam::123456789012:role/RedBoxAdminRole",
+				AdminRoleArn: "arn:aws:iam::123456789012:role/AdminRole",
 			},
-			PrincipalPolicyName:  "RedboxPrincipalPolicy",
-			PrincipalRoleName:    "RedboxPrincipalRole",
+			PrincipalPolicyName:  "PrincipalPolicy",
+			PrincipalRoleName:    "PrincipalRole",
 			PrincipalPolicyHash:  "aHash",
-			PrincipalIAMDenyTags: []string{"Redbox"},
+			PrincipalIAMDenyTags: []string{"DoNotTouch"},
 			StoragerPolicy:       "{\"Test\" : \"Policy\"}",
 		},
 		// Same hash exists don't update.
 		{
 			GetAccountResult: &db.Account{
 				ID:                  "123456789012",
-				AdminRoleArn:        "arn:aws:iam::123456789012:role/RedBoxAdminRole",
+				AdminRoleArn:        "arn:aws:iam::123456789012:role/AdminRole",
 				PrincipalPolicyHash: "aHash",
 			},
-			PrincipalPolicyName:  "RedboxPrincipalPolicy",
-			PrincipalRoleName:    "RedboxPrincipalRole",
+			PrincipalPolicyName:  "PrincipalPolicy",
+			PrincipalRoleName:    "PrincipalRole",
 			PrincipalPolicyHash:  "aHash",
-			PrincipalIAMDenyTags: []string{"Redbox"},
+			PrincipalIAMDenyTags: []string{"DoNotTouch"},
 			StoragerPolicy:       "{\"Test\" : \"Policy\"}",
 		},
 	}

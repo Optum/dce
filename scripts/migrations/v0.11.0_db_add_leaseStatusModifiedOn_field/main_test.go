@@ -118,7 +118,7 @@ func truncateLeaseTable(t *testing.T, dynDB *dynamodb.DynamoDB, leaseTableName s
 		and remove them in a "BatchWrite" requests.
 	*/
 
-	// Find all records in the RedboxAccount table
+	// Find all records in the Accounts table
 	scanResult, err := dynDB.Scan(
 		&dynamodb.ScanInput{
 			TableName: aws.String(leaseTableName),
