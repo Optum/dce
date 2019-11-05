@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/Optum/Redbox/pkg/api/response"
-	"github.com/Optum/Redbox/pkg/db"
-	"github.com/Optum/Redbox/pkg/db/mocks"
+	"github.com/Optum/dce/pkg/api/response"
+	"github.com/Optum/dce/pkg/db"
+	"github.com/Optum/dce/pkg/db/mocks"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/stretchr/testify/require"
 )
@@ -17,7 +17,7 @@ import (
 func TestGetLeaseByID(t *testing.T) {
 
 	t.Run("When the invoking Call and there are no errors", func(t *testing.T) {
-		expectdLease := &db.RedboxLease{
+		expectdLease := &db.Lease{
 			ID:             "unique-id",
 			AccountID:      "123456789",
 			PrincipalID:    "test",

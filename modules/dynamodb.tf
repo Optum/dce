@@ -1,4 +1,4 @@
-# Redbox Account table
+# Account table
 # Tracks the status of AWS Accounts in our pool
 locals {
   // Suffix table names with var.namesapce,

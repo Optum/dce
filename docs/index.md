@@ -33,8 +33,8 @@ wiped clean so there are no surprise bills at the end of the month.
 
 ### Timed leases
 
-DCE contains the concept of _expiring leases_. A account _lease_ is temporary
-usage of an account for a certain amount of time. Once the lease is done,
+DCE contains the concept of _expiring leases_. A _lease_ represents temporary
+access to an account for a certain amount of time. Once the lease is expired,
 the AWS account is cleaned of all of the resources and returned to the pool
 for other people to lease.
 
@@ -44,4 +44,4 @@ To get started using DCE, see the [Quickstart](/quickstart/).
 
 ## Viewing the source
 
-The source code for DCE can be found on [GitHub](https://github.com/Optum/Redbox).
+The source code for DCE can be found on [GitHub](https://github.com/Optum/dce).

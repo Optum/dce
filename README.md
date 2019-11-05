@@ -1,6 +1,4 @@
-# AWS DCE
-
-# The premier repository for AWS Disposable Cloud Environment (DCE).
+# Disposable Cloud Environment (DCE)
 
 <!--
 Generated with markdown-toc
@@ -227,7 +225,7 @@ See [_Integrating with Identity Providers_](#integrating-with-identity-providers
 
 DCE exposes an API for managing DCE accounts and leases.
 
-See [swaggerRedbox.yaml](./modules/swaggerRedbox.yaml) for endpoint documentation (better Swagger docs to come...).
+See [swagger.yaml](./modules/swagger.yaml) for endpoint documentation (better Swagger docs to come...).
 
 ### API Location
 
@@ -677,10 +675,10 @@ To restore a DynamoDB table from a backup:
 
 ```
 # Grab the account table name from Terraform state
-table_name=$(cd modules && terraform output redbox_account_db_table_name)
+table_name=$(cd modules && terraform output accounts_table_name)
 
 # Or, grab the leases table name
-table_name=$(cd modules && terraform output dcs_lease_db_table_name)
+table_name=$(cd modules && terraform output leases_table_name)
 
 # List available backups
 ./scripts/restore_db.sh \

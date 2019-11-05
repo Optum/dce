@@ -1,3 +1,21 @@
+## v0.22.0
+
+**BREAKING CHANGES**
+
+This release includes changes to rename every reference of "Redbox" to "DCE". 
+In many cases, we removed namespaces entirely: for example, we'll refer to an `account` rather
+than a `dceAccount` wherever possible.
+
+This release breaks a number of interfaces, which may require updates to DCE clients. 
+
+For example:
+
+- Terraform outputs have been renamed (eg. `redbox_account_db_table_name` is now `accounts_table_name`)
+- SNS topics have been renamed (eg `redbox-account-created` is now `account-created`)
+- The name of the IAM Principal role and policy have been renamed (`DCEPrincipal` / `DCEPrincipalDefaultPolicy`)
+
+This release also removes the deprecated DynamoDB tables with "Redbox" prefixes.
+
 ## v0.21.0
 
 **BREAKING CHANGES**
@@ -62,7 +80,7 @@ In order to upgrade your DCE deployment to v0.19.0, you will need to:
 - Run the migration script located in `scripts/migrations/v0.19.0_db_expiring_leases`
   - Adds a new `id` field to all existing `Lease` records
   - Sets a default expiration date for all existing `Lease` records
-    - **IMPORTANT** you must override [the default expiration date](https://github.com/Optum/Redbox/blob/master/scripts/migrations/v0.19.0_db_expiring_leases/main.go#L65)
+    - **IMPORTANT** you must override [the default expiration date](https://github.com/Optum/dce/blob/master/scripts/migrations/v0.19.0_db_expiring_leases/main.go#L65)
   - Marks all `*Locked` leases as `Inactive`
 - Update any DCE API clients to include the `expiresOn` property in their `Lease` record. 
 

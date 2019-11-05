@@ -14,7 +14,7 @@
 package main
 
 import (
-	"github.com/Optum/Redbox/pkg/common"
+	"github.com/Optum/dce/pkg/common"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -26,8 +26,8 @@ import (
 	"fmt"
 )
 
-// RedboxAccountAssignment record
-type RedboxAccountAssignment struct {
+// AccountAssignment record
+type AccountAssignment struct {
 	AccountID        string `json:"AccountId"`
 	UserID           string `json:"UserId"`
 	AssignmentStatus string
@@ -35,8 +35,8 @@ type RedboxAccountAssignment struct {
 	LastModifiedOn   int64
 }
 
-// RedboxLease record
-type RedboxLease struct {
+// Lease record
+type Lease struct {
 	AccountID      string `json:"AccountId"`
 	PrincipalID    string `json:"PrincipalId"`
 	LeaseStatus    string
@@ -88,7 +88,7 @@ func migrationV10(input *migrationV10Input) error {
 	}
 
 	// Unmarshal Assignment records
-	assignments := []RedboxAccountAssignment{}
+	assignments := []AccountAssignment{}
 	err = dynamodbattribute.UnmarshalListOfMaps(assignmentScanRes.Items, &assignments)
 	if err != nil {
 		log.Fatalf("failed to unmarshal Assignment result items, %v", err)
@@ -99,7 +99,7 @@ func migrationV10(input *migrationV10Input) error {
 		fmt.Printf("AccountId: %s\n", item.AccountID)
 
 		// Cast the Assignment as a Lease
-		lease := RedboxLease{
+		lease := Lease{
 			AccountID:      item.AccountID,
 			PrincipalID:    item.UserID,
 			LeaseStatus:    item.AssignmentStatus,

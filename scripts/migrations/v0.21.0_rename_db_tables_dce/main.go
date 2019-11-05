@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	errors2 "github.com/Optum/Redbox/pkg/errors"
+	errors2 "github.com/Optum/dce/pkg/errors"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"

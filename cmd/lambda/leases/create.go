@@ -8,10 +8,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Optum/Redbox/pkg/api/response"
-	"github.com/Optum/Redbox/pkg/common"
-	"github.com/Optum/Redbox/pkg/db"
-	"github.com/Optum/Redbox/pkg/provision"
+	"github.com/Optum/dce/pkg/api/response"
+	"github.com/Optum/dce/pkg/common"
+	"github.com/Optum/dce/pkg/db"
+	"github.com/Optum/dce/pkg/provision"
 	"github.com/aws/aws-lambda-go/events"
 )
 
@@ -68,10 +68,10 @@ func (c CreateController) Call(ctx context.Context, req *events.APIGatewayProxyR
 	checkLease, err := c.Provisioner.FindActiveLeaseForPrincipal(principalID)
 	if err != nil {
 		log.Printf("Failed to Check Principal Active Leases: %s", err)
-		return response.ServerErrorWithResponse(fmt.Sprintf("Cannot verify if Principal has existing Redbox Account : %s",
+		return response.ServerErrorWithResponse(fmt.Sprintf("Failed to verify if Principal has an existing lease: %s",
 			err)), nil
 	} else if checkLease.PrincipalID == principalID {
-		errStr := fmt.Sprintf("Principal already has an existing Redbox: %s",
+		errStr := fmt.Sprintf("Principal already has an active lease: %s",
 			checkLease.AccountID)
 		log.Printf(errStr)
 		return response.ConflictError(errStr), nil
@@ -84,9 +84,9 @@ func (c CreateController) Call(ctx context.Context, req *events.APIGatewayProxyR
 	if err != nil {
 		log.Printf("Failed to Check Ready Accounts: %s", err)
 		return response.ServerErrorWithResponse(
-			fmt.Sprintf("Cannot get Available Redbox Accounts : %s", err)), nil
+			fmt.Sprintf("Failed to find a Ready Account: %s", err)), nil
 	} else if account == nil {
-		errStr := "No Available Redbox Accounts at this moment"
+		errStr := "No Available accounts at this moment"
 		log.Printf(errStr)
 		return response.ServiceUnavailableError(errStr), nil
 	}
@@ -98,10 +98,10 @@ func (c CreateController) Call(ctx context.Context, req *events.APIGatewayProxyR
 		account.ID)
 	if err != nil {
 		log.Printf("Failed to Check Leases with Account: %s", err)
-		return response.ServerErrorWithResponse(fmt.Sprintf("Cannot get Available Redbox Accounts : %s", err)), nil
+		return response.ServerErrorWithResponse(fmt.Sprintf("Failed to lookup leases: %s", err)), nil
 	}
 
-	// Create/Update a Redbox Account Lease to Active
+	// Create/Update an Account Lease to Active
 	create := lease.AccountID == ""
 	lease, err = c.Provisioner.ActivateAccount(create, principalID,
 		account.ID, requestBody.BudgetAmount, requestBody.BudgetCurrency, requestBody.BudgetNotificationEmails,
@@ -138,7 +138,7 @@ func (c CreateController) Call(ctx context.Context, req *events.APIGatewayProxyR
 // publishLease is a helper function to create and publish an lease
 // structured message to an SNS Topic
 func publishLease(snsSvc common.Notificationer,
-	assgn *db.RedboxLease, topic *string) (*string, error) {
+	assgn *db.Lease, topic *string) (*string, error) {
 	// Create a LeaseResponse based on the assgn
 	assgnResp := response.CreateLeaseResponse(assgn)
 

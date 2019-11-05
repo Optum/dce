@@ -7,9 +7,9 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/Optum/Redbox/pkg/api/response"
-	"github.com/Optum/Redbox/pkg/db"
-	"github.com/Optum/Redbox/pkg/db/mocks"
+	"github.com/Optum/dce/pkg/api/response"
+	"github.com/Optum/dce/pkg/db"
+	"github.com/Optum/dce/pkg/db/mocks"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/stretchr/testify/require"
 )
@@ -134,7 +134,7 @@ func createGetEmptyLeasesRequest() *events.APIGatewayProxyRequest {
 func createLeasesOutput() *db.GetLeasesOutput {
 
 	nextKeys := make(map[string]string)
-	leases := []*db.RedboxLease{
+	leases := []*db.Lease{
 		{
 			ID:             "unique-id",
 			AccountID:      "987654321",
@@ -152,7 +152,7 @@ func createLeasesOutput() *db.GetLeasesOutput {
 func createEmptyLeasesOutput() *db.GetLeasesOutput {
 
 	nextKeys := make(map[string]string)
-	leases := []*db.RedboxLease{}
+	leases := []*db.Lease{}
 	return &db.GetLeasesOutput{
 		NextKeys: nextKeys,
 		Results:  leases,

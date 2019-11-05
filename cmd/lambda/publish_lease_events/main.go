@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/Optum/Redbox/pkg/common"
-	"github.com/Optum/Redbox/pkg/db"
-	errors2 "github.com/Optum/Redbox/pkg/errors"
+	"github.com/Optum/dce/pkg/common"
+	"github.com/Optum/dce/pkg/db"
+	errors2 "github.com/Optum/dce/pkg/errors"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws"
@@ -79,7 +79,7 @@ type handleRecordInput struct {
 
 func handleRecord(input *handleRecordInput) error {
 	record := input.record
-	redboxLease, err := leaseFromImage(record.Change.NewImage)
+	lease, err := leaseFromImage(record.Change.NewImage)
 	if err != nil {
 		return err
 	}
@@ -113,18 +113,18 @@ func handleRecord(input *handleRecordInput) error {
 		if isExpired {
 			// Before adding the account to any queues, make sure the account is
 			// updated to NotReady state.
-			_, err = input.dbSvc.TransitionAccountStatus(redboxLease.AccountID, db.Leased, db.NotReady)
+			_, err = input.dbSvc.TransitionAccountStatus(lease.AccountID, db.Leased, db.NotReady)
 
 			// Put the message on the SQS queue ONLY IF the status has gone
 			// to Inactive.
-			log.Printf("Adding account %s to the reset queue", redboxLease.AccountID)
+			log.Printf("Adding account %s to the reset queue", lease.AccountID)
 			err := input.sqsSvc.SendMessage(
 				aws.String(input.resetQueueURL),
-				aws.String(redboxLease.AccountID),
+				aws.String(lease.AccountID),
 			)
 
 			if err != nil {
-				errMsg := fmt.Sprintf("Failed to add account to reset queue for lease %s @ %s: %s", redboxLease.PrincipalID, redboxLease.AccountID, err)
+				errMsg := fmt.Sprintf("Failed to add account to reset queue for lease %s @ %s: %s", lease.PrincipalID, lease.AccountID, err)
 				log.Println(errMsg)
 				// throw the error. Because if we could not enqueue the lease reset, we want
 				// the Lambda to error out so it can be re-tried per the retry policy of
@@ -134,7 +134,7 @@ func handleRecord(input *handleRecordInput) error {
 		}
 
 		publishInput := publishLeaseInput{
-			lease:  redboxLease,
+			lease:  lease,
 			snsSvc: input.snsSvc,
 		}
 
@@ -154,14 +154,14 @@ func handleRecord(input *handleRecordInput) error {
 	return nil
 }
 
-func leaseFromImage(image map[string]events.DynamoDBAttributeValue) (*db.RedboxLease, error) {
+func leaseFromImage(image map[string]events.DynamoDBAttributeValue) (*db.Lease, error) {
 
-	redboxLease, err := UnmarshalStreamImage(image)
+	lease, err := UnmarshalStreamImage(image)
 	if err != nil {
 		return nil, err
 	}
 
-	return redboxLease, nil
+	return lease, nil
 
 }
 
@@ -172,7 +172,7 @@ func isActiveStatus(status string) bool {
 type publishLeaseInput struct {
 	snsSvc   common.Notificationer
 	topicArn string
-	lease    *db.RedboxLease
+	lease    *db.Lease
 }
 
 func publishLease(input *publishLeaseInput) error {
@@ -194,7 +194,7 @@ func publishLease(input *publishLeaseInput) error {
 }
 
 // UnmarshalStreamImage converts events.DynamoDBAttributeValue to struct
-func UnmarshalStreamImage(attribute map[string]events.DynamoDBAttributeValue) (*db.RedboxLease, error) {
+func UnmarshalStreamImage(attribute map[string]events.DynamoDBAttributeValue) (*db.Lease, error) {
 
 	dbAttrMap := make(map[string]*dynamodb.AttributeValue)
 
@@ -212,7 +212,7 @@ func UnmarshalStreamImage(attribute map[string]events.DynamoDBAttributeValue) (*
 		dbAttrMap[k] = &dbAttr
 	}
 
-	out := db.RedboxLease{}
+	out := db.Lease{}
 	dynamodbattribute.UnmarshalMap(dbAttrMap, &out)
 	return &out, nil
 

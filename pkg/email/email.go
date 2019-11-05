@@ -3,7 +3,7 @@ package email
 import (
 	"bytes"
 
-	"github.com/Optum/Redbox/pkg/awsiface"
+	"github.com/Optum/dce/pkg/awsiface"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ses"
 	"gopkg.in/gomail.v2"

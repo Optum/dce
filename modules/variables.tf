@@ -9,9 +9,7 @@ variable "global_tags" {
 
   default = {
     Terraform = "True"
-    AppName   = "AWS Redbox Management"
-    Source    = "github.com/Optum/Redbox//modules"
-    Contact   = "CommercialCloudRedboxTeam_DL@ds.uhc.com"
+    AppName   = "DCE"
   }
 }
 
@@ -66,8 +64,8 @@ variable "populate_reset_queue_schedule_expression" {
 
 variable "principal_iam_deny_tags" {
   type        = list(string)
-  description = "IAM Redbox principal roles will be denied access to resources with these tags leased"
-  default     = ["Redbox"]
+  description = "IAM principal roles will be denied access to resources with the `AppName` tag set to this value"
+  default     = ["DCE"]
 }
 
 variable "check_budget_schedule_expression" {
@@ -95,10 +93,10 @@ variable "budget_notification_template_html" {
   default     = <<TMPL
 <p>
 {{if .IsOverBudget}}
-AWS Redbox Lease for principal {{.Lease.PrincipalID}} in AWS Account {{.Lease.AccountID}}
+Lease for principal {{.Lease.PrincipalID}} in AWS Account {{.Lease.AccountID}}
 has exceeded its budget of $${{.Lease.BudgetAmount}}. Actual spend is $${{.ActualSpend}}
 {{else}}
-AWS Redbox Lease for principal {{.Lease.PrincipalID}} in AWS Account {{.Lease.AccountID}}
+Lease for principal {{.Lease.PrincipalID}} in AWS Account {{.Lease.AccountID}}
 has exceeded the {{.ThresholdPercentile}}% threshold limit for its budget of $${{.Lease.BudgetAmount}}.
 Actual spend is $${{.ActualSpend}}
 {{end}}
@@ -111,10 +109,10 @@ variable "budget_notification_template_text" {
   description = "Text template for budget notification emails"
   default     = <<TMPL
 {{if .IsOverBudget}}
-AWS Redbox Lease for principal {{.Lease.PrincipalID}} in AWS Account {{.Lease.AccountID}}
+Lease for principal {{.Lease.PrincipalID}} in AWS Account {{.Lease.AccountID}}
 has exceeded its budget of $${{.Lease.BudgetAmount}}. Actual spend is $${{.ActualSpend}}
 {{else}}
-AWS Redbox Lease for principal {{.Lease.PrincipalID}} in AWS Account {{.Lease.AccountID}}
+Lease for principal {{.Lease.PrincipalID}} in AWS Account {{.Lease.AccountID}}
 has exceeded the {{.ThresholdPercentile}}% threshold limit for its budget of $${{.Lease.BudgetAmount}}.
 Actual spend is $${{.ActualSpend}}
 {{end}}
@@ -125,19 +123,19 @@ variable "budget_notification_template_subject" {
   type        = string
   description = "Template for budget notification email subject"
   default     = <<SUBJ
-AWS Redbox Lease {{if .IsOverBudget}}over budget{{else}}at {{.ThresholdPercentile}}% of budget{{end}} [{{.Lease.AccountID}}]
+Lease {{if .IsOverBudget}}over budget{{else}}at {{.ThresholdPercentile}}% of budget{{end}} [{{.Lease.AccountID}}]
 SUBJ
 }
 
 variable "budget_notification_threshold_percentiles" {
   type        = list(number)
-  description = "Thresholds (percentiles) at which notification emails will be sent to Redbox users."
+  description = "Thresholds (percentiles) at which budget notification emails will be sent to users."
   default     = [75, 100]
 }
 
-variable "redbox_principal_policy" {
+variable "principal_policy" {
   type        = string
-  description = "Location of file with the policy used for the RedBox Principal Account"
+  description = "Location of file with the policy to be attached to principal IAM users"
   default     = ""
 }
 

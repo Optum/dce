@@ -5,38 +5,37 @@ import (
 
 	"github.com/pkg/errors"
 
-	commock "github.com/Optum/Redbox/pkg/common/mocks"
-	"github.com/Optum/Redbox/pkg/db"
-	dbmock "github.com/Optum/Redbox/pkg/db/mocks"
+	commock "github.com/Optum/dce/pkg/common/mocks"
+	"github.com/Optum/dce/pkg/db"
+	dbmock "github.com/Optum/dce/pkg/db/mocks"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
-// testEnqueueRedbox is the structured input for testing the function
-// enqueueRedbox
-type testEnqueueRedboxesInput struct {
+// testAddAccountToQueueInput is the structured input for testing the function
+type testAddAccountToQueueInput struct {
 	ExpectedError            error
 	SendMessageError         error
 	FindLeasesByAccountError error
 }
 
-// TestEnqueueRedbox tests and verifies the flow of adding all redbox accounts
+// TestAddAccountToQueue tests and verifies the flow of adding all accounts
 // provided into the reset queue and transition the finance lock if necessary
-func TestEnqueueRedbox(t *testing.T) {
+func TestAddAccountToQueue(t *testing.T) {
 	// Construct test scenarios
-	tests := []testEnqueueRedboxesInput{
+	tests := []testAddAccountToQueueInput{
 		// Happy Path
 		{},
 		// SendMessage Failure
 		{
 			ExpectedError: errors.Wrap(errors.New("Send Message Fail"),
-				"Failed to enqueue accounts"),
+				"Failed to add account 123 to queue accounts"),
 			SendMessageError: errors.New("Send Message Fail"),
 		},
 	}
 
 	// Iterate through each test in the list
-	redboxes := []*db.RedboxAccount{
+	accounts := []*db.Account{
 		{
 			ID:            "123",
 			AccountStatus: "Leased",
@@ -50,8 +49,8 @@ func TestEnqueueRedbox(t *testing.T) {
 			test.SendMessageError)
 
 		mockDB := dbmock.DBer{}
-		// Call enqueueRedboxes
-		err := enqueueRedboxes(redboxes, &queueURL, &mockQueue, &mockDB)
+		// Call addAccountToQueue
+		err := addAccountToQueue(accounts, &queueURL, &mockQueue, &mockDB)
 
 		// Assert expectations
 		if test.ExpectedError != nil {
