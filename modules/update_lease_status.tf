@@ -1,11 +1,12 @@
 module "fan_out_update_lease_status_lambda" {
-  source          = "./lambda"
-  name            = "fan_out_update_lease_status-${var.namespace}"
-  namespace       = var.namespace
-  description     = "Initiates the budget check lambda. Invokes a check-budget lamdba for each active lease"
-  global_tags     = var.global_tags
-  handler         = "fan_out_update_lease_status"
-  alarm_topic_arn = aws_sns_topic.alarms_topic.arn
+  source           = "./lambda"
+  name             = "fan_out_update_lease_status"
+  namespace        = var.namespace
+  namespace_prefix = var.namespace_prefix
+  description      = "Initiates the budget check lambda. Invokes a check-budget lamdba for each active lease"
+  global_tags      = var.global_tags
+  handler          = "fan_out_update_lease_status"
+  alarm_topic_arn  = aws_sns_topic.alarms_topic.arn
 
   environment = {
     AWS_CURRENT_REGION                = var.aws_region
@@ -22,13 +23,14 @@ resource "aws_iam_role_policy_attachment" "fan_out_update_lease_status_invoke_la
 }
 
 module "update_lease_status_lambda" {
-  source          = "./lambda"
-  name            = "update_lease_status-${var.namespace}"
-  namespace       = var.namespace
-  description     = "Checks spend for a lease within an AWS account, and locks lease if over budget"
-  handler         = "update_lease_status"
-  global_tags     = var.global_tags
-  alarm_topic_arn = aws_sns_topic.alarms_topic.arn
+  source           = "./lambda"
+  name             = "update_lease_status"
+  namespace        = var.namespace
+  namespace_prefix = var.namespace_prefix
+  description      = "Checks spend for a lease within an AWS account, and locks lease if over budget"
+  handler          = "update_lease_status"
+  global_tags      = var.global_tags
+  alarm_topic_arn  = aws_sns_topic.alarms_topic.arn
 
   environment = {
     AWS_CURRENT_REGION                        = var.aws_region

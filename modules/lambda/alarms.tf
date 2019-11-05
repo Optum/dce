@@ -1,5 +1,5 @@
 resource "aws_cloudwatch_metric_alarm" "lambda_errors" {
-  alarm_name                = "${var.name}-errors"
+  alarm_name                = "${var.namespace_prefix}-${var.name}-errors-${var.namespace}"
   comparison_operator       = "GreaterThanThreshold"
   evaluation_periods        = 1
   metric_name               = "Errors"
@@ -18,7 +18,7 @@ resource "aws_cloudwatch_metric_alarm" "lambda_errors" {
 }
 
 resource "aws_cloudwatch_metric_alarm" "lambda_duration" {
-  alarm_name          = "${var.name}-duration"
+  alarm_name          = "${var.namespace_prefix}-${var.name}-duration-${var.namespace}"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = 1
   namespace           = "AWS/Lambda"
@@ -36,7 +36,7 @@ resource "aws_cloudwatch_metric_alarm" "lambda_duration" {
 }
 
 resource "aws_cloudwatch_metric_alarm" "lambda_throttles" {
-  alarm_name          = "${var.name}-throttles"
+  alarm_name          = "${var.namespace_prefix}-${var.name}-throttles-${var.namespace}"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = 3
   namespace           = "AWS/Lambda"

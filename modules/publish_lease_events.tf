@@ -1,11 +1,12 @@
 module "publish_lease_events_lambda" {
-  source          = "./lambda"
-  name            = "publish_lease_events-${var.namespace}"
-  namespace       = var.namespace
-  description     = "Publishes lease change events to SNS and SQS in response to DB changes"
-  global_tags     = var.global_tags
-  handler         = "publish_lease_events"
-  alarm_topic_arn = aws_sns_topic.alarms_topic.arn
+  source           = "./lambda"
+  name             = "publish_lease_events"
+  namespace        = var.namespace
+  namespace_prefix = var.namespace_prefix
+  description      = "Publishes lease change events to SNS and SQS in response to DB changes"
+  global_tags      = var.global_tags
+  handler          = "publish_lease_events"
+  alarm_topic_arn  = aws_sns_topic.alarms_topic.arn
 
   environment = {
     AWS_CURRENT_REGION       = var.aws_region

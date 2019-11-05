@@ -1,9 +1,9 @@
 resource "aws_lambda_function" "fn" {
-  function_name = var.name
+  function_name = "${var.namespace_prefix}-${var.name}-${var.namespace}"
   description   = var.description
   runtime       = "go1.x"
   handler       = var.handler
-  role          = aws_iam_role.redbox_lambda_execution.arn
+  role          = aws_iam_role.lambda_execution.arn
   timeout       = 300
 
   # Stub an application deployment

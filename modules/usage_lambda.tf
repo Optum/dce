@@ -1,11 +1,12 @@
 module "usage_lambda" {
-  source          = "./lambda"
-  name            = "usage-${var.namespace}"
-  namespace       = var.namespace
-  description     = "API /usage endpoints"
-  global_tags     = var.global_tags
-  handler         = "usage"
-  alarm_topic_arn = aws_sns_topic.alarms_topic.arn
+  source           = "./lambda"
+  name             = "usage"
+  namespace_prefix = var.namespace_prefix
+  namespace        = var.namespace
+  description      = "API /usage endpoints"
+  global_tags      = var.global_tags
+  handler          = "usage"
+  alarm_topic_arn  = aws_sns_topic.alarms_topic.arn
 
   environment = {
     DEBUG              = "false"

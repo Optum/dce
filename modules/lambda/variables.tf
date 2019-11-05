@@ -21,3 +21,7 @@ variable "alarm_topic_arn" {
   type        = string
   description = "ARN of SNS Topic, for alarm notifications"
 }
+
+variable "namespace_prefix" {
+  type = string
+}

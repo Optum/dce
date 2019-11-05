@@ -1,22 +1,23 @@
 # SQS Queue, for triggering account reset
 resource "aws_sqs_queue" "account_reset" {
-  name = "redbox-account-reset-${var.namespace}"
+  name = "${var.namespace_prefix}-account-reset-${var.namespace}"
   tags = var.global_tags
 }
 
 # Lambda function to enqueue all active
-# Redbox accounts to be reset
+# accounts to be reset
 # Queries DB for all accounts
 # where `status != "READY"`, and adds
 # them to an SQS reset queue
 module "populate_reset_queue" {
-  source          = "./lambda"
-  name            = "populate_reset_queue-${var.namespace}"
-  namespace       = var.namespace
-  description     = "Enqueue all active Redbox accounts to be reset."
-  global_tags     = var.global_tags
-  handler         = "populate_reset_queue"
-  alarm_topic_arn = aws_sns_topic.alarms_topic.arn
+  source           = "./lambda"
+  name             = "populate_reset_queue"
+  namespace_prefix = var.namespace_prefix
+  namespace        = var.namespace
+  description      = "Enqueue all active accounts to be reset."
+  global_tags      = var.global_tags
+  handler          = "populate_reset_queue"
+  alarm_topic_arn  = aws_sns_topic.alarms_topic.arn
 
   environment = {
     DEBUG              = "false"
@@ -55,13 +56,14 @@ resource "aws_lambda_permission" "allow_populate_reset_queue" {
 # Will poll SQS on a schedule, and execute a CodePipline
 # for each account that needs to be reset
 module "process_reset_queue" {
-  source          = "./lambda"
-  name            = "process_reset_queue-${var.namespace}"
-  namespace       = var.namespace
-  description     = "Process events in the reset queue."
-  global_tags     = var.global_tags
-  handler         = "process_reset_queue"
-  alarm_topic_arn = aws_sns_topic.alarms_topic.arn
+  source           = "./lambda"
+  name             = "process_reset_queue"
+  namespace        = var.namespace
+  namespace_prefix = var.namespace_prefix
+  description      = "Process events in the reset queue."
+  global_tags      = var.global_tags
+  handler          = "process_reset_queue"
+  alarm_topic_arn  = aws_sns_topic.alarms_topic.arn
 
   environment = {
     DEBUG              = "false"
@@ -76,14 +78,14 @@ module "process_reset_queue" {
 # Trigger Execute Reset lambda function every few minutes
 # (to continuously poll SQS reset queue)
 resource "aws_cloudwatch_event_rule" "poll_sqs_reset" {
-  name                = "redbox-poll-reset-queue-${var.namespace}"
+  name                = "${var.namespace_prefix}-poll-reset-queue-${var.namespace}"
   description         = "Poll account reset queue"
   schedule_expression = "rate(3 minutes)"
 }
 
 resource "aws_cloudwatch_event_target" "poll_sqs_reset" {
   rule      = aws_cloudwatch_event_rule.poll_sqs_reset.name
-  target_id = "redbox-poll-reset-queue-${var.namespace}"
+  target_id = "${var.namespace_prefix}-poll-reset-queue-${var.namespace}"
   arn       = module.process_reset_queue.arn
 }
 

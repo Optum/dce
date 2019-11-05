@@ -15,6 +15,7 @@ set -euxo pipefail
 FILE=$1
 namespace=$2
 artifactBucket=$3
+namespace_prefix="${4-dce}"
 
 # check if build_artifacts.zip exists (generated from 'scripts/build.sh')
 if [[ -f "$FILE" ]]; then
@@ -26,7 +27,7 @@ if [[ -f "$FILE" ]]; then
     for i in $(ls -d __artifacts__/lambda/*.zip)
     do
         mod_name=$(basename ${i} | cut -f 1 -d '.')
-        fn_name="${mod_name}-${namespace}"
+        fn_name="${namespace_prefix}-${mod_name}-${namespace}"
         
         # Upload zip file to S3
         aws s3 cp \

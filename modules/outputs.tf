@@ -1,24 +1,24 @@
-output "redbox_account_db_table_name" {
+output "account_db_table_name" {
   value = aws_dynamodb_table.accounts.name
 }
 
-output "redbox_account_db_table_arn" {
+output "account_db_table_arn" {
   value = aws_dynamodb_table.accounts.arn
 }
 
-output "redbox_account_lease_db_table_name" {
+output "account_lease_db_table_name" {
   value = aws_dynamodb_table.leases.name
 }
 
-output "redbox_account_lease_db_table_arn" {
+output "account_lease_db_table_arn" {
   value = aws_dynamodb_table.leases.arn
 }
 
-output "redbox_lease_db_table_name" {
+output "lease_db_table_name" {
   value = aws_dynamodb_table.leases.name
 }
 
-output "redbox_lease_db_table_arn" {
+output "lease_db_table_arn" {
   value = aws_dynamodb_table.leases.arn
 }
 
@@ -119,12 +119,12 @@ output "api_access_policy_arn" {
   value = aws_iam_policy.api_execute_admin.arn
 }
 
-output "redbox_principal_role_name" {
-  value = local.redbox_principal_role_name
+output "principal_role_name" {
+  value = local.principal_role_name
 }
 
-output "redbox_principal_policy_name" {
-  value = local.redbox_principal_policy_name
+output "principal_policy_name" {
+  value = local.principal_policy_name
 }
 
 output "usage_cache_table_name" {
