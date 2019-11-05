@@ -10,7 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/iam"
 )
 
-func (c createController) createPrincipalRole(account db.RedboxAccount) (*rolemanager.CreateRoleWithPolicyOutput, string, error) {
+func (c createController) createPrincipalRole(account db.Account) (*rolemanager.CreateRoleWithPolicyOutput, string, error) {
 	// Create an assume role policy,
 	// to let principals from the same account assume the role.
 	//

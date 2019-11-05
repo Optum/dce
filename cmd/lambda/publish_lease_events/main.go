@@ -154,7 +154,7 @@ func handleRecord(input *handleRecordInput) error {
 	return nil
 }
 
-func leaseFromImage(image map[string]events.DynamoDBAttributeValue) (*db.RedboxLease, error) {
+func leaseFromImage(image map[string]events.DynamoDBAttributeValue) (*db.Lease, error) {
 
 	redboxLease, err := UnmarshalStreamImage(image)
 	if err != nil {
@@ -172,7 +172,7 @@ func isActiveStatus(status string) bool {
 type publishLeaseInput struct {
 	snsSvc   common.Notificationer
 	topicArn string
-	lease    *db.RedboxLease
+	lease    *db.Lease
 }
 
 func publishLease(input *publishLeaseInput) error {
@@ -194,7 +194,7 @@ func publishLease(input *publishLeaseInput) error {
 }
 
 // UnmarshalStreamImage converts events.DynamoDBAttributeValue to struct
-func UnmarshalStreamImage(attribute map[string]events.DynamoDBAttributeValue) (*db.RedboxLease, error) {
+func UnmarshalStreamImage(attribute map[string]events.DynamoDBAttributeValue) (*db.Lease, error) {
 
 	dbAttrMap := make(map[string]*dynamodb.AttributeValue)
 
@@ -212,7 +212,7 @@ func UnmarshalStreamImage(attribute map[string]events.DynamoDBAttributeValue) (*
 		dbAttrMap[k] = &dbAttr
 	}
 
-	out := db.RedboxLease{}
+	out := db.Lease{}
 	dynamodbattribute.UnmarshalMap(dbAttrMap, &out)
 	return &out, nil
 

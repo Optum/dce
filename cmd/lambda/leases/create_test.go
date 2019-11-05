@@ -129,12 +129,12 @@ func createPastCreateRequest() *events.APIGatewayProxyRequest {
 	}
 }
 
-func createActiveLease() *db.RedboxLease {
-	return &db.RedboxLease{}
+func createActiveLease() *db.Lease {
+	return &db.Lease{}
 }
 
-func createAccount() *db.RedboxAccount {
-	return &db.RedboxAccount{
+func createAccount() *db.Account {
+	return &db.Account{
 		ID: "987654321",
 	}
 }

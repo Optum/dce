@@ -16,7 +16,7 @@ import (
 	guuid "github.com/google/uuid"
 )
 
-// RedboxLease record
+// Lease record
 type RedboxLease struct {
 	AccountID      string `json:"AccountId"`
 	PrincipalID    string `json:"PrincipalId"`

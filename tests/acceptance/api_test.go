@@ -315,7 +315,7 @@ func TestApi(t *testing.T) {
 			acctID := "123"
 			principalID := "user"
 			timeNow := time.Now().Unix()
-			err := dbSvc.PutAccount(db.RedboxAccount{
+			err := dbSvc.PutAccount(db.Account{
 				ID:             acctID,
 				AccountStatus:  db.Ready,
 				LastModifiedOn: timeNow,
@@ -436,7 +436,7 @@ func TestApi(t *testing.T) {
 			acctID := "123"
 			principalID := "user"
 			timeNow := time.Now().Unix()
-			err := dbSvc.PutAccount(db.RedboxAccount{
+			err := dbSvc.PutAccount(db.Account{
 				ID:             acctID,
 				AccountStatus:  db.Leased,
 				LastModifiedOn: timeNow,
@@ -444,7 +444,7 @@ func TestApi(t *testing.T) {
 			require.Nil(t, err)
 
 			// Create an Lease Entry
-			_, err = dbSvc.PutLease(db.RedboxLease{
+			_, err = dbSvc.PutLease(db.Lease{
 				ID:                    uuid.New().String(),
 				PrincipalID:           principalID,
 				AccountID:             acctID,
@@ -537,7 +537,7 @@ func TestApi(t *testing.T) {
 			acctID := "123"
 			principalID := "user"
 			timeNow := time.Now().Unix()
-			err := dbSvc.PutAccount(db.RedboxAccount{
+			err := dbSvc.PutAccount(db.Account{
 				ID:             acctID,
 				AccountStatus:  db.Leased,
 				LastModifiedOn: timeNow,
@@ -545,7 +545,7 @@ func TestApi(t *testing.T) {
 			require.Nil(t, err)
 
 			// Create an Lease Entry
-			_, err = dbSvc.PutLease(db.RedboxLease{
+			_, err = dbSvc.PutLease(db.Lease{
 				ID:                    uuid.New().String(),
 				PrincipalID:           principalID,
 				AccountID:             acctID,
@@ -589,7 +589,7 @@ func TestApi(t *testing.T) {
 			acctID := "123"
 			principalID := "user"
 			timeNow := time.Now().Unix()
-			err := dbSvc.PutAccount(db.RedboxAccount{
+			err := dbSvc.PutAccount(db.Account{
 				ID:             acctID,
 				AccountStatus:  db.NotReady,
 				LastModifiedOn: timeNow,
@@ -597,7 +597,7 @@ func TestApi(t *testing.T) {
 			require.Nil(t, err)
 
 			// Create an Lease Entry
-			_, err = dbSvc.PutLease(db.RedboxLease{
+			_, err = dbSvc.PutLease(db.Lease{
 				ID:                    uuid.New().String(),
 				PrincipalID:           principalID,
 				AccountID:             acctID,
@@ -675,7 +675,7 @@ func TestApi(t *testing.T) {
 			// Check that the account is added to the DB
 			dbAccount, err := dbSvc.GetAccount(accountID)
 			require.Nil(t, err)
-			require.Equal(t, &db.RedboxAccount{
+			require.Equal(t, &db.Account{
 				ID:                  accountID,
 				AccountStatus:       "NotReady",
 				LastModifiedOn:      int64(postResJSON["lastModifiedOn"].(float64)),
@@ -1023,7 +1023,7 @@ func TestApi(t *testing.T) {
 		principalIDThree := "c"
 		principalIDFour := "d"
 
-		_, err = dbSvc.PutLease(db.RedboxLease{
+		_, err = dbSvc.PutLease(db.Lease{
 			ID:                uuid.New().String(),
 			AccountID:         accountIDOne,
 			PrincipalID:       principalIDOne,
@@ -1033,7 +1033,7 @@ func TestApi(t *testing.T) {
 
 		assert.Nil(t, err)
 
-		_, err = dbSvc.PutLease(db.RedboxLease{
+		_, err = dbSvc.PutLease(db.Lease{
 			ID:                uuid.New().String(),
 			AccountID:         accountIDOne,
 			PrincipalID:       principalIDTwo,
@@ -1043,7 +1043,7 @@ func TestApi(t *testing.T) {
 
 		assert.Nil(t, err)
 
-		_, err = dbSvc.PutLease(db.RedboxLease{
+		_, err = dbSvc.PutLease(db.Lease{
 			ID:                uuid.New().String(),
 			AccountID:         accountIDOne,
 			PrincipalID:       principalIDThree,
@@ -1053,7 +1053,7 @@ func TestApi(t *testing.T) {
 
 		assert.Nil(t, err)
 
-		_, err = dbSvc.PutLease(db.RedboxLease{
+		_, err = dbSvc.PutLease(db.Lease{
 			ID:                uuid.New().String(),
 			AccountID:         accountIDTwo,
 			PrincipalID:       principalIDFour,
@@ -1063,7 +1063,7 @@ func TestApi(t *testing.T) {
 
 		assert.Nil(t, err)
 
-		_, err = dbSvc.PutLease(db.RedboxLease{
+		_, err = dbSvc.PutLease(db.Lease{
 			ID:                uuid.New().String(),
 			AccountID:         accountIDTwo,
 			PrincipalID:       principalIDOne,

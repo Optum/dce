@@ -15,7 +15,7 @@ import (
 
 // enqueueRedboxes publishes a single redbox struct into the SQS
 // as an event for consumption
-func enqueueRedboxes(redboxes []*db.RedboxAccount, queueURL *string,
+func enqueueRedboxes(redboxes []*db.Account, queueURL *string,
 	queue common.Queue, dbSvc db.DBer) error {
 	// For each Redbox Account, send the message to Reset Queue and update
 	// FinanceLock Lease status if necessary

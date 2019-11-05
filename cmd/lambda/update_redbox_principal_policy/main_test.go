@@ -22,7 +22,7 @@ import (
 // function transitionFinanceLock
 type testUpdateRedboxPrincipalPolicy struct {
 	ExpectedError              error
-	GetAccountResult           *db.RedboxAccount
+	GetAccountResult           *db.Account
 	GetAccountError            error
 	TransitionLeaseStatusError error
 	PrincipalPolicyName        string
@@ -38,7 +38,7 @@ func TestUpdateRedboxPrincipalPolicy(t *testing.T) {
 	tests := []testUpdateRedboxPrincipalPolicy{
 		// Happy Path Update Principal Policy
 		{
-			GetAccountResult: &db.RedboxAccount{
+			GetAccountResult: &db.Account{
 				ID:           "123456789012",
 				AdminRoleArn: "arn:aws:iam::123456789012:role/RedBoxAdminRole",
 			},
@@ -50,7 +50,7 @@ func TestUpdateRedboxPrincipalPolicy(t *testing.T) {
 		},
 		// Same hash exists don't update.
 		{
-			GetAccountResult: &db.RedboxAccount{
+			GetAccountResult: &db.Account{
 				ID:                  "123456789012",
 				AdminRoleArn:        "arn:aws:iam::123456789012:role/RedBoxAdminRole",
 				PrincipalPolicyHash: "aHash",

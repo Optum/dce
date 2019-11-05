@@ -20,7 +20,7 @@ import (
 )
 
 func TestDeleteController_Call(t *testing.T) {
-	expectedAccount := db.RedboxAccount{
+	expectedAccount := db.Account{
 		ID: "1",
 	}
 	t.Run("When there are no errors", func(t *testing.T) {

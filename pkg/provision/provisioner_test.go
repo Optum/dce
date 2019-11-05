@@ -19,7 +19,7 @@ type testFindActiveLeaseForPrincipalInput struct {
 	ExpectedError             error
 	ExpectedLeasePrincipalID  string
 	ExpectedLeaseAccountID    string
-	FindLeaseByPrincipal      []*db.RedboxLease
+	FindLeaseByPrincipal      []*db.Lease
 	FindLeaseByPrincipalError error
 	ExpectLease               bool
 }
@@ -34,8 +34,8 @@ func TestFindActiveLeaseFoPrincipal(t *testing.T) {
 			ExpectedError:            nil,
 			ExpectedLeasePrincipalID: "",
 			ExpectedLeaseAccountID:   "",
-			FindLeaseByPrincipal: []*db.RedboxLease{
-				&db.RedboxLease{
+			FindLeaseByPrincipal: []*db.Lease{
+				&db.Lease{
 					PrincipalID: "abc",
 					AccountID:   "123",
 					LeaseStatus: db.Inactive,
@@ -48,8 +48,8 @@ func TestFindActiveLeaseFoPrincipal(t *testing.T) {
 			ExpectedError:            nil,
 			ExpectedLeasePrincipalID: "abc",
 			ExpectedLeaseAccountID:   "123",
-			FindLeaseByPrincipal: []*db.RedboxLease{
-				&db.RedboxLease{
+			FindLeaseByPrincipal: []*db.Lease{
+				&db.Lease{
 					PrincipalID: "abc",
 					AccountID:   "123",
 					LeaseStatus: db.Active,
@@ -99,7 +99,7 @@ type testFindLeaseWithAccountInput struct {
 	ExpectedError            error
 	ExpectedLeasePrincipalID string
 	ExpectedLeaseAccountID   string
-	FindLeasesByAccount      []*db.RedboxLease
+	FindLeasesByAccount      []*db.Lease
 	FindLeasesByAccountError error
 	ExpectLease              bool
 }
@@ -114,8 +114,8 @@ func TestFindLeaseWithAccount(t *testing.T) {
 			ExpectedError:            nil,
 			ExpectedLeasePrincipalID: "abc",
 			ExpectedLeaseAccountID:   "123",
-			FindLeasesByAccount: []*db.RedboxLease{
-				&db.RedboxLease{
+			FindLeasesByAccount: []*db.Lease{
+				&db.Lease{
 					PrincipalID: "abc",
 					AccountID:   "123",
 					LeaseStatus: db.Inactive,
@@ -128,8 +128,8 @@ func TestFindLeaseWithAccount(t *testing.T) {
 			ExpectedError:            nil,
 			ExpectedLeasePrincipalID: "",
 			ExpectedLeaseAccountID:   "",
-			FindLeasesByAccount: []*db.RedboxLease{
-				&db.RedboxLease{
+			FindLeasesByAccount: []*db.Lease{
+				&db.Lease{
 					PrincipalID: "def",
 					AccountID:   "123",
 					LeaseStatus: db.Inactive,
@@ -145,9 +145,9 @@ func TestFindLeaseWithAccount(t *testing.T) {
 		// Error Account has Active Lease
 		{
 			ExpectedError: errors.New("Attempt to lease Active Account as " +
-				"new Redbox - 123"),
-			FindLeasesByAccount: []*db.RedboxLease{
-				&db.RedboxLease{
+				"new DCE - 123"),
+			FindLeasesByAccount: []*db.Lease{
+				&db.Lease{
 					PrincipalID: "def",
 					AccountID:   "123",
 					LeaseStatus: db.Active,
@@ -189,12 +189,12 @@ func TestFindLeaseWithAccount(t *testing.T) {
 // testActivateLeaseInput is the structure input used for table
 // driven testing for ActivateAccount
 type testActivateLeaseInput struct {
-	ExpectedLease              *db.RedboxLease
+	ExpectedLease              *db.Lease
 	ExpectedError              error
 	Create                     bool
-	PutLease                   *db.RedboxLease
+	PutLease                   *db.Lease
 	PutLeaseError              error
-	TransitionLeaseStatusLease *db.RedboxLease
+	TransitionLeaseStatusLease *db.Lease
 	TransitionLeaseStatusError error
 }
 
@@ -202,7 +202,7 @@ type testActivateLeaseInput struct {
 // function to create or update an account lease as active for a principal
 func TestActivateLease(t *testing.T) {
 	// Construct test scenarios
-	lease := &db.RedboxLease{
+	lease := &db.Lease{
 		AccountID:         "123",
 		PrincipalID:       "abc",
 		LeaseStatus:       db.Active,
@@ -218,7 +218,7 @@ func TestActivateLease(t *testing.T) {
 		// Happy Path - Update
 		{
 			ExpectedLease: lease,
-			TransitionLeaseStatusLease: &db.RedboxLease{
+			TransitionLeaseStatusLease: &db.Lease{
 				AccountID:             "123",
 				PrincipalID:           "abc",
 				LeaseStatus:           db.Active,
@@ -279,7 +279,7 @@ func TestActivateLease(t *testing.T) {
 			require.Equal(t, test.ExpectedLease.LeaseStatus, assgn.LeaseStatus)
 			if test.Create {
 				for _, v := range mockDB.Calls[0].Arguments {
-					leaseID := v.(db.RedboxLease).ID
+					leaseID := v.(db.Lease).ID
 					_, err = uuid.Parse(leaseID)
 					require.Nil(t, err)
 				}

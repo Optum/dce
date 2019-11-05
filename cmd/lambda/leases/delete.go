@@ -55,7 +55,7 @@ func (c DeleteController) Call(ctx context.Context, req *events.APIGatewayProxyR
 	}
 
 	// Get the Account Lease
-	var acct *db.RedboxLease
+	var acct *db.Lease
 	for _, a := range accts {
 		if a.AccountID == requestBody.AccountID {
 			acct = a

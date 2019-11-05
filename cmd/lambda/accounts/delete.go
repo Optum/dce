@@ -59,7 +59,7 @@ func (controller deleteController) Call(ctx context.Context, req *events.APIGate
 }
 
 // sendSNS sends notification to SNS that the delete has occurred.
-func (controller deleteController) sendSNS(account *db.RedboxAccount) {
+func (controller deleteController) sendSNS(account *db.Account) {
 	serializedAccount := response.AccountResponse(*account)
 	serializedMessage, err := common.PrepareSNSMessageJSON(serializedAccount)
 
@@ -82,7 +82,7 @@ func (controller deleteController) sendToResetQueue(accountID string) {
 	}
 }
 
-func (controller deleteController) destroyIAMPrincipal(account *db.RedboxAccount) {
+func (controller deleteController) destroyIAMPrincipal(account *db.Account) {
 	// Assume role into the new Redbox account
 	accountSession, err := controller.TokenService.NewSession(&controller.AWSSession, account.AdminRoleArn)
 	if err != nil {

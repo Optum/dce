@@ -17,7 +17,7 @@ import (
 func TestListController_Call(t *testing.T) {
 
 	t.Run("When the invoking Call and there are no errors", func(t *testing.T) {
-		expectedAccounts := []*db.RedboxAccount{
+		expectedAccounts := []*db.Account{
 			{
 				ID:             "123456789",
 				AccountStatus:  "READY",

@@ -13,15 +13,15 @@ type Provisioner struct {
 }
 
 // ActivateAccount provides a mock function with given fields: _a0, _a1, _a2, _a3, _a4, _a5, _a6
-func (_m *Provisioner) ActivateAccount(_a0 bool, _a1 string, _a2 string, _a3 float64, _a4 string, _a5 []string, _a6 int64) (*db.RedboxLease, error) {
+func (_m *Provisioner) ActivateAccount(_a0 bool, _a1 string, _a2 string, _a3 float64, _a4 string, _a5 []string, _a6 int64) (*db.Lease, error) {
 	ret := _m.Called(_a0, _a1, _a2, _a3, _a4, _a5, _a6)
 
-	var r0 *db.RedboxLease
-	if rf, ok := ret.Get(0).(func(bool, string, string, float64, string, []string, int64) *db.RedboxLease); ok {
+	var r0 *db.Lease
+	if rf, ok := ret.Get(0).(func(bool, string, string, float64, string, []string, int64) *db.Lease); ok {
 		r0 = rf(_a0, _a1, _a2, _a3, _a4, _a5, _a6)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*db.RedboxLease)
+			r0 = ret.Get(0).(*db.Lease)
 		}
 	}
 
@@ -36,15 +36,15 @@ func (_m *Provisioner) ActivateAccount(_a0 bool, _a1 string, _a2 string, _a3 flo
 }
 
 // FindActiveLeaseForPrincipal provides a mock function with given fields: _a0
-func (_m *Provisioner) FindActiveLeaseForPrincipal(_a0 string) (*db.RedboxLease, error) {
+func (_m *Provisioner) FindActiveLeaseForPrincipal(_a0 string) (*db.Lease, error) {
 	ret := _m.Called(_a0)
 
-	var r0 *db.RedboxLease
-	if rf, ok := ret.Get(0).(func(string) *db.RedboxLease); ok {
+	var r0 *db.Lease
+	if rf, ok := ret.Get(0).(func(string) *db.Lease); ok {
 		r0 = rf(_a0)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*db.RedboxLease)
+			r0 = ret.Get(0).(*db.Lease)
 		}
 	}
 
@@ -59,15 +59,15 @@ func (_m *Provisioner) FindActiveLeaseForPrincipal(_a0 string) (*db.RedboxLease,
 }
 
 // FindLeaseWithAccount provides a mock function with given fields: _a0, _a1
-func (_m *Provisioner) FindLeaseWithAccount(_a0 string, _a1 string) (*db.RedboxLease, error) {
+func (_m *Provisioner) FindLeaseWithAccount(_a0 string, _a1 string) (*db.Lease, error) {
 	ret := _m.Called(_a0, _a1)
 
-	var r0 *db.RedboxLease
-	if rf, ok := ret.Get(0).(func(string, string) *db.RedboxLease); ok {
+	var r0 *db.Lease
+	if rf, ok := ret.Get(0).(func(string, string) *db.Lease); ok {
 		r0 = rf(_a0, _a1)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*db.RedboxLease)
+			r0 = ret.Get(0).(*db.Lease)
 		}
 	}
 

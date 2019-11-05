@@ -21,7 +21,7 @@ func TestLeaseFromImageSuccess(t *testing.T) {
 
 	// Arrange
 
-	expectedOutput := db.RedboxLease{
+	expectedOutput := db.Lease{
 		AccountID:                "TestAccountID",
 		PrincipalID:              "TestPrincipalID",
 		LeaseStatus:              db.Inactive,

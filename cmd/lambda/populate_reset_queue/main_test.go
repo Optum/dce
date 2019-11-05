@@ -36,7 +36,7 @@ func TestEnqueueRedbox(t *testing.T) {
 	}
 
 	// Iterate through each test in the list
-	redboxes := []*db.RedboxAccount{
+	redboxes := []*db.Account{
 		{
 			ID:            "123",
 			AccountStatus: "Leased",

@@ -138,7 +138,7 @@ func (c CreateController) Call(ctx context.Context, req *events.APIGatewayProxyR
 // publishLease is a helper function to create and publish an lease
 // structured message to an SNS Topic
 func publishLease(snsSvc common.Notificationer,
-	assgn *db.RedboxLease, topic *string) (*string, error) {
+	assgn *db.Lease, topic *string) (*string, error) {
 	// Create a LeaseResponse based on the assgn
 	assgnResp := response.CreateLeaseResponse(assgn)
 

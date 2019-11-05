@@ -17,7 +17,7 @@ import (
 func TestGetLeaseByID(t *testing.T) {
 
 	t.Run("When the invoking Call and there are no errors", func(t *testing.T) {
-		expectdLease := &db.RedboxLease{
+		expectdLease := &db.Lease{
 			ID:             "unique-id",
 			AccountID:      "123456789",
 			PrincipalID:    "test",

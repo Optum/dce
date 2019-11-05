@@ -81,7 +81,7 @@ func main() {
 	})
 }
 
-func eventToLease(leaseEvent interface{}) (*db.RedboxLease, error) {
+func eventToLease(leaseEvent interface{}) (*db.Lease, error) {
 	// Convert the interface to JSON
 	mapJSON, err := json.Marshal(leaseEvent)
 	if err != nil {
@@ -89,7 +89,7 @@ func eventToLease(leaseEvent interface{}) (*db.RedboxLease, error) {
 	}
 
 	// Convert the JSON back into a lease
-	var lease db.RedboxLease
+	var lease db.Lease
 	err = json.Unmarshal(mapJSON, &lease)
 	if err != nil {
 		return nil, err
@@ -99,7 +99,7 @@ func eventToLease(leaseEvent interface{}) (*db.RedboxLease, error) {
 
 type lambdaHandlerInput struct {
 	dbSvc                                  db.DBer
-	lease                                  *db.RedboxLease
+	lease                                  *db.Lease
 	awsSession                             awsiface.AwsSession
 	tokenSvc                               common.TokenService
 	budgetSvc                              budget.Service
@@ -188,7 +188,7 @@ func lambdaHandler(input *lambdaHandlerInput) error {
 
 // isLeaseExpried contains the logic for determining if a lease has already
 // expired, given the context.
-func isLeaseExpired(lease *db.RedboxLease, context *leaseContext) (bool, db.LeaseStatusReason) {
+func isLeaseExpired(lease *db.Lease, context *leaseContext) (bool, db.LeaseStatusReason) {
 
 	if context.expireDate >= lease.ExpiresOn {
 		return true, db.LeaseExpired

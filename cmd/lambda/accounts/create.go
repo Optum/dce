@@ -84,7 +84,7 @@ func (c createController) Call(ctx context.Context, req *events.APIGatewayProxyR
 
 	// Prepare the account record
 	now := time.Now().Unix()
-	account := db.RedboxAccount{
+	account := db.Account{
 		ID:             request.ID,
 		AccountStatus:  db.NotReady,
 		LastModifiedOn: now,

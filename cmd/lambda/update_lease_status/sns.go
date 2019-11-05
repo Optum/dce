@@ -10,7 +10,7 @@ import (
 type leaseChangeEvent struct {
 	snsSvc             common.Notificationer
 	leaseEventTopicArn string
-	lease              *db.RedboxLease
+	lease              *db.Lease
 }
 
 //

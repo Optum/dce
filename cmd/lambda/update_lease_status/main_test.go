@@ -90,7 +90,7 @@ has exceeded its budget of $100. Actual spend is $150
 		emailSvc := &emailMocks.Service{}
 		input := &lambdaHandlerInput{
 			dbSvc: dbSvc,
-			lease: &db.RedboxLease{
+			lease: &db.Lease{
 				AccountID:                "1234567890",
 				PrincipalID:              "test-user",
 				LeaseStatus:              test.leaseStatus,
@@ -119,7 +119,7 @@ has exceeded its budget of $100. Actual spend is $150
 
 		// Should grab the account from the DB, to get it's adminRoleArn
 		dbSvc.On("GetAccount", "1234567890").
-			Return(&db.RedboxAccount{
+			Return(&db.Account{
 				AdminRoleArn: "mock:admin:role:arn",
 			}, nil)
 
@@ -160,7 +160,7 @@ has exceeded its budget of $100. Actual spend is $150
 				"1234567890", "test-user",
 				db.Active, test.expectedLeaseStatusTransition,
 				mock.Anything,
-			).Return(func(acctID string, pID string, from db.LeaseStatus, to db.LeaseStatus, reason db.LeaseStatusReason) *db.RedboxLease {
+			).Return(func(acctID string, pID string, from db.LeaseStatus, to db.LeaseStatus, reason db.LeaseStatusReason) *db.Lease {
 				// Return the lease object, with it's updated status
 				input.lease.LeaseStatus = test.expectedLeaseStatusTransition
 				return input.lease
@@ -290,11 +290,11 @@ Actual spend is $76
 }
 func Test_isLeaseExpired(t *testing.T) {
 	type args struct {
-		lease   *db.RedboxLease
+		lease   *db.Lease
 		context *leaseContext
 	}
 	emails := []string{"joe@example.com"}
-	lease := &db.RedboxLease{
+	lease := &db.Lease{
 		AccountID:                "12345",
 		PrincipalID:              "98765",
 		LeaseStatus:              db.Inactive,

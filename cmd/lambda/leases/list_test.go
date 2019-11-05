@@ -134,7 +134,7 @@ func createGetEmptyLeasesRequest() *events.APIGatewayProxyRequest {
 func createLeasesOutput() *db.GetLeasesOutput {
 
 	nextKeys := make(map[string]string)
-	leases := []*db.RedboxLease{
+	leases := []*db.Lease{
 		{
 			ID:             "unique-id",
 			AccountID:      "987654321",
@@ -152,7 +152,7 @@ func createLeasesOutput() *db.GetLeasesOutput {
 func createEmptyLeasesOutput() *db.GetLeasesOutput {
 
 	nextKeys := make(map[string]string)
-	leases := []*db.RedboxLease{}
+	leases := []*db.Lease{}
 	return &db.GetLeasesOutput{
 		NextKeys: nextKeys,
 		Results:  leases,

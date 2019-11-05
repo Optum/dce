@@ -15,7 +15,7 @@ import (
 
 /*
 The `UsageDB` service abstracts all interactions
-with the Redbox DynamoDB usage table
+with the DynamoDB usage table
 */
 
 // DB contains DynamoDB client and table names

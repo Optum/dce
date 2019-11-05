@@ -43,13 +43,13 @@ func TestDeleteController_Call(t *testing.T) {
 	mockDB := &mockDB.DBer{}
 	mockSNS := &commonMock.Notificationer{}
 
-	lease := &db.RedboxLease{
+	lease := &db.Lease{
 		AccountID:   "123456789",
 		PrincipalID: "12345",
 		LeaseStatus: db.Inactive,
 	}
 
-	// otherLease := &db.RedboxLease{
+	// otherLease := &db.Lease{
 	// 	AccountID:   "123456789",
 	// 	PrincipalID: "23456",
 	// 	LeaseStatus: db.Inactive,
@@ -154,13 +154,13 @@ func createSuccessfulDeleteRequest() *events.APIGatewayProxyRequest {
 	}
 }
 
-func createNoAccountsForLeaseDBResponse() []*db.RedboxLease {
-	leases := []*db.RedboxLease{}
+func createNoAccountsForLeaseDBResponse() []*db.Lease {
+	leases := []*db.Lease{}
 	return leases
 }
 
-func createNonMatchingAccountListDBResponse() []*db.RedboxLease {
-	leases := []*db.RedboxLease{
+func createNonMatchingAccountListDBResponse() []*db.Lease {
+	leases := []*db.Lease{
 		{
 			AccountID:   "987654321",
 			PrincipalID: "67890",
@@ -170,8 +170,8 @@ func createNonMatchingAccountListDBResponse() []*db.RedboxLease {
 	return leases
 }
 
-func createSuccessfulDeleteDBResponse() []*db.RedboxLease {
-	leases := []*db.RedboxLease{
+func createSuccessfulDeleteDBResponse() []*db.Lease {
+	leases := []*db.Lease{
 		{
 			AccountID:   "123456789",
 			PrincipalID: "12345",
@@ -181,14 +181,14 @@ func createSuccessfulDeleteDBResponse() []*db.RedboxLease {
 	return leases
 }
 
-func createAccountForDelete() *db.RedboxAccount {
-	return &db.RedboxAccount{
+func createAccountForDelete() *db.Account {
+	return &db.Account{
 		ID: "987654321",
 	}
 }
 
 func createSuccessDeleteResponse() events.APIGatewayProxyResponse {
-	lease := &db.RedboxLease{
+	lease := &db.Lease{
 		PrincipalID: "12345",
 		AccountID:   "123456789",
 		LeaseStatus: db.Inactive,

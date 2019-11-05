@@ -224,8 +224,8 @@ func TestGetLeaseAuth(t *testing.T) {
 
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
-				expectedLease := &db.RedboxLease{}
-				expectedAccount := &db.RedboxAccount{}
+				expectedLease := &db.Lease{}
+				expectedAccount := &db.Account{}
 
 				mockRequest := events.APIGatewayProxyRequest{
 					HTTPMethod: http.MethodGet,
@@ -243,7 +243,7 @@ func TestGetLeaseAuth(t *testing.T) {
 				mockDb := mocks.DBer{}
 
 				if tt.leaseID != "" {
-					expectedLease = &db.RedboxLease{
+					expectedLease = &db.Lease{
 						ID:          tt.leaseID,
 						AccountID:   tt.accountID,
 						LeaseStatus: tt.leaseStatus,
@@ -260,7 +260,7 @@ func TestGetLeaseAuth(t *testing.T) {
 					mockDb.On("GetLeaseByID", "badLease").Return(nil, tt.getLeaseByIDErr)
 				}
 				if tt.accountID != "" {
-					expectedAccount = &db.RedboxAccount{
+					expectedAccount = &db.Account{
 						ID:               tt.accountID,
 						AccountStatus:    db.Ready,
 						PrincipalRoleArn: tt.principalRoleArn,

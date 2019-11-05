@@ -94,7 +94,7 @@ func TestProvisioner(t *testing.T) {
 			sevenDaysFromNow := time.Now().AddDate(0, 0, 7).Unix()
 
 			timeNow := time.Now().Unix()
-			assgn := db.RedboxLease{
+			assgn := db.Lease{
 				ID:                    uuid.New().String(),
 				AccountID:             acctID,
 				PrincipalID:           principalID,
@@ -105,7 +105,7 @@ func TestProvisioner(t *testing.T) {
 			}
 			putAssgn, err := dbSvc.PutLease(assgn)
 			require.Nil(t, err)
-			require.Equal(t, db.RedboxLease{}, *putAssgn) // should return an empty account lease since its new
+			require.Equal(t, db.Lease{}, *putAssgn) // should return an empty account lease since its new
 
 			// Activate the below Account Lease
 			result, err := provSvc.ActivateAccount(true, principalID,

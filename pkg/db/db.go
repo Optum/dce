@@ -20,49 +20,48 @@ import (
 )
 
 /*
-The `DB` service abstracts all interactions
-with the Redbox DynamoDB tables
+The `DB` service abstracts all interactions with the DynamoDB tables
 */
 
 // DB contains DynamoDB client and table names
 type DB struct {
 	// DynamoDB Client
 	Client *dynamodb.DynamoDB
-	// Name of the RedboxAccount table
+	// Name of the Account table
 	AccountTableName string
-	// Name of the RedboxLease table
+	// Name of the Lease table
 	LeaseTableName string
 	// Default expiry time, in days, of the lease
 	DefaultLeaseLengthInDays int
-	// Use Consistend Reads when scanning or querying.  When possbile.
-	ConsistendRead bool
+	// Use Consistent Reads when scanning or querying when possible.
+	ConsistentRead bool
 }
 
 // The DBer interface includes all methods used by the DB struct to interact with
 // DynamoDB. This is useful if we want to mock the DB service.
 type DBer interface {
-	GetAccount(accountID string) (*RedboxAccount, error)
-	GetReadyAccount() (*RedboxAccount, error)
-	GetAccounts() ([]*RedboxAccount, error)
+	GetAccount(accountID string) (*Account, error)
+	GetReadyAccount() (*Account, error)
+	GetAccounts() ([]*Account, error)
 	GetLeases(input GetLeasesInput) (GetLeasesOutput, error)
-	GetLeaseByID(leaseID string) (*RedboxLease, error)
-	FindAccountsByStatus(status AccountStatus) ([]*RedboxAccount, error)
-	FindAccountsByPrincipalID(principalID string) ([]*RedboxAccount, error)
-	PutAccount(account RedboxAccount) error
-	DeleteAccount(accountID string) (*RedboxAccount, error)
-	PutLease(account RedboxLease) (*RedboxLease, error)
-	TransitionAccountStatus(accountID string, prevStatus AccountStatus, nextStatus AccountStatus) (*RedboxAccount, error)
-	TransitionLeaseStatus(accountID string, principalID string, prevStatus LeaseStatus, nextStatus LeaseStatus, leaseStatusReason LeaseStatusReason) (*RedboxLease, error)
-	FindLeasesByAccount(accountID string) ([]*RedboxLease, error)
-	FindLeasesByPrincipal(principalID string) ([]*RedboxLease, error)
-	FindLeasesByStatus(status LeaseStatus) ([]*RedboxLease, error)
+	GetLeaseByID(leaseID string) (*Lease, error)
+	FindAccountsByStatus(status AccountStatus) ([]*Account, error)
+	FindAccountsByPrincipalID(principalID string) ([]*Account, error)
+	PutAccount(account Account) error
+	DeleteAccount(accountID string) (*Account, error)
+	PutLease(account Lease) (*Lease, error)
+	TransitionAccountStatus(accountID string, prevStatus AccountStatus, nextStatus AccountStatus) (*Account, error)
+	TransitionLeaseStatus(accountID string, principalID string, prevStatus LeaseStatus, nextStatus LeaseStatus, leaseStatusReason LeaseStatusReason) (*Lease, error)
+	FindLeasesByAccount(accountID string) ([]*Lease, error)
+	FindLeasesByPrincipal(principalID string) ([]*Lease, error)
+	FindLeasesByStatus(status LeaseStatus) ([]*Lease, error)
 	UpdateMetadata(accountID string, metadata map[string]interface{}) error
-	UpdateAccountPrincipalPolicyHash(accountID string, prevHash string, nextHash string) (*RedboxAccount, error)
+	UpdateAccountPrincipalPolicyHash(accountID string, prevHash string, nextHash string) (*Account, error)
 }
 
-// GetAccount returns a Redbox account record corresponding to an accountID
+// GetAccount returns an account record corresponding to an accountID
 // string.
-func (db *DB) GetAccount(accountID string) (*RedboxAccount, error) {
+func (db *DB) GetAccount(accountID string) (*Account, error) {
 	result, err := db.Client.GetItem(
 		&dynamodb.GetItemInput{
 			TableName: aws.String(db.AccountTableName),
@@ -71,7 +70,7 @@ func (db *DB) GetAccount(accountID string) (*RedboxAccount, error) {
 					S: aws.String(accountID),
 				},
 			},
-			ConsistentRead: aws.Bool(db.ConsistendRead),
+			ConsistentRead: aws.Bool(db.ConsistentRead),
 		},
 	)
 	if err != nil {
@@ -87,20 +86,20 @@ func (db *DB) GetAccount(accountID string) (*RedboxAccount, error) {
 
 // GetAccounts returns a list of accounts from the table
 // TODO implement pagination and query support
-func (db *DB) GetAccounts() ([]*RedboxAccount, error) {
+func (db *DB) GetAccounts() ([]*Account, error) {
 	input := &dynamodb.ScanInput{
 		TableName:      aws.String(db.AccountTableName),
-		ConsistentRead: aws.Bool(db.ConsistendRead),
+		ConsistentRead: aws.Bool(db.ConsistentRead),
 	}
 
 	// Execute and verify the query
 	resp, err := db.Client.Scan(input)
 	if err != nil {
-		return make([]*RedboxAccount, 0), err
+		return make([]*Account, 0), err
 	}
 
-	// Return the Redbox Account
-	accounts := []*RedboxAccount{}
+	// Return the Account
+	accounts := []*Account{}
 	for _, r := range resp.Items {
 		n, err := unmarshalAccount(r)
 		if err != nil {
@@ -111,9 +110,9 @@ func (db *DB) GetAccounts() ([]*RedboxAccount, error) {
 	return accounts, nil
 }
 
-// GetReadyAccount returns an available Redbox account record with a
+// GetReadyAccount returns an available account record with a
 // corresponding status of 'Ready'
-func (db *DB) GetReadyAccount() (*RedboxAccount, error) {
+func (db *DB) GetReadyAccount() (*Account, error) {
 	accounts, err := db.FindAccountsByStatus(Ready)
 	if len(accounts) < 1 {
 		return nil, err
@@ -121,7 +120,7 @@ func (db *DB) GetReadyAccount() (*RedboxAccount, error) {
 	return accounts[0], err
 }
 
-func (db *DB) FindAccountsByStatus(status AccountStatus) ([]*RedboxAccount, error) {
+func (db *DB) FindAccountsByStatus(status AccountStatus) ([]*Account, error) {
 	res, err := db.Client.Query(&dynamodb.QueryInput{
 		TableName: aws.String(db.AccountTableName),
 		IndexName: aws.String("AccountStatus"),
@@ -133,7 +132,7 @@ func (db *DB) FindAccountsByStatus(status AccountStatus) ([]*RedboxAccount, erro
 		KeyConditionExpression: aws.String("AccountStatus = :status"),
 	})
 
-	accounts := []*RedboxAccount{}
+	accounts := []*Account{}
 
 	if err != nil {
 		return accounts, err
@@ -149,7 +148,7 @@ func (db *DB) FindAccountsByStatus(status AccountStatus) ([]*RedboxAccount, erro
 
 	return accounts, nil
 }
-func (db *DB) FindAccountsByPrincipalID(principalID string) ([]*RedboxAccount, error) {
+func (db *DB) FindAccountsByPrincipalID(principalID string) ([]*Account, error) {
 	res, err := db.Client.Query(&dynamodb.QueryInput{
 		TableName: aws.String(db.AccountTableName),
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
@@ -158,10 +157,10 @@ func (db *DB) FindAccountsByPrincipalID(principalID string) ([]*RedboxAccount, e
 			},
 		},
 		KeyConditionExpression: aws.String("PrincipalId = :pid"),
-		ConsistentRead:         aws.Bool(db.ConsistendRead),
+		ConsistentRead:         aws.Bool(db.ConsistentRead),
 	})
 
-	accounts := []*RedboxAccount{}
+	accounts := []*Account{}
 
 	if err != nil {
 		return accounts, err
@@ -179,7 +178,7 @@ func (db *DB) FindAccountsByPrincipalID(principalID string) ([]*RedboxAccount, e
 }
 
 // GetLeaseByID gets a lease by ID
-func (db *DB) GetLeaseByID(leaseID string) (*RedboxLease, error) {
+func (db *DB) GetLeaseByID(leaseID string) (*Lease, error) {
 
 	input := &dynamodb.QueryInput{
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
@@ -209,7 +208,7 @@ func (db *DB) GetLeaseByID(leaseID string) (*RedboxLease, error) {
 
 // GetLease retrieves a Lease for the
 // given accountID and principalID
-func (db *DB) GetLease(accountID string, principalID string) (*RedboxLease, error) {
+func (db *DB) GetLease(accountID string, principalID string) (*Lease, error) {
 	result, err := db.Client.GetItem(
 		&dynamodb.GetItemInput{
 			TableName: aws.String(db.LeaseTableName),
@@ -222,7 +221,7 @@ func (db *DB) GetLease(accountID string, principalID string) (*RedboxLease, erro
 					S: aws.String(principalID),
 				},
 			},
-			ConsistentRead: aws.Bool(db.ConsistendRead),
+			ConsistentRead: aws.Bool(db.ConsistentRead),
 		},
 	)
 
@@ -238,7 +237,7 @@ func (db *DB) GetLease(accountID string, principalID string) (*RedboxLease, erro
 }
 
 // FindLeasesByAccount finds lease values for a given accountID
-func (db *DB) FindLeasesByAccount(accountID string) ([]*RedboxLease, error) {
+func (db *DB) FindLeasesByAccount(accountID string) ([]*Lease, error) {
 	input := &dynamodb.QueryInput{
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
 			":a1": {
@@ -247,7 +246,7 @@ func (db *DB) FindLeasesByAccount(accountID string) ([]*RedboxLease, error) {
 		},
 		KeyConditionExpression: aws.String("AccountId = :a1"),
 		TableName:              aws.String(db.LeaseTableName),
-		ConsistentRead:         aws.Bool(db.ConsistendRead),
+		ConsistentRead:         aws.Bool(db.ConsistentRead),
 	}
 
 	resp, err := db.Client.Query(input)
@@ -255,20 +254,20 @@ func (db *DB) FindLeasesByAccount(accountID string) ([]*RedboxLease, error) {
 		return nil, err
 	}
 
-	var redboxes []*RedboxLease
+	var leases []*Lease
 	for _, r := range resp.Items {
 		n, err := unmarshalLease(r)
 		if err != nil {
 			return nil, err
 		}
-		redboxes = append(redboxes, n)
+		leases = append(leases, n)
 	}
 
-	return redboxes, nil
+	return leases, nil
 }
 
-//FindLeasesByPrincipal finds leased accounts for a given principalID
-func (db *DB) FindLeasesByPrincipal(principalID string) ([]*RedboxLease, error) {
+// FindLeasesByPrincipal finds leased accounts for a given principalID
+func (db *DB) FindLeasesByPrincipal(principalID string) ([]*Lease, error) {
 	input := &dynamodb.QueryInput{
 		IndexName: aws.String("PrincipalId"),
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
@@ -288,19 +287,19 @@ func (db *DB) FindLeasesByPrincipal(principalID string) ([]*RedboxLease, error) 
 		return nil, nil
 	}
 
-	var redboxes []*RedboxLease
+	var leases []*Lease
 	for _, r := range resp.Items {
 		n, err := unmarshalLease(r)
 		if err != nil {
 			return nil, err
 		}
-		redboxes = append(redboxes, n)
+		leases = append(leases, n)
 	}
 
-	return redboxes, nil
+	return leases, nil
 }
 
-func (db *DB) FindLeasesByStatus(status LeaseStatus) ([]*RedboxLease, error) {
+func (db *DB) FindLeasesByStatus(status LeaseStatus) ([]*Lease, error) {
 	res, err := db.Client.Query(&dynamodb.QueryInput{
 		IndexName: aws.String("LeaseStatus"),
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
@@ -312,7 +311,7 @@ func (db *DB) FindLeasesByStatus(status LeaseStatus) ([]*RedboxLease, error) {
 		TableName:              aws.String(db.LeaseTableName),
 	})
 
-	leases := []*RedboxLease{}
+	leases := []*Lease{}
 
 	if err != nil {
 		return leases, err
@@ -329,8 +328,8 @@ func (db *DB) FindLeasesByStatus(status LeaseStatus) ([]*RedboxLease, error) {
 	return leases, nil
 }
 
-// PutAccount stores a Redbox account in DynamoDB
-func (db *DB) PutAccount(account RedboxAccount) error {
+// PutAccount stores an account in DynamoDB
+func (db *DB) PutAccount(account Account) error {
 	item, err := dynamodbattribute.MarshalMap(account)
 	if err != nil {
 		return err
@@ -348,8 +347,8 @@ func (db *DB) PutAccount(account RedboxAccount) error {
 // PutLease writes an Lease to DynamoDB
 // Returns the previous AccountsLease if there is one - does not return
 // the lease that was added
-func (db *DB) PutLease(lease RedboxLease) (
-	*RedboxLease, error) {
+func (db *DB) PutLease(lease Lease) (
+	*Lease, error) {
 
 	// apply some reasonable DEFAULTS to the lease before saving it.
 	if len(lease.ID) == 0 {
@@ -385,7 +384,7 @@ func (db *DB) PutLease(lease RedboxLease) (
 //
 // And to unlock the account:
 //		db.TransitionLeaseStatus(accountId, principalID, ResetLock, Active)
-func (db *DB) TransitionLeaseStatus(accountID string, principalID string, prevStatus LeaseStatus, nextStatus LeaseStatus, leaseStatusReason LeaseStatusReason) (*RedboxLease, error) {
+func (db *DB) TransitionLeaseStatus(accountID string, principalID string, prevStatus LeaseStatus, nextStatus LeaseStatus, leaseStatusReason LeaseStatusReason) (*Lease, error) {
 	result, err := db.Client.UpdateItem(
 		&dynamodb.UpdateItemInput{
 			// Query in Lease Table
@@ -449,7 +448,7 @@ func (db *DB) TransitionLeaseStatus(accountID string, principalID string, prevSt
 
 // TransitionAccountStatus updates account status for a given accountID and
 // returns the updated record on success
-func (db *DB) TransitionAccountStatus(accountID string, prevStatus AccountStatus, nextStatus AccountStatus) (*RedboxAccount, error) {
+func (db *DB) TransitionAccountStatus(accountID string, prevStatus AccountStatus, nextStatus AccountStatus) (*Account, error) {
 	result, err := db.Client.UpdateItem(
 		&dynamodb.UpdateItemInput{
 			// Query in Lease Table
@@ -502,8 +501,8 @@ func (db *DB) TransitionAccountStatus(accountID string, prevStatus AccountStatus
 }
 
 // UpdateAccountPrincipalPolicyHash updates hash representing the
-// current version of the Principal IAM Policy applied to the acount
-func (db *DB) UpdateAccountPrincipalPolicyHash(accountID string, prevHash string, nextHash string) (*RedboxAccount, error) {
+// current version of the Principal IAM Policy applied to the account
+func (db *DB) UpdateAccountPrincipalPolicyHash(accountID string, prevHash string, nextHash string) (*Account, error) {
 
 	conditionExpression := expression.ConditionBuilder{}
 	if prevHash != "" {
@@ -568,7 +567,7 @@ func (db *DB) UpdateAccountPrincipalPolicyHash(accountID string, prevHash string
 }
 
 // DeleteAccount finds a given account and deletes it if it is not of status `Leased`. Returns the account.
-func (db *DB) DeleteAccount(accountID string) (*RedboxAccount, error) {
+func (db *DB) DeleteAccount(accountID string) (*Account, error) {
 	account, err := db.GetAccount(accountID)
 
 	if err != nil {
@@ -613,7 +612,7 @@ type GetLeasesInput struct {
 
 // GetLeasesOutput contains the scan results as well as the keys for retrieve the next page of the result set.
 type GetLeasesOutput struct {
-	Results  []*RedboxLease
+	Results  []*Lease
 	NextKeys map[string]string
 }
 
@@ -630,7 +629,7 @@ func (db *DB) GetLeases(input GetLeasesInput) (GetLeasesOutput, error) {
 	scanInput := &dynamodb.ScanInput{
 		TableName:      aws.String(db.LeaseTableName),
 		Limit:          &limit,
-		ConsistentRead: aws.Bool(db.ConsistendRead),
+		ConsistentRead: aws.Bool(db.ConsistentRead),
 	}
 
 	// Build the filter clauses.
@@ -669,7 +668,7 @@ func (db *DB) GetLeases(input GetLeasesInput) (GetLeasesOutput, error) {
 		return GetLeasesOutput{}, err
 	}
 
-	results := make([]*RedboxLease, 0)
+	results := make([]*Lease, 0)
 
 	for _, o := range output.Items {
 		lease, err := unmarshalLease(o)
@@ -727,25 +726,25 @@ func (db *DB) UpdateMetadata(accountID string, metadata map[string]interface{}) 
 	return nil
 }
 
-func unmarshalAccount(dbResult map[string]*dynamodb.AttributeValue) (*RedboxAccount, error) {
-	redboxAccount := RedboxAccount{}
-	err := dynamodbattribute.UnmarshalMap(dbResult, &redboxAccount)
+func unmarshalAccount(dbResult map[string]*dynamodb.AttributeValue) (*Account, error) {
+	account := Account{}
+	err := dynamodbattribute.UnmarshalMap(dbResult, &account)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return &redboxAccount, nil
+	return &account, nil
 }
 
-func unmarshalLease(dbResult map[string]*dynamodb.AttributeValue) (*RedboxLease, error) {
-	redboxLease := RedboxLease{}
-	err := dynamodbattribute.UnmarshalMap(dbResult, &redboxLease)
+func unmarshalLease(dbResult map[string]*dynamodb.AttributeValue) (*Lease, error) {
+	lease := Lease{}
+	err := dynamodbattribute.UnmarshalMap(dbResult, &lease)
 	if err != nil {
 		return nil, err
 	}
 
-	return &redboxLease, nil
+	return &lease, nil
 }
 
 // New creates a new DB Service struct,
@@ -762,7 +761,7 @@ func New(client *dynamodb.DynamoDB, accountTableName string, leaseTableName stri
 		AccountTableName:         accountTableName,
 		LeaseTableName:           leaseTableName,
 		DefaultLeaseLengthInDays: defaultLeaseLengthInDays,
-		ConsistendRead:           false,
+		ConsistentRead:           false,
 	}
 }
 

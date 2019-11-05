@@ -11,7 +11,7 @@ import (
 )
 
 type sendBudgetNotificationEmailInput struct {
-	lease                                  *db.RedboxLease
+	lease                                  *db.Lease
 	emailSvc                               email.Service
 	budgetNotificationFromEmail            string
 	budgetNotificationBCCEmails            []string
@@ -46,7 +46,7 @@ func sendBudgetNotificationEmail(input *sendBudgetNotificationEmailInput) error 
 
 	// Render email templates
 	templateData := struct {
-		Lease               db.RedboxLease
+		Lease               db.Lease
 		ActualSpend         float64
 		IsOverBudget        bool
 		ThresholdPercentile int

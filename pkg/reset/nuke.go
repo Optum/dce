@@ -38,7 +38,7 @@ func NukeAccount(input *NukeAccountInput) error {
 
 	// Get the Credentials of the Role to be assumed into for the Nuke
 	roleArn := "arn:aws:iam::" + input.AccountID + ":role/" + input.RoleName
-	roleSessionName := "RedboxNuke" + input.AccountID
+	roleSessionName := "DCENuke" + input.AccountID
 	assumeRoleInputs := sts.AssumeRoleInput{
 		RoleArn:         &roleArn,
 		RoleSessionName: &roleSessionName,

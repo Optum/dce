@@ -17,7 +17,7 @@ import (
 func TestGetAccountByID(t *testing.T) {
 
 	t.Run("When the invoking Call and there are no errors", func(t *testing.T) {
-		expectedAccount := &db.RedboxAccount{
+		expectedAccount := &db.Account{
 			ID:             "123456789",
 			AccountStatus:  db.Ready,
 			LastModifiedOn: 1561149393,

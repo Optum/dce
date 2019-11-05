@@ -29,7 +29,7 @@ import (
 
 func TestCreate(t *testing.T) {
 
-	t.Run("should return a RedboxAccount object", func(t *testing.T) {
+	t.Run("should return a Account object", func(t *testing.T) {
 		// Send request
 		req := createAccountAPIRequest(t, createRequest{
 			ID:           "1234567890",
@@ -129,7 +129,7 @@ func TestCreate(t *testing.T) {
 
 		// Mock the DB method to create the Account
 		mockDb.On("PutAccount",
-			mock.MatchedBy(func(account db.RedboxAccount) bool {
+			mock.MatchedBy(func(account db.Account) bool {
 				assert.Equal(t, "1234567890", account.ID)
 				assert.Equal(t, "arn:mock", account.AdminRoleArn)
 				assert.Equal(t, "arn:aws:iam::123456789012:role/RedboxPrincipal", account.PrincipalRoleArn)
@@ -155,7 +155,7 @@ func TestCreate(t *testing.T) {
 
 		// Mock the DB, so that the account already exist
 		mockDb.On("GetAccount", "1234567890").
-			Return(&db.RedboxAccount{}, nil)
+			Return(&db.Account{}, nil)
 
 		// Send an API request
 		req := createAccountAPIRequest(t, createRequest{
@@ -458,8 +458,8 @@ func dbStub() *dbMocks.DBer {
 		Return(nil, nil)
 	mockDb.On("PutAccount", mock.Anything).Return(nil)
 	mockDb.On("DeleteAccount", mock.Anything).
-		Return(func(accountID string) *db.RedboxAccount {
-			return &db.RedboxAccount{ID: accountID}
+		Return(func(accountID string) *db.Account {
+			return &db.Account{ID: accountID}
 		}, nil)
 
 	return mockDb

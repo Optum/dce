@@ -26,7 +26,7 @@ func TestResetPipeline(t *testing.T) {
 			// Should change the Account Status
 			dbSvc.
 				On("TransitionAccountStatus", "111", db.NotReady, db.Ready).
-				Return(&db.RedboxAccount{}, nil)
+				Return(&db.Account{}, nil)
 
 			snsSvc.On("PublishMessage",
 				mock.MatchedBy(func(arn *string) bool {
@@ -70,7 +70,7 @@ func TestResetPipeline(t *testing.T) {
 
 			dbSvc.
 				On("GetAccount", "111").
-				Return(&db.RedboxAccount{}, nil)
+				Return(&db.Account{}, nil)
 
 			snsSvc.On("PublishMessage",
 				mock.MatchedBy(func(arn *string) bool {

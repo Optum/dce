@@ -14,8 +14,8 @@ import (
 )
 
 type calculateSpendInput struct {
-	account    *db.RedboxAccount
-	lease      *db.RedboxLease
+	account    *db.Account
+	lease      *db.Lease
 	tokenSvc   common.TokenService
 	budgetSvc  budget.Service
 	usageSvc   usage.Service
