@@ -613,7 +613,8 @@ paths:
           description: end date of the usage
       responses:
         200:
-          $ref: "#/definitions/usage"
+          schema:
+            $ref: "#/definitions/usage"
           headers:
             Access-Control-Allow-Headers:
               type: "string"
