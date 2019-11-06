@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"os"
 	"regexp"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -79,6 +78,7 @@ func TestApi(t *testing.T) {
 	// Cleanup tables, to start out
 	truncateAccountTable(t, dbSvc)
 	truncateLeaseTable(t, dbSvc)
+	truncateUsageTable(t, usageSvc)
 
 	t.Run("Authentication", func(t *testing.T) {
 
@@ -980,69 +980,37 @@ func TestApi(t *testing.T) {
 
 		t.Run("Should be able to get usage", func(t *testing.T) {
 
-			// Create usage
-			// Setup usage dates
-			const ttl int = 3
-			testStartDate := time.Date(2019, 5, 5, 0, 0, 0, 0, time.UTC)
-			testEndDate := time.Date(2019, 5, 5, 23, 59, 59, 0, time.UTC)
+			defer truncateUsageTable(t, usageSvc)
+			createUsage(t, apiURL, usageSvc)
 
-			// Create mock usage
-			expectedUsages := []*usage.Usage{}
-			for a := 1; a <= 2; a++ {
+			currentDate := time.Now()
+			testStartDate := time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), 0, 0, 0, 0, time.UTC)
+			testEndDate := time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), 23, 59, 59, 59, time.UTC)
+			queryString := fmt.Sprintf("/usage?startDate=%d&endDate=%d", testStartDate.Unix(), testEndDate.Unix())
+			requestURL := apiURL + queryString
 
-				startDate := testStartDate
-				endDate := testEndDate
+			testutil.Retry(t, 10, 10*time.Millisecond, func(r *testutil.R) {
 
-				timeToLive := startDate.AddDate(0, 0, ttl)
+				resp := apiRequest(t, &apiRequestInput{
+					method: "GET",
+					url:    requestURL,
+					json:   nil,
+				})
 
-				var testPrinciplaID []string
-				var testAccountID []string
+				// Verify response code
+				assert.Equal(r, http.StatusOK, resp.StatusCode)
 
-				testPrinciplaID = append(testPrinciplaID, "TestUser")
-				testPrinciplaID = append(testPrinciplaID, strconv.Itoa(a))
+				// Parse response json
+				data := parseResponseArrayJSON(t, resp)
 
-				testAccountID = append(testAccountID, "TestAcct")
-				testAccountID = append(testAccountID, strconv.Itoa(a))
-
-				for i := 1; i <= 3; i++ {
-
-					input := usage.Usage{
-						PrincipalID:  strings.Join(testPrinciplaID, ""),
-						AccountID:    strings.Join(testAccountID, ""),
-						StartDate:    startDate.Unix(),
-						EndDate:      endDate.Unix(),
-						CostAmount:   20.00,
-						CostCurrency: "USD",
-						TimeToLive:   timeToLive.Unix(),
-					}
-					err = usageSvc.PutUsage(input)
-					require.Nil(t, err)
-					expectedUsages = append(expectedUsages, &input)
-
-					startDate = startDate.AddDate(0, 0, 1)
-					endDate = endDate.AddDate(0, 0, 1)
+				//Verify response json
+				if data[0] != nil {
+					usageJSON := data[0]
+					assert.Equal(r, "TestUser1", usageJSON["principalId"].(string))
+					assert.Equal(r, "TestAccount1", usageJSON["accountId"].(string))
+					assert.Equal(r, 2000.00, usageJSON["costAmount"].(float64))
 				}
-			}
-
-			resp := apiRequest(t, &apiRequestInput{
-				method: "GET",
-				url:    apiURL + "/usage?startDate=1557014400&endDate=1557273599",
-				json:   nil,
-				f: func(r *testutil.R, apiResp *apiResponse) {
-					// Verify response code
-					assert.Equal(r, http.StatusOK, apiResp.StatusCode)
-				},
 			})
-
-			// Parse response json
-			data := parseResponseArrayJSON(t, resp)
-
-			//Verify response json
-			assert.Len(t, data, 2)
-			usageJSON := data[0]
-			assert.Equal(t, "TestUser1", usageJSON["principalId"].(string))
-			assert.Equal(t, "TestAcct1", usageJSON["accountId"].(string))
-			assert.Equal(t, 60.00, usageJSON["costAmount"].(float64))
 		})
 	})
 
@@ -1240,11 +1208,163 @@ func TestApi(t *testing.T) {
 			assert.Equal(t, 5, len(results), "All five releases should be returned")
 		})
 	})
+
+	t.Run("Post Lease validations", func(t *testing.T) {
+
+		t.Run("Should validate requested lease has a desired expiry date less than today", func(t *testing.T) {
+
+			principalID := "user"
+			expiresOn := time.Now().AddDate(0, 0, -1).Unix()
+
+			// Create the Provision Request Body
+			body := inputLeaseRequest{
+				PrincipalID:  principalID,
+				AccountID:    "123",
+				BudgetAmount: 200.00,
+				ExpiresOn:    expiresOn,
+			}
+
+			// Send an API request
+			resp := apiRequest(t, &apiRequestInput{
+				method: "POST",
+				url:    apiURL + "/leases",
+				json:   body,
+			})
+
+			// Verify response code
+			require.Equal(t, http.StatusBadRequest, resp.StatusCode)
+
+			// Parse response json
+			data := parseResponseJSON(t, resp)
+
+			// Verify error response json
+			// Get nested json in response json
+			err := data["error"].(map[string]interface{})
+			require.Equal(t, "ClientError", err["code"].(string))
+			errStr := fmt.Sprintf("Requested lease has a desired expiry date less than today: %d", expiresOn)
+			require.Equal(t, errStr, err["message"].(string))
+		})
+
+		t.Run("Should validate requested budget amount", func(t *testing.T) {
+
+			principalID := "user"
+			expiresOn := time.Now().AddDate(0, 0, 5).Unix()
+
+			// Create the Provision Request Body
+			body := inputLeaseRequest{
+				PrincipalID:  principalID,
+				AccountID:    "123",
+				BudgetAmount: 30000.00,
+				ExpiresOn:    expiresOn,
+			}
+
+			// Send an API request
+			resp := apiRequest(t, &apiRequestInput{
+				method: "POST",
+				url:    apiURL + "/leases",
+				json:   body,
+			})
+
+			// Verify response code
+			require.Equal(t, http.StatusBadRequest, resp.StatusCode)
+
+			// Parse response json
+			data := parseResponseJSON(t, resp)
+
+			// Verify error response json
+			// Get nested json in response json
+			err := data["error"].(map[string]interface{})
+			require.Equal(t, "ClientError", err["code"].(string))
+			require.Equal(t, "Requested lease has a budget amount of 30000.000000, which is greater than max lease budget amount of 1000.000000",
+				err["message"].(string))
+
+		})
+
+		t.Run("Should validate requested budget period", func(t *testing.T) {
+
+			principalID := "user"
+			expiresOnAfterOneYear := time.Now().AddDate(1, 0, 0).Unix()
+
+			// Create the Provision Request Body
+			body := inputLeaseRequest{
+				PrincipalID:  principalID,
+				AccountID:    "123",
+				BudgetAmount: 300.00,
+				ExpiresOn:    expiresOnAfterOneYear,
+			}
+
+			// Send an API request
+			resp := apiRequest(t, &apiRequestInput{
+				method: "POST",
+				url:    apiURL + "/leases",
+				json:   body,
+			})
+
+			// Verify response code
+			require.Equal(t, http.StatusBadRequest, resp.StatusCode)
+
+			// Parse response json
+			data := parseResponseJSON(t, resp)
+
+			// Verify error response json
+			// Get nested json in response json
+			err := data["error"].(map[string]interface{})
+			errStr := fmt.Sprintf("Requested lease has a budget expires on of %d, which is greater than max lease period of", expiresOnAfterOneYear)
+			require.Equal(t, "ClientError", err["code"].(string))
+			require.Contains(t, err["message"].(string), errStr)
+
+		})
+
+		t.Run("Should validate requested budget amount against principal budget amount", func(t *testing.T) {
+
+			defer truncateUsageTable(t, usageSvc)
+			createUsage(t, apiURL, usageSvc)
+
+			principalID := "TestUser1"
+			expiresOn := time.Now().AddDate(0, 0, 6).Unix()
+
+			// Create the Provision Request Body
+			body := inputLeaseRequest{
+				PrincipalID:  principalID,
+				AccountID:    "123",
+				BudgetAmount: 430.00,
+				ExpiresOn:    expiresOn,
+			}
+
+			// Send an API request
+			resp := apiRequest(t, &apiRequestInput{
+				method: "POST",
+				url:    apiURL + "/leases",
+				json:   body,
+			})
+
+			// Verify response code
+			require.Equal(t, http.StatusBadRequest, resp.StatusCode)
+
+			// Parse response json
+			data := parseResponseJSON(t, resp)
+
+			// Verify error response json
+			// Get nested json in response json
+			err := data["error"].(map[string]interface{})
+			errStr := fmt.Sprintf("Unable to create lease: User principal %s has already spent 1000.000000 of their weekly principal budget", principalID)
+			require.Equal(t, "ClientError", err["code"].(string))
+			require.Equal(t, errStr, err["message"].(string))
+		})
+
+	})
 }
 
 type leaseRequest struct {
 	PrincipalID string `json:"principalId"`
 	AccountID   string `json:"accountId"`
+}
+
+type inputLeaseRequest struct {
+	PrincipalID  string  `json:"principalId"`
+	AccountID    string  `json:"accountId"`
+	BudgetAmount float64 `json:"budgetAmount"`
+	ExpiresOn    int64   `json:"expiresOn"`
 }
 
 type createAccountRequest struct {
@@ -1406,6 +1526,77 @@ func createAdminRole(t *testing.T, awsSession client.ConfigProvider) *createAdmi
 		roleName:     adminRoleName,
 		accountID:    currentAccountID,
 	}
+}
+
+func createUsage(t *testing.T, apiURL string, usageSvc usage.Service) error {
+	// Create usage
+	// Setup usage dates
+	const ttl int = 3
+	currentDate := time.Now()
+	testStartDate := time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), 0, 0, 0, 0, time.UTC)
+	testEndDate := time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), 23, 59, 59, 59, time.UTC)
+
+	// Create mock usage
+	var expectedUsages []*usage.Usage
+
+	usageStartDate := testStartDate
+	usageEndDate := testEndDate
+	startDate := testStartDate
+	endDate := testEndDate
+
+	timeToLive := startDate.AddDate(0, 0, ttl)
+
+	var testPrincipalID = "TestUser1"
+	var testAccountID = "TestAccount1"
+
+	for i := 1; i <= 5; i++ {
+
+		input := usage.Usage{
+			PrincipalID:  testPrincipalID,
+			AccountID:    testAccountID,
+			StartDate:    startDate.Unix(),
+			EndDate:      endDate.Unix(),
+			CostAmount:   2000.00,
+			CostCurrency: "USD",
+			TimeToLive:   timeToLive.Unix(),
+		}
+		err := usageSvc.PutUsage(input)
+		if err != nil {
+			return err
+		}
+
+		expectedUsages = append(expectedUsages, &input)
+
+		usageEndDate = endDate
+		startDate = startDate.AddDate(0, 0, -1)
+		endDate = endDate.AddDate(0, 0, -1)
+	}
+
+	queryString := fmt.Sprintf("/usage?startDate=%d&endDate=%d", usageStartDate.Unix(), usageEndDate.Unix())
+
+	testutil.Retry(t, 10, 10*time.Millisecond, func(r *testutil.R) {
+
+		resp := apiRequest(t, &apiRequestInput{
+			method: "GET",
+			url:    apiURL + queryString,
+			json:   nil,
+		})
+
+		// Verify response code
+		assert.Equal(r, http.StatusOK, resp.StatusCode)
+
+		// Parse response json
+		data := parseResponseArrayJSON(t, resp)
+
+		//Verify response json
+		if len(data) > 0 && data[0] != nil {
+			usageJSON := data[0]
+			assert.Equal(r, "TestUser1", usageJSON["principalId"].(string))
+			assert.Equal(r, "TestAcct1", usageJSON["accountId"].(string))
+			assert.Equal(r, 10000.00, usageJSON["costAmount"].(float64))
+		}
+	})
+	return nil
 }
 
 func NewCredentials(t *testing.T, awsSession *session.Session, roleArn string) *credentials.Credentials {

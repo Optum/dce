@@ -1,3 +1,6 @@
+
+## vNext
+- Added Lease Validation for check against max budget amount, max budget period, budget billing amount and budget billing period
 ## v0.22.0
 
 **BREAKING CHANGES**
@@ -38,6 +41,7 @@ To do this, you may run the migration script in [/scripts/migrations/v0.21.0_ren
 
 Note that this release does ***not*** delete the old tables, to provide the opportunity to migrate data. Subsequent releases _will_ destroy the old tables. 
 
+
 ## v0.20.0
 
 - Fixed a bug in a migration script
@@ -55,6 +59,7 @@ Note that this release does ***not*** delete the old tables, to provide the oppo
 ## v0.19.1
 
 - Fixed issue with lease status reason not being set when the lease was newly created.
+
 
 ## v0.19.0
 

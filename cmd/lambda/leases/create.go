@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math"
 	"net/http"
 	"time"
 
@@ -12,15 +13,21 @@ import (
 	"github.com/Optum/dce/pkg/common"
 	"github.com/Optum/dce/pkg/db"
 	"github.com/Optum/dce/pkg/provision"
+	"github.com/Optum/dce/pkg/usage"
 	"github.com/aws/aws-lambda-go/events"
 )
 
 // CreateController is responsible for handling API events for creating leases.
 type CreateController struct {
-	Dao           db.DBer
-	Provisioner   provision.Provisioner
-	SNS           common.Notificationer
-	LeaseTopicARN *string
+	Dao                   db.DBer
+	Provisioner           provision.Provisioner
+	SNS                   common.Notificationer
+	LeaseTopicARN         *string
+	UsageSvc              usage.Service
+	PrincipalBudgetAmount *float64
+	PrincipalBudgetPeriod *string
+	MaxLeaseBudgetAmount  *float64
+	MaxLeasePeriod        *int
 }
 
 type createLeaseRequest struct {
@@ -63,6 +70,23 @@ func (c CreateController) Call(ctx context.Context, req *events.APIGatewayProxyR
 		return response.BadRequestError(errStr), nil
 	}
 
+	// Check requested lease budget amount is greater than MAX_LEASE_BUDGET_AMOUNT. If it's, then throw an error
+	if requestBody.BudgetAmount > *c.MaxLeaseBudgetAmount {
+		errStr := fmt.Sprintf("Requested lease has a budget amount of %f, which is greater than max lease budget amount of %f", math.Round(requestBody.BudgetAmount), math.Round(*c.MaxLeaseBudgetAmount))
+		log.Printf(errStr)
+		return response.BadRequestError(errStr), nil
+	}
+
+	// Check requested lease budget period is greater than MAX_LEASE_BUDGET_PERIOD. If it's, then throw an error
+	currentTime := time.Now()
+	maxLeaseExpiresOn := currentTime.Add(time.Second * time.Duration(*c.MaxLeasePeriod))
+
+	if requestBody.ExpiresOn > maxLeaseExpiresOn.Unix() {
+		errStr := fmt.Sprintf("Requested lease has a budget expires on of %d, which is greater than max lease period of %d", requestBody.ExpiresOn, maxLeaseExpiresOn.Unix())
+		log.Printf(errStr)
+		return response.BadRequestError(errStr), nil
+	}
+
 	// Check if the principal has any existing Active/FinanceLock/ResetLock
 	// Leases
 	checkLease, err := c.Provisioner.FindActiveLeaseForPrincipal(principalID)
@@ -77,6 +101,32 @@ func (c CreateController) Call(ctx context.Context, req *events.APIGatewayProxyR
 		return response.ConflictError(errStr), nil
 	}
 	log.Printf("Principal %s has no Active Leases\n", principalID)
+
+	//Get sum of total spent by PrinicpalID for current billing period
+	usageStartTime := getBeginningOfCurrentBillingPeriod(*c.PrincipalBudgetPeriod)
+	usageEndTime := time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 23, 59, 59, 0, time.UTC)
+
+	usageRecords, err := c.UsageSvc.GetUsageByDateRange(usageStartTime, usageEndTime)
+	if err != nil {
+		log.Printf("Failed to retrieve usage: %s", err)
+		return response.ServerErrorWithResponse(fmt.Sprintf("Failed to retrieve usage : %s",
+			err)), nil
+	}
+
+	// Group by PrincipalID to get sum of total spent for current billing period
+	spent := 0.0
+	for _, usage := range usageRecords {
+		log.Printf("usage records retrieved: %v", usage)
+		if usage.PrincipalID == principalID {
+			spent = spent + usage.CostAmount
+		}
+	}
+
+	if spent > *c.PrincipalBudgetAmount {
+		errStr := fmt.Sprintf("Unable to create lease: User principal %s has already spent %f of their weekly principal budget", principalID, math.Round(*c.PrincipalBudgetAmount))
+		log.Printf(errStr)
+		return response.BadRequestError(errStr), nil
+	}
 
 	// Get the First Ready Account
 	// Exit if there's an error or no ready accounts
@@ -197,4 +247,19 @@ func rollbackProvision(prov provision.Provisioner, err error,
 
 	// Return an error
 	return response.ServerErrorWithResponse(string(message))
+}
+
+// getBeginningOfCurrentBillingPeriod returns starts of the billing period based on budget period
+func getBeginningOfCurrentBillingPeriod(input string) time.Time {
+	currentTime := time.Now()
+	if input == "WEEKLY" {
+
+		for currentTime.Weekday() != time.Sunday { // iterate back to Sunday
+			currentTime = currentTime.AddDate(0, 0, -1)
+		}
+
+		return time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 0, 0, 0, 0, time.UTC)
+	}
+
+	return time.Date(currentTime.Year(), currentTime.Month(), 1, 0, 0, 0, 0, time.UTC)
 }
