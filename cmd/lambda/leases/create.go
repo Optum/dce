@@ -123,7 +123,7 @@ func (c CreateController) Call(ctx context.Context, req *events.APIGatewayProxyR
 	}
 
 	if spent > *c.PrincipalBudgetAmount {
-		errStr := fmt.Sprintf("Unable to create lease: User principal %s has already spent %s %f of their weekly principal budget", checkLease.PrincipalID, checkLease.BudgetCurrency, math.Round(*c.PrincipalBudgetAmount))
+		errStr := fmt.Sprintf("Unable to create lease: User principal %s has already spent %f of their weekly principal budget", principalID, math.Round(*c.PrincipalBudgetAmount))
 		log.Printf(errStr)
 		return response.BadRequestError(errStr), nil
 	}
