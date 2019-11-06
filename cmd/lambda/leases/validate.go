@@ -5,10 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"github.com/aws/aws-lambda-go/events"
-	"log"
 	"math"
 	"time"
 )
+
+const Weekly = "WEEKLY"
+const Monthly = "MONTHLY"
 
 // validateLeaseRequest validates lease budget amount and period
 func validateLeaseRequest(controller CreateController, req *events.APIGatewayProxyRequest) (*createLeaseRequest, error) {
@@ -56,10 +58,9 @@ func validateLeaseRequest(controller CreateController, req *events.APIGatewayPro
 
 	// Group by PrincipalID to get sum of total spent for current billing period
 	spent := 0.0
-	for _, usage := range usageRecords {
-		log.Printf("usage records retrieved: %v", usage)
-		if usage.PrincipalID == requestBody.PrincipalID {
-			spent = spent + usage.CostAmount
+	for _, usageItem := range usageRecords {
+		if usageItem.PrincipalID == requestBody.PrincipalID {
+			spent = spent + usageItem.CostAmount
 		}
 	}
 
@@ -74,7 +75,7 @@ func validateLeaseRequest(controller CreateController, req *events.APIGatewayPro
 // getBeginningOfCurrentBillingPeriod returns starts of the billing period based on budget period
 func getBeginningOfCurrentBillingPeriod(input string) time.Time {
 	currentTime := time.Now()
-	if input == "WEEKLY" {
+	if input == Weekly {
 
 		for currentTime.Weekday() != time.Sunday { // iterate back to Sunday
 			currentTime = currentTime.AddDate(0, 0, -1)
