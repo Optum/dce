@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 	"testing"
 
@@ -15,16 +16,15 @@ import (
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/Optum/Redbox/pkg/api/response"
 	"github.com/Optum/Redbox/pkg/common"
 	commonMocks "github.com/Optum/Redbox/pkg/common/mocks"
 	"github.com/Optum/Redbox/pkg/db"
+	"github.com/Optum/Redbox/pkg/db/mocks"
 	dbMocks "github.com/Optum/Redbox/pkg/db/mocks"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
 )
 
 func TestCreate(t *testing.T) {
@@ -36,31 +36,75 @@ func TestCreate(t *testing.T) {
 			AdminRoleArn: "arn:*:*:*",
 		})
 
+		mockDb := mocks.DBer{}
+		mockDb.On("GetAccount", "1234567890").Return(nil, nil)
+		mockDb.On("PutAccount", mock.Anything).Return(nil)
+
+		mockAwsSession := &awsMocks.AwsSession{}
+		mockAwsSession.On("ClientConfig", mock.Anything).Return(client.Config{
+			Config: &aws.Config{},
+		})
+
+		mockTokenService := commonMocks.TokenService{}
+		mockTokenService.On("AssumeRole", mock.Anything).Return(nil, nil)
+		mockTokenService.On("NewSession", mock.Anything, "arn:*:*:*").Return(mockAwsSession, nil)
+
+		mockStorageSvc := commonMocks.Storager{}
+		mockStorageSvc.On("GetTemplateObject", mock.Anything, mock.Anything, mock.Anything).Return("Policy", "PolicyHash", nil)
+
+		mockRoleManager := roleManagerMocks.RoleManager{}
+		mockRoleManager.On("SetIAMClient", mock.Anything)
+		createRoleOutput := &rolemanager.CreateRoleWithPolicyOutput{
+			RoleArn:  "arn:*:*:*",
+			RoleName: "Role",
+		}
+		mockRoleManager.On("CreateRoleWithPolicy", mock.Anything).Return(createRoleOutput, nil)
+
+		mockQueue := commonMocks.Queue{}
+		mockQueue.On("SendMessage", mock.Anything, mock.Anything).Return(nil)
+
+		mockSns := commonMocks.Notificationer{}
+		mockSns.On("PublishMessage", mock.Anything, mock.Anything, true).Return(nil, nil)
+
+		Dao = &mockDb
+		TokenSvc = &mockTokenService
+		StorageSvc = &mockStorageSvc
+		RoleManager = &mockRoleManager
+		Queue = &mockQueue
+		SnsSvc = &mockSns
+
 		res, err := Handler(context.TODO(), req)
-		require.Nil(t, err)
+		assert.Nil(t, err)
 
 		// Unmarshal the response JSON into an account object
 		resJSON := unmarshal(t, res.Body)
 
-		require.Equal(t, "1234567890", resJSON["id"])
-		require.Equal(t, "arn:*:*:*", resJSON["adminRoleArn"])
-		require.Equal(t, "NotReady", resJSON["accountStatus"])
-		require.True(t, resJSON["lastModifiedOn"].(float64) > 1561518000)
-		require.True(t, resJSON["createdOn"].(float64) > 1561518000)
+		assert.Equal(t, "1234567890", resJSON["id"])
+		assert.Equal(t, "arn:*:*:*", resJSON["adminRoleArn"])
+		assert.Equal(t, "NotReady", resJSON["accountStatus"])
+		assert.True(t, resJSON["lastModifiedOn"].(float64) > 1561518000)
+		assert.True(t, resJSON["createdOn"].(float64) > 1561518000)
 	})
 
 	t.Run("should fail if adminRoleArn is missing", func(t *testing.T) {
+
+		mockDb := mocks.DBer{}
+		mockDb.On("GetAccount", "1234567890").Return(nil, nil)
+		mockDb.On("PutAccount", mock.Anything).Return(nil)
+
+		Dao = &mockDb
+
 		// Send request, missing AdminRoleArn
 		req := createAccountAPIRequest(t, CreateRequest{
 			ID:           "1234567890",
 			AdminRoleArn: "",
 		})
 		res, err := Handler(context.TODO(), req)
-		require.Nil(t, err)
+		assert.Nil(t, err)
 
 		// Check the error response
-		require.Equal(t,
-			response.RequestValidationError("missing required field \"adminRoleArn\""),
+		assert.Equal(t,
+			MockAPIErrorResponse(http.StatusBadRequest, "ClientError", "missing required field \"adminRoleArn\""),
 			res,
 			"should return a validation error",
 		)
@@ -73,11 +117,11 @@ func TestCreate(t *testing.T) {
 			AdminRoleArn: "arn:mock",
 		})
 		res, err := Handler(context.TODO(), req)
-		require.Nil(t, err)
+		assert.Nil(t, err)
 
 		// Check the error response
-		require.Equal(t,
-			response.RequestValidationError("missing required field \"id\""),
+		assert.Equal(t,
+			MockAPIErrorResponse(http.StatusBadRequest, "ClientError", "missing required field \"id\""),
 			res,
 			"should return a validation error",
 		)
@@ -85,9 +129,11 @@ func TestCreate(t *testing.T) {
 
 	t.Run("should fail if the adminRoleArn is not assumable", func(t *testing.T) {
 		// Configure a controller with a mock token service
-		tokenService := &commonMocks.TokenService{}
-		TokenSvc = tokenService
 
+		mockDb := mocks.DBer{}
+		mockDb.On("GetAccount", "1234567890").Return(nil, nil)
+
+		tokenService := commonMocks.TokenService{}
 		// Should fail to assume role
 		tokenService.On("AssumeRole",
 			mock.MatchedBy(func(input *sts.AssumeRoleInput) bool {
@@ -97,7 +143,11 @@ func TestCreate(t *testing.T) {
 				return true
 			}),
 		).Return(nil, errors.New("mock error, failed to assume role"))
+
 		defer tokenService.AssertExpectations(t)
+
+		Dao = &mockDb
+		TokenSvc = &tokenService
 
 		// Call the controller
 		res, err := Handler(
@@ -107,16 +157,15 @@ func TestCreate(t *testing.T) {
 				AdminRoleArn: "arn:iam:adminRole",
 			}),
 		)
-		require.Nil(t, err)
-		require.Equal(t,
-			response.RequestValidationError("Unable to create Account: adminRole is not assumable by the Redbox master account"),
+		assert.Nil(t, err)
+		assert.Equal(t,
+			MockAPIErrorResponse(http.StatusBadRequest, "RequestValidationError", "Unable to create Account: adminRole is not assumable by the Redbox master account"),
 			res,
 		)
 	})
 
 	t.Run("should add the account to the RedboxAccounts DB Table, as NotReady", func(t *testing.T) {
 		mockDb := &dbMocks.DBer{}
-		Dao = mockDb
 
 		// Mock the DB, so that the account doesn't already exist
 		mockDb.On("GetAccount", "1234567890").
@@ -127,11 +176,40 @@ func TestCreate(t *testing.T) {
 			mock.MatchedBy(func(account db.RedboxAccount) bool {
 				assert.Equal(t, "1234567890", account.ID)
 				assert.Equal(t, "arn:mock", account.AdminRoleArn)
-				assert.Equal(t, "arn:aws:iam::123456789012:role/RedboxPrincipal", account.PrincipalRoleArn)
+				assert.Equal(t, "arn:aws:iam::1234567890:role/RedboxPrincipal", account.PrincipalRoleArn)
 				return true
 			}),
 		).Return(nil)
 		defer mockDb.AssertExpectations(t)
+
+		mockAwsSession := &awsMocks.AwsSession{}
+		mockAwsSession.On("ClientConfig", mock.Anything).Return(client.Config{
+			Config: &aws.Config{},
+		})
+
+		mockTokenService := &commonMocks.TokenService{}
+		// Should fail to assume role
+		mockTokenService.On("AssumeRole",
+			mock.MatchedBy(func(input *sts.AssumeRoleInput) bool {
+				assert.Equal(t, "arn:mock", *input.RoleArn)
+				assert.Equal(t, "RedboxMasterAssumeRoleVerification", *input.RoleSessionName)
+
+				return true
+			}),
+		).Return(nil, nil)
+		mockTokenService.On("NewSession", mock.Anything, "arn:mock").Return(mockAwsSession, nil)
+
+		mockRoleManager := &roleManagerMocks.RoleManager{}
+		mockRoleManager.On("SetIAMClient", mock.Anything)
+		createRoleOutput := &rolemanager.CreateRoleWithPolicyOutput{
+			RoleArn:  "arn:aws:iam::1234567890:role/RedboxPrincipal",
+			RoleName: "Role",
+		}
+		mockRoleManager.On("CreateRoleWithPolicy", mock.Anything).Return(createRoleOutput, nil)
+
+		Dao = mockDb
+		TokenSvc = mockTokenService
+		RoleManager = mockRoleManager
 
 		// Send an API request
 		req := createAccountAPIRequest(t, CreateRequest{
@@ -139,8 +217,8 @@ func TestCreate(t *testing.T) {
 			AdminRoleArn: "arn:mock",
 		})
 		res, err := Handler(context.TODO(), req)
-		require.Nil(t, err)
-		require.Equal(t, 201, res.StatusCode)
+		assert.Nil(t, err)
+		assert.Equal(t, 201, res.StatusCode)
 	})
 
 	t.Run("should return a 409 if the account already exists", func(t *testing.T) {
@@ -157,9 +235,12 @@ func TestCreate(t *testing.T) {
 			AdminRoleArn: "arn:mock",
 		})
 		res, err := Handler(context.TODO(), req)
-		require.Nil(t, err)
+		assert.Nil(t, err)
 
-		require.Equal(t, response.AlreadyExistsError(), res)
+		assert.Equal(t,
+			MockAPIErrorResponse(http.StatusConflict, "AlreadyExistsError", "The requested resource cannot be created, as it conflicts with an existing resource"),
+			res,
+		)
 	})
 
 	t.Run("should handle DB.GetAccount response errors as 500s", func(t *testing.T) {
@@ -176,9 +257,12 @@ func TestCreate(t *testing.T) {
 			AdminRoleArn: "arn:mock",
 		})
 		res, err := Handler(context.TODO(), req)
-		require.Nil(t, err)
+		assert.Nil(t, err)
 
-		require.Equal(t, response.ServerError(), res)
+		assert.Equal(t,
+			MockAPIErrorResponse(http.StatusInternalServerError, "ServerError", ""),
+			res,
+		)
 	})
 
 	t.Run("should handle DB.PutAccount response errors as 500s", func(t *testing.T) {
@@ -199,20 +283,31 @@ func TestCreate(t *testing.T) {
 			AdminRoleArn: "arn:mock",
 		})
 		res, err := Handler(context.TODO(), req)
-		require.Nil(t, err)
+		assert.Nil(t, err)
 
-		require.Equal(t, response.ServerError(), res)
+		assert.Equal(t,
+			MockAPIErrorResponse(http.StatusInternalServerError, "ServerError", "Internal server error"),
+			res,
+		)
 	})
 
 	t.Run("should add the account to the reset Queue", func(t *testing.T) {
+
+		Dao = dbStub()
+		TokenSvc = tokenServiceStub()
+		RoleManager = roleManagerStub()
+
 		// Configure the controller, with a mock SQS
 		mockQueue := &commonMocks.Queue{}
 		Queue = mockQueue
 
+		queueName := "DefaultResetSQSUrl"
+		accountID := "1234567890"
+
 		// Should add account to Queue
 		mockQueue.On("SendMessage",
-			aws.String("mock.queue.url"),
-			aws.String("1234567890"),
+			&queueName,
+			&accountID,
 		).Return(nil)
 		defer mockQueue.AssertExpectations(t)
 
@@ -222,23 +317,24 @@ func TestCreate(t *testing.T) {
 			AdminRoleArn: "arn:mock",
 		})
 		res, err := Handler(context.TODO(), req)
-		require.Nil(t, err)
-		require.Equal(t, 201, res.StatusCode, res.Body)
+		assert.Nil(t, err)
+		assert.Equal(t, 201, res.StatusCode, res.Body)
 	})
 
 	t.Run("should return a 500, if SQS fails", func(t *testing.T) {
 		// Configure the controller, with a mock SQS
 		mockQueue := &commonMocks.Queue{}
 		mockDB := dbStub()
-		Dao = mockDB
-		Queue = mockQueue
 
 		// Should fail to add account to Queue
 		mockQueue.On("SendMessage",
-			aws.String("mock.queue.url"),
-			aws.String("1234567890"),
+			mock.Anything,
+			mock.Anything,
 		).Return(errors.New("mock error"))
 		defer mockQueue.AssertExpectations(t)
+
+		Dao = mockDB
+		Queue = mockQueue
 
 		// Send request
 		req := createAccountAPIRequest(t, CreateRequest{
@@ -246,10 +342,12 @@ func TestCreate(t *testing.T) {
 			AdminRoleArn: "arn:mock",
 		})
 		res, err := Handler(context.TODO(), req)
-		require.Nil(t, err)
+		assert.Nil(t, err)
 
 		// Should return an InternalServerError
-		require.Equal(t, response.ServerError(), res)
+		assert.Equal(t,
+			MockAPIErrorResponse(http.StatusInternalServerError, "ServerError", "Internal server error"),
+			res)
 
 		// Account should still be saved to DB, in `NotReady`
 		// state (to be reset later)
@@ -257,6 +355,31 @@ func TestCreate(t *testing.T) {
 	})
 
 	t.Run("should publish an SNS message, with the account info", func(t *testing.T) {
+		// Configure the token service mock
+		// mockAwsSession := &awsMocks.AwsSession{}
+		// mockAwsSession.On("ClientConfig", mock.Anything).Return(client.Config{
+		// 	Config: &aws.Config{},
+		// })
+
+		// mockTokenService := &commonMocks.TokenService{}
+		// // Should fail to assume role
+		// mockTokenService.On("AssumeRole",
+		// 	mock.MatchedBy(func(input *sts.AssumeRoleInput) bool {
+		// 		assert.Equal(t, "arn:mock", *input.RoleArn)
+		// 		assert.Equal(t, "RedboxMasterAssumeRoleVerification", *input.RoleSessionName)
+
+		// 		return true
+		// 	}),
+		// ).Return(nil, nil)
+		// mockTokenService.On("NewSession", mock.Anything, "arn:mock").Return(mockAwsSession, nil)
+
+		// TokenSvc = mockTokenService
+		// AWSSession = &session.Session{}
+		Dao = dbStub()
+		TokenSvc = tokenServiceStub()
+		RoleManager = roleManagerStub()
+		Queue = queueStub()
+
 		// Configure the controller with mock SNS
 		mockSNS := &commonMocks.Notificationer{}
 		SnsSvc = mockSNS
@@ -264,7 +387,7 @@ func TestCreate(t *testing.T) {
 		// Expect to publish the account to the SNS topic
 		mockSNS.On("PublishMessage",
 			mock.MatchedBy(func(arn *string) bool {
-				return *arn == "mock-account-created-topic"
+				return *arn == "DefaultAccountCreatedTopicArn"
 			}),
 			mock.MatchedBy(func(message *string) bool {
 				// Parse the message JSON
@@ -277,10 +400,10 @@ func TestCreate(t *testing.T) {
 
 				// Check that we're sending the account object
 				assert.Equal(t, "1234567890", msgBody["id"])
-				assert.Equal(t, "arn:mockAdmin", msgBody["adminRoleArn"])
+				assert.Equal(t, "arn:mock", msgBody["adminRoleArn"])
 				assert.Equal(t, "NotReady", msgBody["accountStatus"])
-				require.IsType(t, 0.0, msgBody["lastModifiedOn"])
-				require.IsType(t, 0.0, msgBody["createdOn"])
+				assert.IsType(t, 0.0, msgBody["lastModifiedOn"])
+				assert.IsType(t, 0.0, msgBody["createdOn"])
 
 				return true
 			}),
@@ -293,11 +416,11 @@ func TestCreate(t *testing.T) {
 			context.TODO(),
 			createAccountAPIRequest(t, CreateRequest{
 				ID:           "1234567890",
-				AdminRoleArn: "arn:mockAdmin",
+				AdminRoleArn: "arn:mock",
 			}),
 		)
-		require.Nil(t, err)
-		require.Equal(t, res.StatusCode, 201)
+		assert.Nil(t, err)
+		assert.Equal(t, res.StatusCode, 201)
 	})
 
 	t.Run("should return a 500, if the SNS publish fails", func(t *testing.T) {
@@ -314,13 +437,16 @@ func TestCreate(t *testing.T) {
 			context.TODO(),
 			createAccountAPIRequest(t, CreateRequest{
 				ID:           "1234567890",
-				AdminRoleArn: "arn:mockAdmin",
+				AdminRoleArn: "arn:mock",
 			}),
 		)
-		require.Nil(t, err)
+		assert.Nil(t, err)
 
 		// Should return a ServerError
-		require.Equal(t, response.ServerError(), res)
+		assert.Equal(t,
+			MockAPIErrorResponse(http.StatusInternalServerError, "ServerError", "Internal server error"),
+			res,
+		)
 	})
 
 	t.Run("should create a principal role and policy", func(t *testing.T) {
@@ -334,7 +460,7 @@ func TestCreate(t *testing.T) {
 		mockAdminRoleSession.On("ClientConfig", mock.Anything).Return(client.Config{
 			Config: &aws.Config{},
 		})
-		tokenServiceMock.On("NewSession", mock.Anything, "arn:mockAdmin").
+		tokenServiceMock.On("NewSession", mock.Anything, "arn:mock").
 			Return(mockAdminRoleSession, nil)
 		tokenServiceMock.On("AssumeRole", mock.Anything).Return(nil, nil)
 
@@ -366,13 +492,17 @@ func TestCreate(t *testing.T) {
 		roleManager.On("CreateRoleWithPolicy",
 			mock.MatchedBy(func(input *rolemanager.CreateRoleWithPolicyInput) bool {
 				// Verify the expected input
-				assert.Equal(t, "RedboxPrincipal", input.RoleName)
+				assert.Equal(t, "DefaultPrincipalRoleName", input.RoleName)
 				assert.Equal(t, "Role to be assumed by principal users of Redbox", input.RoleDescription)
 				assert.Equal(t, expectedAssumeRolePolicy, input.AssumeRolePolicyDocument)
 				assert.Equal(t, int64(100), input.MaxSessionDuration)
-				assert.Equal(t, "RedboxPrincipalDefaultPolicy", input.PolicyName)
+				assert.Equal(t, "DefaultPrincipalPolicyName", input.PolicyName)
 				assert.Equal(t, []*iam.Tag{
-					{Key: aws.String("Foo"), Value: aws.String("Bar")},
+					{Key: aws.String("Terraform"), Value: aws.String("False")},
+					{Key: aws.String("Source"), Value: aws.String("github.com/Optum/Redbox//cmd/lambda/accounts")},
+					{Key: aws.String("Environment"), Value: aws.String("DefaultTagEnvironment")},
+					{Key: aws.String("Contact"), Value: aws.String("DefaultTagContact")},
+					{Key: aws.String("AppName"), Value: aws.String("DefaultTagAppName")},
 					{Key: aws.String("Name"), Value: aws.String("RedboxPrincipal")},
 				}, input.Tags)
 				assert.Equal(t, true, input.IgnoreAlreadyExistsErrors)
@@ -387,10 +517,10 @@ func TestCreate(t *testing.T) {
 			context.TODO(),
 			createAccountAPIRequest(t, CreateRequest{
 				ID:           "1234567890",
-				AdminRoleArn: "arn:mockAdmin",
+				AdminRoleArn: "arn:mock",
 			}),
 		)
-		require.Nil(t, err)
+		assert.Nil(t, err)
 
 		roleManager.AssertExpectations(t)
 		tokenServiceMock.AssertExpectations(t)
@@ -410,13 +540,15 @@ func TestCreate(t *testing.T) {
 			context.TODO(),
 			createAccountAPIRequest(t, CreateRequest{
 				ID:           "1234567890",
-				AdminRoleArn: "arn:mockAdmin",
+				AdminRoleArn: "arn:mock",
 			}),
 		)
-		require.Nil(t, err)
+		assert.Nil(t, err)
 
 		// Should return a 500 Server Error
-		require.Equal(t, response.ServerError(), res)
+		assert.Equal(t,
+			MockAPIErrorResponse(http.StatusInternalServerError, "ServerError", "Internal server error"),
+			res)
 	})
 }
 
@@ -484,7 +616,7 @@ func roleManagerStub() *roleManagerMocks.RoleManager {
 			func(input *rolemanager.CreateRoleWithPolicyInput) *rolemanager.CreateRoleWithPolicyOutput {
 				return &rolemanager.CreateRoleWithPolicyOutput{
 					RoleName:   input.RoleName,
-					RoleArn:    "arn:aws:iam::123456789012:role/" + input.RoleName,
+					RoleArn:    "arn:aws:iam::1234567890:role/" + input.RoleName,
 					PolicyName: "RedboxPrincipalDefaultPolicy",
 					PolicyArn:  "arn:aws:iam::1234567890:policy/RedboxPrincipalDefaultPolicy",
 				}
@@ -503,16 +635,18 @@ func roleManagerStub() *roleManagerMocks.RoleManager {
 
 func createAccountAPIRequest(t *testing.T, req CreateRequest) events.APIGatewayProxyRequest {
 	requestBody, err := json.Marshal(&req)
-	require.Nil(t, err)
+	assert.Nil(t, err)
 	return events.APIGatewayProxyRequest{
-		Body: string(requestBody),
+		HTTPMethod: "POST",
+		Path:       "/accounts",
+		Body:       string(requestBody),
 	}
 }
 
 func unmarshal(t *testing.T, jsonStr string) map[string]interface{} {
 	var data map[string]interface{}
 	err := json.Unmarshal([]byte(jsonStr), &data)
-	require.Nil(t, err,
+	assert.Nil(t, err,
 		fmt.Sprintf("Failed to unmarshal JSON: %s; %s", jsonStr, err),
 	)
 

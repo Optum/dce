@@ -44,7 +44,7 @@ var (
 	// TokenSvc - Token service client
 	TokenSvc common.TokenService
 	// StorageSvc - Storage service client
-	StorageSvc common.S3
+	StorageSvc common.Storager
 	// Config - The configuration client
 	Config common.DefaultEnvConfig
 )
@@ -185,5 +185,15 @@ func WriteRequestValidationError(w http.ResponseWriter, message string) {
 		http.StatusBadRequest,
 		"RequestValidationError",
 		message,
+	)
+}
+
+// WriteNotFoundError - Writes a request validate error with the given message.
+func WriteNotFoundError(w http.ResponseWriter) {
+	WriteAPIErrorResponse(
+		w,
+		http.StatusNotFound,
+		"NotFound",
+		"The requested resource could not be found.",
 	)
 }

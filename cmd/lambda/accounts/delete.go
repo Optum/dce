@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -25,11 +24,19 @@ func DeleteAccount(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch err.(type) {
 		case *db.AccountNotFoundError:
-			json.NewEncoder(w).Encode(response.NotFoundError())
+			WriteNotFoundError(w)
+			return
 		case *db.AccountLeasedError:
-			json.NewEncoder(w).Encode(response.CreateAPIErrorResponse(http.StatusConflict, response.CreateErrorResponse("Conflict", err.Error())))
+			WriteAPIErrorResponse(
+				w,
+				http.StatusConflict,
+				"Conflict",
+				err.Error(),
+			)
+			return
 		default:
-			json.NewEncoder(w).Encode(response.CreateAPIErrorResponse(http.StatusInternalServerError, response.CreateErrorResponse("ServerError", "Internal Server Error")))
+			WriteServerErrorWithResponse(w, "Internal Server Error")
+			return
 		}
 	}
 
@@ -42,7 +49,8 @@ func DeleteAccount(w http.ResponseWriter, r *http.Request) {
 	// Push the account to the Reset Queue, so it gets cleaned up
 	sendToResetQueue(deletedAccount.ID)
 
-	json.NewEncoder(w).Encode(response.CreateAPIResponse(http.StatusNoContent, ""))
+	// json.NewEncoder(w).Encode(response.CreateAPIResponse(http.StatusNoContent, ""))
+	WriteAPIResponse(w, http.StatusNoContent, "")
 }
 
 // sendSNS sends notification to SNS that the delete has occurred.
