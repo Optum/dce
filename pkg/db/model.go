@@ -1,20 +1,20 @@
 package db
 
-// RedboxAccount is a type corresponding to a RedboxAccount table record
-type RedboxAccount struct {
+// Account is a type corresponding to an account table record
+type Account struct {
 	ID                  string                 `json:"Id"`             // AWS Account ID
 	AccountStatus       AccountStatus          `json:"AccountStatus"`  // Status of the AWS Account
 	LastModifiedOn      int64                  `json:"LastModifiedOn"` // Last Modified Epoch Timestamp
 	CreatedOn           int64                  `json:"CreatedOn"`
-	AdminRoleArn        string                 `json:"AdminRoleArn"`        // Assumed by the Redbox master account, to manage this user account
-	PrincipalRoleArn    string                 `json:"PrincipalRoleArn"`    // Assumed by principal users of Redbox
+	AdminRoleArn        string                 `json:"AdminRoleArn"`        // Assumed by the master account, to manage this user account
+	PrincipalRoleArn    string                 `json:"PrincipalRoleArn"`    // Assumed by principal users
 	PrincipalPolicyHash string                 `json:"PrincipalPolicyHash"` // The the hash of the policy version deployed
 	Metadata            map[string]interface{} `json:"Metadata"`            // Any org specific metadata pertaining to the account
 }
 
-// RedboxLease is a type corresponding to a RedboxLease
+// Lease is a type corresponding to a Lease
 // table record
-type RedboxLease struct {
+type Lease struct {
 	AccountID                string            `json:"AccountId"`                // AWS Account ID
 	PrincipalID              string            `json:"PrincipalId"`              // Azure User Principal ID
 	ID                       string            `json:"Id"`                       // Lease ID
@@ -38,7 +38,7 @@ type Timestamped struct {
 	LastModifiedOn Timestamp
 }
 
-// AccountStatus is a Redbox account status type
+// AccountStatus is an account status type
 type AccountStatus string
 
 const (
@@ -50,7 +50,7 @@ const (
 	Leased AccountStatus = "Leased"
 )
 
-// LeaseStatus is a Redbox account lease status type
+// LeaseStatus is an account lease status type
 type LeaseStatus string
 
 const (

@@ -2,7 +2,7 @@ package reset
 
 import (
 	"errors"
-	"github.com/Optum/Redbox/pkg/common"
+	"github.com/Optum/dce/pkg/common"
 	"github.com/stretchr/testify/require"
 	"testing"
 
@@ -23,7 +23,7 @@ type mockTokenService struct {
 func (token mockTokenService) AssumeRole(input *sts.AssumeRoleInput) (
 	*sts.AssumeRoleOutput, error) {
 	// Failure case
-	if *input.RoleSessionName == "RedboxNukeTestAssumeRoleError" {
+	if *input.RoleSessionName == "DCENukeTestAssumeRoleError" {
 		return nil, errors.New("Error: Failed to Assume Role")
 	}
 
@@ -54,7 +54,7 @@ type mockNukeService struct{}
 func (nuke mockNukeService) NewAccount(creds awsutil.Credentials) (
 	*awsutil.Account, error) {
 	// Failure case
-	if creds.SessionToken == "RedboxNukeTestNewAccountError" {
+	if creds.SessionToken == "DCENukeTestNewAccountError" {
 		return nil, errors.New("Error: Failed to create a New Account")
 	}
 
@@ -78,7 +78,7 @@ func (nuke mockNukeService) Load(configPath string) (*config.Nuke, error) {
 // Run mocks an execution of a Nuke process
 func (nuke mockNukeService) Run(cmd *cmd.Nuke) error {
 	// Failure case
-	if cmd.Account.Credentials.SessionToken == "RedboxNukeTestRunError" {
+	if cmd.Account.Credentials.SessionToken == "DCENukeTestRunError" {
 		return errors.New("Error: Failed to Run")
 	}
 

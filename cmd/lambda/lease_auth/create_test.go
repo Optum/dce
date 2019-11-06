@@ -8,11 +8,11 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/Optum/Redbox/pkg/api"
-	apiMocks "github.com/Optum/Redbox/pkg/api/mocks"
-	commonMocks "github.com/Optum/Redbox/pkg/common/mocks"
-	"github.com/Optum/Redbox/pkg/db"
-	"github.com/Optum/Redbox/pkg/db/mocks"
+	"github.com/Optum/dce/pkg/api"
+	apiMocks "github.com/Optum/dce/pkg/api/mocks"
+	commonMocks "github.com/Optum/dce/pkg/common/mocks"
+	"github.com/Optum/dce/pkg/db"
+	"github.com/Optum/dce/pkg/db/mocks"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sts"
@@ -224,8 +224,8 @@ func TestGetLeaseAuth(t *testing.T) {
 
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
-				expectedLease := &db.RedboxLease{}
-				expectedAccount := &db.RedboxAccount{}
+				expectedLease := &db.Lease{}
+				expectedAccount := &db.Account{}
 
 				mockRequest := events.APIGatewayProxyRequest{
 					HTTPMethod: http.MethodGet,
@@ -243,7 +243,7 @@ func TestGetLeaseAuth(t *testing.T) {
 				mockDb := mocks.DBer{}
 
 				if tt.leaseID != "" {
-					expectedLease = &db.RedboxLease{
+					expectedLease = &db.Lease{
 						ID:          tt.leaseID,
 						AccountID:   tt.accountID,
 						LeaseStatus: tt.leaseStatus,
@@ -260,7 +260,7 @@ func TestGetLeaseAuth(t *testing.T) {
 					mockDb.On("GetLeaseByID", "badLease").Return(nil, tt.getLeaseByIDErr)
 				}
 				if tt.accountID != "" {
-					expectedAccount = &db.RedboxAccount{
+					expectedAccount = &db.Account{
 						ID:               tt.accountID,
 						AccountStatus:    db.Ready,
 						PrincipalRoleArn: tt.principalRoleArn,

@@ -9,9 +9,9 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/Optum/Redbox/pkg/common"
-	"github.com/Optum/Redbox/pkg/db"
-	"github.com/Optum/Redbox/pkg/reset"
+	"github.com/Optum/dce/pkg/common"
+	"github.com/Optum/dce/pkg/db"
+	"github.com/Optum/dce/pkg/reset"
 	"github.com/avast/retry-go"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/athena"
@@ -27,7 +27,7 @@ func main() {
 
 	if !config.isNukeEnabled {
 		log.Println("INFO: Nuke is set in Dry Run mode and will not remove " +
-			"any resources and cannot set back the state of Redbox Account " +
+			"any resources and cannot set back the state of the DCE child account " +
 			"Please set 'RESET_NUKE_DRY_RUN' to not 'true' to exit Dry Run " +
 			"mode.")
 	}

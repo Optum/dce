@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/Optum/Redbox/pkg/api"
-	mockController "github.com/Optum/Redbox/pkg/api/mocks"
+	"github.com/Optum/dce/pkg/api"
+	mockController "github.com/Optum/dce/pkg/api/mocks"
 	"github.com/aws/aws-lambda-go/events"
 )
 

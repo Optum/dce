@@ -11,8 +11,8 @@ output invoke_arn {
 }
 
 output execution_role_name {
-  value = aws_iam_role.redbox_lambda_execution.name
+  value = aws_iam_role.lambda_execution.name
 }
 output execution_role_arn {
-  value = aws_iam_role.redbox_lambda_execution.arn
+  value = aws_iam_role.lambda_execution.arn
 }

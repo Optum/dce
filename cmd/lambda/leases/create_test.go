@@ -11,15 +11,15 @@ import (
 
 	"github.com/stretchr/testify/mock"
 
-	"github.com/Optum/Redbox/pkg/api/response"
-	"github.com/Optum/Redbox/pkg/common"
-	commonMock "github.com/Optum/Redbox/pkg/common/mocks"
-	"github.com/Optum/Redbox/pkg/db"
-	mockDB "github.com/Optum/Redbox/pkg/db/mocks"
-	"github.com/Optum/Redbox/pkg/provision"
-	provisionMock "github.com/Optum/Redbox/pkg/provision/mocks"
-	"github.com/Optum/Redbox/pkg/usage"
-	mockUsage "github.com/Optum/Redbox/pkg/usage/mocks"
+	"github.com/Optum/dce/pkg/api/response"
+	"github.com/Optum/dce/pkg/common"
+	commonMock "github.com/Optum/dce/pkg/common/mocks"
+	"github.com/Optum/dce/pkg/db"
+	mockDB "github.com/Optum/dce/pkg/db/mocks"
+	"github.com/Optum/dce/pkg/provision"
+	provisionMock "github.com/Optum/dce/pkg/provision/mocks"
+	"github.com/Optum/dce/pkg/usage"
+	mockUsage "github.com/Optum/dce/pkg/usage/mocks"
 	"github.com/aws/aws-lambda-go/events"
 )
 
@@ -197,12 +197,12 @@ func invalidBudgetPeriodCreateRequest() *events.APIGatewayProxyRequest {
 	}
 }
 
-func createActiveLease() *db.RedboxLease {
-	return &db.RedboxLease{}
+func createActiveLease() *db.Lease {
+	return &db.Lease{}
 }
 
-func createAccount() *db.RedboxAccount {
-	return &db.RedboxAccount{
+func createAccount() *db.Account {
+	return &db.Account{
 		ID: "987654321",
 	}
 }

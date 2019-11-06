@@ -30,13 +30,13 @@ import (
 	"github.com/gruntwork-io/terratest/modules/terraform"
 	"github.com/stretchr/testify/require"
 
-	"github.com/Optum/Redbox/pkg/db"
-	"github.com/Optum/Redbox/pkg/usage"
-	"github.com/Optum/Redbox/tests/acceptance/testutil"
+	"github.com/Optum/dce/pkg/db"
+	"github.com/Optum/dce/pkg/usage"
+	"github.com/Optum/dce/tests/acceptance/testutil"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 )
 
-var adminRoleName = "redbox-api-test-admin-role-" + fmt.Sprintf("%v", time.Now().Unix())
+var adminRoleName = "dce-api-test-admin-role-" + fmt.Sprintf("%v", time.Now().Unix())
 
 func TestMain(m *testing.M) {
 	code := m.Run()
@@ -61,8 +61,8 @@ func TestApi(t *testing.T) {
 			awsSession,
 			aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
 		),
-		tfOut["dynamodb_table_account_name"].(string),
-		tfOut["redbox_lease_db_table_name"].(string),
+		tfOut["accounts_table_name"].(string),
+		tfOut["leases_table_name"].(string),
 		7,
 	)
 
@@ -72,7 +72,7 @@ func TestApi(t *testing.T) {
 			awsSession,
 			aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
 		),
-		tfOut["usage_cache_table_name"].(string),
+		tfOut["usage_table_name"].(string),
 	)
 
 	// Cleanup tables, to start out
@@ -117,7 +117,7 @@ func TestApi(t *testing.T) {
 
 	t.Run("api_execute_admin policy", func(t *testing.T) {
 
-		t.Run("should allow executing Redbox APIs", func(t *testing.T) {
+		t.Run("should allow executing DCE APIs", func(t *testing.T) {
 			// Don't run this test, if using `go test -short` flag
 			if testing.Short() {
 				t.Skip("Skipping tests in short mode. IAM role takes a while to propagate...")
@@ -147,7 +147,7 @@ func TestApi(t *testing.T) {
 	}
 	]
 }`, accountID)
-			roleName := "redbox-api-execute-test-role-" + fmt.Sprintf("%v", time.Now().Unix())
+			roleName := "dce-api-execute-test-role-" + fmt.Sprintf("%v", time.Now().Unix())
 			roleRes, err := iamSvc.CreateRole(&iam.CreateRoleInput{
 				AssumeRolePolicyDocument: aws.String(assumeRolePolicy),
 				Path:                     aws.String("/"),
@@ -230,7 +230,7 @@ func TestApi(t *testing.T) {
 	}
 	]
 }`, accountID)
-		roleName := "redbox-api-execute-test-role-" + fmt.Sprintf("%v", time.Now().Unix())
+		roleName := "dce-api-execute-test-role-" + fmt.Sprintf("%v", time.Now().Unix())
 		roleRes, err := iamSvc.CreateRole(&iam.CreateRoleInput{
 			AssumeRolePolicyDocument: aws.String(assumeRolePolicy),
 			Path:                     aws.String("/"),
@@ -332,7 +332,7 @@ func TestApi(t *testing.T) {
 			acctID := "123"
 			principalID := "user"
 			timeNow := time.Now().Unix()
-			err := dbSvc.PutAccount(db.RedboxAccount{
+			err := dbSvc.PutAccount(db.Account{
 				ID:             acctID,
 				AccountStatus:  db.Ready,
 				LastModifiedOn: timeNow,
@@ -443,7 +443,7 @@ func TestApi(t *testing.T) {
 					// Get nested json in response json
 					err := data["error"].(map[string]interface{})
 					assert.Equal(r, "ServerError", err["code"].(string))
-					assert.Equal(r, "No Available Redbox Accounts at this moment",
+					assert.Equal(r, "No Available accounts at this moment",
 						err["message"].(string))
 				},
 			})
@@ -458,7 +458,7 @@ func TestApi(t *testing.T) {
 			acctID := "123"
 			principalID := "user"
 			timeNow := time.Now().Unix()
-			err := dbSvc.PutAccount(db.RedboxAccount{
+			err := dbSvc.PutAccount(db.Account{
 				ID:             acctID,
 				AccountStatus:  db.Leased,
 				LastModifiedOn: timeNow,
@@ -466,7 +466,7 @@ func TestApi(t *testing.T) {
 			require.Nil(t, err)
 
 			// Create an Lease Entry
-			_, err = dbSvc.PutLease(db.RedboxLease{
+			_, err = dbSvc.PutLease(db.Lease{
 				ID:                    uuid.New().String(),
 				PrincipalID:           principalID,
 				AccountID:             acctID,
@@ -498,7 +498,7 @@ func TestApi(t *testing.T) {
 					// Get nested json in response json
 					errResp := data["error"].(map[string]interface{})
 					assert.Equal(r, "ClientError", errResp["code"].(string))
-					assert.Equal(r, "Principal already has an existing Redbox: 123",
+					assert.Equal(r, "Principal already has an active lease: 123",
 						errResp["message"].(string))
 				},
 			})
@@ -565,7 +565,7 @@ func TestApi(t *testing.T) {
 			acctID := "123"
 			principalID := "user"
 			timeNow := time.Now().Unix()
-			err := dbSvc.PutAccount(db.RedboxAccount{
+			err := dbSvc.PutAccount(db.Account{
 				ID:             acctID,
 				AccountStatus:  db.Leased,
 				LastModifiedOn: timeNow,
@@ -573,7 +573,7 @@ func TestApi(t *testing.T) {
 			require.Nil(t, err)
 
 			// Create an Lease Entry
-			_, err = dbSvc.PutLease(db.RedboxLease{
+			_, err = dbSvc.PutLease(db.Lease{
 				ID:                    uuid.New().String(),
 				PrincipalID:           principalID,
 				AccountID:             acctID,
@@ -619,7 +619,7 @@ func TestApi(t *testing.T) {
 			acctID := "123"
 			principalID := "user"
 			timeNow := time.Now().Unix()
-			err := dbSvc.PutAccount(db.RedboxAccount{
+			err := dbSvc.PutAccount(db.Account{
 				ID:             acctID,
 				AccountStatus:  db.NotReady,
 				LastModifiedOn: timeNow,
@@ -627,7 +627,7 @@ func TestApi(t *testing.T) {
 			require.Nil(t, err)
 
 			// Create an Lease Entry
-			_, err = dbSvc.PutLease(db.RedboxLease{
+			_, err = dbSvc.PutLease(db.Lease{
 				ID:                    uuid.New().String(),
 				PrincipalID:           principalID,
 				AccountID:             acctID,
@@ -702,7 +702,7 @@ func TestApi(t *testing.T) {
 			require.Equal(t, accountID, postResJSON["id"])
 			require.Equal(t, "NotReady", postResJSON["accountStatus"])
 			require.Equal(t, adminRoleArn, postResJSON["adminRoleArn"])
-			expectedPrincipalRoleArn := fmt.Sprintf("arn:aws:iam::%s:role/%s", accountID, tfOut["redbox_principal_role_name"])
+			expectedPrincipalRoleArn := fmt.Sprintf("arn:aws:iam::%s:role/%s", accountID, tfOut["principal_role_name"])
 			require.Equal(t, expectedPrincipalRoleArn, postResJSON["principalRoleArn"])
 			require.True(t, postResJSON["lastModifiedOn"].(float64) > 1561518000)
 			require.True(t, postResJSON["createdOn"].(float64) > 1561518000)
@@ -710,7 +710,7 @@ func TestApi(t *testing.T) {
 			// Check that the account is added to the DB
 			dbAccount, err := dbSvc.GetAccount(accountID)
 			require.Nil(t, err)
-			require.Equal(t, &db.RedboxAccount{
+			require.Equal(t, &db.Account{
 				ID:                  accountID,
 				AccountStatus:       "NotReady",
 				LastModifiedOn:      int64(postResJSON["lastModifiedOn"].(float64)),
@@ -751,7 +751,7 @@ func TestApi(t *testing.T) {
 						assert.Equal(r, accountID, getResJSON["id"])
 						assert.Equal(r, "NotReady", getResJSON["accountStatus"])
 						assert.Equal(r, adminRoleArn, getResJSON["adminRoleArn"])
-						expectedPrincipalRoleArn := fmt.Sprintf("arn:aws:iam::%s:role/%s", accountID, tfOut["redbox_principal_role_name"])
+						expectedPrincipalRoleArn := fmt.Sprintf("arn:aws:iam::%s:role/%s", accountID, tfOut["principal_role_name"])
 						assert.Equal(r, expectedPrincipalRoleArn, getResJSON["principalRoleArn"])
 						assert.True(r, getResJSON["lastModifiedOn"].(float64) > 1561518000)
 						assert.True(r, getResJSON["createdOn"].(float64) > 1561518000)
@@ -773,7 +773,7 @@ func TestApi(t *testing.T) {
 						assert.Equal(r, accountID, accountJSON["id"])
 						assert.Equal(r, "NotReady", accountJSON["accountStatus"])
 						assert.Equal(r, adminRoleArn, accountJSON["adminRoleArn"])
-						expectedPrincipalRoleArn := fmt.Sprintf("arn:aws:iam::%s:role/%s", accountID, tfOut["redbox_principal_role_name"])
+						expectedPrincipalRoleArn := fmt.Sprintf("arn:aws:iam::%s:role/%s", accountID, tfOut["principal_role_name"])
 						assert.Equal(r, expectedPrincipalRoleArn, accountJSON["principalRoleArn"])
 						assert.True(r, accountJSON["lastModifiedOn"].(float64) > 1561518000)
 						assert.True(r, accountJSON["createdOn"].(float64) > 1561518000)
@@ -1039,7 +1039,7 @@ func TestApi(t *testing.T) {
 		principalIDThree := "c"
 		principalIDFour := "d"
 
-		_, err = dbSvc.PutLease(db.RedboxLease{
+		_, err = dbSvc.PutLease(db.Lease{
 			ID:                uuid.New().String(),
 			AccountID:         accountIDOne,
 			PrincipalID:       principalIDOne,
@@ -1049,7 +1049,7 @@ func TestApi(t *testing.T) {
 
 		assert.Nil(t, err)
 
-		_, err = dbSvc.PutLease(db.RedboxLease{
+		_, err = dbSvc.PutLease(db.Lease{
 			ID:                uuid.New().String(),
 			AccountID:         accountIDOne,
 			PrincipalID:       principalIDTwo,
@@ -1059,7 +1059,7 @@ func TestApi(t *testing.T) {
 
 		assert.Nil(t, err)
 
-		_, err = dbSvc.PutLease(db.RedboxLease{
+		_, err = dbSvc.PutLease(db.Lease{
 			ID:                uuid.New().String(),
 			AccountID:         accountIDOne,
 			PrincipalID:       principalIDThree,
@@ -1069,7 +1069,7 @@ func TestApi(t *testing.T) {
 
 		assert.Nil(t, err)
 
-		_, err = dbSvc.PutLease(db.RedboxLease{
+		_, err = dbSvc.PutLease(db.Lease{
 			ID:                uuid.New().String(),
 			AccountID:         accountIDTwo,
 			PrincipalID:       principalIDFour,
@@ -1079,7 +1079,7 @@ func TestApi(t *testing.T) {
 
 		assert.Nil(t, err)
 
-		_, err = dbSvc.PutLease(db.RedboxLease{
+		_, err = dbSvc.PutLease(db.Lease{
 			ID:                uuid.New().String(),
 			AccountID:         accountIDTwo,
 			PrincipalID:       principalIDOne,
@@ -1410,7 +1410,7 @@ func apiRequest(t *testing.T, input *apiRequestInput) *apiResponse {
 	now := time.Now().Add(time.Duration(30) * time.Second)
 	var signedHeaders http.Header
 	var apiResp *apiResponse
-	testutil.Retry(t, 10, 2*time.Second, func(r *testutil.R) {
+	testutil.Retry(t, 15, 2*time.Second, func(r *testutil.R) {
 		// If there's a json provided, add it when signing
 		// Body does not matter if added before the signing, it will be overwritten
 		if input.json != nil {
@@ -1511,7 +1511,7 @@ func createAdminRole(t *testing.T, awsSession client.ConfigProvider) *createAdmi
 	adminRoleArn := *roleRes.Role.Arn
 
 	// Give the Admin Role Permission to create other IAM Roles
-	// (so it can create a role for the Redbox principal)
+	// (so it can create a role for the principal)
 	_, err = iamSvc.AttachRolePolicy(&iam.AttachRolePolicyInput{
 		RoleName:  aws.String(adminRoleName),
 		PolicyArn: aws.String("arn:aws:iam::aws:policy/IAMFullAccess"),

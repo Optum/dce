@@ -7,21 +7,21 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/Optum/Redbox/pkg/rolemanager"
+	"github.com/Optum/dce/pkg/rolemanager"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 
-	"github.com/Optum/Redbox/pkg/common"
+	"github.com/Optum/dce/pkg/common"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/sts"
 
-	"github.com/Optum/Redbox/pkg/api"
-	"github.com/Optum/Redbox/pkg/api/response"
-	"github.com/Optum/Redbox/pkg/db"
+	"github.com/Optum/dce/pkg/api"
+	"github.com/Optum/dce/pkg/api/response"
+	"github.com/Optum/dce/pkg/db"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 )
@@ -105,9 +105,8 @@ func main() {
 			PrincipalPolicyS3Key:        common.RequireEnv("PRINCIPAL_POLICY_S3_KEY"),
 			Tags: []*iam.Tag{
 				{Key: aws.String("Terraform"), Value: aws.String("False")},
-				{Key: aws.String("Source"), Value: aws.String("github.com/Optum/Redbox//cmd/lambda/accounts")},
+				{Key: aws.String("Source"), Value: aws.String("github.com/Optum/dce//cmd/lambda/accounts")},
 				{Key: aws.String("Environment"), Value: aws.String(common.RequireEnv("TAG_ENVIRONMENT"))},
-				{Key: aws.String("Contact"), Value: aws.String(common.RequireEnv("TAG_CONTACT"))},
 				{Key: aws.String("AppName"), Value: aws.String(common.RequireEnv("TAG_APP_NAME"))},
 			},
 		},

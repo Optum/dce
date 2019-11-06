@@ -1,6 +1,6 @@
 package response
 
-// UsageResponse is the serialized JSON Response for a RedboxAccount usage
+// UsageResponse is the serialized JSON Response for an account usage
 // to be returned by usage API
 type UsageResponse struct {
 	PrincipalID  string  `json:"principalId"`  // User Principal ID

@@ -5,7 +5,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/Optum/Redbox/pkg/awsiface"
+	"github.com/Optum/dce/pkg/awsiface"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
