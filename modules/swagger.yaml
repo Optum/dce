@@ -162,7 +162,8 @@ paths:
           description: accountId for lease
       responses:
         200:
-          $ref: "#/definitions/account"
+          schema:
+            $ref: "#/definitions/account"
           headers:
             Access-Control-Allow-Headers:
               type: "string"
@@ -280,7 +281,8 @@ paths:
         - application/json
       responses:
         201:
-          $ref: "#/definitions/lease"
+          schema:
+            $ref: "#/definitions/lease"
           headers:
             Access-Control-Allow-Headers:
               type: "string"
@@ -328,7 +330,8 @@ paths:
         - application/json
       responses:
         200:
-          $ref: "#/definitions/lease"
+          schema:
+            $ref: "#/definitions/lease"
         400:
           description: >
             "Failed to Parse Request Body" if the request body is blank or incorrectly formatted.
@@ -465,7 +468,8 @@ paths:
           description: Id for lease
       responses:
         200:
-          $ref: "#/definitions/lease"
+          schema:
+            $ref: "#/definitions/lease"
           headers:
             Access-Control-Allow-Headers:
               type: "string"
