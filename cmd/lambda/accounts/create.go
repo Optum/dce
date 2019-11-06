@@ -31,10 +31,10 @@ var (
 )
 
 func init() {
-	policyName = Config.GetEnvVar("PRINCIPAL_POLICY_NAME", "DefaultPrincipalPolicyName")
+	policyName = Config.GetEnvVar("PRINCIPAL_POLICY_NAME", "DCEPrincipalDefaultPolicy")
 	artifactsBucket = Config.GetEnvVar("ARTIFACTS_BUCKET", "DefaultArtifactBucket")
 	principalPolicyS3Key = Config.GetEnvVar("PRINCIPAL_POLICY_S3_KEY", "DefaultPrincipalPolicyS3Key")
-	principalRoleName = Config.GetEnvVar("PRINCIPAL_ROLE_NAME", "DefaultPrincipalRoleName")
+	principalRoleName = Config.GetEnvVar("PRINCIPAL_ROLE_NAME", "DCEPrincipal")
 	principalIAMDenyTags = strings.Split(Config.GetEnvVar("PRINCIPAL_IAM_DENY_TAGS", "DefaultPrincipalIamDenyTags"), ",")
 	principalMaxSessionDuration = int64(Config.GetEnvIntVar("PRINCIPAL_MAX_SESSION_DURATION", 100))
 	tags = []*iam.Tag{
@@ -93,7 +93,7 @@ func CreateAccount(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		WriteRequestValidationError(
 			w,
-			"Unable to create Account: adminRole is not assumable by the master account",
+			fmt.Sprintf("Unable to add account %s to pool: adminRole is not assumable by the master account", request.ID),
 		)
 		return
 	}

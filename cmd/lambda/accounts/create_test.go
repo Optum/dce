@@ -159,7 +159,7 @@ func TestCreate(t *testing.T) {
 		)
 		assert.Nil(t, err)
 		assert.Equal(t,
-			MockAPIErrorResponse(http.StatusBadRequest, "RequestValidationError", "Unable to create Account: adminRole is not assumable by the master account"),
+			MockAPIErrorResponse(http.StatusBadRequest, "RequestValidationError", "Unable to add account 1234567890 to pool: adminRole is not assumable by the master account"),
 			res,
 		)
 	})
@@ -473,11 +473,11 @@ func TestCreate(t *testing.T) {
 		roleManager.On("CreateRoleWithPolicy",
 			mock.MatchedBy(func(input *rolemanager.CreateRoleWithPolicyInput) bool {
 				// Verify the expected input
-				assert.Equal(t, "DefaultPrincipalRoleName", input.RoleName)
+				assert.Equal(t, "DCEPrincipal", input.RoleName)
 				assert.Equal(t, "Role to be assumed by principal users of DCE", input.RoleDescription)
 				assert.Equal(t, expectedAssumeRolePolicy, input.AssumeRolePolicyDocument)
 				assert.Equal(t, int64(100), input.MaxSessionDuration)
-				assert.Equal(t, "DefaultPrincipalPolicyName", input.PolicyName)
+				assert.Equal(t, "DCEPrincipalDefaultPolicy", input.PolicyName)
 				assert.Equal(t, []*iam.Tag{
 					{Key: aws.String("Terraform"), Value: aws.String("False")},
 					{Key: aws.String("Source"), Value: aws.String("github.com/Optum/dce//cmd/lambda/accounts")},
