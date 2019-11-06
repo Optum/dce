@@ -7,11 +7,11 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/Optum/Redbox/pkg/api/response"
+	"github.com/Optum/dce/pkg/api/response"
 	"github.com/aws/aws-lambda-go/events"
 
-	"github.com/Optum/Redbox/pkg/common"
-	"github.com/Optum/Redbox/pkg/db"
+	"github.com/Optum/dce/pkg/common"
+	"github.com/Optum/dce/pkg/db"
 )
 
 // requestBody is the structured object of the Request Called to the Router
@@ -46,7 +46,7 @@ func (c DeleteController) Call(ctx context.Context, req *events.APIGatewayProxyR
 	accts, err := c.Dao.FindLeasesByPrincipal(principalID)
 	if err != nil {
 		log.Printf("Error finding leases for Principal %s: %s", principalID, err)
-		return response.ServerErrorWithResponse(fmt.Sprintf("Cannot verify if Principal %s has a Redbox Lease", principalID)), nil
+		return response.ServerErrorWithResponse(fmt.Sprintf("Cannot verify if Principal %s has a lease", principalID)), nil
 	}
 	if accts == nil {
 		errStr := fmt.Sprintf("No account leases found for %s", principalID)
@@ -55,7 +55,7 @@ func (c DeleteController) Call(ctx context.Context, req *events.APIGatewayProxyR
 	}
 
 	// Get the Account Lease
-	var acct *db.RedboxLease
+	var acct *db.Lease
 	for _, a := range accts {
 		if a.AccountID == requestBody.AccountID {
 			acct = a

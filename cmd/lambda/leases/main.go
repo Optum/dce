@@ -5,10 +5,10 @@ import (
 
 	"log"
 
-	"github.com/Optum/Redbox/pkg/api"
-	"github.com/Optum/Redbox/pkg/common"
-	"github.com/Optum/Redbox/pkg/db"
-	"github.com/Optum/Redbox/pkg/provision"
+	"github.com/Optum/dce/pkg/api"
+	"github.com/Optum/dce/pkg/common"
+	"github.com/Optum/dce/pkg/db"
+	"github.com/Optum/dce/pkg/provision"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
 	"github.com/aws/aws-sdk-go/service/sns"

@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Optum/Redbox/pkg/usage"
-	"github.com/Optum/Redbox/tests/acceptance/testutil"
+	"github.com/Optum/dce/pkg/usage"
+	"github.com/Optum/dce/tests/acceptance/testutil"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -33,8 +33,11 @@ func TestUsageDb(t *testing.T) {
 			awsSession,
 			aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
 		),
-		tfOut["usage_cache_table_name"].(string),
+		tfOut["usage_table_name"].(string),
 	)
+
+	// For testing purposes support consistent reads
+	dbSvc.ConsistendRead = true
 
 	// ttl is set to 3-days
 	const ttl int = 3

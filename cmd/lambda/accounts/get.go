@@ -8,8 +8,8 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"github.com/Optum/Redbox/pkg/api/response"
-	"github.com/Optum/Redbox/pkg/db"
+	"github.com/Optum/dce/pkg/api/response"
+	"github.com/Optum/dce/pkg/db"
 )
 
 // GetAllAccounts - Returns all the accounts.

@@ -11,8 +11,8 @@ module "lease_auth_lambda" {
     DEBUG                              = "false"
     NAMESPACE                          = var.namespace
     AWS_CURRENT_REGION                 = var.aws_region
-    ACCOUNT_DB                         = aws_dynamodb_table.redbox_account.id
-    LEASE_DB                           = aws_dynamodb_table.redbox_lease.id
+    ACCOUNT_DB                         = aws_dynamodb_table.accounts.id
+    LEASE_DB                           = aws_dynamodb_table.leases.id
     COGNITO_USER_POOL_ID               = module.api_gateway_authorizer.user_pool_id
     COGNITO_ROLES_ATTRIBUTE_ADMIN_NAME = var.cognito_roles_attribute_admin_name
   }

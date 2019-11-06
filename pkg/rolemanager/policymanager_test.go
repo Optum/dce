@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Optum/Redbox/pkg/awsiface/mocks"
+	"github.com/Optum/dce/pkg/awsiface/mocks"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/service/iam"

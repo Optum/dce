@@ -9,18 +9,18 @@ import (
 	"strings"
 	"testing"
 
-	awsMocks "github.com/Optum/Redbox/pkg/awsiface/mocks"
-	"github.com/Optum/Redbox/pkg/rolemanager"
-	roleManagerMocks "github.com/Optum/Redbox/pkg/rolemanager/mocks"
+	awsMocks "github.com/Optum/dce/pkg/awsiface/mocks"
+	"github.com/Optum/dce/pkg/rolemanager"
+	roleManagerMocks "github.com/Optum/dce/pkg/rolemanager/mocks"
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/Optum/Redbox/pkg/common"
-	commonMocks "github.com/Optum/Redbox/pkg/common/mocks"
-	"github.com/Optum/Redbox/pkg/db"
-	"github.com/Optum/Redbox/pkg/db/mocks"
-	dbMocks "github.com/Optum/Redbox/pkg/db/mocks"
+	"github.com/Optum/dce/pkg/common"
+	commonMocks "github.com/Optum/dce/pkg/common/mocks"
+	"github.com/Optum/dce/pkg/db"
+	"github.com/Optum/dce/pkg/db/mocks"
+	dbMocks "github.com/Optum/dce/pkg/db/mocks"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sts"
@@ -29,7 +29,7 @@ import (
 
 func TestCreate(t *testing.T) {
 
-	t.Run("should return a RedboxAccount object", func(t *testing.T) {
+	t.Run("should return an account object", func(t *testing.T) {
 		// Send request
 		req := createAccountAPIRequest(t, CreateRequest{
 			ID:           "1234567890",
@@ -138,7 +138,7 @@ func TestCreate(t *testing.T) {
 		tokenService.On("AssumeRole",
 			mock.MatchedBy(func(input *sts.AssumeRoleInput) bool {
 				assert.Equal(t, "arn:iam:adminRole", *input.RoleArn)
-				assert.Equal(t, "RedboxMasterAssumeRoleVerification", *input.RoleSessionName)
+				assert.Equal(t, "MasterAssumeRoleVerification", *input.RoleSessionName)
 
 				return true
 			}),
@@ -159,12 +159,12 @@ func TestCreate(t *testing.T) {
 		)
 		assert.Nil(t, err)
 		assert.Equal(t,
-			MockAPIErrorResponse(http.StatusBadRequest, "RequestValidationError", "Unable to create Account: adminRole is not assumable by the Redbox master account"),
+			MockAPIErrorResponse(http.StatusBadRequest, "RequestValidationError", "Unable to create Account: adminRole is not assumable by the master account"),
 			res,
 		)
 	})
 
-	t.Run("should add the account to the RedboxAccounts DB Table, as NotReady", func(t *testing.T) {
+	t.Run("should add the account to the Account DB Table, as NotReady", func(t *testing.T) {
 		mockDb := &dbMocks.DBer{}
 
 		// Mock the DB, so that the account doesn't already exist
@@ -173,10 +173,10 @@ func TestCreate(t *testing.T) {
 
 		// Mock the DB method to create the Account
 		mockDb.On("PutAccount",
-			mock.MatchedBy(func(account db.RedboxAccount) bool {
+			mock.MatchedBy(func(account db.Account) bool {
 				assert.Equal(t, "1234567890", account.ID)
 				assert.Equal(t, "arn:mock", account.AdminRoleArn)
-				assert.Equal(t, "arn:aws:iam::1234567890:role/RedboxPrincipal", account.PrincipalRoleArn)
+				assert.Equal(t, "arn:aws:iam::1234567890:role/DCEPrincipal", account.PrincipalRoleArn)
 				return true
 			}),
 		).Return(nil)
@@ -192,7 +192,7 @@ func TestCreate(t *testing.T) {
 		mockTokenService.On("AssumeRole",
 			mock.MatchedBy(func(input *sts.AssumeRoleInput) bool {
 				assert.Equal(t, "arn:mock", *input.RoleArn)
-				assert.Equal(t, "RedboxMasterAssumeRoleVerification", *input.RoleSessionName)
+				assert.Equal(t, "MasterAssumeRoleVerification", *input.RoleSessionName)
 
 				return true
 			}),
@@ -202,7 +202,7 @@ func TestCreate(t *testing.T) {
 		mockRoleManager := &roleManagerMocks.RoleManager{}
 		mockRoleManager.On("SetIAMClient", mock.Anything)
 		createRoleOutput := &rolemanager.CreateRoleWithPolicyOutput{
-			RoleArn:  "arn:aws:iam::1234567890:role/RedboxPrincipal",
+			RoleArn:  "arn:aws:iam::1234567890:role/DCEPrincipal",
 			RoleName: "Role",
 		}
 		mockRoleManager.On("CreateRoleWithPolicy", mock.Anything).Return(createRoleOutput, nil)
@@ -227,7 +227,7 @@ func TestCreate(t *testing.T) {
 
 		// Mock the DB, so that the account already exist
 		mockDb.On("GetAccount", "1234567890").
-			Return(&db.RedboxAccount{}, nil)
+			Return(&db.Account{}, nil)
 
 		// Send an API request
 		req := createAccountAPIRequest(t, CreateRequest{
@@ -355,26 +355,7 @@ func TestCreate(t *testing.T) {
 	})
 
 	t.Run("should publish an SNS message, with the account info", func(t *testing.T) {
-		// Configure the token service mock
-		// mockAwsSession := &awsMocks.AwsSession{}
-		// mockAwsSession.On("ClientConfig", mock.Anything).Return(client.Config{
-		// 	Config: &aws.Config{},
-		// })
 
-		// mockTokenService := &commonMocks.TokenService{}
-		// // Should fail to assume role
-		// mockTokenService.On("AssumeRole",
-		// 	mock.MatchedBy(func(input *sts.AssumeRoleInput) bool {
-		// 		assert.Equal(t, "arn:mock", *input.RoleArn)
-		// 		assert.Equal(t, "RedboxMasterAssumeRoleVerification", *input.RoleSessionName)
-
-		// 		return true
-		// 	}),
-		// ).Return(nil, nil)
-		// mockTokenService.On("NewSession", mock.Anything, "arn:mock").Return(mockAwsSession, nil)
-
-		// TokenSvc = mockTokenService
-		// AWSSession = &session.Session{}
 		Dao = dbStub()
 		TokenSvc = tokenServiceStub()
 		RoleManager = roleManagerStub()
@@ -488,22 +469,22 @@ func TestCreate(t *testing.T) {
 		}
 		`)
 
-		// Mock the RoleManager, to create an IAM Role for the Redbox Principal
+		// Mock the RoleManager, to create an IAM Role for the Principal user
 		roleManager.On("CreateRoleWithPolicy",
 			mock.MatchedBy(func(input *rolemanager.CreateRoleWithPolicyInput) bool {
 				// Verify the expected input
 				assert.Equal(t, "DefaultPrincipalRoleName", input.RoleName)
-				assert.Equal(t, "Role to be assumed by principal users of Redbox", input.RoleDescription)
+				assert.Equal(t, "Role to be assumed by principal users of DCE", input.RoleDescription)
 				assert.Equal(t, expectedAssumeRolePolicy, input.AssumeRolePolicyDocument)
 				assert.Equal(t, int64(100), input.MaxSessionDuration)
 				assert.Equal(t, "DefaultPrincipalPolicyName", input.PolicyName)
 				assert.Equal(t, []*iam.Tag{
 					{Key: aws.String("Terraform"), Value: aws.String("False")},
-					{Key: aws.String("Source"), Value: aws.String("github.com/Optum/Redbox//cmd/lambda/accounts")},
+					{Key: aws.String("Source"), Value: aws.String("github.com/Optum/dce//cmd/lambda/accounts")},
 					{Key: aws.String("Environment"), Value: aws.String("DefaultTagEnvironment")},
 					{Key: aws.String("Contact"), Value: aws.String("DefaultTagContact")},
 					{Key: aws.String("AppName"), Value: aws.String("DefaultTagAppName")},
-					{Key: aws.String("Name"), Value: aws.String("RedboxPrincipal")},
+					{Key: aws.String("Name"), Value: aws.String("DCEPrincipal")},
 				}, input.Tags)
 				assert.Equal(t, true, input.IgnoreAlreadyExistsErrors)
 				assert.Equal(t, "", "")
@@ -561,8 +542,8 @@ func dbStub() *dbMocks.DBer {
 		Return(nil, nil)
 	mockDb.On("PutAccount", mock.Anything).Return(nil)
 	mockDb.On("DeleteAccount", mock.Anything).
-		Return(func(accountID string) *db.RedboxAccount {
-			return &db.RedboxAccount{ID: accountID}
+		Return(func(accountID string) *db.Account {
+			return &db.Account{ID: accountID}
 		}, nil)
 
 	return mockDb
@@ -617,8 +598,8 @@ func roleManagerStub() *roleManagerMocks.RoleManager {
 				return &rolemanager.CreateRoleWithPolicyOutput{
 					RoleName:   input.RoleName,
 					RoleArn:    "arn:aws:iam::1234567890:role/" + input.RoleName,
-					PolicyName: "RedboxPrincipalDefaultPolicy",
-					PolicyArn:  "arn:aws:iam::1234567890:policy/RedboxPrincipalDefaultPolicy",
+					PolicyName: "DCEPrincipalDefaultPolicy",
+					PolicyArn:  "arn:aws:iam::1234567890:policy/DCEPrincipalDefaultPolicy",
 				}
 			}, nil,
 		)

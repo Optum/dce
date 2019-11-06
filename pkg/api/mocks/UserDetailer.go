@@ -3,7 +3,7 @@
 package mocks
 
 import (
-	api "github.com/Optum/Redbox/pkg/api"
+	api "github.com/Optum/dce/pkg/api"
 	events "github.com/aws/aws-lambda-go/events"
 
 	mock "github.com/stretchr/testify/mock"

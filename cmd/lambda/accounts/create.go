@@ -9,10 +9,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Optum/Redbox/pkg/api/response"
-	"github.com/Optum/Redbox/pkg/common"
-	"github.com/Optum/Redbox/pkg/db"
-	"github.com/Optum/Redbox/pkg/rolemanager"
+	"github.com/Optum/dce/pkg/api/response"
+	"github.com/Optum/dce/pkg/common"
+	"github.com/Optum/dce/pkg/db"
+	"github.com/Optum/dce/pkg/rolemanager"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/sts"
@@ -39,7 +39,7 @@ func init() {
 	principalMaxSessionDuration = int64(Config.GetEnvIntVar("PRINCIPAL_MAX_SESSION_DURATION", 100))
 	tags = []*iam.Tag{
 		{Key: aws.String("Terraform"), Value: aws.String("False")},
-		{Key: aws.String("Source"), Value: aws.String("github.com/Optum/Redbox//cmd/lambda/accounts")},
+		{Key: aws.String("Source"), Value: aws.String("github.com/Optum/dce//cmd/lambda/accounts")},
 		{Key: aws.String("Environment"), Value: aws.String(Config.GetEnvVar("TAG_ENVIRONMENT", "DefaultTagEnvironment"))},
 		{Key: aws.String("Contact"), Value: aws.String(Config.GetEnvVar("TAG_CONTACT", "DefaultTagContact"))},
 		{Key: aws.String("AppName"), Value: aws.String(Config.GetEnvVar("TAG_APP_NAME", "DefaultTagAppName"))},
@@ -73,7 +73,7 @@ func CreateAccount(w http.ResponseWriter, r *http.Request) {
 	// Check if the account already exists
 	existingAccount, err := Dao.GetAccount(request.ID)
 	if err != nil {
-		log.Printf("Failed to add redbox account %s to pool: %s",
+		log.Printf("Failed to add account %s to pool: %s",
 			request.ID, err.Error())
 		WriteAPIErrorResponse(w, http.StatusInternalServerError, "ServerError", "")
 		return
@@ -87,20 +87,20 @@ func CreateAccount(w http.ResponseWriter, r *http.Request) {
 	// using the `adminRoleArn`
 	_, err = TokenSvc.AssumeRole(&sts.AssumeRoleInput{
 		RoleArn:         aws.String(request.AdminRoleArn),
-		RoleSessionName: aws.String("RedboxMasterAssumeRoleVerification"),
+		RoleSessionName: aws.String("MasterAssumeRoleVerification"),
 	})
 
 	if err != nil {
 		WriteRequestValidationError(
 			w,
-			"Unable to create Account: adminRole is not assumable by the Redbox master account",
+			"Unable to create Account: adminRole is not assumable by the master account",
 		)
 		return
 	}
 
 	// Prepare the account record
 	now := time.Now().Unix()
-	account := db.RedboxAccount{
+	account := db.Account{
 		ID:             request.ID,
 		AccountStatus:  db.NotReady,
 		LastModifiedOn: now,
@@ -108,7 +108,7 @@ func CreateAccount(w http.ResponseWriter, r *http.Request) {
 		AdminRoleArn:   request.AdminRoleArn,
 	}
 
-	// Create an IAM Role for the Redbox principal (end-user) to login to
+	// Create an IAM Role for the principal (end-user) to login to
 	createRolRes, policyHash, err := createPrincipalRole(account)
 	if err != nil {
 		log.Printf("failed to create principal role for %s: %s", request.ID, err)
@@ -121,7 +121,7 @@ func CreateAccount(w http.ResponseWriter, r *http.Request) {
 	// Write the Account to the DB
 	err = Dao.PutAccount(account)
 	if err != nil {
-		log.Printf("Failed to add redbox account %s to pool: %s",
+		log.Printf("Failed to add account %s to pool: %s",
 			request.ID, err.Error())
 		WriteServerErrorWithResponse(w, "Internal server error")
 		return
@@ -194,11 +194,11 @@ func (req *CreateRequest) Validate() (bool, *string) {
 	return true, nil
 }
 
-func createPrincipalRole(account db.RedboxAccount) (*rolemanager.CreateRoleWithPolicyOutput, string, error) {
+func createPrincipalRole(account db.Account) (*rolemanager.CreateRoleWithPolicyOutput, string, error) {
 	// Create an assume role policy,
 	// to let principals from the same account assume the role.
 	//
-	// Consumers of open source redbox may modify and customize
+	// Consumers of open source DCE may modify and customize
 	// this as need (eg. to integrate with SSO/SAML)
 	// by responding to the "account-created" SNS topic
 	assumeRolePolicy := strings.TrimSpace(fmt.Sprintf(`
@@ -217,10 +217,10 @@ func createPrincipalRole(account db.RedboxAccount) (*rolemanager.CreateRoleWithP
 		}
 	`, account.ID))
 
-	// Render the default policy for the Redbox principal
+	// Render the default policy for the principal
 
 	policy, policyHash, err := StorageSvc.GetTemplateObject(artifactsBucket, principalPolicyS3Key,
-		redboxPrincipalPolicyInput{
+		principalPolicyInput{
 			PrincipalPolicyArn:   fmt.Sprintf("arn:aws:iam::%s:policy/%s", account.ID, policyName),
 			PrincipalRoleArn:     fmt.Sprintf("arn:aws:iam::%s:role/%s", account.ID, principalRoleName),
 			PrincipalIAMDenyTags: principalIAMDenyTags,
@@ -230,7 +230,7 @@ func createPrincipalRole(account db.RedboxAccount) (*rolemanager.CreateRoleWithP
 		return nil, "", err
 	}
 
-	// Assume role into the new Redbox account
+	// Assume role into the new account
 	accountSession, err := TokenSvc.NewSession(AWSSession, account.AdminRoleArn)
 	if err != nil {
 		return nil, "", err
@@ -242,21 +242,21 @@ func createPrincipalRole(account db.RedboxAccount) (*rolemanager.CreateRoleWithP
 	createRoleOutput := &rolemanager.CreateRoleWithPolicyOutput{}
 	createRoleOutput, err = RoleManager.CreateRoleWithPolicy(&rolemanager.CreateRoleWithPolicyInput{
 		RoleName:                 principalRoleName,
-		RoleDescription:          "Role to be assumed by principal users of Redbox",
+		RoleDescription:          "Role to be assumed by principal users of DCE",
 		AssumeRolePolicyDocument: assumeRolePolicy,
 		MaxSessionDuration:       principalMaxSessionDuration,
 		PolicyName:               policyName,
 		PolicyDocument:           policy,
-		PolicyDescription:        "Policy for principal users of Redbox",
+		PolicyDescription:        "Policy for principal users of DCE",
 		Tags: append(tags,
-			&iam.Tag{Key: aws.String("Name"), Value: aws.String("RedboxPrincipal")},
+			&iam.Tag{Key: aws.String("Name"), Value: aws.String("DCEPrincipal")},
 		),
 		IgnoreAlreadyExistsErrors: true,
 	})
 	return createRoleOutput, policyHash, err
 }
 
-type redboxPrincipalPolicyInput struct {
+type principalPolicyInput struct {
 	PrincipalPolicyArn   string
 	PrincipalRoleArn     string
 	PrincipalIAMDenyTags []string

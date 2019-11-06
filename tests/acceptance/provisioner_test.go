@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Optum/Redbox/pkg/db"
-	"github.com/Optum/Redbox/pkg/provision"
+	"github.com/Optum/dce/pkg/db"
+	"github.com/Optum/dce/pkg/provision"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -29,10 +29,12 @@ func TestProvisioner(t *testing.T) {
 			awsSession,
 			aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
 		),
-		tfOut["dynamodb_table_account_name"].(string),
-		tfOut["redbox_lease_db_table_name"].(string),
+		tfOut["accounts_table_name"].(string),
+		tfOut["leases_table_name"].(string),
 		7,
 	)
+
+	dbSvc.ConsistentRead = true
 
 	// Configure the Provisioner service
 	provSvc := provision.AccountProvision{
@@ -94,7 +96,7 @@ func TestProvisioner(t *testing.T) {
 			sevenDaysFromNow := time.Now().AddDate(0, 0, 7).Unix()
 
 			timeNow := time.Now().Unix()
-			assgn := db.RedboxLease{
+			assgn := db.Lease{
 				ID:                    uuid.New().String(),
 				AccountID:             acctID,
 				PrincipalID:           principalID,
@@ -105,7 +107,7 @@ func TestProvisioner(t *testing.T) {
 			}
 			putAssgn, err := dbSvc.PutLease(assgn)
 			require.Nil(t, err)
-			require.Equal(t, db.RedboxLease{}, *putAssgn) // should return an empty account lease since its new
+			require.Equal(t, db.Lease{}, *putAssgn) // should return an empty account lease since its new
 
 			// Activate the below Account Lease
 			result, err := provSvc.ActivateAccount(true, principalID,

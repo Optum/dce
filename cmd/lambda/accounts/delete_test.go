@@ -6,17 +6,17 @@ import (
 	"net/http"
 	"testing"
 
-	errors2 "github.com/Optum/Redbox/pkg/errors"
-	"github.com/Optum/Redbox/pkg/rolemanager"
-	mocks2 "github.com/Optum/Redbox/pkg/rolemanager/mocks"
-	roleManagerMocks "github.com/Optum/Redbox/pkg/rolemanager/mocks"
+	errors2 "github.com/Optum/dce/pkg/errors"
+	"github.com/Optum/dce/pkg/rolemanager"
+	mocks2 "github.com/Optum/dce/pkg/rolemanager/mocks"
+	roleManagerMocks "github.com/Optum/dce/pkg/rolemanager/mocks"
 
-	"github.com/Optum/Redbox/pkg/api/response"
-	awsMocks "github.com/Optum/Redbox/pkg/awsiface/mocks"
-	"github.com/Optum/Redbox/pkg/common"
-	commonMocks "github.com/Optum/Redbox/pkg/common/mocks"
-	"github.com/Optum/Redbox/pkg/db"
-	"github.com/Optum/Redbox/pkg/db/mocks"
+	"github.com/Optum/dce/pkg/api/response"
+	awsMocks "github.com/Optum/dce/pkg/awsiface/mocks"
+	"github.com/Optum/dce/pkg/common"
+	commonMocks "github.com/Optum/dce/pkg/common/mocks"
+	"github.com/Optum/dce/pkg/db"
+	"github.com/Optum/dce/pkg/db/mocks"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/client"
@@ -25,7 +25,7 @@ import (
 )
 
 func TestDeleteController_Call(t *testing.T) {
-	expectedAccount := db.RedboxAccount{
+	expectedAccount := db.Account{
 		ID:           "123456789012",
 		AdminRoleArn: "arn:admin-role",
 	}
@@ -111,7 +111,7 @@ func TestDeleteController_Call(t *testing.T) {
 		assert.Equal(t, http.StatusInternalServerError, response.StatusCode)
 	})
 
-	t.Run("should destroy the redbox principal IAM Role and Policy", func(t *testing.T) {
+	t.Run("should destroy the principal IAM Role and Policy", func(t *testing.T) {
 
 		mockDb := mocks.DBer{}
 		mockDb.On("DeleteAccount", "123456789012").Return(&expectedAccount, nil)
@@ -124,8 +124,8 @@ func TestDeleteController_Call(t *testing.T) {
 
 		// Mock RoleManager.DestroyRoleWithPolicy()
 		roleManager.On("DestroyRoleWithPolicy", &rolemanager.DestroyRoleWithPolicyInput{
-			RoleName:  "RedboxPrincipal",
-			PolicyArn: "arn:aws:iam::123456789012:policy/RedboxPrincipalDefaultPolicy",
+			RoleName:  "DCEPrincipal",
+			PolicyArn: "arn:aws:iam::123456789012:policy/DCEPrincipalDefaultPolicy",
 		}).Return(&rolemanager.DestroyRoleWithPolicyOutput{}, nil)
 
 		// Should set the IAM role (using the assumed account creds)
@@ -139,7 +139,7 @@ func TestDeleteController_Call(t *testing.T) {
 		roleManager.AssertExpectations(t)
 	})
 
-	t.Run("should return 204, even if the redbox principal role cannot be deleted", func(t *testing.T) {
+	t.Run("should return 204, even if the principal role cannot be deleted", func(t *testing.T) {
 
 		// Mock the role manager
 		roleManager := &mocks2.RoleManager{}
@@ -147,8 +147,8 @@ func TestDeleteController_Call(t *testing.T) {
 
 		// Mock RoleManager.DestroyRoleWithPolicy() to return an error
 		roleManager.On("DestroyRoleWithPolicy", &rolemanager.DestroyRoleWithPolicyInput{
-			RoleName:  "RedboxPrincipal",
-			PolicyArn: "arn:aws:iam::123456789012:policy/RedboxPrincipalDefaultPolicy",
+			RoleName:  "DCEPrincipal",
+			PolicyArn: "arn:aws:iam::123456789012:policy/DCEPrincipalDefaultPolicy",
 		}).Return(nil, &errors2.MultiError{})
 
 		// Should set the IAM role (using the assumed account creds)

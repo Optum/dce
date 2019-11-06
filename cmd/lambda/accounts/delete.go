@@ -5,12 +5,12 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/Optum/Redbox/pkg/rolemanager"
+	"github.com/Optum/dce/pkg/rolemanager"
 	"github.com/aws/aws-sdk-go/service/iam"
 
-	"github.com/Optum/Redbox/pkg/api/response"
-	"github.com/Optum/Redbox/pkg/common"
-	"github.com/Optum/Redbox/pkg/db"
+	"github.com/Optum/dce/pkg/api/response"
+	"github.com/Optum/dce/pkg/common"
+	"github.com/Optum/dce/pkg/db"
 	"github.com/gorilla/mux"
 )
 
@@ -54,7 +54,7 @@ func DeleteAccount(w http.ResponseWriter, r *http.Request) {
 }
 
 // sendSNS sends notification to SNS that the delete has occurred.
-func sendSNS(account *db.RedboxAccount) {
+func sendSNS(account *db.Account) {
 	serializedAccount := response.AccountResponse(*account)
 	serializedMessage, err := common.PrepareSNSMessageJSON(serializedAccount)
 
@@ -81,8 +81,8 @@ func sendToResetQueue(accountID string) {
 	}
 }
 
-func destroyIAMPrincipal(account *db.RedboxAccount) {
-	// Assume role into the new Redbox account
+func destroyIAMPrincipal(account *db.Account) {
+	// Assume role into the new account
 	accountSession, err := TokenSvc.NewSession(AWSSession, account.AdminRoleArn)
 	if err != nil {
 		log.Printf("Failed to assume role into account %s: %s", account.ID, err)
@@ -102,6 +102,6 @@ func destroyIAMPrincipal(account *db.RedboxAccount) {
 	})
 	// Log error, and continue
 	if err != nil {
-		log.Printf("Failed to destroy Redbox Principal IAM Role and Policy: %s", err)
+		log.Printf("Failed to destroy Principal IAM Role and Policy: %s", err)
 	}
 }

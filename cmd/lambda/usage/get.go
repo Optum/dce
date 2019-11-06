@@ -9,9 +9,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/Optum/Redbox/pkg/usage"
+	"github.com/Optum/dce/pkg/usage"
 
-	"github.com/Optum/Redbox/pkg/api/response"
+	"github.com/Optum/dce/pkg/api/response"
 	"github.com/aws/aws-lambda-go/events"
 )
 

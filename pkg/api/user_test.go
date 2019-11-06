@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/Optum/Redbox/pkg/api"
-	"github.com/Optum/Redbox/pkg/awsiface/mocks"
+	"github.com/Optum/dce/pkg/api"
+	"github.com/Optum/dce/pkg/awsiface/mocks"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"

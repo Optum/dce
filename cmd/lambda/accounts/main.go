@@ -10,16 +10,16 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 
-	"github.com/Optum/Redbox/pkg/api/response"
-	"github.com/Optum/Redbox/pkg/common"
-	"github.com/Optum/Redbox/pkg/rolemanager"
+	"github.com/Optum/dce/pkg/api/response"
+	"github.com/Optum/dce/pkg/common"
+	"github.com/Optum/dce/pkg/rolemanager"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/sts"
 
-	"github.com/Optum/Redbox/pkg/api"
-	"github.com/Optum/Redbox/pkg/db"
+	"github.com/Optum/dce/pkg/api"
+	"github.com/Optum/dce/pkg/db"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 

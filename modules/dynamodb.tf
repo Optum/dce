@@ -1,4 +1,4 @@
-# Redbox Account table
+# Account table
 # Tracks the status of AWS Accounts in our pool
 locals {
   // Suffix table names with var.namesapce,
@@ -6,7 +6,7 @@ locals {
   table_suffix = var.namespace == "prod" ? "" : title(var.namespace)
 }
 
-resource "aws_dynamodb_table" "redbox_account" {
+resource "aws_dynamodb_table" "accounts" {
   name             = "Accounts${local.table_suffix}"
   read_capacity    = 5
   write_capacity   = 5
@@ -50,7 +50,7 @@ resource "aws_dynamodb_table" "redbox_account" {
   */
 }
 
-resource "aws_dynamodb_table" "redbox_lease" {
+resource "aws_dynamodb_table" "leases" {
   name             = "Leases${local.table_suffix}"
   read_capacity    = 5
   write_capacity   = 5
@@ -124,7 +124,7 @@ resource "aws_dynamodb_table" "redbox_lease" {
   */
 }
 
-resource "aws_dynamodb_table" "usage_cache" {
+resource "aws_dynamodb_table" "usage" {
   name             = "Usage${local.table_suffix}"
   read_capacity    = 5
   write_capacity   = 5

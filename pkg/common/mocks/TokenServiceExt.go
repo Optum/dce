@@ -1,7 +1,7 @@
 package mocks
 
 import (
-	awsMocks "github.com/Optum/Redbox/pkg/awsiface/mocks"
+	awsMocks "github.com/Optum/dce/pkg/awsiface/mocks"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/stretchr/testify/mock"

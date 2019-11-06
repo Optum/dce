@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/Optum/Redbox/pkg/api/response"
+	"github.com/Optum/dce/pkg/api/response"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/aws/session"
 )

@@ -3,14 +3,14 @@ package main
 import (
 	"log"
 
-	"github.com/Optum/Redbox/pkg/common"
-	"github.com/Optum/Redbox/pkg/db"
+	"github.com/Optum/dce/pkg/common"
+	"github.com/Optum/dce/pkg/db"
 )
 
 type leaseChangeEvent struct {
 	snsSvc             common.Notificationer
 	leaseEventTopicArn string
-	lease              *db.RedboxLease
+	lease              *db.Lease
 }
 
 //
