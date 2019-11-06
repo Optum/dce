@@ -243,4 +243,5 @@ type principalPolicyInput struct {
 	PrincipalRoleArn     string
 	PrincipalIAMDenyTags []string
 	AdminRoleArn         string
+	AllowedRegions       []string
 }
