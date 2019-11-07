@@ -64,7 +64,7 @@ func validateLeaseRequest(controller CreateController, req *events.APIGatewayPro
 	}
 
 	if spent > *controller.PrincipalBudgetAmount {
-		errStr := fmt.Sprintf("Unable to create lease: User principal %s has already spent %f of their weekly principal budget", requestBody.PrincipalID, math.Round(*controller.PrincipalBudgetAmount))
+		errStr := fmt.Sprintf("Unable to create lease: User principal %s has already spent %f of their principal budget", requestBody.PrincipalID, math.Round(*controller.PrincipalBudgetAmount))
 		return requestBody, errors.New(errStr)
 	}
 
