@@ -18,12 +18,11 @@ func validateLeaseRequest(controller CreateController, req *events.APIGatewayPro
 	// Validate body from the Request
 	requestBody := &createLeaseRequest{}
 	var err error
-	if req.HTTPMethod != "GET" {
-		err = json.Unmarshal([]byte(req.Body), requestBody)
-		if err != nil || requestBody.PrincipalID == "" {
-			errStr := fmt.Sprintf("Failed to Parse Request Body: %s", req.Body)
-			return requestBody, errors.New(errStr)
-		}
+
+	err = json.Unmarshal([]byte(req.Body), requestBody)
+	if err != nil || requestBody.PrincipalID == "" {
+		errStr := fmt.Sprintf("Failed to Parse Request Body: %s", req.Body)
+		return requestBody, errors.New(errStr)
 	}
 
 	// Validate requested lease end date is greater than today
