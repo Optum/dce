@@ -4,8 +4,10 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
+	"os"
+	"text/template"
 
 	"github.com/pkg/errors"
 
@@ -130,7 +132,17 @@ func updateDBPostReset(dbSvc db.DBer, snsSvc common.Notificationer, accountID st
 func nukeAccount(svc *service, isDryRun bool) error {
 	// Generate the configuration of the yaml file using the template file
 	// provided and substituting necessary phrases.
-	configFile, err := generateNukeConfig(svc)
+
+	config := svc.config()
+
+	// Create the file
+	configFile := fmt.Sprintf("/tmp/nuke-config-%s.yml", config.accountID)
+	f, err := os.Create(configFile)
+	if err != nil {
+		log.Fatalf("Failed to create file %s: %s", configFile, err)
+		return err
+	}
+	err = generateNukeConfig(svc, f)
 	if err != nil {
 		return err
 	}
@@ -139,7 +151,6 @@ func nukeAccount(svc *service, isDryRun bool) error {
 	nuke := reset.Nuke{}
 
 	// Configure the NukeAccountInput
-	config := svc.config()
 	nukeAccountInput := reset.NukeAccountInput{
 		AccountID:  config.accountID,
 		RoleName:   config.accountAdminRoleName,
@@ -164,7 +175,7 @@ func nukeAccount(svc *service, isDryRun bool) error {
 	return nil
 }
 
-func generateNukeConfig(svc *service) (string, error) {
+func generateNukeConfig(svc *service, f io.Writer) error {
 	config := svc.config()
 
 	// Verify the nuke template configuration to download file from s3 or to
@@ -180,7 +191,7 @@ func generateNukeConfig(svc *service) (string, error) {
 		err := svc.s3Service().Download(config.nukeTemplateBucket,
 			config.nukeTemplateKey, templateFile)
 		if err != nil {
-			return "", errors.Wrapf(err, "Failed to download nuke template at s3://%s/%s to %s",
+			return errors.Wrapf(err, "Failed to download nuke template at s3://%s/%s to %s",
 				config.nukeTemplateBucket, config.nukeTemplateKey, templateFile)
 		}
 	} else {
@@ -191,24 +202,33 @@ func generateNukeConfig(svc *service) (string, error) {
 		templateFile = config.nukeTemplateDefault
 	}
 
-	// Generate the configuration of the yaml file using the template file
-	// provided and substituting necessary phrases.
-	subs := map[string]string{
-		"{{id}}":               config.accountID,
-		"{{admin_role}}":       config.accountAdminRoleName,
-		"{{principal_role}}":   config.accountPrincipalRoleName,
-		"{{principal_policy}}": config.accountPrincipalPolicyName,
-	}
-	modConfig, err := reset.GenerateConfig(templateFile, subs)
+	template, err := template.New(templateFile).ParseFiles(templateFile)
 	if err != nil {
 		log.Fatalf("Failed to generate nuke config for acount %s using template %s: %s",
 			config.accountID, templateFile, err)
+		return err
 	}
-	log.Println(string(modConfig))
-	configFile := fmt.Sprintf("/tmp/nuke-config-%s.yml", config.accountID)
-	err = ioutil.WriteFile(configFile, modConfig, 0666)
+
+	type templateParams struct {
+		ID              string
+		AdminRole       string
+		PrincipalRole   string
+		PrincipalPolicy string
+		Regions         []string
+	}
+
+	err = template.ExecuteTemplate(f, templateFile, &templateParams{
+		ID:              config.accountID,
+		AdminRole:       config.accountAdminRoleName,
+		PrincipalRole:   config.accountPrincipalRoleName,
+		PrincipalPolicy: config.accountPrincipalPolicyName,
+		Regions:         config.allowedRegions,
+	})
 	if err != nil {
-		return "", err
+		log.Fatalf("Failed to generate nuke config for acount %s using template %s: %s",
+			config.accountID, templateFile, err)
+		return err
 	}
-	return configFile, nil
+
+	return nil
 }

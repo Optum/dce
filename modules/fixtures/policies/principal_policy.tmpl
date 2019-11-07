@@ -1,165 +1,165 @@
 {
-    "Version": "2012-10-17",
-    "Statement": [
-      {
-        "Sid": "DoNotModifySelf",
-        "Effect": "Deny",
-        "NotAction": [
-          "iam:GetPolicy",
-          "iam:GetPolicyVersion",
-          "iam:GetRole",
-          "iam:GetRolePolicy",
-          "iam:ListRoles",
-          "iam:ListRolePolicies",
-          "iam:ListAttachedRolePolicies",
-          "iam:ListRoleTags",
-          "iam:ListPoliciesGrantingServiceAccess",
-          "iam:ListEntitiesForPolicy",
-          "iam:ListPolicyVersions",
-          "iam:GenerateServiceLastAccessedDetails"
-        ],
-        "Resource": [
-          "{{.PrincipalPolicyArn}}",
-          "{{.PrincipalRoleArn}}",
-          "{{.AdminRoleArn}}" 
-        ]
-      },
-      {
-        "Sid": "DenyTaggedResourcesAWS",
-        "Effect": "Deny",
-        "Action": "*",
-        "Resource": "*",
-        "Condition": {
-          "StringEquals": {
-            "aws:ResourceTag/AppName": [
-              "{{ StringsJoin .PrincipalIAMDenyTags "\", \"" }}"
-            ]
-          }
-        }
-      },
-      {
-        "Sid": "DenyIAM",
-        "Effect": "Deny",
-        "Action": [
-          "iam:DeactivateMFADevice",
-          "iam:CreateSAMLProvider",
-          "iam:UpdateAccountPasswordPolicy",
-          "iam:DeleteVirtualMFADevice",
-          "iam:EnableMFADevice",
-          "iam:CreateAccountAlias",
-          "iam:DeleteAccountAlias",
-          "iam:UpdateSAMLProvider",
-          "iam:DeleteSAMLProvider"
-        ],
-        "Resource": "*"
-      },
-      {
-        "Sid": "ViewBillingBudgetsQuotas",
-        "Effect": "Allow",
-        "Action": [
-          "aws-portal:ViewBilling",
-          "aws-portal:ViewUsage",
-          "budgets:ViewBudget",
-          "servicequotas:*",
-        ],
-        "Resource": "*"
-      },
-      {
-        "Sid": "AllowedServices",
-        "Effect": "Allow",
-        "Action": [
-          "acm:*",
-          "acm-pca:*",
-          "apigateway:*",
-          "appstream:*",
-          "autoscaling:*",
-          "backup:*",
-          "batch:*",
-          "cloud9:*",
-          "clouddirectory:*",
-          "cloudformation:*",
-          "cloudfront:*",
-          "cloudhsm:*",
-          "cloudsearch:*",
-          "cloudtrail:*",
-          "cloudwatch:*",
-          "codebuild:*",
-          "codecommit:*",
-          "codedeploy:*",
-          "codepipeline:*",
-          "codestar:*",
-          "cognito-identity:*",
-          "cognito-idp:*",
-          "cognito-sync:*",
-          "config:*",
-          "datapipeline:*",
-          "dax:*",
-          "devicefarm:*",
-          "dms:*",
-          "ds:*",
-          "dynamodb:*",
-          "ec2:*",
-          "ecr:*",
-          "ecs:*",
-          "eks:*",
-          "elasticache:*",
-          "elasticbeanstalk:*",
-          "elasticfilesystem:*",
-          "elasticloadbalancing:*",
-          "elasticmapreduce:*",
-          "elastictranscoder:*",
-          "es:*",
-          "events:*",
-          "firehose:*",
-          "fsx:*",
-          "glue:*",
-          "iam:*",
-          "iot:*",
-          "kafka:*",
-          "kinesis:*",
-          "kms:*",
-          "lambda:*",
-          "lightsail:*",
-          "logs:*",
-          "machinelearning:*",
-          "mediaconvert:*",
-          "medialive:*",
-          "mediapackage:*",
-          "mediastore:*",
-          "mediatailor:*",
-          "mobilehub:*",
-          "mq:*",
-          "neptune-db:*",
-          "opsworks:*",
-          "rds:*",
-          "redshift:*",
-          "rekognition:*",
-          "resource-groups:*",
-          "route53:*",
-          "s3:*",
-          "sagemaker:*",
-          "sdb:*",
-          "secretsmanager:*",
-          "servicecatalog:*",
-          "servicediscovery:*",
-          "ses:*",
-          "sns:*",
-          "sqs:*",
-          "ssm:*",
-          "states:*",
-          "storagegateway:*",
-          "waf-regional:*",
-          "waf:*",
-          "workspaces:*"
-        ],
-        "Resource": "*",
-        "Condition": {
-          "StringEquals": {
-            "aws:RequestedRegion": [
-              "{{ StringsJoin .AllowedRegions "\", \"" }}"
-            ]
-          }
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "DoNotModifySelf",
+      "Effect": "Deny",
+      "NotAction": [
+        "iam:GetPolicy",
+        "iam:GetPolicyVersion",
+        "iam:GetRole",
+        "iam:GetRolePolicy",
+        "iam:ListRoles",
+        "iam:ListRolePolicies",
+        "iam:ListAttachedRolePolicies",
+        "iam:ListRoleTags",
+        "iam:ListPoliciesGrantingServiceAccess",
+        "iam:ListEntitiesForPolicy",
+        "iam:ListPolicyVersions",
+        "iam:GenerateServiceLastAccessedDetails"
+      ],
+      "Resource": [
+        "{{.PrincipalPolicyArn}}",
+        "{{.PrincipalRoleArn}}",
+        "{{.AdminRoleArn}}"
+      ]
+    },
+    {
+      "Sid": "DenyTaggedResourcesAWS",
+      "Effect": "Deny",
+      "Action": "*",
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:ResourceTag/AppName": [
+            "{{ StringsJoin .PrincipalIAMDenyTags "\", \""}}"
+          ]
         }
       }
-    ]
-  }
+    },
+    {
+      "Sid": "DenyIAM",
+      "Effect": "Deny",
+      "Action": [
+        "iam:DeactivateMFADevice",
+        "iam:CreateSAMLProvider",
+        "iam:UpdateAccountPasswordPolicy",
+        "iam:DeleteVirtualMFADevice",
+        "iam:EnableMFADevice",
+        "iam:CreateAccountAlias",
+        "iam:DeleteAccountAlias",
+        "iam:UpdateSAMLProvider",
+        "iam:DeleteSAMLProvider"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "ViewBillingBudgetsQuotas",
+      "Effect": "Allow",
+      "Action": [
+        "aws-portal:ViewBilling",
+        "aws-portal:ViewUsage",
+        "budgets:ViewBudget",
+        "servicequotas:*"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "AllowedServices",
+      "Effect": "Allow",
+      "Action": [
+        "acm:*",
+        "acm-pca:*",
+        "apigateway:*",
+        "appstream:*",
+        "autoscaling:*",
+        "backup:*",
+        "batch:*",
+        "cloud9:*",
+        "clouddirectory:*",
+        "cloudformation:*",
+        "cloudfront:*",
+        "cloudhsm:*",
+        "cloudsearch:*",
+        "cloudtrail:*",
+        "cloudwatch:*",
+        "codebuild:*",
+        "codecommit:*",
+        "codedeploy:*",
+        "codepipeline:*",
+        "codestar:*",
+        "cognito-identity:*",
+        "cognito-idp:*",
+        "cognito-sync:*",
+        "config:*",
+        "datapipeline:*",
+        "dax:*",
+        "devicefarm:*",
+        "dms:*",
+        "ds:*",
+        "dynamodb:*",
+        "ec2:*",
+        "ecr:*",
+        "ecs:*",
+        "eks:*",
+        "elasticache:*",
+        "elasticbeanstalk:*",
+        "elasticfilesystem:*",
+        "elasticloadbalancing:*",
+        "elasticmapreduce:*",
+        "elastictranscoder:*",
+        "es:*",
+        "events:*",
+        "firehose:*",
+        "fsx:*",
+        "glue:*",
+        "iam:*",
+        "iot:*",
+        "kafka:*",
+        "kinesis:*",
+        "kms:*",
+        "lambda:*",
+        "lightsail:*",
+        "logs:*",
+        "machinelearning:*",
+        "mediaconvert:*",
+        "medialive:*",
+        "mediapackage:*",
+        "mediastore:*",
+        "mediatailor:*",
+        "mobilehub:*",
+        "mq:*",
+        "neptune-db:*",
+        "opsworks:*",
+        "rds:*",
+        "redshift:*",
+        "rekognition:*",
+        "resource-groups:*",
+        "route53:*",
+        "s3:*",
+        "sagemaker:*",
+        "sdb:*",
+        "secretsmanager:*",
+        "servicecatalog:*",
+        "servicediscovery:*",
+        "ses:*",
+        "sns:*",
+        "sqs:*",
+        "ssm:*",
+        "states:*",
+        "storagegateway:*",
+        "waf-regional:*",
+        "waf:*",
+        "workspaces:*"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": [
+            {{$first := true}}{{range .Regions}}{{if $first}}{{$first = false}}{{else}},{{end}}"{{.}}"{{end}}
+          ]
+        }
+      }
+    }
+  ]
+}

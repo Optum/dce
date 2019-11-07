@@ -207,6 +207,7 @@ func createPrincipalRole(childAccount db.Account, masterAccountID string) (*role
 			PrincipalRoleArn:     fmt.Sprintf("arn:aws:iam::%s:role/%s", childAccount.ID, principalRoleName),
 			PrincipalIAMDenyTags: principalIAMDenyTags,
 			AdminRoleArn:         childAccount.AdminRoleArn,
+			Regions:              allowedRegions,
 		})
 	if err != nil {
 		return nil, "", err
@@ -243,5 +244,5 @@ type principalPolicyInput struct {
 	PrincipalRoleArn     string
 	PrincipalIAMDenyTags []string
 	AdminRoleArn         string
-	AllowedRegions       []string
+	Regions              []string
 }

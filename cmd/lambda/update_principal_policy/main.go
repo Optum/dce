@@ -61,7 +61,7 @@ func handler(ctx context.Context, snsEvent events.SNSEvent) error {
 			PrincipalRoleName:    common.RequireEnv("PRINCIPAL_ROLE_NAME"),
 			PrincipalPolicyName:  common.RequireEnv("PRINCIPAL_POLICY_NAME"),
 			PrincipalIAMDenyTags: strings.Split(common.RequireEnv("PRINCIPAL_IAM_DENY_TAGS"), ","),
-			AllowedRegions:       strings.Split(common.RequireEnv("ALLOWED_REGIONS"), ","),
+			Regions:              strings.Split(common.RequireEnv("ALLOWED_REGIONS"), ","),
 			PolicyBucket:         common.RequireEnv("ARTIFACTS_BUCKET"),
 			PolicyBucketKey:      common.RequireEnv("PRINCIPAL_POLICY_S3_KEY"),
 		})
@@ -79,7 +79,7 @@ type processRecordInput struct {
 	PrincipalRoleName    string
 	PrincipalPolicyName  string
 	PrincipalIAMDenyTags []string
-	AllowedRegions       []string
+	Regions              []string
 	PolicyBucket         string
 	PolicyBucketKey      string
 }
