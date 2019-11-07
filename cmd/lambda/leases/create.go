@@ -45,9 +45,14 @@ type createLeaseRequest struct {
 func (c CreateController) Call(ctx context.Context, req *events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 
 	// Extract the Body from the Request
-	requestBody, err := validateLeaseRequest(c, req)
+	requestBody, isValid, validationErrorMessage, err := validateLeaseRequest(c, req)
+
 	if err != nil {
-		return response.BadRequestError(err.Error()), nil
+		return response.ServerErrorWithResponse(err.Error()), nil
+	}
+
+	if !isValid {
+		return response.BadRequestError(validationErrorMessage), nil
 	}
 
 	principalID := requestBody.PrincipalID
