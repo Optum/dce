@@ -9,6 +9,7 @@ import (
 	"github.com/Optum/dce/pkg/common"
 	"github.com/Optum/dce/pkg/db"
 	"github.com/Optum/dce/pkg/provision"
+	"github.com/Optum/dce/pkg/usage"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
 	"github.com/aws/aws-sdk-go/service/sns"
@@ -56,9 +57,20 @@ func main() {
 		Client: sqsClient,
 	}
 
+	usageSvc, err := usage.NewFromEnv()
+	if err != nil {
+		errorMessage := fmt.Sprintf("Failed to initialize usage service: %s", err)
+		log.Fatal(errorMessage)
+	}
+
 	provisionLeaseTopicARN := common.RequireEnv("PROVISION_TOPIC")
 	accountDeletedTopicArn := common.RequireEnv("DECOMMISSION_TOPIC")
 	resetQueueURL := common.RequireEnv("RESET_SQS_URL")
+
+	principalBudgetAmount := common.RequireEnvFloat("PRINCIPAL_BUDGET_AMOUNT")
+	principalBudgetPeriod := common.RequireEnv("PRINCIPAL_BUDGET_PERIOD")
+	maxLeaseBudgetAmount := common.RequireEnvFloat("MAX_LEASE_BUDGET_AMOUNT")
+	maxLeasePeriod := common.RequireEnvInt("MAX_LEASE_PERIOD")
 
 	router := &api.Router{
 		ResourceName: "/leases",
@@ -76,10 +88,15 @@ func main() {
 			Queue:                  queue,
 		},
 		CreateController: CreateController{
-			Dao:           dao,
-			Provisioner:   prov,
-			SNS:           snsSvc,
-			LeaseTopicARN: &provisionLeaseTopicARN,
+			Dao:                   dao,
+			Provisioner:           prov,
+			SNS:                   snsSvc,
+			LeaseTopicARN:         &provisionLeaseTopicARN,
+			UsageSvc:              usageSvc,
+			PrincipalBudgetAmount: &principalBudgetAmount,
+			PrincipalBudgetPeriod: &principalBudgetPeriod,
+			MaxLeaseBudgetAmount:  &maxLeaseBudgetAmount,
+			MaxLeasePeriod:        &maxLeasePeriod,
 		},
 		UserDetails: api.UserDetails{
 			CognitoUserPoolID:        common.RequireEnv("COGNITO_USER_POOL_ID"),
