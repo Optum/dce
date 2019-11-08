@@ -2,8 +2,10 @@ package api
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 
+	"github.com/Optum/dce/pkg/common"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 )
@@ -20,6 +22,15 @@ type Route struct {
 	HandlerFunc http.HandlerFunc
 }
 
+var (
+	debug bool
+)
+
+func init() {
+	config := common.DefaultEnvConfig{}
+	debug = config.GetEnvBoolVar("DEBUG", false)
+}
+
 // Routes - The list of Routes
 type Routes []Route
 
@@ -30,14 +41,30 @@ func NewRouter(routes Routes) *mux.Router {
 		var handler http.Handler
 		handler = route.HandlerFunc
 
-		router.
-			Methods(route.Method).
-			Path(route.Pattern).
-			Name(route.Name).
-			Handler(handler)
+		if debug {
+			log.Printf("Adding route %s with pattern: \"%s\"", route.Name, route.Pattern)
+		}
 
-		for i := 0; i < len(route.Queries); i++ {
-			router.Queries(route.Queries[i], fmt.Sprintf("{%s}", route.Queries[i]))
+		if len(route.Queries) == 0 {
+
+			router.
+				Methods(route.Method).
+				Path(route.Pattern).
+				Name(route.Name).
+				Handler(handler)
+		} else {
+			queryStringPairs := make([]string, len(route.Queries)*2)
+			for i := 0; i < len(route.Queries); i++ {
+				queryStringPairs[i] = route.Queries[i]
+				queryStringPairs[i+1] = fmt.Sprintf("{%s}", route.Queries[i])
+			}
+
+			router.
+				Methods(route.Method).
+				Path(route.Pattern).
+				Name(route.Name).
+				Queries(queryStringPairs...).
+				Handler(handler)
 		}
 	}
 

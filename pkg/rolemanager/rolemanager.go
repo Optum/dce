@@ -43,6 +43,7 @@ type CreateRoleWithPolicyInput struct {
 	IgnoreAlreadyExistsErrors bool
 }
 
+// CreateRoleWithPolicyOutput - Output of the CreateRoleWithPolicy func
 type CreateRoleWithPolicyOutput struct {
 	RoleName   string
 	RoleArn    string
@@ -50,9 +51,9 @@ type CreateRoleWithPolicyOutput struct {
 	PolicyArn  string
 }
 
-// Create a Role, and attach a policy to it
-func (rm IAMRoleManager) CreateRoleWithPolicy(input *CreateRoleWithPolicyInput) (*CreateRoleWithPolicyOutput, error) {
-	// Create the IAM Role
+// CreateRoleWithPolicy - Create a Role, and attach a policy to it
+func (rm *IAMRoleManager) CreateRoleWithPolicy(input *CreateRoleWithPolicyInput) (*CreateRoleWithPolicyOutput, error) {
+
 	createRoleRes, err := rm.IAM.CreateRole(&iam.CreateRoleInput{
 		RoleName:                 aws.String(input.RoleName),
 		AssumeRolePolicyDocument: aws.String(input.AssumeRolePolicyDocument),
@@ -128,7 +129,7 @@ func (rm IAMRoleManager) CreateRoleWithPolicy(input *CreateRoleWithPolicyInput) 
 }
 
 // SetSession allows consumer to set IAM session in IAMRoleManager stuct
-func (rm IAMRoleManager) SetIAMClient(iamClient awsiface.IAM) {
+func (rm *IAMRoleManager) SetIAMClient(iamClient awsiface.IAM) {
 	rm.IAM = iamClient
 }
 
@@ -142,7 +143,7 @@ type DestroyRoleWithPolicyOutput struct {
 	PolicyArn string
 }
 
-func (rm IAMRoleManager) DestroyRoleWithPolicy(input *DestroyRoleWithPolicyInput) (*DestroyRoleWithPolicyOutput, *errors2.MultiError) {
+func (rm *IAMRoleManager) DestroyRoleWithPolicy(input *DestroyRoleWithPolicyInput) (*DestroyRoleWithPolicyOutput, *errors2.MultiError) {
 	errs := []error{}
 	// Detach the Policy from the Role
 	_, err := rm.IAM.DetachRolePolicy(&iam.DetachRolePolicyInput{

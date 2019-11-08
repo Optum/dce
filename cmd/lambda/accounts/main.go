@@ -52,27 +52,24 @@ var (
 func init() {
 	log.Println("Cold start; creating router for /accounts")
 	accountRoutes := api.Routes{
+		// Routes with query strings always go first,
+		// because the matcher will stop on the first match
 		api.Route{
-			"GetAllAccounts",
-			"POST",
+			"GetAccountByStatus",
+			"GET",
 			"/accounts",
-			api.EmptyQueryString,
-			CreateAccount,
+			[]string{"accountStatus"},
+			GetAccountByStatus,
 		},
-		api.Route{
-			"GetAccountById",
-			"DELETE",
-			"/accounts/{accountId}",
-			api.EmptyQueryString,
-			DeleteAccount,
-		},
+
+		// Routes without query strings go after all of the
 		api.Route{
 			"GetAllAccounts",
 			"GET",
 			"/accounts",
 			api.EmptyQueryString,
 			GetAllAccounts,
-		},
+		}, // routes that use query strings for matchers.
 		api.Route{
 			"GetAccountByID",
 			"GET",
@@ -81,11 +78,18 @@ func init() {
 			GetAccountByID,
 		},
 		api.Route{
-			"GetAccountByStatus",
-			"GET",
+			"DeleteAccount",
+			"DELETE",
+			"/accounts/{accountId}",
+			api.EmptyQueryString,
+			DeleteAccount,
+		},
+		api.Route{
+			"CreateAccount",
+			"POST",
 			"/accounts",
-			[]string{"accountStatus"},
-			GetAccountByStatus,
+			api.EmptyQueryString,
+			CreateAccount,
 		},
 	}
 	r := api.NewRouter(accountRoutes)
@@ -105,11 +109,14 @@ func main() {
 	Queue = common.SQSQueue{Client: sqs.New(AWSSession)}
 	SnsSvc = &common.SNS{Client: sns.New(AWSSession)}
 	TokenSvc = common.STS{Client: sts.New(AWSSession)}
+
 	StorageSvc = common.S3{
 		Client:  s3.New(AWSSession),
 		Manager: s3manager.NewDownloader(AWSSession),
 	}
-	RoleManager = rolemanager.IAMRoleManager{}
+
+	RoleManager = &rolemanager.IAMRoleManager{}
+
 	// Send Lambda requests to the router
 	lambda.Start(Handler)
 }

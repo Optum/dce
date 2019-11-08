@@ -47,6 +47,11 @@ func GetAccountByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if account == nil {
+		WriteNotFoundError(w)
+		return
+	}
+
 	acctRes := response.AccountResponse(*account)
 
 	json.NewEncoder(w).Encode(acctRes)
@@ -64,6 +69,11 @@ func GetAccountByStatus(w http.ResponseWriter, r *http.Request) {
 		errorMessage := fmt.Sprintf("Failed to query database: %s", err)
 		log.Print(errorMessage)
 		WriteServerErrorWithResponse(w, errorMessage)
+	}
+
+	if len(accounts) == 0 {
+		WriteNotFoundError(w)
+		return
 	}
 
 	// Serialize them for the JSON response.

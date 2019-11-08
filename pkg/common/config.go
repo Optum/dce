@@ -1,5 +1,7 @@
 package common
 
+import "strings"
+
 // EnvConfig - Configuration pulled from the environment.
 type EnvConfig interface {
 	RequireEnvVar(varName string) string
@@ -33,4 +35,11 @@ func (cfg DefaultEnvConfig) GetEnvVar(varName string, defaultValue string) strin
 //     and panics if the variable is not present.
 func (cfg DefaultEnvConfig) GetEnvIntVar(varName string, defaultValue int) int {
 	return GetEnvInt(varName, defaultValue)
+}
+
+// GetEnvBoolVar - Requires the environment variable with the provided varName
+//     and panics if the variable is not present.
+func (cfg DefaultEnvConfig) GetEnvBoolVar(varName string, defaultValue bool) bool {
+	strValue := GetEnv(varName, "false")
+	return strings.ToLower(strValue) == "true"
 }
