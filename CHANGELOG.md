@@ -1,6 +1,8 @@
-
 ## vNext
+
 - Added Lease Validation for check against max budget amount, max budget period, principal budget amount and principal budget period
+- Increase the threshold for Reset CodeBuild alarms to 10 failures over 5 hours.
+\
 ## v0.22.0
 
 **BREAKING CHANGES**
