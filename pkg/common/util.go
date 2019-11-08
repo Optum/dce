@@ -13,6 +13,7 @@ import (
 type UtilService interface {
 	RequireEnv(env string) string
 	RequireEnvInt(env string) int
+	RequireEnvFloat(env string) float64
 	RequireEnvStringSlice(env string, sep string) []string
 	RequireEnvFloatSlice(env string, sep string) []float64
 }
@@ -36,6 +37,18 @@ func RequireEnvInt(env string) int {
 	}
 
 	return intVal
+}
+
+// RequireEnvFloat returns an environment that is required to be an float64
+func RequireEnvFloat(env string) float64 {
+	val := RequireEnv(env)
+	floatVal, err := strconv.ParseFloat(val, 64)
+
+	if err != nil {
+		panic(fmt.Errorf("unable to parse env var %s as float: %s", env, val))
+	}
+
+	return floatVal
 }
 
 // GetEnvInt returns an environment that is required to be an integer

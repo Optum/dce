@@ -4,23 +4,27 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
-	"net/http"
-	"time"
-
 	"github.com/Optum/dce/pkg/api/response"
 	"github.com/Optum/dce/pkg/common"
 	"github.com/Optum/dce/pkg/db"
 	"github.com/Optum/dce/pkg/provision"
+	"github.com/Optum/dce/pkg/usage"
 	"github.com/aws/aws-lambda-go/events"
+	"log"
+	"net/http"
 )
 
 // CreateController is responsible for handling API events for creating leases.
 type CreateController struct {
-	Dao           db.DBer
-	Provisioner   provision.Provisioner
-	SNS           common.Notificationer
-	LeaseTopicARN *string
+	Dao                   db.DBer
+	Provisioner           provision.Provisioner
+	SNS                   common.Notificationer
+	LeaseTopicARN         *string
+	UsageSvc              usage.Service
+	PrincipalBudgetAmount *float64
+	PrincipalBudgetPeriod *string
+	MaxLeaseBudgetAmount  *float64
+	MaxLeasePeriod        *int
 }
 
 type createLeaseRequest struct {
@@ -41,27 +45,18 @@ type createLeaseRequest struct {
 func (c CreateController) Call(ctx context.Context, req *events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 
 	// Extract the Body from the Request
-	requestBody := &createLeaseRequest{}
-	var err error
-	if req.HTTPMethod != "GET" {
-		err = json.Unmarshal([]byte(req.Body), requestBody)
-		if err != nil || requestBody.PrincipalID == "" {
-			log.Printf("Failed to Parse Request Body: %s", req.Body)
-			return response.ClientBadRequestError(fmt.Sprintf("Failed to Parse Request Body: %s", req.Body)), nil
-		}
+	requestBody, isValid, validationErrorMessage, err := validateLeaseRequest(c, req)
+
+	if err != nil {
+		return response.ServerErrorWithResponse(err.Error()), nil
+	}
+
+	if !isValid {
+		return response.BadRequestError(validationErrorMessage), nil
 	}
 
 	principalID := requestBody.PrincipalID
 	log.Printf("Provisioning Account for Principal %s", principalID)
-
-	// Just do a quick sanity check on the request and make sure that the
-	// requested lease end date, if specified, is at least greater than
-	// today and if it isn't then return an error response
-	if requestBody.ExpiresOn != 0 && requestBody.ExpiresOn <= time.Now().Unix() {
-		errStr := fmt.Sprintf("Requested lease has a desired expiry date less than today: %d", requestBody.ExpiresOn)
-		log.Printf(errStr)
-		return response.BadRequestError(errStr), nil
-	}
 
 	// Check if the principal has any existing Active/FinanceLock/ResetLock
 	// Leases

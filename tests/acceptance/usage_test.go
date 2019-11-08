@@ -158,7 +158,8 @@ func truncateUsageTable(t *testing.T, dbSvc *usage.DB) {
 		deleteRequests = append(deleteRequests, &dynamodb.WriteRequest{
 			DeleteRequest: &dynamodb.DeleteRequest{
 				Key: map[string]*dynamodb.AttributeValue{
-					"StartDate": item["StartDate"],
+					"StartDate":   item["StartDate"],
+					"PrincipalId": item["PrincipalId"],
 				},
 			},
 		})
