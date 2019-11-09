@@ -214,10 +214,13 @@ resource "aws_cloudwatch_metric_alarm" "reset_failed_builds" {
     ProjectName = aws_codebuild_project.reset_build.name
   }
 
-  comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = 1
-  threshold           = 0
-  period              = 60
+  # Alarm if 10 or more builds fail within a 5 hour period.
+  # Note that resets against `NotReady` accounts run every 6 hours,
+  # so this will fail if have 10 accounts that fail to reset in one reset cycle.
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  evaluation_periods  = 5
+  threshold           = 10
+  period              = 3600
   statistic           = "Sum"
 
   alarm_actions = [aws_sns_topic.alarms_topic.arn]
