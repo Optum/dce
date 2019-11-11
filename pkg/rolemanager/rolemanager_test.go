@@ -8,11 +8,19 @@ import (
 	errors2 "github.com/Optum/dce/pkg/errors"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iam"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
 func TestCreateRoleWithPolicy(t *testing.T) {
+
+	t.Run("can set the internal IAM client", func(t *testing.T) {
+		mockIAM := &mocks.IAM{}
+		roleManager := IAMRoleManager{}
+		roleManager.SetIAMClient(mockIAM)
+		assert.Exactly(t, mockIAM, roleManager.IAM)
+	})
 
 	t.Run("should create a role, policy, and attachment", func(t *testing.T) {
 		// Setup the IAMRoleManager, with mocked IAM client

@@ -9,7 +9,7 @@ set -euxo pipefail
 
 KEY="local-tf-state"
 TABLE="local-tf-state"
-NAMESPACE=$(whoami)
+NAMESPACE=${DCE_NAMESPACE:-$(whoami)}
 
 cd modules
 terraform destroy -var="namespace=$NAMESPACE"

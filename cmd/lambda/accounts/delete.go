@@ -1,65 +1,60 @@
 package main
 
 import (
-	"context"
 	"fmt"
-	"github.com/Optum/dce/pkg/rolemanager"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/iam"
 	"log"
 	"net/http"
-	"path"
+
+	"github.com/Optum/dce/pkg/rolemanager"
+	"github.com/aws/aws-sdk-go/service/iam"
 
 	"github.com/Optum/dce/pkg/api/response"
 	"github.com/Optum/dce/pkg/common"
 	"github.com/Optum/dce/pkg/db"
-	"github.com/aws/aws-lambda-go/events"
+	"github.com/gorilla/mux"
 )
 
-type deleteController struct {
-	Dao                    db.DBer
-	Queue                  common.Queue
-	ResetQueueURL          string
-	SNS                    common.Notificationer
-	AccountDeletedTopicArn string
-	AWSSession             session.Session
-	TokenService           common.TokenService
-	RoleManager            rolemanager.RoleManager
-	PrincipalRoleName      string
-	PrincipalPolicyName    string
-}
+// DeleteAccount - Deletes the account
+func DeleteAccount(w http.ResponseWriter, r *http.Request) {
 
-// Call handles DELETE /accounts/{id} requests. Returns no content if the operation succeeds.
-func (controller deleteController) Call(ctx context.Context, req *events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	accountID := path.Base(req.Path)
-	deletedAccount, err := controller.Dao.DeleteAccount(accountID)
+	accountID := mux.Vars(r)["accountId"]
+	deletedAccount, err := Dao.DeleteAccount(accountID)
 
 	// Handle DB errors
 	if err != nil {
 		switch err.(type) {
 		case *db.AccountNotFoundError:
-			return response.NotFoundError(), nil
+			WriteNotFoundError(w)
+			return
 		case *db.AccountLeasedError:
-			return response.CreateAPIErrorResponse(http.StatusConflict, response.CreateErrorResponse("Conflict", err.Error())), nil
+			WriteAPIErrorResponse(
+				w,
+				http.StatusConflict,
+				"Conflict",
+				err.Error(),
+			)
+			return
 		default:
-			return response.CreateAPIErrorResponse(http.StatusInternalServerError, response.CreateErrorResponse("ServerError", "Internal Server Error")), nil
+			WriteServerErrorWithResponse(w, "Internal Server Error")
+			return
 		}
 	}
 
 	// Delete the IAM Principal Role for the account
-	controller.destroyIAMPrincipal(deletedAccount)
+	destroyIAMPrincipal(deletedAccount)
 
 	// Publish SNS "account-deleted" message
-	controller.sendSNS(deletedAccount)
+	sendSNS(deletedAccount)
 
 	// Push the account to the Reset Queue, so it gets cleaned up
-	controller.sendToResetQueue(deletedAccount.ID)
+	sendToResetQueue(deletedAccount.ID)
 
-	return response.CreateAPIResponse(http.StatusNoContent, ""), nil
+	// json.NewEncoder(w).Encode(response.CreateAPIResponse(http.StatusNoContent, ""))
+	WriteAPIResponse(w, http.StatusNoContent, "")
 }
 
 // sendSNS sends notification to SNS that the delete has occurred.
-func (controller deleteController) sendSNS(account *db.Account) {
+func sendSNS(account *db.Account) {
 	serializedAccount := response.AccountResponse(*account)
 	serializedMessage, err := common.PrepareSNSMessageJSON(serializedAccount)
 
@@ -68,34 +63,42 @@ func (controller deleteController) sendSNS(account *db.Account) {
 		return
 	}
 
-	_, err = controller.SNS.PublishMessage(&controller.AccountDeletedTopicArn, &serializedMessage, true)
+	// TODO: Probably initialize this one time at the beginning
+	accountDeletedTopicArn := Config.RequireEnvVar("ACCOUNT_DELETED_TOPIC_ARN")
+
+	_, err = SnsSvc.PublishMessage(&accountDeletedTopicArn, &serializedMessage, true)
 	if err != nil {
 		log.Printf("Failed to publish SNS message for account %s: %s", account.ID, err)
 	}
 }
 
 // sendToResetQueue sends the account to the reset queue
-func (controller deleteController) sendToResetQueue(accountID string) {
-	err := controller.Queue.SendMessage(&controller.ResetQueueURL, &accountID)
+func sendToResetQueue(accountID string) {
+	resetQueueURL := Config.RequireEnvVar("RESET_SQS_URL")
+	err := Queue.SendMessage(&resetQueueURL, &accountID)
 	if err != nil {
 		log.Printf("Failed to add account %s to reset Queue: %s", accountID, err)
 	}
 }
 
-func (controller deleteController) destroyIAMPrincipal(account *db.Account) {
+func destroyIAMPrincipal(account *db.Account) {
 	// Assume role into the new account
-	accountSession, err := controller.TokenService.NewSession(&controller.AWSSession, account.AdminRoleArn)
+	accountSession, err := TokenSvc.NewSession(AWSSession, account.AdminRoleArn)
 	if err != nil {
 		log.Printf("Failed to assume role into account %s: %s", account.ID, err)
 		return
 	}
 	iamClient := iam.New(accountSession)
 
+	// TODO: Clean this up to initialize the following one time.
+	principalRoleName := Config.RequireEnvVar("PRINCIPAL_ROLE_NAME")
+	principalPolicyName := Config.RequireEnvVar("PRINCIPAL_POLICY_NAME")
+
 	// Destroy the role and policy
-	controller.RoleManager.SetIAMClient(iamClient)
-	_, err = controller.RoleManager.DestroyRoleWithPolicy(&rolemanager.DestroyRoleWithPolicyInput{
-		RoleName:  controller.PrincipalRoleName,
-		PolicyArn: fmt.Sprintf("arn:aws:iam::%s:policy/%s", account.ID, controller.PrincipalPolicyName),
+	RoleManager.SetIAMClient(iamClient)
+	_, err = RoleManager.DestroyRoleWithPolicy(&rolemanager.DestroyRoleWithPolicyInput{
+		RoleName:  principalRoleName,
+		PolicyArn: fmt.Sprintf("arn:aws:iam::%s:policy/%s", account.ID, principalPolicyName),
 	})
 	// Log error, and continue
 	if err != nil {

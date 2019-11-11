@@ -43,6 +43,7 @@ type CreateRoleWithPolicyInput struct {
 	IgnoreAlreadyExistsErrors bool
 }
 
+// CreateRoleWithPolicyOutput - Output of the CreateRoleWithPolicy func
 type CreateRoleWithPolicyOutput struct {
 	RoleName   string
 	RoleArn    string
@@ -50,9 +51,9 @@ type CreateRoleWithPolicyOutput struct {
 	PolicyArn  string
 }
 
-// Create a Role, and attach a policy to it
+// CreateRoleWithPolicy - Create a Role, and attach a policy to it
 func (rm *IAMRoleManager) CreateRoleWithPolicy(input *CreateRoleWithPolicyInput) (*CreateRoleWithPolicyOutput, error) {
-	// Create the IAM Role
+
 	createRoleRes, err := rm.IAM.CreateRole(&iam.CreateRoleInput{
 		RoleName:                 aws.String(input.RoleName),
 		AssumeRolePolicyDocument: aws.String(input.AssumeRolePolicyDocument),
