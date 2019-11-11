@@ -49,12 +49,6 @@ func TestDeleteController_Call(t *testing.T) {
 		LeaseStatus: db.Inactive,
 	}
 
-	// otherLease := &db.Lease{
-	// 	AccountID:   "123456789",
-	// 	PrincipalID: "23456",
-	// 	LeaseStatus: db.Inactive,
-	// }
-
 	// Set up the mocks...
 
 	// A bad request. What this means in lease delete world is that we have failed to
@@ -66,12 +60,12 @@ func TestDeleteController_Call(t *testing.T) {
 	// request
 	noAccountsForLeaseArgs := &args{ctx: context.Background(), req: createNoAccountsForLeaseRequest()}
 	mockDB.On("FindLeasesByPrincipal", "23456").Return(nil, nil)
-	noAccountsForLeaseResponse := response.ClientBadRequestError("No account leases found for 23456")
+	noAccountsForLeaseResponse := response.ClientBadRequestError("No leases found for 23456")
 
 	// A client error, because there is no active account for the principal ID
 	noActiveAccountForLeaseArgs := &args{ctx: context.Background(), req: createNoActiveAccountForLeaseRequest()}
 	mockDB.On("FindLeasesByPrincipal", "67890").Return(createNonMatchingAccountListDBResponse(), nil)
-	noActiveAccountForLeaseResponse := response.ClientBadRequestError("Account Lease is not active for 67890 - 987654321")
+	noActiveAccountForLeaseResponse := response.ClientBadRequestError("Lease is not active for 67890 - 987654321")
 
 	// Successful delete
 	successfulDeleteArgs := &args{ctx: context.Background(), req: createSuccessfulDeleteRequest()}

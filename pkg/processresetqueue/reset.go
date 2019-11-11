@@ -56,6 +56,7 @@ func Reset(input *ResetInput) (*ResetOutput, error) {
 	}
 	messages, err := input.ResetQueue.ReceiveMessage(messageInput)
 	if err != nil {
+		log.Printf("failed to receive message from SQS queue: %s", err)
 		output.Success = false
 		return &output, err
 	}
@@ -100,7 +101,7 @@ func Reset(input *ResetInput) (*ResetOutput, error) {
 				account.PrincipalRoleArn)
 			if err != nil {
 				failTriggerResetOnAccount(&output, result, accountID,
-					fmt.Sprintf("Cannot extract Admin Role Name from %s",
+					fmt.Sprintf("Cannot extract Principal Role Name from %s",
 						account.PrincipalRoleArn))
 				continue
 			}
@@ -151,6 +152,7 @@ func Reset(input *ResetInput) (*ResetOutput, error) {
 		// Retrieve at most 10 messages from the Queue
 		messages, err = input.ResetQueue.ReceiveMessage(messageInput)
 		if err != nil {
+			log.Printf("failed to receive message from SQS queue: %s", err)
 			output.Success = false
 			return &output, err
 		}

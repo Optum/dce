@@ -3,6 +3,7 @@ package db
 import (
 	"errors"
 	"fmt"
+	errors2 "github.com/pkg/errors"
 	"log"
 	"strconv"
 	"strings"
@@ -17,6 +18,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
+	"gopkg.in/oleiade/reflections.v1"
 )
 
 /*
@@ -39,6 +41,7 @@ type DB struct {
 
 // The DBer interface includes all methods used by the DB struct to interact with
 // DynamoDB. This is useful if we want to mock the DB service.
+//go:generate mockery -name DBer
 type DBer interface {
 	GetAccount(accountID string) (*Account, error)
 	GetReadyAccount() (*Account, error)
@@ -49,7 +52,8 @@ type DBer interface {
 	FindAccountsByPrincipalID(principalID string) ([]*Account, error)
 	PutAccount(account Account) error
 	DeleteAccount(accountID string) (*Account, error)
-	PutLease(account Lease) (*Lease, error)
+	PutLease(lease Lease) (*Lease, error)
+	UpsertLease(lease Lease) (*Lease, error)
 	TransitionAccountStatus(accountID string, prevStatus AccountStatus, nextStatus AccountStatus) (*Account, error)
 	TransitionLeaseStatus(accountID string, principalID string, prevStatus LeaseStatus, nextStatus LeaseStatus, leaseStatusReason LeaseStatusReason) (*Lease, error)
 	FindLeasesByAccount(accountID string) ([]*Lease, error)
@@ -374,6 +378,83 @@ func (db *DB) PutLease(lease Lease) (
 		return nil, err
 	}
 	return unmarshalLease(result.Attributes)
+}
+
+// UpsertLease creates or updates the lease records in DynDB
+func (db *DB) UpsertLease(lease Lease) (*Lease, error) {
+	// Some basic validation of the lease
+	if len(lease.ID) == 0 {
+		return nil, fmt.Errorf(
+			"failed to create lease for %s/%s: missing ID", lease.PrincipalID, lease.AccountID,
+		)
+	}
+	if lease.ExpiresOn == 0 {
+		return nil, fmt.Errorf(
+			"failed to create lease for %s/%s: missing ExpiresOn", lease.PrincipalID, lease.AccountID,
+		)
+	}
+
+	// Lookup the `json` Tags on the Lease struct,
+	// and use them to build a DynDB Update Expression.
+	// (we want our update expression to use the same JSON
+	//  annotations that we're using everywhere else to marshal DB objects)
+	updateBuilder := expression.UpdateBuilder{}
+	reflectItems, err := reflections.Items(lease)
+	if err != nil {
+		return nil, err
+	}
+	for fieldName, fieldVal := range reflectItems {
+		if fieldName == "AccountID" ||
+			fieldName == "PrincipalID" {
+			continue
+		}
+		jsonFieldName, err := reflections.GetFieldTag(lease, fieldName, "json")
+		if err != nil {
+			return nil, err
+		}
+		updateBuilder = updateBuilder.Set(
+			expression.Name(jsonFieldName),
+			expression.Value(fieldVal),
+		)
+	}
+
+	// Compile the expression
+	expr, err := expression.NewBuilder().
+		WithUpdate(updateBuilder).
+		Build()
+	if err != nil {
+		return nil, errors2.Wrapf(err, "Failed to update lease %s/%s",
+			lease.PrincipalID, lease.AccountID)
+	}
+
+	// Update the lease (upsert)
+	res, err := db.Client.UpdateItem(&dynamodb.UpdateItemInput{
+		TableName: &db.LeaseTableName,
+		Key: map[string]*dynamodb.AttributeValue{
+			"AccountId":   {S: &lease.AccountID},
+			"PrincipalId": {S: &lease.PrincipalID},
+		},
+		ExpressionAttributeNames:  expr.Names(),
+		ExpressionAttributeValues: expr.Values(),
+		UpdateExpression:          expr.Update(),
+		ReturnValues:              aws.String("ALL_NEW"),
+	})
+	if err != nil {
+		msg := fmt.Sprintf("Failed to update lease %s/%s", lease.PrincipalID, lease.AccountID)
+		if aerr, ok := err.(awserr.Error); ok {
+			msg = fmt.Sprintf("%s [%s]", msg, aerr.Code())
+		}
+		return nil, errors2.Wrap(err, msg)
+	}
+
+	// Unmarshal the response back to a lease object
+	updatedLease, err := unmarshalLease(res.Attributes)
+	if err != nil {
+		return nil, errors2.Wrapf(err, "Failed to update lease %s/%s",
+			lease.PrincipalID, lease.AccountID)
+	}
+
+	return updatedLease, nil
 }
 
 // TransitionLeaseStatus updates a lease's status from prevStatus to nextStatus.
