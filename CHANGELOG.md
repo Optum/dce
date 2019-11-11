@@ -1,4 +1,4 @@
-## vNext
+## v0.23.0
 
 - Added `/accounts?accountStatus=<status>` URL for querying accounts by status.
 - Added Lease Validation for check against max budget amount, max budget period, principal budget amount and principal budget period
