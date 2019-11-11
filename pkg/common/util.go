@@ -51,6 +51,17 @@ func RequireEnvFloat(env string) float64 {
 	return floatVal
 }
 
+// GetEnv returns an environment. The defaultValue is returned if the variable does not exist.
+func GetEnv(env string, defaultValue string) string {
+	val, ok := os.LookupEnv(env)
+
+	if !ok || len(env) == 0 {
+		return defaultValue
+	}
+
+	return val
+}
+
 // GetEnvInt returns an environment that is required to be an integer
 func GetEnvInt(env string, defaultValue int) int {
 	val, ok := os.LookupEnv(env)
@@ -68,6 +79,7 @@ func GetEnvInt(env string, defaultValue int) int {
 	return intVal
 }
 
+// RequireEnvStringSlice - Requires the given environment variable to contain a slice of string
 func RequireEnvStringSlice(env string, sep string) []string {
 	val := RequireEnv(env)
 	list := strings.Split(val, sep)
@@ -83,6 +95,7 @@ func RequireEnvStringSlice(env string, sep string) []string {
 	return cleanList
 }
 
+// RequireEnvFloatSlice - Requires the given environment variable to contain a slice of float64
 func RequireEnvFloatSlice(env string, sep string) []float64 {
 	strList := RequireEnvStringSlice(env, sep)
 

@@ -1,6 +1,11 @@
 package db
 
-// Account is a type corresponding to an account table record
+import (
+	"fmt"
+	"strings"
+)
+
+// Account is a type corresponding to a Account table record
 type Account struct {
 	ID                  string                 `json:"Id"`             // AWS Account ID
 	AccountStatus       AccountStatus          `json:"AccountStatus"`  // Status of the AWS Account
@@ -42,6 +47,8 @@ type Timestamped struct {
 type AccountStatus string
 
 const (
+	// None status
+	None AccountStatus = "None"
 	// Ready status
 	Ready AccountStatus = "Ready"
 	// NotReady status
@@ -50,7 +57,20 @@ const (
 	Leased AccountStatus = "Leased"
 )
 
-// LeaseStatus is an account lease status type
+// ParseAccountStatus - parses the string into an account status.
+func ParseAccountStatus(status string) (AccountStatus, error) {
+	switch strings.ToLower(status) {
+	case "ready":
+		return Ready, nil
+	case "notready":
+		return NotReady, nil
+	case "leased":
+		return Leased, nil
+	}
+	return None, fmt.Errorf("Cannot parse value %s", status)
+}
+
+// LeaseStatus is a account lease status type
 type LeaseStatus string
 
 const (

@@ -693,7 +693,7 @@ func TestApi(t *testing.T) {
 					AdminRoleArn: adminRoleArn,
 				},
 				f: func(r *testutil.R, apiResp *apiResponse) {
-					assert.Equal(r, apiResp.StatusCode, 201)
+					assert.Equal(r, 201, apiResp.StatusCode)
 				},
 			})
 

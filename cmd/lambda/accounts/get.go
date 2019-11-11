@@ -1,39 +1,89 @@
 package main
 
 import (
-	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
-	"path"
 
-	"github.com/Optum/dce/pkg/db"
+	"github.com/gorilla/mux"
 
 	"github.com/Optum/dce/pkg/api/response"
-	"github.com/aws/aws-lambda-go/events"
+	"github.com/Optum/dce/pkg/db"
 )
 
-type getController struct {
-	Dao db.DBer
+// GetAllAccounts - Returns all the accounts.
+func GetAllAccounts(w http.ResponseWriter, r *http.Request) {
+	// Fetch the accounts.
+	accounts, err := Dao.GetAccounts()
+
+	if err != nil {
+		errorMessage := fmt.Sprintf("Failed to query database: %s", err)
+		log.Print(errorMessage)
+		WriteServerErrorWithResponse(w, errorMessage)
+	}
+
+	// Serialize them for the JSON response.
+	accountResponses := []*response.AccountResponse{}
+
+	for _, a := range accounts {
+		acctRes := response.AccountResponse(*a)
+		accountResponses = append(accountResponses, &acctRes)
+	}
+
+	json.NewEncoder(w).Encode(accountResponses)
 }
 
-// Call - function to return a specific AWS Account record to the request
-func (controller getController) Call(ctx context.Context, req *events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	// Fetch the account.
-	acctID := path.Base(req.Path)
-	account, err := controller.Dao.GetAccount(acctID)
+// GetAccountByID - Returns the single account by ID
+func GetAccountByID(w http.ResponseWriter, r *http.Request) {
+
+	accountID := mux.Vars(r)["accountId"]
+	account, err := Dao.GetAccount(accountID)
+
 	if err != nil {
-		log.Printf("Error Getting Account for AccountId: %s", err)
-		return response.CreateAPIErrorResponse(http.StatusInternalServerError,
-			response.CreateErrorResponse("ServerError",
-				fmt.Sprintf("Failed List on Account Lease %s",
-					acctID))), nil
-	}
-	if account == nil {
-		log.Printf("Error Getting Account for AccountId: %s", err)
-		return response.NotFoundError(), nil
+		errorMessage := fmt.Sprintf("Failed List on Account Lease %s", accountID)
+		log.Print(errorMessage)
+		WriteServerErrorWithResponse(w, errorMessage)
+		return
 	}
 
-	accountResponse := response.AccountResponse(*account)
-	return response.CreateJSONResponse(http.StatusOK, accountResponse), nil
+	if account == nil {
+		WriteNotFoundError(w)
+		return
+	}
+
+	acctRes := response.AccountResponse(*account)
+
+	json.NewEncoder(w).Encode(acctRes)
+}
+
+// GetAccountByStatus - Returns the accounts by status
+func GetAccountByStatus(w http.ResponseWriter, r *http.Request) {
+	// Fetch the accounts.
+	accountStatus := r.FormValue("accountStatus")
+	status, err := db.ParseAccountStatus(accountStatus)
+
+	accounts, err := Dao.FindAccountsByStatus(status)
+
+	if err != nil {
+		errorMessage := fmt.Sprintf("Failed to query database: %s", err)
+		log.Print(errorMessage)
+		WriteServerErrorWithResponse(w, errorMessage)
+	}
+
+	if len(accounts) == 0 {
+		WriteNotFoundError(w)
+		return
+	}
+
+	// Serialize them for the JSON response.
+	accountResponses := []*response.AccountResponse{}
+
+	for _, a := range accounts {
+		acctRes := response.AccountResponse(*a)
+		accountResponses = append(accountResponses, &acctRes)
+	}
+
+	json.NewEncoder(w).Encode(accountResponses)
+
 }
