@@ -40,7 +40,7 @@ func (c DeleteController) Call(ctx context.Context, req *events.APIGatewayProxyR
 
 	principalID := requestBody.PrincipalID
 	accountID := requestBody.AccountID
-	log.Printf("Decommissioning Account %s for Principal %s", accountID, principalID)
+	log.Printf("Destroying lease %s for Principal %s", accountID, principalID)
 
 	// Move the account to decommissioned
 	accts, err := c.Dao.FindLeasesByPrincipal(principalID)
@@ -49,12 +49,12 @@ func (c DeleteController) Call(ctx context.Context, req *events.APIGatewayProxyR
 		return response.ServerErrorWithResponse(fmt.Sprintf("Cannot verify if Principal %s has a lease", principalID)), nil
 	}
 	if accts == nil {
-		errStr := fmt.Sprintf("No account leases found for %s", principalID)
+		errStr := fmt.Sprintf("No leases found for %s", principalID)
 		log.Printf("Error: %s", errStr)
 		return response.ClientBadRequestError(errStr), nil
 	}
 
-	// Get the Account Lease
+	// Get the Lease
 	var acct *db.Lease
 	for _, a := range accts {
 		if a.AccountID == requestBody.AccountID {
@@ -63,9 +63,9 @@ func (c DeleteController) Call(ctx context.Context, req *events.APIGatewayProxyR
 		}
 	}
 	if acct == nil {
-		return response.ClientBadRequestError(fmt.Sprintf("No active account leases found for %s", principalID)), nil
+		return response.ClientBadRequestError(fmt.Sprintf("No active leases found for %s", principalID)), nil
 	} else if acct.LeaseStatus != db.Active {
-		errStr := fmt.Sprintf("Account Lease is not active for %s - %s",
+		errStr := fmt.Sprintf("Lease is not active for %s - %s",
 			principalID, accountID)
 		return response.ClientBadRequestError(errStr), nil
 	}
@@ -75,14 +75,14 @@ func (c DeleteController) Call(ctx context.Context, req *events.APIGatewayProxyR
 		db.Active, db.Inactive, db.LeaseDestroyed)
 	if err != nil {
 		log.Printf("Error transitioning lease status: %s", err)
-		return response.ServerErrorWithResponse(fmt.Sprintf("Failed Decommission on Account Lease %s - %s", principalID, accountID)), nil
+		return response.ServerErrorWithResponse(fmt.Sprintf("Failed to destroy lease %s - %s", principalID, accountID)), nil
 	}
 
 	// Transition the Account Status
 	_, err = c.Dao.TransitionAccountStatus(acct.AccountID, db.Leased,
 		db.NotReady)
 	if err != nil {
-		return response.ServerErrorWithResponse(fmt.Sprintf("Failed Decommission on Account Lease %s - %s", principalID, accountID)), nil
+		return response.ServerErrorWithResponse(fmt.Sprintf("Failed to destroy lease %s - %s", principalID, accountID)), nil
 	}
 
 	leaseResponse := response.LeaseResponse(*updatedLease)

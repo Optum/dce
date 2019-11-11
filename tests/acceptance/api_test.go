@@ -75,10 +75,13 @@ func TestApi(t *testing.T) {
 		tfOut["usage_table_name"].(string),
 	)
 
-	// Cleanup tables, to start out
+	// Cleanup tables before and after tests
 	truncateAccountTable(t, dbSvc)
 	truncateLeaseTable(t, dbSvc)
 	truncateUsageTable(t, usageSvc)
+	defer truncateAccountTable(t, dbSvc)
+	defer truncateLeaseTable(t, dbSvc)
+	defer truncateUsageTable(t, usageSvc)
 
 	t.Run("Authentication", func(t *testing.T) {
 
@@ -179,8 +182,6 @@ func TestApi(t *testing.T) {
 				require.Nil(t, err)
 			}()
 
-			//time.Sleep(10 * time.Second)
-
 			// Assume the roleRes we just created
 			roleCreds := NewCredentials(t, awsSession, *roleRes.Role.Arn)
 
@@ -189,6 +190,8 @@ func TestApi(t *testing.T) {
 				method: "GET",
 				url:    apiURL + "/leases",
 				creds:  roleCreds,
+				// This can take a while to propagate
+				maxAttempts: 30,
 				f: func(r *testutil.R, apiResp *apiResponse) {
 					// Defaults to not being unauthorized
 					assert.NotEqual(r, http.StatusForbidden, apiResp.StatusCode,
@@ -322,9 +325,9 @@ func TestApi(t *testing.T) {
 
 	})
 
-	t.Run("Provisioning and Decommissioning", func(t *testing.T) {
+	t.Run("Lease Creation and Deletion", func(t *testing.T) {
 
-		t.Run("Should be able to provision and decommission", func(t *testing.T) {
+		t.Run("Should be able to create and destroy and lease", func(t *testing.T) {
 			defer truncateAccountTable(t, dbSvc)
 			defer truncateLeaseTable(t, dbSvc)
 
@@ -397,7 +400,7 @@ func TestApi(t *testing.T) {
 
 		})
 
-		t.Run("Should not be able to provision with empty json", func(t *testing.T) {
+		t.Run("Should not be able to create lease with empty json", func(t *testing.T) {
 			// Send an API request
 			apiRequest(t, &apiRequestInput{
 				method: "POST",
@@ -412,15 +415,15 @@ func TestApi(t *testing.T) {
 					// Verify error response json
 					// Get nested json in response json
 					err := data["error"].(map[string]interface{})
-					assert.Equal(r, "ClientError", err["code"].(string))
-					assert.Equal(r, "Failed to Parse Request Body: ",
+					assert.Equal(r, "RequestValidationError", err["code"].(string))
+					assert.Equal(r, "invalid request parameters",
 						err["message"].(string))
 				},
 			})
 
 		})
 
-		t.Run("Should not be able to provision with no available accounts", func(t *testing.T) {
+		t.Run("Should not be able to create lease with no available accounts", func(t *testing.T) {
 			// Create the Provision Request Body
 			principalID := "user"
 			body := leaseRequest{
@@ -450,7 +453,7 @@ func TestApi(t *testing.T) {
 
 		})
 
-		t.Run("Should not be able to provision with an existing account", func(t *testing.T) {
+		t.Run("Should not be able to create lease if there's already an existing lease for the principal", func(t *testing.T) {
 			defer truncateAccountTable(t, dbSvc)
 			defer truncateLeaseTable(t, dbSvc)
 
@@ -477,7 +480,7 @@ func TestApi(t *testing.T) {
 			})
 			require.Nil(t, err)
 
-			// Create the Provision Request Body
+			// Create the lease Request Body
 			body := leaseRequest{
 				PrincipalID: principalID,
 			}
@@ -498,14 +501,14 @@ func TestApi(t *testing.T) {
 					// Get nested json in response json
 					errResp := data["error"].(map[string]interface{})
 					assert.Equal(r, "ClientError", errResp["code"].(string))
-					assert.Equal(r, "Principal already has an active lease: 123",
+					assert.Equal(r, "Principal already has an active lease for account 123",
 						errResp["message"].(string))
 				},
 			})
 
 		})
 
-		t.Run("Should not be able to decommission with empty json", func(t *testing.T) {
+		t.Run("Should not be able to destroy lease with empty json", func(t *testing.T) {
 			// Send an API request
 			apiRequest(t, &apiRequestInput{
 				method: "DELETE",
@@ -528,7 +531,7 @@ func TestApi(t *testing.T) {
 
 		})
 
-		t.Run("Should not be able to decommission with no leases", func(t *testing.T) {
+		t.Run("Should not be able to destroy lease with no leases", func(t *testing.T) {
 			// Create the Provision Request Body
 			principalID := "user"
 			acctID := "123"
@@ -553,14 +556,14 @@ func TestApi(t *testing.T) {
 					// Get nested json in response json
 					err := data["error"].(map[string]interface{})
 					assert.Equal(r, "ClientError", err["code"].(string))
-					assert.Equal(r, "No account leases found for user",
+					assert.Equal(r, "No leases found for user",
 						err["message"].(string))
 				},
 			})
 
 		})
 
-		t.Run("Should not be able to decommission with wrong account", func(t *testing.T) {
+		t.Run("Should not be able to destroy lease with wrong account", func(t *testing.T) {
 			// Create an Account Entry
 			acctID := "123"
 			principalID := "user"
@@ -607,14 +610,14 @@ func TestApi(t *testing.T) {
 					// Get nested json in response json
 					errResp := data["error"].(map[string]interface{})
 					assert.Equal(r, "ClientError", errResp["code"].(string))
-					assert.Equal(r, "No active account leases found for user",
+					assert.Equal(r, "No active leases found for user",
 						errResp["message"].(string))
 				},
 			})
 
 		})
 
-		t.Run("Should not be able to decommission with decommissioned account", func(t *testing.T) {
+		t.Run("Should not be able to destroy lease with NotReady account", func(t *testing.T) {
 			// Create an Account Entry
 			acctID := "123"
 			principalID := "user"
@@ -660,7 +663,7 @@ func TestApi(t *testing.T) {
 					// Get nested json in response json
 					errResp := data["error"].(map[string]interface{})
 					assert.Equal(r, "ClientError", errResp["code"].(string))
-					assert.Equal(r, "Account Lease is not active for user - 123",
+					assert.Equal(r, "Lease is not active for user - 123",
 						errResp["message"].(string))
 				},
 			})
@@ -672,15 +675,15 @@ func TestApi(t *testing.T) {
 	t.Run("Account Creation Deletion Flow", func(t *testing.T) {
 		// Make sure the DB is clean
 		truncateDBTables(t, dbSvc)
+		truncateUsageTable(t, usageSvc)
+		// Cleanup the DB when we're done
+		defer truncateDBTables(t, dbSvc)
+		defer truncateUsageTable(t, usageSvc)
 
 		// Create an adminRole for the account
-
 		adminRoleRes := createAdminRole(t, awsSession)
 		accountID := adminRoleRes.accountID
 		adminRoleArn := adminRoleRes.adminRoleArn
-
-		// Cleanup the DB when we'ree done
-		defer truncateDBTables(t, dbSvc)
 
 		t.Run("STEP: Create Account", func(t *testing.T) {
 
@@ -692,6 +695,7 @@ func TestApi(t *testing.T) {
 					ID:           accountID,
 					AdminRoleArn: adminRoleArn,
 				},
+				maxAttempts: 15,
 				f: func(r *testutil.R, apiResp *apiResponse) {
 					assert.Equal(r, 201, apiResp.StatusCode)
 				},
@@ -791,7 +795,7 @@ func TestApi(t *testing.T) {
 				var budgetAmount float64 = 300
 				var budgetNotificationEmails = []string{"test@test.com"}
 
-				// Request a lease
+				// Create a lease
 				res := apiRequest(t, &apiRequestInput{
 					method: "POST",
 					url:    apiURL + "/leases",
@@ -807,7 +811,7 @@ func TestApi(t *testing.T) {
 						BudgetNotificationEmails: budgetNotificationEmails,
 					},
 					f: func(r *testutil.R, apiResp *apiResponse) {
-						assert.Equal(r, 201, apiResp.StatusCode)
+						assert.Equalf(r, 201, apiResp.StatusCode, "%v", apiResp.json)
 					},
 				})
 
@@ -876,6 +880,68 @@ func TestApi(t *testing.T) {
 					lease, err := dbSvc.GetLease(accountID, "test-user")
 					require.Nil(t, err)
 					require.Equal(t, db.Inactive, lease.LeaseStatus)
+
+					t.Run("STEP: Recreate lease against same account", func(t *testing.T) {
+						// Account is being reset, so it's not marked as "Ready".
+						// Update the DB to be ready, so we can create a lease
+						_, err := dbSvc.TransitionAccountStatus(accountID, db.NotReady, db.Ready)
+						require.Nil(t, err)
+
+						// Request a lease
+						// Because we only have one account in our system,
+						// this will create a lease against the same account.
+						// We want to make sure that the lease parameters get updated.
+						time.Sleep(1 * time.Second) // Wait a bit, so our timestamps are new
+						expiresOn := time.Now().Unix() + 1000
+						res = apiRequest(t, &apiRequestInput{
+							method: "POST",
+							url:    apiURL + "/leases",
+							json: map[string]interface{}{
+								"principalId": "test-user",
+								// Change some values here, compared to the previous lease
+								"budgetAmount":   500,
+								"budgetCurrency": "EUR",
+								"expiresOn":      expiresOn,
+							},
+							f: func(r *testutil.R, apiResp *apiResponse) {
+								assert.Equal(r, 201, apiResp.StatusCode)
+							},
+						})
+						resJSON = parseResponseJSON(t, res)
+
+						// Check values in JSON response are updated
+						require.Equal(t, float64(500), resJSON["budgetAmount"])
+						require.Equal(t, "EUR", resJSON["budgetCurrency"])
+						require.Equal(t, float64(expiresOn), resJSON["expiresOn"])
+						// Check that our timestamps are updated
+						require.True(t, resJSON["createdOn"].(float64) > float64(lease.CreatedOn))
+						require.True(t, resJSON["lastModifiedOn"].(float64) > float64(lease.LastModifiedOn))
+						require.True(t, resJSON["leaseStatusModifiedOn"].(float64) > float64(lease.LeaseStatusModifiedOn))
+
+						// Lookup the lease in the DB, to make sure it was updated
+						newLease, err := dbSvc.GetLeaseByID(resJSON["id"].(string))
+						require.Nil(t, err)
+						require.Equal(t, float64(500), newLease.BudgetAmount)
+						require.Equal(t, "EUR", newLease.BudgetCurrency)
+						require.Equal(t, expiresOn, newLease.ExpiresOn)
+						// Check that our timestamps are updated
+						require.True(t, newLease.CreatedOn > lease.CreatedOn)
+						require.True(t, newLease.LastModifiedOn > lease.LastModifiedOn)
+						require.True(t, newLease.LeaseStatusModifiedOn > lease.LeaseStatusModifiedOn)
+
+						// Delete the lease (cleanup)
+						apiRequest(t, &apiRequestInput{
+							method: "DELETE",
+							url:    apiURL + "/leases",
+							json: map[string]interface{}{
+								"principalId": "test-user",
+								"accountId":   accountID,
+							},
+							f: func(r *testutil.R, apiResp *apiResponse) {
+								assert.Equal(r, 200, apiResp.StatusCode)
+							},
+						})
+					})
 
 					t.Run("STEP: Delete Account", func(t *testing.T) {
 						// Delete the account
@@ -1209,7 +1275,7 @@ func TestApi(t *testing.T) {
 		})
 	})
 
-	t.Run("Post Lease validations", func(t *testing.T) {
+	t.Run("Lease validations", func(t *testing.T) {
 
 		t.Run("Should validate requested lease has a desired expiry date less than today", func(t *testing.T) {
 
@@ -1240,7 +1306,7 @@ func TestApi(t *testing.T) {
 			// Verify error response json
 			// Get nested json in response json
 			err := data["error"].(map[string]interface{})
-			require.Equal(t, "ClientError", err["code"].(string))
+			require.Equal(t, "RequestValidationError", err["code"].(string))
 			errStr := fmt.Sprintf("Requested lease has a desired expiry date less than today: %d", expiresOn)
 			require.Equal(t, errStr, err["message"].(string))
 		})
@@ -1274,7 +1340,7 @@ func TestApi(t *testing.T) {
 			// Verify error response json
 			// Get nested json in response json
 			err := data["error"].(map[string]interface{})
-			require.Equal(t, "ClientError", err["code"].(string))
+			require.Equal(t, "RequestValidationError", err["code"].(string))
 			require.Equal(t, "Requested lease has a budget amount of 30000.000000, which is greater than max lease budget amount of 1000.000000",
 				err["message"].(string))
 
@@ -1310,7 +1376,7 @@ func TestApi(t *testing.T) {
 			// Get nested json in response json
 			err := data["error"].(map[string]interface{})
 			errStr := fmt.Sprintf("Requested lease has a budget expires on of %d, which is greater than max lease period of", expiresOnAfterOneYear)
-			require.Equal(t, "ClientError", err["code"].(string))
+			require.Equal(t, "RequestValidationError", err["code"].(string))
 			require.Contains(t, err["message"].(string), errStr)
 
 		})
@@ -1348,7 +1414,7 @@ func TestApi(t *testing.T) {
 			// Get nested json in response json
 			err := data["error"].(map[string]interface{})
 			errStr := fmt.Sprintf("Unable to create lease: User principal %s has already spent 1000.000000 of their principal budget", principalID)
-			require.Equal(t, "ClientError", err["code"].(string))
+			require.Equal(t, "RequestValidationError", err["code"].(string))
 			require.Equal(t, errStr, err["message"].(string))
 		})
 
@@ -1373,12 +1439,20 @@ type createAccountRequest struct {
 }
 
 type apiRequestInput struct {
-	method string
-	url    string
-	creds  *credentials.Credentials
-	region string
-	json   interface{}
-	f      func(r *testutil.R, apiResp *apiResponse)
+	method      string
+	url         string
+	creds       *credentials.Credentials
+	region      string
+	json        interface{}
+	maxAttempts int
+	// Callback function to assert API responses.
+	// apiRequest() will continue to retry until this
+	// function passes assertions.
+	// eg.
+	//		f: func(r *testutil.R, apiResp *apiResponse) {
+	//			assert.Equal(r, 200, apiResp.StatusCode)
+	//		},
+	f func(r *testutil.R, apiResp *apiResponse)
 }
 
 type apiResponse struct {
@@ -1399,6 +1473,9 @@ func apiRequest(t *testing.T, input *apiRequestInput) *apiResponse {
 	if input.region == "" {
 		input.region = "us-east-1"
 	}
+	if input.maxAttempts == 0 {
+		input.maxAttempts = 15
+	}
 
 	// Create API request
 	req, err := http.NewRequest(input.method, input.url, nil)
@@ -1410,7 +1487,7 @@ func apiRequest(t *testing.T, input *apiRequestInput) *apiResponse {
 	now := time.Now().Add(time.Duration(30) * time.Second)
 	var signedHeaders http.Header
 	var apiResp *apiResponse
-	testutil.Retry(t, 15, 2*time.Second, func(r *testutil.R) {
+	testutil.Retry(t, input.maxAttempts, 2*time.Second, func(r *testutil.R) {
 		// If there's a json provided, add it when signing
 		// Body does not matter if added before the signing, it will be overwritten
 		if input.json != nil {
@@ -1528,7 +1605,7 @@ func createAdminRole(t *testing.T, awsSession client.ConfigProvider) *createAdmi
 	}
 }
 
-func createUsage(t *testing.T, apiURL string, usageSvc usage.Service) error {
+func createUsage(t *testing.T, apiURL string, usageSvc usage.Service) {
 	// Create usage
 	// Setup usage dates
 	const ttl int = 3
@@ -1561,9 +1638,7 @@ func createUsage(t *testing.T, apiURL string, usageSvc usage.Service) error {
 			TimeToLive:   timeToLive.Unix(),
 		}
 		err := usageSvc.PutUsage(input)
-		if err != nil {
-			return err
-		}
+		require.Nil(t, err)
 
 		expectedUsages = append(expectedUsages, &input)
 
@@ -1596,7 +1671,6 @@ func createUsage(t *testing.T, apiURL string, usageSvc usage.Service) error {
 			assert.Equal(r, 10000.00, usageJSON["costAmount"].(float64))
 		}
 	})
-	return nil
 }
 
 func NewCredentials(t *testing.T, awsSession *session.Session, roleArn string) *credentials.Credentials {

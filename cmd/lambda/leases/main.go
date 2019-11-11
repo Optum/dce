@@ -8,7 +8,6 @@ import (
 	"github.com/Optum/dce/pkg/api"
 	"github.com/Optum/dce/pkg/common"
 	"github.com/Optum/dce/pkg/db"
-	"github.com/Optum/dce/pkg/provision"
 	"github.com/Optum/dce/pkg/usage"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
@@ -29,7 +28,7 @@ const (
 )
 
 // messageBody is the structured object of the JSON Message to send
-// to an SNS Topic for Provision and Decommission
+// to an SNS Topic for lease creation/destruction
 type messageBody struct {
 	Default string `json:"default"`
 	Body    string `json:"Body"`
@@ -48,9 +47,6 @@ func main() {
 	// Create the SNS Service
 	awsSession := newAWSSession()
 	snsSvc := &common.SNS{Client: sns.New(awsSession)}
-	prov := &provision.AccountProvision{
-		DBSvc: dao,
-	}
 
 	sqsClient := sqs.New(awsSession)
 	queue := common.SQSQueue{
@@ -63,7 +59,7 @@ func main() {
 		log.Fatal(errorMessage)
 	}
 
-	provisionLeaseTopicARN := common.RequireEnv("PROVISION_TOPIC")
+	leaseAddedTopicArn := common.RequireEnv("LEASE_ADDED_TOPIC")
 	accountDeletedTopicArn := common.RequireEnv("DECOMMISSION_TOPIC")
 	resetQueueURL := common.RequireEnv("RESET_SQS_URL")
 
@@ -88,15 +84,15 @@ func main() {
 			Queue:                  queue,
 		},
 		CreateController: CreateController{
-			Dao:                   dao,
-			Provisioner:           prov,
-			SNS:                   snsSvc,
-			LeaseTopicARN:         &provisionLeaseTopicARN,
-			UsageSvc:              usageSvc,
-			PrincipalBudgetAmount: &principalBudgetAmount,
-			PrincipalBudgetPeriod: &principalBudgetPeriod,
-			MaxLeaseBudgetAmount:  &maxLeaseBudgetAmount,
-			MaxLeasePeriod:        &maxLeasePeriod,
+			Dao:                      dao,
+			SNS:                      snsSvc,
+			LeaseAddedTopicARN:       &leaseAddedTopicArn,
+			UsageSvc:                 usageSvc,
+			PrincipalBudgetAmount:    &principalBudgetAmount,
+			PrincipalBudgetPeriod:    &principalBudgetPeriod,
+			MaxLeaseBudgetAmount:     &maxLeaseBudgetAmount,
+			MaxLeasePeriod:           &maxLeasePeriod,
+			DefaultLeaseLengthInDays: common.GetEnvInt("DEFAULT_LEASE_LENGTH_IN_DAYS", 7),
 		},
 		UserDetails: api.UserDetails{
 			CognitoUserPoolID:        common.RequireEnv("COGNITO_USER_POOL_ID"),

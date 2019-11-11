@@ -13,6 +13,7 @@ require (
 	github.com/gorilla/mux v1.7.3
 	github.com/gruntwork-io/terratest v0.15.13
 	github.com/mattn/go-isatty v0.0.7 // indirect
+	github.com/oleiade/reflections v1.0.0 // indirect
 	github.com/pkg/errors v0.8.1
 	github.com/pquerna/otp v1.2.0 // indirect
 	github.com/rebuy-de/aws-nuke v2.11.0+incompatible
@@ -23,4 +24,5 @@ require (
 	google.golang.org/appengine v1.4.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
+	gopkg.in/oleiade/reflections.v1 v1.0.0
 )

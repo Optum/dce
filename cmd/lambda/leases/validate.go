@@ -2,9 +2,9 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/aws/aws-lambda-go/events"
+	"github.com/pkg/errors"
 	"math"
 	"time"
 )
@@ -21,12 +21,22 @@ func validateLeaseRequest(controller CreateController, req *events.APIGatewayPro
 
 	err = json.Unmarshal([]byte(req.Body), requestBody)
 	if err != nil || requestBody.PrincipalID == "" {
-		validationErrStr := fmt.Sprintf("Failed to Parse Request Body: %s", req.Body)
+		validationErrStr := "invalid request parameters"
 		return requestBody, false, validationErrStr, nil
 	}
 
+	// Set default expiresOn
+	if requestBody.ExpiresOn == 0 {
+		requestBody.ExpiresOn = time.Now().AddDate(0, 0, controller.DefaultLeaseLengthInDays).Unix()
+	}
+
+	// Set default metadata (empty object)
+	if requestBody.Metadata == nil {
+		requestBody.Metadata = map[string]interface{}{}
+	}
+
 	// Validate requested lease end date is greater than today
-	if requestBody.ExpiresOn != 0 && requestBody.ExpiresOn <= time.Now().Unix() {
+	if requestBody.ExpiresOn <= time.Now().Unix() {
 		validationErrStr := fmt.Sprintf("Requested lease has a desired expiry date less than today: %d", requestBody.ExpiresOn)
 		return requestBody, false, validationErrStr, nil
 	}

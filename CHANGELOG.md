@@ -1,7 +1,10 @@
 ## vNext
+
 - Added `/accounts?accountStatus=<status>` URL for querying accounts by status.
 - Added Lease Validation for check against max budget amount, max budget period, principal budget amount and principal budget period
 - Increase the threshold for Reset CodeBuild alarms to 10 failures over 5 hours.
+- Support `metadata` field in `POST /leases` endpoint
+- Fix bug where lease expiredOn/budgets/etc. were not being updated, if the account was previously used by the lease principal. 
 
 ## v0.22.0
 
