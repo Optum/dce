@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/Optum/dce/pkg/usage"
 	util "github.com/Optum/dce/tests/testutils"
@@ -440,6 +441,111 @@ func TestCreateController_Call(t *testing.T) {
 				"should fail for metadata: %s", metadata,
 			)
 		}
+	})
+
+	t.Run("should deactivate the lease if the account status update fails", func(t *testing.T) {
+		// Setup the controller
+		dbMock := stubDb()
+		controller := stubCreateController()
+		controller.Dao = dbMock
+
+		// Mock account status update to fail
+		util.ReplaceMock(&dbMock.Mock, "TransitionAccountStatus",
+			mock.Anything, mock.Anything, mock.Anything,
+		).Return(nil, errors.New("test error"))
+
+		// Should deactivate the lease
+		util.ReplaceMock(&dbMock.Mock, "TransitionLeaseStatus",
+			"123456789012", "jdoe123",
+			db.Active, db.Inactive, db.LeaseRolledBack,
+		).Return(&db.Lease{}, nil)
+
+		// Call the controller
+		res, err := controller.Call(context.TODO(), apiGatewayRequest(t, map[string]interface{}{
+			"principalId":    "jdoe123",
+			"budgetAmount":   100,
+			"budgetCurrency": "USD",
+		}))
+		require.Nil(t, err)
+
+		// Should return a 500 error
+		require.Equal(t, response.ServerError(), res)
+
+		// Should have deactivated lease
+		dbMock.AssertNumberOfCalls(t, "TransitionLeaseStatus", 1)
+	})
+
+	t.Run("should deactivate the lease and update the account status if the SNS publish fails", func(t *testing.T) {
+		// Mock SNS to fail
+		snsMock := &commonMock.Notificationer{}
+		snsMock.On("PublishMessage", mock.Anything, mock.Anything, mock.Anything).
+			Return(nil, errors.New("test error"))
+
+		dbMock := stubDb()
+		controller := stubCreateController()
+		controller.SNS = snsMock
+		controller.Dao = dbMock
+
+		// Should deactivate the lease
+		util.ReplaceMock(&dbMock.Mock, "TransitionLeaseStatus",
+			"123456789012", "jdoe123",
+			db.Active, db.Inactive, db.LeaseRolledBack,
+		).Return(&db.Lease{}, nil)
+
+		// Should mark Account.Status=Ready
+		dbMock.On("TransitionAccountStatus",
+			"123456789012", db.Leased, db.Ready,
+		).Return(&db.Account{}, nil)
+
+		// Call the controller
+		res, err := controller.Call(context.TODO(), apiGatewayRequest(t, map[string]interface{}{
+			"principalId":    "jdoe123",
+			"budgetAmount":   100,
+			"budgetCurrency": "USD",
+		}))
+		require.Nil(t, err)
+
+		// Should return a 500 error
+		require.Equal(t, response.ServerError(), res)
+
+		// Should have deactivated lease
+		dbMock.AssertNumberOfCalls(t, "TransitionLeaseStatus", 1)
+		dbMock.AssertNumberOfCalls(t, "TransitionAccountStatus", 2)
+	})
+
+	// ...otherwise, we'd end up with a Lease=Active, Account=Ready state.
+	t.Run("should not rollback accounts status on SNS rollback, if the lease deactivation fails", func(t *testing.T) {
+		// Mock SNS to fail
+		snsMock := &commonMock.Notificationer{}
+		snsMock.On("PublishMessage", mock.Anything, mock.Anything, mock.Anything).
+			Return(nil, errors.New("test error"))
+
+		dbMock := stubDb()
+		controller := stubCreateController()
+		controller.SNS = snsMock
+		controller.Dao = dbMock
+
+		// Should deactivate the lease (FAILS)
+		util.ReplaceMock(&dbMock.Mock, "TransitionLeaseStatus",
+			"123456789012", "jdoe123",
+			db.Active, db.Inactive, db.LeaseRolledBack,
+		).Return(nil, errors.New("test error"))
+
+		// Call the controller
+		res, err := controller.Call(context.TODO(), apiGatewayRequest(t, map[string]interface{}{
+			"principalId":    "jdoe123",
+			"budgetAmount":   100,
+			"budgetCurrency": "USD",
+		}))
+		require.Nil(t, err)
+
+		// Should return a 500 error
+		require.Equal(t, response.ServerError(), res)
+
+		// Should have deactivated lease
+		dbMock.AssertNumberOfCalls(t, "TransitionLeaseStatus", 1)
+		// Should only call this once, for the original Account Status=Leased
+		dbMock.AssertNumberOfCalls(t, "TransitionAccountStatus", 1)
 	})
 
 }

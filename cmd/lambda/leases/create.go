@@ -117,8 +117,19 @@ func (c CreateController) Call(ctx context.Context, req *events.APIGatewayProxyR
 	// Mark the account as Status=Leased
 	account, err = c.Dao.TransitionAccountStatus(account.ID, db.Ready, db.Leased)
 	if err != nil {
-		log.Printf("ERROR Failed to transition account %s to Leased for lease for %s",
+		log.Printf("ERROR Failed to transition account %s to Leased for lease for %s. Attemping to deactivate lease...",
 			lease.AccountID, lease.PrincipalID)
+		// If setting the account status fails, attempt to deactivate the lease
+		// before returning a 500 error
+		_, err = c.Dao.TransitionLeaseStatus(
+			lease.AccountID, lease.PrincipalID,
+			db.Active, db.Inactive, db.LeaseRolledBack,
+		)
+		if err != nil {
+			log.Printf("Failed to deactivate lease on DB error for %s / %s: %s",
+				lease.AccountID, lease.PrincipalID, err)
+		}
+
 		return response.ServerError(), nil
 	}
 
@@ -126,6 +137,18 @@ func (c CreateController) Call(ctx context.Context, req *events.APIGatewayProxyR
 	message, err := publishLease(c.SNS, lease, c.LeaseAddedTopicARN)
 	if err != nil {
 		log.Print(err.Error())
+
+		// Attempt to rollback the lease
+		_, err := c.Dao.TransitionLeaseStatus(lease.AccountID, lease.PrincipalID, db.Active, db.Inactive, db.LeaseRolledBack)
+		if err != nil {
+			log.Printf("Failed to deactivate lease on SNS error for %s / %s: %s",
+				lease.AccountID, lease.PrincipalID, err)
+		} else {
+			_, err := c.Dao.TransitionAccountStatus(lease.AccountID, db.Leased, db.Ready)
+			log.Printf("Failed to rollback account status on SNS error for %s / %s: %s",
+				lease.AccountID, lease.PrincipalID, err)
+		}
+
 		return response.ServerError(), nil
 	}
 
