@@ -18,36 +18,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/sts"
 )
 
-var (
-	accountCreatedTopicArn      string
-	policyName                  string
-	artifactsBucket             string
-	principalPolicyS3Key        string
-	principalRoleName           string
-	principalIAMDenyTags        []string
-	principalMaxSessionDuration int64
-	tags                        []*iam.Tag
-	resetQueueURL               string
-)
-
-func init() {
-	policyName = Config.GetEnvVar("PRINCIPAL_POLICY_NAME", "DCEPrincipalDefaultPolicy")
-	artifactsBucket = Config.GetEnvVar("ARTIFACTS_BUCKET", "DefaultArtifactBucket")
-	principalPolicyS3Key = Config.GetEnvVar("PRINCIPAL_POLICY_S3_KEY", "DefaultPrincipalPolicyS3Key")
-	principalRoleName = Config.GetEnvVar("PRINCIPAL_ROLE_NAME", "DCEPrincipal")
-	principalIAMDenyTags = strings.Split(Config.GetEnvVar("PRINCIPAL_IAM_DENY_TAGS", "DefaultPrincipalIamDenyTags"), ",")
-	principalMaxSessionDuration = int64(Config.GetEnvIntVar("PRINCIPAL_MAX_SESSION_DURATION", 100))
-	tags = []*iam.Tag{
-		{Key: aws.String("Terraform"), Value: aws.String("False")},
-		{Key: aws.String("Source"), Value: aws.String("github.com/Optum/dce//cmd/lambda/accounts")},
-		{Key: aws.String("Environment"), Value: aws.String(Config.GetEnvVar("TAG_ENVIRONMENT", "DefaultTagEnvironment"))},
-		{Key: aws.String("Contact"), Value: aws.String(Config.GetEnvVar("TAG_CONTACT", "DefaultTagContact"))},
-		{Key: aws.String("AppName"), Value: aws.String(Config.GetEnvVar("TAG_APP_NAME", "DefaultTagAppName"))},
-	}
-	accountCreatedTopicArn = Config.GetEnvVar("ACCOUNT_CREATED_TOPIC_ARN", "DefaultAccountCreatedTopicArn")
-	resetQueueURL = Config.GetEnvVar("RESET_SQS_URL", "DefaultResetSQSUrl")
-}
-
 // CreateAccount - Function to validate the account request to add into the pool and
 // publish the account creation to its respective client
 func CreateAccount(w http.ResponseWriter, r *http.Request) {
