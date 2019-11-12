@@ -100,11 +100,8 @@ func TestDeleteController_Call(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := DeleteController{
-				Dao: tt.fields.Dao,
-				SNS: tt.fields.SNS,
-			}
-			got, err := c.Call(tt.args.ctx, tt.args.req)
+
+			got, err := Handler(tt.args.ctx, *tt.args.req)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("DeleteController.Call() error = %v, wantErr %v", err, tt.wantErr)
 				return

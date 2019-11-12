@@ -74,11 +74,24 @@ func ParseAccountStatus(status string) (AccountStatus, error) {
 type LeaseStatus string
 
 const (
+	// EmptyLeaseStatus status
+	EmptyLeaseStatus LeaseStatus = "Empty"
 	// Active status
 	Active LeaseStatus = "Active"
 	// Inactive status
 	Inactive LeaseStatus = "Inactive"
 )
+
+// ParseLeaseStatus - parses the string into an account status.
+func ParseLeaseStatus(status string) (LeaseStatus, error) {
+	switch strings.ToLower(status) {
+	case "active":
+		return Active, nil
+	case "inactive":
+		return Inactive, nil
+	}
+	return EmptyLeaseStatus, fmt.Errorf("Cannot parse value %s", status)
+}
 
 // LeaseStatusReason provides consistent verbiage for lease status change reasons.
 type LeaseStatusReason string

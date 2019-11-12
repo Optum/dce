@@ -35,11 +35,9 @@ func TestGetLeaseByID(t *testing.T) {
 		mockDb.On("GetLeaseByID", "unique-id").Return(expectdLease, nil)
 		mockRequest := events.APIGatewayProxyRequest{HTTPMethod: http.MethodGet, Path: "/leases/unique-id"}
 
-		controller := GetController{
-			Dao: &mockDb,
-		}
+		Dao = &mockDb
 
-		actualResponse, err := controller.Call(context.TODO(), &mockRequest)
+		actualResponse, err := Handler(context.TODO(), mockRequest)
 		require.Nil(t, err)
 
 		parsedResponse := &response.LeaseResponse{}
@@ -54,13 +52,11 @@ func TestGetLeaseByID(t *testing.T) {
 		expectedError := errors.New("Error")
 		mockDb := mocks.DBer{}
 		mockDb.On("GetLeaseByID", "unique-id").Return(nil, expectedError)
-		mockRequest := events.APIGatewayProxyRequest{HTTPMethod: http.MethodGet, Path: "/accounts/unique-id"}
+		mockRequest := events.APIGatewayProxyRequest{HTTPMethod: http.MethodGet, Path: "/leases/unique-id"}
 
-		controller := GetController{
-			Dao: &mockDb,
-		}
+		Dao = &mockDb
 
-		actualResponse, err := controller.Call(context.TODO(), &mockRequest)
+		actualResponse, err := Handler(context.TODO(), mockRequest)
 		require.Nil(t, err)
 
 		require.Equal(t, actualResponse.StatusCode, 500, "Returns a 500.")

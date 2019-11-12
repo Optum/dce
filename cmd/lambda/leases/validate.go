@@ -2,24 +2,35 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
-	"github.com/aws/aws-lambda-go/events"
 	"math"
+	"net/http"
 	"time"
+
+	"github.com/Optum/dce/pkg/usage"
 )
 
 const Weekly = "WEEKLY"
 const Monthly = "MONTHLY"
 
-// validateLeaseRequest validates lease budget amount and period
-func validateLeaseRequest(controller CreateController, req *events.APIGatewayProxyRequest) (*createLeaseRequest, bool, string, error) {
+type leaseValidationContext struct {
+	maxLeaseBudgetAmount  float64
+	principalBudgetAmount float64
+	maxLeasePeriod        int64
+	principalBudgetPeriod string
+	usageRecords          []*usage.Usage
+}
+
+// ValidateLease validates lease budget amount and period
+func validateLeaseFromRequest(context *leaseValidationContext, req *http.Request) (*createLeaseRequest, bool, string, error) {
 
 	// Validate body from the Request
 	requestBody := &createLeaseRequest{}
 	var err error
 
-	err = json.Unmarshal([]byte(req.Body), requestBody)
+	decoder := json.NewDecoder(req.Body)
+	err = decoder.Decode(&requestBody)
+
 	if err != nil || requestBody.PrincipalID == "" {
 		validationErrStr := fmt.Sprintf("Failed to Parse Request Body: %s", req.Body)
 		return requestBody, false, validationErrStr, nil
@@ -32,39 +43,39 @@ func validateLeaseRequest(controller CreateController, req *events.APIGatewayPro
 	}
 
 	// Validate requested lease budget amount is less than MAX_LEASE_BUDGET_AMOUNT
-	if requestBody.BudgetAmount > *controller.MaxLeaseBudgetAmount {
-		validationErrStr := fmt.Sprintf("Requested lease has a budget amount of %f, which is greater than max lease budget amount of %f", math.Round(requestBody.BudgetAmount), math.Round(*controller.MaxLeaseBudgetAmount))
+	if requestBody.BudgetAmount > context.maxLeaseBudgetAmount {
+		validationErrStr := fmt.Sprintf("Requested lease has a budget amount of %f, which is greater than max lease budget amount of %f", math.Round(requestBody.BudgetAmount), math.Round(context.maxLeaseBudgetAmount))
 		return requestBody, false, validationErrStr, nil
 	}
 
 	// Validate requested lease budget period is less than MAX_LEASE_BUDGET_PERIOD
 	currentTime := time.Now()
-	maxLeaseExpiresOn := currentTime.Add(time.Second * time.Duration(*controller.MaxLeasePeriod))
+	maxLeaseExpiresOn := currentTime.Add(time.Second * time.Duration(context.maxLeasePeriod))
 	if requestBody.ExpiresOn > maxLeaseExpiresOn.Unix() {
 		validationErrStr := fmt.Sprintf("Requested lease has a budget expires on of %d, which is greater than max lease period of %d", requestBody.ExpiresOn, maxLeaseExpiresOn.Unix())
 		return requestBody, false, validationErrStr, nil
 	}
 
 	// Validate requested lease budget amount is less than PRINCIPAL_BUDGET_AMOUNT for current principal billing period
-	usageStartTime := getBeginningOfCurrentBillingPeriod(*controller.PrincipalBudgetPeriod)
-	usageEndTime := time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 23, 59, 59, 0, time.UTC)
+	// usageStartTime := getBeginningOfCurrentBillingPeriod(context.principalBudgetPeriod)
+	// usageEndTime := time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 23, 59, 59, 0, time.UTC)
 
-	usageRecords, err := controller.UsageSvc.GetUsageByDateRange(usageStartTime, usageEndTime)
-	if err != nil {
-		errStr := fmt.Sprintf("Failed to retrieve usage: %s", err)
-		return requestBody, true, "", errors.New(errStr)
-	}
+	// usageRecords, err := UsageSvc.GetUsageByDateRange(usageStartTime, usageEndTime)
+	// if err != nil {
+	// 	errStr := fmt.Sprintf("Failed to retrieve usage: %s", err)
+	// 	return requestBody, true, "", errors.New(errStr)
+	// }
 
 	// Group by PrincipalID to get sum of total spent for current billing period
 	spent := 0.0
-	for _, usageItem := range usageRecords {
+	for _, usageItem := range context.usageRecords {
 		if usageItem.PrincipalID == requestBody.PrincipalID {
 			spent = spent + usageItem.CostAmount
 		}
 	}
 
-	if spent > *controller.PrincipalBudgetAmount {
-		validationErrStr := fmt.Sprintf("Unable to create lease: User principal %s has already spent %f of their principal budget", requestBody.PrincipalID, math.Round(*controller.PrincipalBudgetAmount))
+	if spent > context.principalBudgetAmount {
+		validationErrStr := fmt.Sprintf("Unable to create lease: User principal %s has already spent %f of their principal budget", requestBody.PrincipalID, math.Round(context.principalBudgetAmount))
 		return requestBody, false, validationErrStr, nil
 	}
 

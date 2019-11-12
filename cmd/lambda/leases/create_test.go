@@ -24,6 +24,9 @@ import (
 )
 
 func TestCreateController_Call(t *testing.T) {
+
+	Config = common.DefaultEnvConfig{}
+
 	type (
 		fields struct {
 			Dao                   db.DBer
@@ -104,20 +107,10 @@ func TestCreateController_Call(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := CreateController{
-				Dao:                   tt.fields.Dao,
-				Provisioner:           tt.fields.Provisioner,
-				SNS:                   tt.fields.SNS,
-				LeaseTopicARN:         tt.fields.LeaseTopicARN,
-				UsageSvc:              tt.fields.UsageSvc,
-				PrincipalBudgetAmount: tt.fields.PrincipalBudgetAmount,
-				PrincipalBudgetPeriod: tt.fields.PrincipalBudgetPeriod,
-				MaxLeaseBudgetAmount:  tt.fields.MaxLeaseBudgetAmount,
-				MaxLeasePeriod:        tt.fields.MaxLeasePeriod,
-			}
-			got, err := c.Call(tt.args.ctx, tt.args.req)
+
+			got, err := Handler(tt.args.ctx, *tt.args.req)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("CreateController.Call() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("Handler() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
@@ -126,7 +119,7 @@ func TestCreateController_Call(t *testing.T) {
 				if strings.HasPrefix(tt.want.Body, got.Body[:30]) {
 					return
 				}
-				t.Errorf("CreateController.Call() = %v, want %v", got, tt.want)
+				t.Errorf("Handler() = %v, want %v", got, tt.want)
 			}
 		})
 	}

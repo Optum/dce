@@ -1,30 +1,37 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
+	"log"
+	"net/http"
+
 	"github.com/Optum/dce/pkg/api/response"
 	"github.com/Optum/dce/pkg/common"
 	"github.com/Optum/dce/pkg/db"
 	"github.com/Optum/dce/pkg/provision"
-	"github.com/Optum/dce/pkg/usage"
-	"github.com/aws/aws-lambda-go/events"
-	"log"
-	"net/http"
 )
 
-// CreateController is responsible for handling API events for creating leases.
-type CreateController struct {
-	Dao                   db.DBer
-	Provisioner           provision.Provisioner
-	SNS                   common.Notificationer
-	LeaseTopicARN         *string
-	UsageSvc              usage.Service
-	PrincipalBudgetAmount *float64
-	PrincipalBudgetPeriod *string
-	MaxLeaseBudgetAmount  *float64
-	MaxLeasePeriod        *int
+var (
+	provisioner           provision.AccountProvision
+	leaseTopicARN         string
+	principalBudgetAmount float64
+	principalBudgetPeriod string
+	maxLeaseBudgetAmount  float64
+	maxLeasePeriod        int
+)
+
+func init() {
+	provisioner = provision.AccountProvision{
+		DBSvc: Dao,
+	}
+
+	leaseTopicARN = Config.GetEnvVar("PROVISION_TOPIC", "DCEDefaultProvisionTopic")
+	principalBudgetAmount = Config.GetEnvFloatVar("PRINCIPAL_BUDGET_AMOUNT", 25.00)
+	principalBudgetPeriod = Config.GetEnvVar("PRINCIPAL_BUDGET_PERIOD", Weekly)
+	maxLeaseBudgetAmount = Config.GetEnvFloatVar("MAX_LEASE_BUDGET_AMOUNT", 25.00)
+	maxLeasePeriod = Config.GetEnvIntVar("MAX_LEASE_PERIOD", 7)
+
 }
 
 type createLeaseRequest struct {
@@ -36,23 +43,21 @@ type createLeaseRequest struct {
 	ExpiresOn                int64    `json:"expiresOn"`
 }
 
-// Call - Function to validate the account request to add into the pool and
-// publish the account creation to its respective client
-// This function returns both a proxy response and an error. In this case,
-// if we know how to handle the error (such as a bad request), then the err
-// returned is nil. It's only not nil if we get an error that we don't know
-// what to do with, in which case the calling router will handle it.
-func (c CreateController) Call(ctx context.Context, req *events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+// CreateLease - Creates the lease
+func CreateLease(w http.ResponseWriter, r *http.Request) {
 
+	c := leaseValidationContext{}
 	// Extract the Body from the Request
-	requestBody, isValid, validationErrorMessage, err := validateLeaseRequest(c, req)
+	requestBody, isValid, validationErrorMessage, err := validateLeaseFromRequest(&c, r)
 
 	if err != nil {
-		return response.ServerErrorWithResponse(err.Error()), nil
+		response.WriteServerErrorWithResponse(w, err.Error())
+		return
 	}
 
 	if !isValid {
-		return response.BadRequestError(validationErrorMessage), nil
+		response.WriteBadRequestError(w, validationErrorMessage)
+		return
 	}
 
 	principalID := requestBody.PrincipalID
@@ -60,74 +65,81 @@ func (c CreateController) Call(ctx context.Context, req *events.APIGatewayProxyR
 
 	// Check if the principal has any existing Active/FinanceLock/ResetLock
 	// Leases
-	checkLease, err := c.Provisioner.FindActiveLeaseForPrincipal(principalID)
+	checkLease, err := provisioner.FindActiveLeaseForPrincipal(principalID)
 	if err != nil {
 		log.Printf("Failed to Check Principal Active Leases: %s", err)
-		return response.ServerErrorWithResponse(fmt.Sprintf("Failed to verify if Principal has an existing lease: %s",
-			err)), nil
+		response.WriteServerErrorWithResponse(w,
+			fmt.Sprintf("Failed to verify if Principal has an existing lease: %s", err),
+		)
+		return
 	} else if checkLease.PrincipalID == principalID {
 		errStr := fmt.Sprintf("Principal already has an active lease: %s",
 			checkLease.AccountID)
 		log.Printf(errStr)
-		return response.ConflictError(errStr), nil
+		response.WriteConflictError(w, errStr)
+		return
 	}
 	log.Printf("Principal %s has no Active Leases\n", principalID)
 
 	// Get the First Ready Account
 	// Exit if there's an error or no ready accounts
-	account, err := c.Dao.GetReadyAccount()
+	account, err := Dao.GetReadyAccount()
 	if err != nil {
 		log.Printf("Failed to Check Ready Accounts: %s", err)
-		return response.ServerErrorWithResponse(
-			fmt.Sprintf("Failed to find a Ready Account: %s", err)), nil
+		response.WriteServerErrorWithResponse(
+			w,
+			fmt.Sprintf("Failed to find a Ready Account: %s", err),
+		)
+		return
 	} else if account == nil {
 		errStr := "No Available accounts at this moment"
 		log.Printf(errStr)
-		return response.ServiceUnavailableError(errStr), nil
+		response.WriteServiceUnavailableError(w, errStr)
+		return
 	}
 	log.Printf("Principal %s will be Leased to Account: %s\n", principalID,
 		account.ID)
 
 	// Check if the Principal and Account has been leased before
-	lease, err := c.Provisioner.FindLeaseWithAccount(principalID,
+	lease, err := provisioner.FindLeaseWithAccount(principalID,
 		account.ID)
 	if err != nil {
 		log.Printf("Failed to Check Leases with Account: %s", err)
-		return response.ServerErrorWithResponse(fmt.Sprintf("Failed to lookup leases: %s", err)), nil
+		response.WriteServerErrorWithResponse(w, fmt.Sprintf("Failed to lookup leases: %s", err))
+		return
 	}
 
 	// Create/Update an Account Lease to Active
 	create := lease.AccountID == ""
-	lease, err = c.Provisioner.ActivateAccount(create, principalID,
+	lease, err = provisioner.ActivateAccount(create, principalID,
 		account.ID, requestBody.BudgetAmount, requestBody.BudgetCurrency, requestBody.BudgetNotificationEmails,
 		requestBody.ExpiresOn)
 	if err != nil {
 		log.Printf("Failed to Activate Account Lease: %s", err)
-		return response.ServerErrorWithResponse(fmt.Sprintf("Failed to Create Lease for Account : %s", account.ID)), nil
+		response.WriteServerErrorWithResponse(w, fmt.Sprintf("Failed to Create Lease for Account : %s", account.ID))
+		return
 	}
 
 	// Set the Account as leased
 	log.Printf("Set Account %s Status to Leased for Principal %s\n", principalID,
 		account.ID)
-	_, err = c.Dao.TransitionAccountStatus(account.ID, db.Ready, db.Leased)
+	_, err = Dao.TransitionAccountStatus(account.ID, db.Ready, db.Leased)
 	if err != nil {
 		// Rollback
 		log.Printf("Error to Transition Account Status: %s", err)
-		return rollbackProvision(c.Provisioner, err, false, principalID, account.ID), nil
+		rollbackProvision(w, &provisioner, err, false, principalID, account.ID)
+		return
 	}
 
 	// Publish Lease to the topic
-	message, err := publishLease(c.SNS, lease, c.LeaseTopicARN)
+	message, err := publishLease(SnsSvc, lease, &leaseTopicARN)
 	if err != nil {
 		log.Printf("Error Publish Lease to Topic: %s", err)
-		return rollbackProvision(c.Provisioner, err, true, principalID, account.ID), nil
+		rollbackProvision(w, &provisioner, err, true, principalID, account.ID)
+		return
 	}
 
-	// Return the response back to API
-	return events.APIGatewayProxyResponse{
-		StatusCode: http.StatusCreated,
-		Body:       *message,
-	}, nil
+	response.WriteAPIResponse(w, http.StatusCreated, *message)
 }
 
 // publishLease is a helper function to create and publish an lease
@@ -174,9 +186,9 @@ func publishLease(snsSvc common.Notificationer,
 
 // rollbackProvision is a helper function to execute rollback for account
 // provisioning
-func rollbackProvision(prov provision.Provisioner, err error,
+func rollbackProvision(w http.ResponseWriter, prov provision.Provisioner, err error,
 	transitionAccountStatus bool, principalID string,
-	accountID string) events.APIGatewayProxyResponse {
+	accountID string) {
 	// Attempt Rollback
 	var message string
 	errRollBack := prov.RollbackProvisionAccount(transitionAccountStatus,
@@ -191,5 +203,5 @@ func rollbackProvision(prov provision.Provisioner, err error,
 	}
 
 	// Return an error
-	return response.ServerErrorWithResponse(string(message))
+	response.WriteServerErrorWithResponse(w, string(message))
 }
