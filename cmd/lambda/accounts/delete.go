@@ -22,22 +22,8 @@ func DeleteAccount(w http.ResponseWriter, r *http.Request) {
 
 	// Handle DB errors
 	if err != nil {
-		switch err.(type) {
-		case *db.AccountNotFoundError:
-			WriteNotFoundError(w)
-			return
-		case *db.AccountLeasedError:
-			WriteAPIErrorResponse(
-				w,
-				http.StatusConflict,
-				"Conflict",
-				err.Error(),
-			)
-			return
-		default:
-			WriteServerErrorWithResponse(w, "Internal Server Error")
-			return
-		}
+		ErrorHandler(w, err)
+		return
 	}
 
 	// Delete the IAM Principal Role for the account

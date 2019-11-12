@@ -1,89 +1,54 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/gorilla/mux"
 
-	"github.com/Optum/dce/pkg/api/response"
-	"github.com/Optum/dce/pkg/db"
+	"github.com/Optum/dce/pkg/account"
+	"github.com/Optum/dce/pkg/model"
 )
 
 // GetAllAccounts - Returns all the accounts.
 func GetAllAccounts(w http.ResponseWriter, r *http.Request) {
 	// Fetch the accounts.
-	accounts, err := Dao.GetAccounts()
+	accounts, err := account.GetAccounts(DataSvc)
 
 	if err != nil {
-		errorMessage := fmt.Sprintf("Failed to query database: %s", err)
-		log.Print(errorMessage)
-		WriteServerErrorWithResponse(w, errorMessage)
+		ErrorHandler(w, err)
+		return
 	}
 
-	// Serialize them for the JSON response.
-	accountResponses := []*response.AccountResponse{}
-
-	for _, a := range accounts {
-		acctRes := response.AccountResponse(*a)
-		accountResponses = append(accountResponses, &acctRes)
-	}
-
-	json.NewEncoder(w).Encode(accountResponses)
+	WriteAPIResponse(w, http.StatusOK, accounts)
 }
 
 // GetAccountByID - Returns the single account by ID
 func GetAccountByID(w http.ResponseWriter, r *http.Request) {
 
 	accountID := mux.Vars(r)["accountId"]
-	account, err := Dao.GetAccount(accountID)
+	account, err := account.GetAccountByID(accountID, DataSvc)
 
 	if err != nil {
-		errorMessage := fmt.Sprintf("Failed List on Account Lease %s", accountID)
-		log.Print(errorMessage)
-		WriteServerErrorWithResponse(w, errorMessage)
+		ErrorHandler(w, err)
 		return
 	}
 
-	if account == nil {
-		WriteNotFoundError(w)
-		return
-	}
-
-	acctRes := response.AccountResponse(*account)
-
-	json.NewEncoder(w).Encode(acctRes)
+	WriteAPIResponse(w, http.StatusOK, account)
 }
 
 // GetAccountByStatus - Returns the accounts by status
 func GetAccountByStatus(w http.ResponseWriter, r *http.Request) {
 	// Fetch the accounts.
 	accountStatus := r.FormValue("accountStatus")
-	status, err := db.ParseAccountStatus(accountStatus)
+	status := model.AccountStatus(accountStatus)
 
-	accounts, err := Dao.FindAccountsByStatus(status)
+	accounts, err := account.GetAccountsByStatus(status, DataSvc)
 
 	if err != nil {
-		errorMessage := fmt.Sprintf("Failed to query database: %s", err)
-		log.Print(errorMessage)
-		WriteServerErrorWithResponse(w, errorMessage)
-	}
-
-	if len(accounts) == 0 {
-		WriteNotFoundError(w)
+		ErrorHandler(w, err)
 		return
 	}
 
-	// Serialize them for the JSON response.
-	accountResponses := []*response.AccountResponse{}
-
-	for _, a := range accounts {
-		acctRes := response.AccountResponse(*a)
-		accountResponses = append(accountResponses, &acctRes)
-	}
-
-	json.NewEncoder(w).Encode(accountResponses)
+	WriteAPIResponse(w, http.StatusOK, accounts)
 
 }

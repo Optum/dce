@@ -2,14 +2,13 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
+	"net/http"
+
 	"github.com/Optum/dce/pkg/api/response"
 	"github.com/Optum/dce/pkg/db"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/gorilla/mux"
-	"log"
-	"net/http"
 )
 
 // updateAccountRequest mirrors the db.Account object,
@@ -36,7 +35,7 @@ func UpdateAccountByID(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&request)
 	if err != nil {
-		WriteAPIErrorResponse(w, http.StatusBadRequest, "ClientError", "invalid request parameters")
+		ErrorHandler(w, err)
 		return
 	}
 	request.ID = &accountID
@@ -50,12 +49,7 @@ func UpdateAccountByID(w http.ResponseWriter, r *http.Request) {
 		})
 
 		if err != nil {
-			WriteRequestValidationError(
-				w,
-				fmt.Sprintf("Unable to update account %s: "+
-					"admin role is not assumable by the master account",
-					accountID),
-			)
+			ErrorHandler(w, err)
 			return
 		}
 	}
@@ -78,12 +72,7 @@ func UpdateAccountByID(w http.ResponseWriter, r *http.Request) {
 		accountPartial.Metadata = *request.Metadata
 	}
 	if len(fieldsToUpdate) == 0 {
-		WriteRequestValidationError(
-			w,
-			fmt.Sprintf("Unable to update account %s: "+
-				"no updatable fields provided",
-				accountID),
-		)
+		ErrorHandler(w, err)
 		return
 	}
 
@@ -91,20 +80,13 @@ func UpdateAccountByID(w http.ResponseWriter, r *http.Request) {
 	acct, err := Dao.UpdateAccount(accountPartial, fieldsToUpdate)
 	if err != nil {
 		// If the account doesn't exist, return a 404
-		if _, ok := err.(*db.NotFoundError); ok {
-			WriteNotFoundError(w)
-			return
-		}
-		// Other DB errors return a 500
-		log.Printf("ERROR: Failed to update account %s: %s", *request.ID, err)
-		WriteServerErrorWithResponse(w, "Internal Server Error")
+		ErrorHandler(w, err)
 		return
 	}
 
 	accountJSON, err := json.Marshal(response.AccountResponse(*acct))
 	if err != nil {
-		log.Printf("ERROR: Failed to marshal account response for %s: %s", *request.ID, err)
-		WriteServerErrorWithResponse(w, "Internal server error")
+		ErrorHandler(w, err)
 		return
 	}
 
