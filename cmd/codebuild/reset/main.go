@@ -204,7 +204,7 @@ func generateNukeConfig(svc *service, f io.Writer) error {
 
 	template, err := template.New(templateFile).ParseFiles(templateFile)
 	if err != nil {
-		log.Fatalf("Failed to generate nuke config for acount %s using template %s: %s",
+		log.Printf("Failed to generate nuke config for acount %s using template %s: %s",
 			config.accountID, templateFile, err)
 		return err
 	}
@@ -225,7 +225,7 @@ func generateNukeConfig(svc *service, f io.Writer) error {
 		Regions:         config.allowedRegions,
 	})
 	if err != nil {
-		log.Fatalf("Failed to generate nuke config for acount %s using template %s: %s",
+		log.Printf("Failed to generate nuke config for acount %s using template %s: %s",
 			config.accountID, templateFile, err)
 		return err
 	}

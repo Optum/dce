@@ -2,11 +2,14 @@
 
 ## Principal Role Policy
 
-Any user that access their's lease will assume a role in the leased account.  When they assume this role they are restricted to what they access.  The policy is defined [here](https://github.com/Optum/dce/blob/master/modules/fixtures/policies/principal_policy.tmpl).  This policy is designed to protect the IAM principal policy, trusts so that DCE can continue to manage the account, and around services that AWS Nuke supports.
+Any user that access their's lease will assume a role in the leased account.  When they assume this role they are restricted to what they access.  The policy is defined [here](https://github.com/Optum/dce/blob/master/modules/fixtures/policies/principal_policy.tmpl).  This policy is designed to protect the IAM principal policy and trusts so that DCE can continue to manage the account.  Additionaly the policy is designed around services that AWS Nuke supports.
 
 ## Organizations and Service Control Policies (SCPs)
 
 It is possibly to implement DCE inside an AWS Organization.  There are additional benefits when doing this type of implementation including the ability to use SCPs.  The following is an example SCP policy that can be implemented to better protect DCE accounts.
+
+- **DenyChangesToAdminPrincipalRoleAndPolicy** is designed to prevent anyone other than the AdminRole from modifying the roles and policies used by DCE.
+- **DenyUnsupportedServices** is designed to allow access to services that are supported by AWS Nuke
 
 ```json
 {
@@ -22,7 +25,16 @@ It is possibly to implement DCE inside an AWS Organization.  There are additiona
                 "iam:ListAttachedRolePolicies",
                 "iam:ListInstanceProfilesForRole",
                 "iam:ListRolePolicies",
-                "iam:ListRoleTags"
+                "iam:ListRoleTags",
+                "iam:DeactivateMFADevice",
+                "iam:CreateSAMLProvider",
+                "iam:UpdateAccountPasswordPolicy",
+                "iam:DeleteVirtualMFADevice",
+                "iam:EnableMFADevice",
+                "iam:CreateAccountAlias",
+                "iam:DeleteAccountAlias",
+                "iam:UpdateSAMLProvider",
+                "iam:DeleteSAMLProvider"
             ],
             "Resource": [
                 "arn:aws:iam::*:role/AdminRole",
@@ -34,22 +46,6 @@ It is possibly to implement DCE inside an AWS Organization.  There are additiona
                     "aws:PrincipalARN": "arn:aws:iam::*:role/AdminRole"
                 }
             }
-        },
-        {
-            "Sid": "DenyIAM",
-            "Effect": "Deny",
-            "Action": [
-            "iam:DeactivateMFADevice",
-            "iam:CreateSAMLProvider",
-            "iam:UpdateAccountPasswordPolicy",
-            "iam:DeleteVirtualMFADevice",
-            "iam:EnableMFADevice",
-            "iam:CreateAccountAlias",
-            "iam:DeleteAccountAlias",
-            "iam:UpdateSAMLProvider",
-            "iam:DeleteSAMLProvider"
-            ],
-            "Resource": "*"
         },
         {
             "Sid": "DenyUnsupportedServices",
