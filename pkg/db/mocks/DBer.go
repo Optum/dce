@@ -367,6 +367,29 @@ func (_m *DBer) TransitionLeaseStatus(accountID string, principalID string, prev
 	return r0, r1
 }
 
+// UpdateAccount provides a mock function with given fields: account, fieldsToUpdate
+func (_m *DBer) UpdateAccount(account db.Account, fieldsToUpdate []string) (*db.Account, error) {
+	ret := _m.Called(account, fieldsToUpdate)
+
+	var r0 *db.Account
+	if rf, ok := ret.Get(0).(func(db.Account, []string) *db.Account); ok {
+		r0 = rf(account, fieldsToUpdate)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*db.Account)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(db.Account, []string) error); ok {
+		r1 = rf(account, fieldsToUpdate)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // UpdateAccountPrincipalPolicyHash provides a mock function with given fields: accountID, prevHash, nextHash
 func (_m *DBer) UpdateAccountPrincipalPolicyHash(accountID string, prevHash string, nextHash string) (*db.Account, error) {
 	ret := _m.Called(accountID, prevHash, nextHash)

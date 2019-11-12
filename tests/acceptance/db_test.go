@@ -794,10 +794,11 @@ func TestDb(t *testing.T) {
 	})
 
 	t.Run("UpsertLease", func(t *testing.T) {
+		truncateLeaseTable(t, dbSvc)
 		defer truncateLeaseTable(t, dbSvc)
 
 		t.Run("should create a new lease", func(t *testing.T) {
-			truncateLeaseTable(t, dbSvc)
+			defer truncateLeaseTable(t, dbSvc)
 
 			leaseToCreate := db.Lease{
 				AccountID:                "123456789012",
@@ -851,6 +852,152 @@ func TestDb(t *testing.T) {
 				require.Nil(t, err)
 				require.Equal(t, &leaseToUpdate, foundLease, "Should return updated lease")
 			})
+		})
+
+	})
+
+	t.Run("UpdateAccount", func (t *testing.T) {
+		truncateAccountTable(t, dbSvc)
+		defer truncateAccountTable(t, dbSvc)
+
+		t.Run("should update an account, for the configured fields", func (t *testing.T) {
+			defer truncateAccountTable(t, dbSvc)
+
+		  // Create an account record, to start
+		  err := dbSvc.PutAccount(db.Account{
+		  	ID: "test-account",
+		  	Metadata: map[string]interface{}{
+		  		"foo": "bar",
+				},
+				AdminRoleArn: "my:admin:role:arn",
+				AccountStatus: db.Ready,
+			})
+		  require.Nil(t, err)
+
+		  // Update the account
+		  acct, err := dbSvc.UpdateAccount(db.Account{
+				ID: "test-account",
+				Metadata: map[string]interface{}{
+					"faz": "baz",
+				},
+				AdminRoleArn: "a:new:role:arn",
+			}, []string{"Metadata", "AdminRoleArn"})
+		  require.Nil(t, err)
+
+		  // Check the returned value is the updated account
+		  require.Equal(t, &db.Account{
+				ID: "test-account",
+				Metadata: map[string]interface{}{
+					"faz": "baz",
+				},
+				AdminRoleArn: "a:new:role:arn",
+				AccountStatus: db.Ready,
+				LastModifiedOn: acct.LastModifiedOn,
+			}, acct)
+
+		  // Check the account record in the DB
+		  gotAccount, err := dbSvc.GetAccount("test-account")
+		  require.Nil(t, err)
+		  require.Equal(t, &db.Account{
+				ID: "test-account",
+				Metadata: map[string]interface{}{
+					"faz": "baz",
+				},
+				AdminRoleArn: "a:new:role:arn",
+				AccountStatus: db.Ready,
+				LastModifiedOn: acct.LastModifiedOn,
+			}, gotAccount)
+		})
+
+		t.Run("should not update fields that aren't configured", func (t *testing.T) {
+			defer truncateAccountTable(t, dbSvc)
+
+			// Create an account record, to start
+			err := dbSvc.PutAccount(db.Account{
+				ID: "test-account",
+				Metadata: map[string]interface{}{
+					"foo": "bar",
+				},
+				AdminRoleArn: "my:admin:role:arn",
+				AccountStatus: db.Ready,
+			})
+			require.Nil(t, err)
+
+			// Update the account,
+			// but only include the metadata field in updates
+			acct, err := dbSvc.UpdateAccount(db.Account{
+				ID: "test-account",
+				Metadata: map[string]interface{}{
+					"faz": "baz",
+				},
+			}, []string{"Metadata"})
+			require.Nil(t, err)
+
+			require.Equal(t, map[string]interface{}{
+				"faz": "baz",
+			}, acct.Metadata)
+			require.Equal(t, "my:admin:role:arn", acct.AdminRoleArn)
+
+			// Check the record in the DB
+			gotAccount, err := dbSvc.GetAccount("test-account")
+			require.Nil(t, err)
+			require.Equal(t, map[string]interface{}{
+				"faz": "baz",
+			}, gotAccount.Metadata)
+			require.Equal(t, "my:admin:role:arn", gotAccount.AdminRoleArn)
+		})
+
+		t.Run("should update the accounts LastModified", func (t *testing.T) {
+			defer truncateAccountTable(t, dbSvc)
+
+			// Create an account record, to start
+			err := dbSvc.PutAccount(db.Account{
+				ID: "test-account",
+				Metadata: map[string]interface{}{
+					"foo": "bar",
+				},
+				AdminRoleArn: "my:admin:role:arn",
+				AccountStatus: db.Ready,
+			})
+			require.Nil(t, err)
+
+			// Update the account,
+			// but only include the metadata field in updates
+			acct, err := dbSvc.UpdateAccount(db.Account{
+				ID: "test-account",
+				Metadata: map[string]interface{}{
+					"faz": "baz",
+				},
+			}, []string{"Metadata"})
+			require.Nil(t, err)
+
+			require.InDelta(t, time.Now().Unix(), acct.LastModifiedOn, 5)
+
+			// Check the account record in the DB
+			gotAccount, err := dbSvc.GetAccount("test-account")
+			require.Nil(t, err)
+			require.InDelta(t, time.Now().Unix(), gotAccount.LastModifiedOn, 5)
+		})
+
+		t.Run("should fail if the account does not exist", func (t *testing.T) {
+			// Attempt to update an account that doesn't exist
+			_, err := dbSvc.UpdateAccount(db.Account{
+				ID: "not-an-account",
+				AdminRoleArn: "my:admin:role:arn",
+			}, []string{"AdminRoleArn"})
+			require.NotNil(t, err)
+
+			require.IsType(t, &db.NotFoundError{}, err)
+			require.Equal(t, "Unable to update account not-an-account: account does not exist", err.Error())
+		})
+
+		t.Run("should fail if the provided Account has no ID", func (t *testing.T) {
+			_, err := dbSvc.UpdateAccount(db.Account{
+				AdminRoleArn: "my:admin:role:arn",
+			}, []string{"AdminRoleArn"})
+			require.NotNil(t, err)
+
+			require.Equal(t, "unable to update account: account has no ID", err.Error())
 		})
 
 	})

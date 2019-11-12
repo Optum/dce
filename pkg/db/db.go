@@ -52,6 +52,7 @@ type DBer interface {
 	FindAccountsByStatus(status AccountStatus) ([]*Account, error)
 	FindAccountsByPrincipalID(principalID string) ([]*Account, error)
 	PutAccount(account Account) error
+	UpdateAccount(account Account, fieldsToUpdate []string) (*Account, error)
 	DeleteAccount(accountID string) (*Account, error)
 	PutLease(lease Lease) (*Lease, error)
 	UpsertLease(lease Lease) (*Lease, error)
@@ -350,6 +351,61 @@ func (db *DB) PutAccount(account Account) error {
 	return err
 }
 
+// UpdateAccount updates an existing account record.
+// fails if the account does not exist
+func (db *DB) UpdateAccount(account Account, fieldsToUpdate []string) (*Account, error) {
+	// Verify the account has an ID
+	if account.ID == "" {
+		return nil, errors.New("unable to update account: account has no ID")
+	}
+
+	// Update timestamps
+	account.LastModifiedOn = time.Now().Unix()
+	fieldsToUpdate = append(fieldsToUpdate, "LastModifiedOn")
+
+	// Create an update expression for the account object
+	expr, err := buildUpdateExpression(&buildUpdateExpressInput{
+		obj:           account,
+		includeFields: fieldsToUpdate,
+	})
+	if err != nil {
+		return nil, errors2.Wrapf(err, "Failed to update account %s", account.ID)
+	}
+
+	// Update the Account record
+	exprValues := expr.Values()
+	exprValues[":id"] = &dynamodb.AttributeValue{ S: &account.ID }
+	res, err := db.Client.UpdateItem(&dynamodb.UpdateItemInput{
+		TableName: &db.AccountTableName,
+		Key: map[string]*dynamodb.AttributeValue{
+			"Id": {S: &account.ID},
+		},
+		// Make sure the record we're updating has an ID.
+		// This, in effect, enforces that the record already exists
+		ConditionExpression:       aws.String("Id = :id"),
+		ExpressionAttributeNames:  expr.Names(),
+		ExpressionAttributeValues: exprValues,
+		UpdateExpression:          expr.Update(),
+		ReturnValues:              aws.String("ALL_NEW"),
+	})
+	if err != nil {
+		// If our condition check fails, if means the account
+		// doesn't exist
+		if aerr, ok := err.(awserr.Error); ok {
+			if aerr.Code() == "ConditionalCheckFailedException" {
+				return nil, &NotFoundError{
+					fmt.Sprintf(
+						"Unable to update account %s: account does not exist", account.ID,
+					),
+				}
+			}
+		}
+		return nil, err
+	}
+
+	return unmarshalAccount(res.Attributes)
+}
+
 // PutLease writes an Lease to DynamoDB
 // Returns the previous AccountsLease if there is one - does not return
 // the lease that was added
@@ -396,34 +452,11 @@ func (db *DB) UpsertLease(lease Lease) (*Lease, error) {
 		)
 	}
 
-	// Lookup the `json` Tags on the Lease struct,
-	// and use them to build a DynDB Update Expression.
-	// (we want our update expression to use the same JSON
-	//  annotations that we're using everywhere else to marshal DB objects)
-	updateBuilder := expression.UpdateBuilder{}
-	reflectItems, err := reflections.Items(lease)
-	if err != nil {
-		return nil, err
-	}
-	for fieldName, fieldVal := range reflectItems {
-		if fieldName == "AccountID" ||
-			fieldName == "PrincipalID" {
-			continue
-		}
-		jsonFieldName, err := reflections.GetFieldTag(lease, fieldName, "json")
-		if err != nil {
-			return nil, err
-		}
-		updateBuilder = updateBuilder.Set(
-			expression.Name(jsonFieldName),
-			expression.Value(fieldVal),
-		)
-	}
-
-	// Compile the expression
-	expr, err := expression.NewBuilder().
-		WithUpdate(updateBuilder).
-		Build()
+	// Build an update expression for the lease
+	expr, err := buildUpdateExpression(&buildUpdateExpressInput{
+		obj:           lease,
+		excludeFields: []string{"AccountID", "PrincipalID"},
+	})
 	if err != nil {
 		return nil, errors2.Wrapf(err, "Failed to update lease %s/%s",
 			lease.PrincipalID, lease.AccountID)
@@ -902,4 +935,69 @@ func NewFromEnv() (*DB, error) {
 		common.RequireEnv("LEASE_DB"),
 		common.GetEnvInt("DEFAULT_LEASE_LENGTH_IN_DAYS", 7),
 	), nil
+}
+
+type buildUpdateExpressInput struct {
+	// Object to create update expression from
+	obj interface{}
+	// Fields to exclude from expression
+	// (may not be used together with `includeFields`)
+	excludeFields []string
+	// Fields to include in expression
+	// (may not be used together with `excludeFields`)
+	includeFields []string
+}
+
+// buildUpdateExpression builds a DynDB update express
+// from a struct, using the `json` tag annotations to determine field names
+func buildUpdateExpression(input *buildUpdateExpressInput) (*expression.Expression, error) {
+	shouldExclude := len(input.excludeFields) > 0
+	shouldInclude := len(input.includeFields) > 0
+
+	if shouldExclude && shouldInclude {
+		return nil, errors.New("unable to build DynDB update expression: " +
+			"request may specify includeFields or excludeFields, but not both")
+	}
+
+	// Lookup the `json` Tags on the object,
+	// and use them to build a DynDB Update Expression.
+	// (we want our update expression to use the same JSON
+	//  annotations that we're using everywhere else to marshal DB objects)
+	updateBuilder := expression.UpdateBuilder{}
+	reflectItems, err := reflections.Items(input.obj)
+	if err != nil {
+		return nil, err
+	}
+	for fieldName, fieldVal := range reflectItems {
+		// Skip excluded / not-included fields
+		isExcluded := shouldExclude && containsStr(input.excludeFields, fieldName)
+		isNotIncluded := shouldInclude && !containsStr(input.includeFields, fieldName)
+		if isExcluded || isNotIncluded {
+			continue
+		}
+
+		jsonFieldName, err := reflections.GetFieldTag(input.obj, fieldName, "json")
+		if err != nil {
+			return nil, err
+		}
+		updateBuilder = updateBuilder.Set(
+			expression.Name(jsonFieldName),
+			expression.Value(fieldVal),
+		)
+	}
+
+	// Compile the expression
+	expr, err := expression.NewBuilder().
+		WithUpdate(updateBuilder).
+		Build()
+	return &expr, err
+}
+
+func containsStr(list []string, item string) bool {
+	for _, i := range list {
+		if i == item {
+			return true
+		}
+	}
+	return false
 }
