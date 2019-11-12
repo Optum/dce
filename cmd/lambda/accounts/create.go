@@ -2,20 +2,16 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
-	"time"
 
-	"github.com/Optum/dce/pkg/api/response"
-	"github.com/Optum/dce/pkg/common"
+	"github.com/Optum/dce/pkg/account"
 	"github.com/Optum/dce/pkg/db"
+	"github.com/Optum/dce/pkg/errors"
 	"github.com/Optum/dce/pkg/rolemanager"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iam"
-	"github.com/aws/aws-sdk-go/service/sts"
 )
 
 // CreateAccount - Function to validate the account request to add into the pool and
@@ -29,7 +25,7 @@ func CreateAccount(w http.ResponseWriter, r *http.Request) {
 	err = decoder.Decode(&request)
 
 	if err != nil {
-		WriteAPIErrorResponse(w, http.StatusBadRequest, "ClientError", "invalid request parameters")
+		ErrorHandler(w, err)
 		return
 	}
 
@@ -41,107 +37,17 @@ func CreateAccount(w http.ResponseWriter, r *http.Request) {
 	// Validate the request body
 	isValid, validationRes := request.Validate()
 	if !isValid {
-		WriteAPIErrorResponse(w, http.StatusBadRequest, "ClientError", *validationRes)
+		err = fmt.Errorf("%s: %w", *validationRes, errors.ErrValidation)
+		ErrorHandler(w, err)
 		return
 	}
 
-	// Check if the account already exists
-	existingAccount, err := Dao.GetAccount(request.ID)
+	a, err := account.CreateAccount(request.ID, request.AdminRoleArn, request.Metadata, DataSvc)
 	if err != nil {
-		log.Printf("Failed to add account %s to pool: %s",
-			request.ID, err.Error())
-		WriteAPIErrorResponse(w, http.StatusInternalServerError, "ServerError", "")
+		ErrorHandler(w, err)
 		return
 	}
-	if existingAccount != nil {
-		WriteAlreadyExistsError(w)
-		return
-	}
-
-	// Verify that we can assume role in the account,
-	// using the `adminRoleArn`
-	_, err = TokenSvc.AssumeRole(&sts.AssumeRoleInput{
-		RoleArn:         aws.String(request.AdminRoleArn),
-		RoleSessionName: aws.String("MasterAssumeRoleVerification"),
-	})
-
-	if err != nil {
-		WriteRequestValidationError(
-			w,
-			fmt.Sprintf("Unable to add account %s to pool: adminRole is not assumable by the master account", request.ID),
-		)
-		return
-	}
-
-	// Prepare the account record
-	now := time.Now().Unix()
-	account := db.Account{
-		ID:             request.ID,
-		AccountStatus:  db.NotReady,
-		LastModifiedOn: now,
-		CreatedOn:      now,
-		AdminRoleArn:   request.AdminRoleArn,
-		Metadata:       request.Metadata,
-	}
-
-	// Create an IAM Role for the principal (end-user) to login to
-	masterAccountID := *CurrentAccountID
-	createRolRes, policyHash, err := createPrincipalRole(account, masterAccountID)
-	if err != nil {
-		log.Printf("failed to create principal role for %s: %s", request.ID, err)
-		WriteServerErrorWithResponse(w, "Internal server error")
-		return
-	}
-	account.PrincipalRoleArn = createRolRes.RoleArn
-	account.PrincipalPolicyHash = policyHash
-
-	// Write the Account to the DB
-	err = Dao.PutAccount(account)
-	if err != nil {
-		log.Printf("Failed to add account %s to pool: %s",
-			request.ID, err.Error())
-		WriteServerErrorWithResponse(w, "Internal server error")
-		return
-	}
-
-	// Add Account to Reset Queue
-	err = Queue.SendMessage(&resetQueueURL, &account.ID)
-	if err != nil {
-		log.Printf("Failed to add account %s to reset Queue: %s", account.ID, err)
-		WriteServerErrorWithResponse(w, "Internal server error")
-		return
-	}
-
-	// Publish the Account to an "account-created" topic
-	accountResponse := response.AccountResponse(account)
-	snsMessage, err := common.PrepareSNSMessageJSON(accountResponse)
-	if err != nil {
-		log.Printf("Failed to create SNS account-created message for %s: %s", account.ID, err)
-		WriteServerErrorWithResponse(w, "Internal server error")
-		return
-	}
-
-	// TODO: Initialize these in a better spot.
-
-	_, err = SnsSvc.PublishMessage(&accountCreatedTopicArn, &snsMessage, true)
-	if err != nil {
-		log.Printf("Failed to publish SNS account-created message for %s: %s", account.ID, err)
-		WriteServerErrorWithResponse(w, "Internal server error")
-		return
-	}
-
-	accountResponseJSON, err := json.Marshal(accountResponse)
-	if err != nil {
-		log.Printf("ERROR: Failed to marshal account response for %s: %s", account.ID, err)
-		WriteServerErrorWithResponse(w, "Internal server error")
-		return
-	}
-
-	WriteAPIResponse(
-		w,
-		http.StatusCreated,
-		string(accountResponseJSON),
-	)
+	WriteAPIResponse(w, http.StatusCreated, a)
 }
 
 type CreateRequest struct {
@@ -157,11 +63,12 @@ func (req *CreateRequest) Validate() (bool, *string) {
 	var validationErrors []error
 	if req.ID == "" {
 		isValid = false
-		validationErrors = append(validationErrors, errors.New("missing required field \"id\""))
+		validationErrors = append(validationErrors, fmt.Errorf("missing required field \"id\": %w", errors.ErrValidation))
+
 	}
 	if req.AdminRoleArn == "" {
 		isValid = false
-		validationErrors = append(validationErrors, errors.New("missing required field \"adminRoleArn\""))
+		validationErrors = append(validationErrors, fmt.Errorf("missing required field \"adminRoleArn\": %w", errors.ErrValidation))
 	}
 
 	if !isValid {
