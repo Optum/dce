@@ -5,13 +5,15 @@ go 1.13x
 require (
 	github.com/avast/retry-go v2.3.0+incompatible
 	github.com/aws/aws-lambda-go v1.11.1
-	github.com/aws/aws-sdk-go v1.25.36
+	github.com/aws/aws-sdk-go v1.25.37
 	github.com/awslabs/aws-lambda-go-api-proxy v0.5.0
 	github.com/caarlos0/env v3.5.0+incompatible
+	github.com/go-ozzo/ozzo-validation v3.6.0+incompatible
 	github.com/go-sql-driver/mysql v1.4.1 // indirect
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/handlers v1.4.2
 	github.com/gorilla/mux v1.7.3
+	github.com/gorilla/schema v1.1.0
 	github.com/gruntwork-io/terratest v0.15.13
 	github.com/mattn/go-isatty v0.0.7 // indirect
 	github.com/mitchellh/mapstructure v1.1.2
@@ -20,6 +22,7 @@ require (
 	github.com/pquerna/otp v1.2.0 // indirect
 	github.com/rebuy-de/aws-nuke v2.11.0+incompatible
 	github.com/stretchr/testify v1.3.0
+	github.com/vektra/mockery v0.0.0-20181123154057-e78b021dcbb5 // indirect
 	golang.org/x/crypto v0.0.0-20190418165655-df01cb2cc480 // indirect
 	golang.org/x/net v0.0.0-20190628185345-da137c7871d7 // indirect
 	golang.org/x/text v0.3.2 // indirect

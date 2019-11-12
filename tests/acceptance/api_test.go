@@ -1079,6 +1079,38 @@ func TestApi(t *testing.T) {
 			f: statusCodeAssertion(201),
 		})
 
+		t.Run("should fail on bad property", func(t *testing.T) {
+			// wait a second, so we can check that timestamps are updated
+			time.Sleep(time.Second)
+
+			// PUT /accounts/:id
+			// with update to metadata
+			_ = apiRequest(t, &apiRequestInput{
+				method: "PUT",
+				url:    apiURL + "/accounts/" + accountID,
+				json: map[string]interface{}{
+					"metadata": map[string]interface{}{
+						"foo": "bad",
+					},
+					// you can't set accountStatus this way
+					"accountStatus": "NotReady",
+				},
+				f: statusCodeAssertion(400),
+			})
+
+			// Check the DB record to make sure it's not updated
+			account, err := dbSvc.GetAccount(accountID)
+			require.Nil(t, err)
+
+			require.NotEqual(t, map[string]interface{}{
+				"foo": "bad",
+			}, account.Metadata, "db record metadata is updated")
+			require.NotEqual(t, "NotReady", account.AccountStatus,
+				"shouldn't update non-updatable fields in DB")
+			require.Equal(t, account.LastModifiedOn, account.CreatedOn,
+				"should update lastModifiedOn timestamp")
+		})
+
 		t.Run("should update an account's metadata", func(t *testing.T) {
 			// wait a second, so we can check that timestamps are updated
 			time.Sleep(time.Second)
@@ -1092,8 +1124,6 @@ func TestApi(t *testing.T) {
 					"metadata": map[string]interface{}{
 						"foo": "bar",
 					},
-					// this shouldn't actually persist
-					"accountStatus": "hippos",
 				},
 				f: statusCodeAssertion(200),
 			})
@@ -1103,8 +1133,6 @@ func TestApi(t *testing.T) {
 			require.Equal(t, map[string]interface{}{
 				"foo": "bar",
 			}, resJSON["metadata"], "Response includes updated metadata")
-			require.NotEqual(t, "hippos", resJSON["accountStatus"],
-				"shouldn't update non-updatable fields")
 			require.True(t, resJSON["lastModifiedOn"].(float64) > resJSON["createdOn"].(float64),
 				"should update lastModifiedOn timestamp")
 
@@ -1115,8 +1143,6 @@ func TestApi(t *testing.T) {
 			require.Equal(t, map[string]interface{}{
 				"foo": "bar",
 			}, account.Metadata, "db record metadata is updated")
-			require.NotEqual(t, "hippos", account.AccountStatus,
-				"shouldn't update non-updatable fields in DB")
 			require.True(t, account.LastModifiedOn > account.CreatedOn,
 				"should update lastModifiedOn timestamp")
 		})
@@ -1136,9 +1162,8 @@ func TestApi(t *testing.T) {
 			resJSON := parseResponseJSON(t, res)
 			require.Equal(t, map[string]interface{}{
 				"error": map[string]interface{}{
-					"code": "RequestValidationError",
-					"message": fmt.Sprintf("Unable to update account %s: "+
-						"admin role is not assumable by the master account", accountID),
+					"code":    "RequestValidationError",
+					"message": "update validation error: adminRoleArn: cannot assume admin role arn.",
 				},
 			}, resJSON)
 		})
@@ -1161,7 +1186,7 @@ func TestApi(t *testing.T) {
 			require.Equal(t, map[string]interface{}{
 				"error": map[string]interface{}{
 					"code":    "NotFound",
-					"message": "The requested resource could not be found.",
+					"message": "account not-an-account-id not found: not found",
 				},
 			}, resJSON)
 		})
@@ -1768,6 +1793,7 @@ func apiRequest(t *testing.T, input *apiRequestInput) *apiResponse {
 			apiResp.json = data
 		}
 
+		fmt.Printf("%+v\n", apiResp)
 		if input.f != nil {
 			input.f(r, apiResp)
 		}

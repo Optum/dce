@@ -3,29 +3,34 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
+
 	"github.com/Optum/dce/pkg/api"
 	"github.com/Optum/dce/pkg/config"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/awslabs/aws-lambda-go-api-proxy/gorillamux"
-	"log"
 )
 
-var muxLambda *gorillamux.GorillaMuxAdapter
+var (
+	muxLambda *gorillamux.GorillaMuxAdapter
+	// Services handles the configuration of the AWS services
+	Services *config.ServiceBuilder
+	// Settings - the configuration settings for the controller
+	Settings *credentialsWebPageConfig
+)
 
-type CredentialsWebPageConfig struct {
-	AwsCurrentRegion     string `env:"AWS_CURRENT_REGION"`
-	SitePathPrefix       string `env:"SITE_PATH_PREFIX"`
-	ApigwDeploymentName  string `env:"APIGW_DEPLOYMENT_NAME"`
-	IdentityPoolID       string `env:"PS_IDENTITY_POOL_ID"`
-	UserPoolProviderName string `env:"PS_USER_POOL_PROVIDER_NAME"`
-	UserPoolClientID     string `env:"PS_USER_POOL_CLIENT_ID"`
-	UserPoolAppWebDomain string `env:"PS_USER_POOL_APP_WEB_DOMAIN"`
-	UserPoolID           string `env:"PS_USER_POOL_ID"`
+type credentialsWebPageConfig struct {
+	Debug                string `env:"DEBUG" defaultEnv:"false"`
+	AwsCurrentRegion     string `env:"AWS_CURRENT_REGION" defaultEnv:"us-east-1"`
+	SitePathPrefix       string `env:"SITE_PATH_PREFIX" defaultEnv:"sitePathPrefix`
+	ApigwDeploymentName  string `env:"APIGW_DEPLOYMENT_NAME" defaultEnv:"apigwDeploymentName"`
+	IdentityPoolID       string `env:"PS_IDENTITY_POOL_ID" defaultEnv:"identityPoolID"`
+	UserPoolProviderName string `env:"PS_USER_POOL_PROVIDER_NAME" defaultEnv:"userPoolProviderName"`
+	UserPoolClientID     string `env:"PS_USER_POOL_CLIENT_ID" defaultEnv:"userPoolClientID"`
+	UserPoolAppWebDomain string `env:"PS_USER_POOL_APP_WEB_DOMAIN" defaultEnv:"userPoolAppWebDomain"`
+	UserPoolID           string `env:"PS_USER_POOL_ID" defaultEnv:"userPoolID"`
 }
-
-var Config *CredentialsWebPageConfig
-var CfgBldr config.ConfigurationBuilder
 
 func init() {
 	initConfig()
@@ -47,20 +52,17 @@ func init() {
 			HandlerFunc: GetAuthPageAssets,
 		},
 	}
-	r := api.NewRouter(authRoutes)
+	r := api.NewRouter(Services.Config, authRoutes)
 	muxLambda = gorillamux.New(r)
 }
 func initConfig() {
-	CfgBldr = &config.DefaultConfigurationBuilder{}
-	CfgBldr.WithEnv("AWS_CURRENT_REGION", "AWS_CURRENT_REGION", "us-east-1")
-	CfgBldr.WithEnv("SITE_PATH_PREFIX", "SITE_PATH_PREFIX", "sitePathPrefix")
-	CfgBldr.WithEnv("APIGW_DEPLOYMENT_NAME", "APIGW_DEPLOYMENT_NAME", "apigwDeploymentName")
-	CfgBldr.WithParameterStoreEnv("PS_IDENTITY_POOL_ID", "PS_IDENTITY_POOL_ID", "identityPoolID")
-	CfgBldr.WithParameterStoreEnv("PS_USER_POOL_PROVIDER_NAME", "PS_USER_POOL_PROVIDER_NAME", "userPoolProviderName")
-	CfgBldr.WithParameterStoreEnv("PS_USER_POOL_CLIENT_ID", "PS_USER_POOL_CLIENT_ID", "userPoolClientID")
-	CfgBldr.WithParameterStoreEnv("PS_USER_POOL_APP_WEB_DOMAIN", "PS_USER_POOL_APP_WEB_DOMAIN", "userPoolAppWebDomain")
-	CfgBldr.WithParameterStoreEnv("PS_USER_POOL_ID", "PS_USER_POOL_ID", "userPoolID")
-	svcBldr := &config.DefaultAWSServiceBuilder{Config: CfgBldr}
+	cfgBldr := &config.ConfigurationBuilder{}
+	Settings = &credentialsWebPageConfig{}
+	if err := cfgBldr.Unmarshal(Settings); err != nil {
+		log.Fatalf("Could not load configuration: %s", err.Error())
+	}
+
+	svcBldr := &config.ServiceBuilder{Config: cfgBldr}
 	_, err := svcBldr.
 		WithSSM().
 		Build()
@@ -69,10 +71,8 @@ func initConfig() {
 		log.Fatal(errorMessage)
 	}
 
-	Config = &CredentialsWebPageConfig{}
-	if err := CfgBldr.Dump(Config); err != nil {
-		errorMessage := fmt.Sprintf("Failed to initialize parameter store: %s", err)
-		log.Fatal(errorMessage)
+	if err == nil {
+		Services = svcBldr
 	}
 }
 

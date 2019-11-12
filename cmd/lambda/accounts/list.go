@@ -1,53 +1,58 @@
 package main
 
 import (
-	"context"
-	"encoding/json"
-	"fmt"
-	"log"
 	"net/http"
 
-	"github.com/Optum/dce/pkg/api/response"
-	"github.com/Optum/dce/pkg/db"
-	"github.com/aws/aws-lambda-go/events"
+	"github.com/Optum/dce/pkg/account"
+	"github.com/Optum/dce/pkg/api"
+	"github.com/Optum/dce/pkg/data"
+	"github.com/Optum/dce/pkg/model"
 )
 
-type listController struct {
-	Dao db.DBer
+// GetAccountByStatus - Returns the accounts by status
+func GetAccountByStatus(w http.ResponseWriter, r *http.Request) {
+	// Fetch the accounts.
+	accountStatus := r.FormValue("accountStatus")
+	status := model.AccountStatus(accountStatus)
+
+	dao := &data.Account{}
+	if err := Services.Config.GetService(dao); err != nil {
+		ErrorHandler(w, err)
+		return
+	}
+
+	accounts, err := account.GetAccountsByStatus(status, dao)
+
+	if err != nil {
+		ErrorHandler(w, err)
+		return
+	}
+
+	WriteAPIResponse(w, http.StatusOK, accounts)
+
 }
 
-// Call handles GET /accounts requests. Returns a response object with a serialized list of accounts.
-func (controller listController) Call(ctx context.Context, req *events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+// GetAccounts - Returns all the accounts.
+func GetAccounts(w http.ResponseWriter, r *http.Request) {
 	// Fetch the accounts.
-	accounts, err := controller.Dao.GetAccounts()
+	dao := &data.Account{}
+	if err := Services.Config.GetService(dao); err != nil {
+		ErrorHandler(w, err)
+		return
+	}
+
+	query := &model.Account{}
+	err := api.GetStructFromQuery(query, r.URL.Query())
+	if err != nil {
+		ErrorHandler(w, err)
+		return
+	}
+	accounts, err := account.GetAccounts(query, dao)
 
 	if err != nil {
-		errorMessage := fmt.Sprintf("Failed to query database: %s", err)
-		log.Print(errorMessage)
-		return response.CreateAPIGatewayErrorResponse(http.StatusInternalServerError,
-			response.CreateErrorResponse(
-				"ServerError", errorMessage)), nil
+		ErrorHandler(w, err)
+		return
 	}
 
-	// Serialize them for the JSON response.
-	accountResponses := []*response.AccountResponse{}
-
-	for _, a := range accounts {
-		acctRes := response.AccountResponse(*a)
-		accountResponses = append(accountResponses, &acctRes)
-	}
-
-	messageBytes, err := json.Marshal(accountResponses)
-
-	if err != nil {
-		errorMessage := fmt.Sprintf("Failed to serialize data: %s", err)
-		log.Print(errorMessage)
-		return response.CreateAPIGatewayErrorResponse(http.StatusInternalServerError,
-			response.CreateErrorResponse(
-				"ServerError", errorMessage)), nil
-	}
-
-	body := string(messageBytes)
-
-	return response.CreateAPIGatewayResponse(http.StatusOK, body), nil
+	WriteAPIResponse(w, http.StatusOK, accounts)
 }

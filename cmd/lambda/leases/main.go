@@ -20,6 +20,7 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 
+	newConfig "github.com/Optum/dce/pkg/config"
 	"github.com/awslabs/aws-lambda-go-api-proxy/gorillamux"
 )
 
@@ -35,6 +36,18 @@ const (
 )
 
 var muxLambda *gorillamux.GorillaMuxAdapter
+
+type leaseControllerConfiguration struct {
+	Debug                    string  `env:"DEBUG" defaultEnv:"false"`
+	LeaseAddedTopicARN       string  `env:"LEASE_ADDED_TOPIC" defaultEnv:"DCEDefaultProvisionTopic"`
+	AccountDeletedTopicArn   string  `env:"DECOMMISSION_TOPIC" defaultEnv:"DefaultDecomissionTopic"`
+	ResetQueueURL            string  `env:"RESET_SQS_URL" defaultEnv:"DefaultResetSQSURL"`
+	PrincipalBudgetAmount    float64 `env:"PRINCIPAL_BUDGET_AMOUNT" defaultEnv:1000.00`
+	PrincipalBudgetPeriod    string  `env:"PRINCIPAL_BUDGET_PERIOD" defaultEnv:Weekly`
+	MaxLeaseBudgetAmount     float64 `env:"MAX_LEASE_BUDGET_AMOUNT" defaultEnv:1000.00`
+	MaxLeasePeriod           int64   `env:"MAX_LEASE_PERIOD" defaultEnv:704800`
+	DefaultLeaseLengthInDays int     `env:"DEFAULT_LEASE_LENGTH_IN_DAYS" defaultEnv:7`
+}
 
 var (
 	config                   common.DefaultEnvConfig
@@ -54,6 +67,9 @@ var (
 	defaultLeaseLengthInDays *int
 	userDetails              api.UserDetailer
 	baseRequest              url.URL
+	Services                 *newConfig.ServiceBuilder
+	// Settings - the configuration settings for the controller
+	Settings *leaseControllerConfiguration
 )
 
 // messageBody is the structured object of the JSON Message to send
@@ -64,6 +80,7 @@ type messageBody struct {
 }
 
 func init() {
+	initConfig()
 	log.Println("Cold start; creating router for /leases")
 
 	leaseAddedTopicARN = aws.String(config.GetEnvVar("LEASE_ADDED_TOPIC", "DCEDefaultProvisionTopic"))
@@ -133,8 +150,42 @@ func init() {
 			CreateLease,
 		},
 	}
-	r := api.NewRouter(leasesRoutes)
+	r := api.NewRouter(Services.Config, leasesRoutes)
 	muxLambda = gorillamux.New(r)
+}
+
+// initConfig configures package-level variables
+// loaded from env vars.
+func initConfig() {
+	cfgBldr := &newConfig.ConfigurationBuilder{}
+	Settings = &leaseControllerConfiguration{}
+	if err := cfgBldr.Unmarshal(Settings); err != nil {
+		log.Fatalf("Could not load configuration: %s", err.Error())
+	}
+
+	// load up the values into the various settings...
+	cfgBldr.WithEnv("AWS_CURRENT_REGION", "AWS_CURRENT_REGION", "us-east-1").Build()
+	svcBldr := &newConfig.ServiceBuilder{Config: cfgBldr}
+
+	_, err := svcBldr.
+		// AWS services...
+		WithDynamoDB().
+		WithSTS().
+		WithS3().
+		WithSNS().
+		WithSQS().
+		// DCE services...
+		WithDAO().
+		WithRoleManager().
+		WithStorageService().
+		WithDataService().
+		WithAccountManager().
+		Build()
+
+	if err == nil {
+		Services = svcBldr
+	}
+
 }
 
 // Handler - Handle the lambda function

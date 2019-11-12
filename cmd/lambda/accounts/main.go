@@ -2,52 +2,85 @@ package main
 
 import (
 	"context"
+	"encoding/json"
+	gErrors "errors"
 	"fmt"
 	"log"
+	"net/http"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iam"
-
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
-
-	"github.com/Optum/dce/pkg/common"
-	"github.com/Optum/dce/pkg/rolemanager"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/sts"
 
+	"github.com/Optum/dce/pkg/api/response"
+	"github.com/Optum/dce/pkg/model"
+	"github.com/aws/aws-sdk-go/aws/session"
+
+	"github.com/Optum/dce/pkg/account"
 	"github.com/Optum/dce/pkg/api"
+	"github.com/Optum/dce/pkg/common"
 	"github.com/Optum/dce/pkg/db"
+	"github.com/Optum/dce/pkg/errors"
+	"github.com/Optum/dce/pkg/rolemanager"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 
+	"github.com/Optum/dce/pkg/config"
 	"github.com/awslabs/aws-lambda-go-api-proxy/gorillamux"
 )
 
-var muxLambda *gorillamux.GorillaMuxAdapter
+// Accounter - Only exported for mockery
+type Accounter interface {
+	Update(d model.Account, u account.Updater, am account.Manager) error
+}
+
+type accountControllerConfiguration struct {
+	Debug                       string   `env:"DEBUG" defaultEnv:"false"`
+	PolicyName                  string   `env:"PRINCIPAL_POLICY_NAME" defaultEnv:"DCEPrincipalDefaultPolicy"`
+	AccountCreatedTopicArn      string   `env:"ACCOUNT_CREATED_TOPIC_ARN" defaultEnv:"DefaultAccountCreatedTopicArn"`
+	AccountDeletedTopicArn      string   `env:"ACCOUNT_DELETED_TOPIC_ARN"`
+	ArtifactsBucket             string   `env:"ARTIFACTS_BUCKET" defaultEnv:"DefaultArtifactBucket"`
+	PrincipalPolicyS3Key        string   `env:"PRINCIPAL_POLICY_S3_KEY" defaultEnv:"DefaultPrincipalPolicyS3Key"`
+	PrincipalRoleName           string   `env:"PRINCIPAL_ROLE_NAME" defaultEnv:"DCEPrincipal"`
+	PrincipalPolicyName         string   `env:"PRINCIPAL_POLICY_NAME"`
+	PrincipalIAMDenyTags        []string `env:"PRINCIPAL_IAM_DENY_TAGS" defaultEnv:"DefaultPrincipalIamDenyTags"`
+	PrincipalMaxSessionDuration int64    `env:"PRINCIPAL_MAX_SESSION_DURATION" defaultEnv:"100"`
+	Tags                        []*iam.Tag
+	ResetQueueURL               string   `env:"RESET_SQS_URL" defaultEnv:"DefaultResetSQSUrl"`
+	AllowedRegions              []string `env:"ALLOWED_REGIONS" defaultEnv:"us-east-1"`
+}
+
+type tagSettings struct {
+	environment string `env:"TAG_ENVIRONMENT" defaultEnv:"DefaultTagEnvironment"`
+	contact     string `env:"TAG_CONTACT" defaultEnv:"DefaultTagContact"`
+	appName     string `env:"TAG_APP_NAME" defaultEnv:"DefaultTagAppName"`
+}
 
 var (
-	// CurrentAccountID - The ID of the AWS Account this is running in
+	muxLambda *gorillamux.GorillaMuxAdapter
+	//CurrentAccountID is the ID where the request is being created
 	CurrentAccountID *string
-	// AWSSession - The AWS session
-	AWSSession *session.Session
-	// RoleManager - Manages the roles
+	// Services handles the configuration of the AWS services
+	Services *config.ServiceBuilder
+	// Settings - the configuration settings for the controller
+	Settings *accountControllerConfiguration
+)
+
+var (
+	// Soon to be deprecated - Legacy support
+	AWSSession  *session.Session
+	Dao         db.DBer
+	SnsSvc      common.Notificationer
+	Queue       common.Queue
+	TokenSvc    common.TokenService
+	StorageSvc  common.Storager
 	RoleManager rolemanager.RoleManager
-	// Dao - Database service
-	Dao db.DBer
-	// SnsSvc - SNS service
-	SnsSvc common.Notificationer
-	// Queue - SQS Queue client
-	Queue common.Queue
-	// TokenSvc - Token service client
-	TokenSvc common.TokenService
-	// StorageSvc - Storage service client
-	StorageSvc common.Storager
-	// Config - The configuration client
-	Config common.DefaultEnvConfig
+	Config      common.DefaultEnvConfig
 )
 
 var (
@@ -85,7 +118,7 @@ func init() {
 			"GET",
 			"/accounts",
 			api.EmptyQueryString,
-			GetAllAccounts,
+			GetAccounts,
 		},
 		api.Route{
 			"GetAccountByID",
@@ -116,13 +149,42 @@ func init() {
 			CreateAccount,
 		},
 	}
-	r := api.NewRouter(accountRoutes)
+	r := api.NewRouter(Services.Config, accountRoutes)
 	muxLambda = gorillamux.New(r)
 }
 
 // initConfig configures package-level variables
 // loaded from env vars.
 func initConfig() {
+	cfgBldr := &config.ConfigurationBuilder{}
+	Settings = &accountControllerConfiguration{}
+	if err := cfgBldr.Unmarshal(Settings); err != nil {
+		log.Fatalf("Could not load configuration: %s", err.Error())
+	}
+
+	// load up the values into the various settings...
+	cfgBldr.WithEnv("AWS_CURRENT_REGION", "AWS_CURRENT_REGION", "us-east-1").Build()
+	svcBldr := &config.ServiceBuilder{Config: cfgBldr}
+
+	_, err := svcBldr.
+		// AWS services...
+		WithDynamoDB().
+		WithSTS().
+		WithS3().
+		WithSNS().
+		WithSQS().
+		// DCE services...
+		WithDAO().
+		WithRoleManager().
+		WithStorageService().
+		WithDataService().
+		WithAccountManager().
+		Build()
+
+	if err == nil {
+		Services = svcBldr
+	}
+
 	policyName = Config.GetEnvVar("PRINCIPAL_POLICY_NAME", "DCEPrincipalDefaultPolicy")
 	artifactsBucket = Config.GetEnvVar("ARTIFACTS_BUCKET", "DefaultArtifactBucket")
 	principalPolicyS3Key = Config.GetEnvVar("PRINCIPAL_POLICY_S3_KEY", "DefaultPrincipalPolicyS3Key")
@@ -149,7 +211,6 @@ func Handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 }
 
 func main() {
-	// Setup services
 	Dao = newDBer()
 	AWSSession = newAWSSession()
 	Queue = common.SQSQueue{Client: sqs.New(AWSSession)}
@@ -162,7 +223,6 @@ func main() {
 	}
 
 	RoleManager = &rolemanager.IAMRoleManager{}
-
 	// Send Lambda requests to the router
 	lambda.Start(Handler)
 }
@@ -184,4 +244,46 @@ func newAWSSession() *session.Session {
 		log.Fatal(errorMessage)
 	}
 	return awsSession
+}
+
+// WriteAPIResponse - Writes the response out to the provided ResponseWriter
+func WriteAPIResponse(w http.ResponseWriter, status int, body interface{}) {
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(body)
+}
+
+// ErrorHandler returns the appropriate HTTP code depending on the error recieved
+func ErrorHandler(w http.ResponseWriter, err error) {
+	var status int
+	var code string
+	var message string
+	// Print the Error Message
+	log.Printf("Error: %+v\n", err)
+
+	// Determine status code
+	if gErrors.Is(err, errors.ErrNotFound) {
+		status = http.StatusNotFound
+		code = "NotFound"
+		message = err.Error()
+	} else if gErrors.Is(err, &errors.ErrValidation{}) {
+		status = http.StatusBadRequest
+		code = "RequestValidationError"
+		message = err.Error()
+	} else if gErrors.Is(err, errors.ErrConflict) {
+		status = http.StatusConflict
+		code = "Conflict"
+		message = err.Error()
+	} else {
+		status = http.StatusInternalServerError
+		code = "ServerError"
+		message = err.Error()
+	}
+	WriteAPIResponse(
+		w,
+		status,
+		response.CreateErrorResponse(
+			code,
+			message,
+		),
+	)
 }

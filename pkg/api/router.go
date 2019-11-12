@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/Optum/dce/pkg/common"
+	"github.com/Optum/dce/pkg/config"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 )
@@ -35,7 +36,15 @@ func init() {
 type Routes []Route
 
 // NewRouter - Create a new router
-func NewRouter(routes Routes) *mux.Router {
+func NewRouter(config *config.ConfigurationBuilder, routes Routes) *mux.Router {
+	var err error
+
+	debug, err = config.GetBoolVal("DEBUG")
+
+	if err != nil {
+		debug = false
+	}
+
 	router := mux.NewRouter().StrictSlash(true)
 	for _, route := range routes {
 		handler := route.HandlerFunc

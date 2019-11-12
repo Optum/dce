@@ -9,6 +9,7 @@ import (
 
 	"github.com/Optum/dce/pkg/api"
 	"github.com/Optum/dce/pkg/common"
+	"github.com/Optum/dce/pkg/config"
 	"github.com/Optum/dce/pkg/usage"
 	"github.com/aws/aws-sdk-go/aws/session"
 
@@ -27,6 +28,10 @@ const (
 
 var muxLambda *gorillamux.GorillaMuxAdapter
 
+type usageControllerConfiguration struct {
+	Debug string `env:"DEBUG" defaultEnv:"false"`
+}
+
 var (
 	// Config - The configuration client
 	Config common.DefaultEnvConfig
@@ -35,6 +40,11 @@ var (
 
 	// UsageSvc - Service for getting usage
 	UsageSvc *usage.DB
+
+	// Services handles the configuration of the AWS services
+	Services *config.ServiceBuilder
+	// Settings - the configuration settings for the controller
+	Settings *usageControllerConfiguration
 )
 
 // messageBody is the structured object of the JSON Message to send
@@ -45,6 +55,7 @@ type messageBody struct {
 }
 
 func init() {
+	initConfig()
 	log.Println("Cold start; creating router for /usage")
 
 	usageRoutes := api.Routes{
@@ -71,8 +82,28 @@ func init() {
 			GetAllUsage,
 		},
 	}
-	r := api.NewRouter(usageRoutes)
+	r := api.NewRouter(Services.Config, usageRoutes)
 	muxLambda = gorillamux.New(r)
+}
+
+func initConfig() {
+	cfgBldr := &config.ConfigurationBuilder{}
+	Settings = &usageControllerConfiguration{}
+	if err := cfgBldr.Unmarshal(Settings); err != nil {
+		log.Fatalf("Could not load configuration: %s", err.Error())
+	}
+
+	cfgBldr.WithEnv("AWS_CURRENT_REGION", "AWS_CURRENT_REGION", "us-east-1").Build()
+	svcBldr := &config.ServiceBuilder{Config: cfgBldr}
+	_, err := svcBldr.Build()
+	if err != nil {
+		errorMessage := fmt.Sprintf("Failed to initialize parameter store: %s", err)
+		log.Fatal(errorMessage)
+	}
+
+	if err == nil {
+		Services = svcBldr
+	}
 }
 
 // Handler - Handle the lambda function
