@@ -17,6 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
+	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
 	"gopkg.in/oleiade/reflections.v1"
 )
@@ -27,9 +28,9 @@ The `DB` service abstracts all interactions with the DynamoDB tables
 
 // DB contains DynamoDB client and table names
 type DB struct {
-	// DynamoDB Client
-	Client *dynamodb.DynamoDB
 	// Name of the Account table
+	Client dynamodbiface.DynamoDBAPI
+	// Name of the RedboxAccount table
 	AccountTableName string
 	// Name of the Lease table
 	LeaseTableName string
@@ -61,6 +62,7 @@ type DBer interface {
 	FindLeasesByStatus(status LeaseStatus) ([]*Lease, error)
 	UpdateMetadata(accountID string, metadata map[string]interface{}) error
 	UpdateAccountPrincipalPolicyHash(accountID string, prevHash string, nextHash string) (*Account, error)
+	OrphanAccount(accountID string) (*Account, error)
 }
 
 // GetAccount returns an account record corresponding to an accountID
@@ -687,7 +689,7 @@ type GetLeasesInput struct {
 	StartKeys   map[string]string
 	PrincipalID string
 	AccountID   string
-	Status      string
+	Status      LeaseStatus
 	Limit       int64
 }
 
@@ -805,6 +807,38 @@ func (db *DB) UpdateMetadata(accountID string, metadata map[string]interface{}) 
 	}
 
 	return nil
+}
+
+// OrphanAccount puts account in Oprhaned status and inactivates any active leases
+func (db *DB) OrphanAccount(accountID string) (*Account, error) {
+	account, err := db.GetAccount(accountID)
+	if err != nil {
+		fmt.Printf("Issue getting account with id '%s': %s", accountID, err)
+		return nil, err
+	}
+	resAccount, err := db.TransitionAccountStatus(accountID, account.AccountStatus, Orphaned)
+	if err != nil {
+		fmt.Printf("Issue transitioning account '%s' status to orphaned: %s", accountID, err)
+		return nil, err
+	}
+	leases, err := db.GetLeases(GetLeasesInput{
+		AccountID: accountID,
+		Status:    Active,
+	})
+	if err != nil {
+		fmt.Printf("Issue getting leases with account id '%s': %s", accountID, err)
+		return resAccount, err
+	}
+	for _, lease := range leases.Results {
+		_, err = db.TransitionLeaseStatus(
+			accountID, lease.PrincipalID, Active, Inactive, AccountOrphaned)
+		if err != nil {
+			fmt.Printf("Issue transition lease '%s' to Inactive: %s", lease.ID, err)
+			return resAccount, err
+		}
+	}
+
+	return resAccount, nil
 }
 
 func unmarshalAccount(dbResult map[string]*dynamodb.AttributeValue) (*Account, error) {

@@ -728,7 +728,7 @@ func TestDb(t *testing.T) {
 
 		t.Run("When there is a status", func(t *testing.T) {
 			output, err := dbSvc.GetLeases(db.GetLeasesInput{
-				Status: string(db.Inactive),
+				Status: db.Inactive,
 			})
 			assert.Nil(t, err)
 			assert.Equal(t, 2, len(output.Results), "only one lease should be returned")
@@ -761,7 +761,7 @@ func TestDb(t *testing.T) {
 			for shouldContinue {
 				output, err := dbSvc.GetLeases(db.GetLeasesInput{
 					Limit:     2,
-					Status:    string(db.Active),
+					Status:    db.Active,
 					StartKeys: next,
 				})
 
@@ -784,7 +784,7 @@ func TestDb(t *testing.T) {
 			output, err := dbSvc.GetLeases(db.GetLeasesInput{
 				AccountID:   accountIDOne,
 				PrincipalID: principalIDThree,
-				Status:      string(db.Inactive),
+				Status:      db.Inactive,
 			})
 
 			assert.Nil(t, err)
