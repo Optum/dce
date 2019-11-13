@@ -19,17 +19,27 @@ type sendBudgetNotificationEmailInput struct {
 	budgetNotificationTemplateText         string
 	budgetNotificationTemplateSubject      string
 	budgetNotificationThresholdPercentiles []float64
-	actualSpend                            float64
+	actualLeaseSpend                       float64
+	actualPrincipalSpend                   float64
 }
 
 func sendBudgetNotificationEmail(input *sendBudgetNotificationEmailInput) error {
-	// Determine the highest budget threshold passed
-	thresholdPercentile := determineThresholdPercentile(&determineThresholdPercentileInput{
+
+	// Determine the highest lease budget threshold passed
+	thresholdLeasePercentile := determineThresholdPercentile(&determineThresholdPercentileInput{
 		thresholdPercentiles: input.budgetNotificationThresholdPercentiles,
 		budgetAmount:         input.lease.BudgetAmount,
-		actualSpend:          input.actualSpend,
+		actualSpend:          input.actualLeaseSpend,
 	})
-	if thresholdPercentile == 0 {
+
+	// Determine the highest principal budget threshold passed
+	thresholdPrincipalPercentile := determineThresholdPercentile(&determineThresholdPercentileInput{
+		thresholdPercentiles: input.budgetNotificationThresholdPercentiles,
+		budgetAmount:         input.lease.BudgetAmount,
+		actualSpend:          input.actualPrincipalSpend,
+	})
+
+	if thresholdLeasePercentile == 0 && thresholdPrincipalPercentile == 0 {
 		return nil
 	}
 
@@ -40,9 +50,78 @@ func sendBudgetNotificationEmail(input *sendBudgetNotificationEmailInput) error 
 		return nil
 	}
 
+	// if both lease budget threshold and principal budget threshold passed, notify for lease budget threshold only
+	thresholdPercentile := 0.0
+	actualSpend := 0.0
+	if (thresholdLeasePercentile > 0 && thresholdPrincipalPercentile > 0) || thresholdLeasePercentile > 0 {
+		thresholdPercentile = thresholdLeasePercentile
+		actualSpend = input.actualLeaseSpend
+	} else if thresholdPrincipalPercentile > 0 {
+		thresholdPercentile = thresholdPrincipalPercentile
+		actualSpend = input.actualPrincipalSpend
+	}
+
 	log.Printf("Budget notification threshold hit at %.0f%%", thresholdPercentile)
 	log.Printf("Sending budget notification emails for lease %s @ %s to %s",
 		input.lease.PrincipalID, input.lease.AccountID, strings.Join(input.lease.BudgetNotificationEmails, ","))
+
+	return sendEmail(&sendEmailInput{
+		lease:                          input.lease,
+		emailSvc:                       input.emailSvc,
+		budgetNotificationFromEmail:    input.budgetNotificationFromEmail,
+		budgetNotificationBCCEmails:    input.budgetNotificationBCCEmails,
+		budgetNotificationTemplateHTML: input.budgetNotificationTemplateHTML,
+		budgetNotificationTemplateText: input.budgetNotificationTemplateText,
+		actualSpend:                    actualSpend,
+	}, thresholdPercentile)
+}
+
+func renderTemplate(id string, templateStr string, data interface{}) (string, error) {
+	tmpl, err := template.New(id).Parse(templateStr)
+	if err != nil {
+		return "", err
+	}
+
+	buf := &bytes.Buffer{}
+	err = tmpl.Execute(buf, data)
+
+	return strings.TrimSpace(buf.String()), err
+}
+
+type determineThresholdPercentileInput struct {
+	thresholdPercentiles []float64
+	budgetAmount         float64
+	actualSpend          float64
+}
+
+func determineThresholdPercentile(input *determineThresholdPercentileInput) float64 {
+	// Sort threshold percentiles in increasing order
+	sort.Float64s(input.thresholdPercentiles)
+
+	// Find the highest threshold that we've reached
+	var thresholdPassed float64
+	for _, thresholdPercentile := range input.thresholdPercentiles {
+		thresholdAmount := input.budgetAmount * (thresholdPercentile / 100)
+		if input.actualSpend >= thresholdAmount {
+			thresholdPassed = thresholdPercentile
+		}
+	}
+
+	return thresholdPassed
+}
+
+type sendEmailInput struct {
+	lease                             *db.Lease
+	emailSvc                          email.Service
+	budgetNotificationFromEmail       string
+	budgetNotificationBCCEmails       []string
+	budgetNotificationTemplateHTML    string
+	budgetNotificationTemplateText    string
+	budgetNotificationTemplateSubject string
+	actualSpend                       float64
+}
+
+func sendEmail(input *sendEmailInput, thresholdPercentile float64) error {
 
 	// Render email templates
 	templateData := struct {
@@ -78,38 +157,4 @@ func sendBudgetNotificationEmail(input *sendBudgetNotificationEmailInput) error 
 		BodyText:     bodyText,
 		Subject:      subject,
 	})
-}
-
-func renderTemplate(id string, templateStr string, data interface{}) (string, error) {
-	tmpl, err := template.New(id).Parse(templateStr)
-	if err != nil {
-		return "", err
-	}
-
-	buf := &bytes.Buffer{}
-	err = tmpl.Execute(buf, data)
-
-	return strings.TrimSpace(buf.String()), err
-}
-
-type determineThresholdPercentileInput struct {
-	thresholdPercentiles []float64
-	budgetAmount         float64
-	actualSpend          float64
-}
-
-func determineThresholdPercentile(input *determineThresholdPercentileInput) float64 {
-	// Sort threshold percentiles in increasing order
-	sort.Float64s(input.thresholdPercentiles)
-
-	// Find the highest threshold that we've reached
-	var thresholdPassed float64
-	for _, thresholdPercentile := range input.thresholdPercentiles {
-		thresholdAmount := input.budgetAmount * (thresholdPercentile / 100)
-		if input.actualSpend >= thresholdAmount {
-			thresholdPassed = thresholdPercentile
-		}
-	}
-
-	return thresholdPassed
 }

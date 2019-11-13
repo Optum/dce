@@ -115,6 +115,7 @@ has exceeded its budget of $100. Actual spend is $150
 			budgetNotificationTemplateText:         emailTemplateText,
 			budgetNotificationTemplateSubject:      emailTemplateSubject,
 			budgetNotificationThresholdPercentiles: []float64{75, 100},
+			principalBudgetAmount:                  1000,
 		}
 
 		// Should grab the account from the DB, to get it's adminRoleArn
@@ -153,6 +154,7 @@ has exceeded its budget of $100. Actual spend is $150
 		budgetStartTime := time.Unix(input.lease.LeaseStatusModifiedOn, 0)
 		usageSvc.On("PutUsage", inputUsage).Return(nil)
 		usageSvc.On("GetUsageByDateRange", budgetStartTime, usageEndDate.AddDate(0, 0, -1)).Return(nil, nil)
+		usageSvc.On("GetUsageByDateRange", mock.Anything, mock.Anything).Return(nil, nil)
 
 		// Should transition from "Active" --> "FinanceLock"
 		if test.shouldTransitionLeaseStatus {
@@ -294,6 +296,7 @@ func Test_isLeaseExpired(t *testing.T) {
 		context *leaseContext
 	}
 	emails := []string{"joe@example.com"}
+	principalBudgetAmount := 2000.00
 	lease := &db.Lease{
 		AccountID:                "12345",
 		PrincipalID:              "98765",
@@ -325,6 +328,12 @@ func Test_isLeaseExpired(t *testing.T) {
 			time.Now().AddDate(0, 0, -1).Unix(),
 			5000}}
 
+	overPrincipalBudgetAmountTest := &args{
+		lease,
+		&leaseContext{
+			time.Now().AddDate(0, 0, -1).Unix(),
+			25}}
+
 	tests := []struct {
 		name  string
 		args  args
@@ -334,10 +343,11 @@ func Test_isLeaseExpired(t *testing.T) {
 		{"Non-expired lease test", *nonExpiredLeaseTestArgs, false, db.LeaseActive},
 		{"Expired lease test", *expiredLeaseTestArgs, true, db.LeaseExpired},
 		{"Over budget lease test", *overBudgetTest, true, db.LeaseOverBudget},
+		{"Over principal budget amount test", *overPrincipalBudgetAmountTest, true, db.LeaseOverPrincipalBudget},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, got1 := isLeaseExpired(tt.args.lease, tt.args.context)
+			got, got1 := isLeaseExpired(tt.args.lease, tt.args.context, 2900.0, principalBudgetAmount)
 			if got != tt.want {
 				t.Errorf("isLeaseExpired() got = %v, want %v", got, tt.want)
 			}

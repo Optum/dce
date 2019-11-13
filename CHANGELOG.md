@@ -1,3 +1,9 @@
+
+## vNext
+
+- Added Lease Validation for check against max budget amount, max budget period, principal budget amount and principal budget period
+- Update Status Lambda - budget_check: Terminate lease if spend > Principal budget amount
+
 ## v0.23.0
 
 - Added `/accounts?accountStatus=<status>` URL for querying accounts by status.
@@ -60,6 +66,7 @@ Note that this release does ***not*** delete the old tables, to provide the oppo
 
 - Fixed issue with the lease check logic that was expiring non-expired leases.
 - Migration script to fix wrongly expired leases
+
 
 ## v0.19.1
 
