@@ -294,9 +294,10 @@ func Test_isLeaseExpired(t *testing.T) {
 	type args struct {
 		lease   *db.Lease
 		context *leaseContext
+		actualPrincipalSpend float64
 	}
 	emails := []string{"joe@example.com"}
-	principalBudgetAmount := 2000.00
+	principalBudgetAmount := 7000.00
 	lease := &db.Lease{
 		AccountID:                "12345",
 		PrincipalID:              "98765",
@@ -314,25 +315,29 @@ func Test_isLeaseExpired(t *testing.T) {
 		lease,
 		&leaseContext{
 			time.Now().AddDate(0, 0, -1).Unix(),
-			10}}
+			10},
+		10}
 
 	expiredLeaseTestArgs := &args{
 		lease,
 		&leaseContext{
 			time.Now().AddDate(0, 0, +1).Unix(),
-			10}}
+			10},
+		10}
 
 	overBudgetTest := &args{
 		lease,
 		&leaseContext{
 			time.Now().AddDate(0, 0, -1).Unix(),
-			5000}}
+			5000},
+		5000}
 
 	overPrincipalBudgetAmountTest := &args{
 		lease,
 		&leaseContext{
 			time.Now().AddDate(0, 0, -1).Unix(),
-			25}}
+			2500},
+		9000}
 
 	tests := []struct {
 		name  string
@@ -347,7 +352,7 @@ func Test_isLeaseExpired(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, got1 := isLeaseExpired(tt.args.lease, tt.args.context, 2900.0, principalBudgetAmount)
+			got, got1 := isLeaseExpired(tt.args.lease, tt.args.context, tt.args.actualPrincipalSpend, principalBudgetAmount)
 			if got != tt.want {
 				t.Errorf("isLeaseExpired() got = %v, want %v", got, tt.want)
 			}
