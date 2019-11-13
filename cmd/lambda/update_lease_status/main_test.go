@@ -292,8 +292,8 @@ Actual spend is $76
 }
 func Test_isLeaseExpired(t *testing.T) {
 	type args struct {
-		lease   *db.Lease
-		context *leaseContext
+		lease                *db.Lease
+		context              *leaseContext
 		actualPrincipalSpend float64
 	}
 	emails := []string{"joe@example.com"}
