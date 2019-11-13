@@ -20,18 +20,19 @@ type Account struct {
 // Lease is a type corresponding to a Lease
 // table record
 type Lease struct {
-	AccountID                string            `json:"AccountId"`                // AWS Account ID
-	PrincipalID              string            `json:"PrincipalId"`              // Azure User Principal ID
-	ID                       string            `json:"Id"`                       // Lease ID
-	LeaseStatus              LeaseStatus       `json:"LeaseStatus"`              // Status of the Lease
-	LeaseStatusReason        LeaseStatusReason `json:"LeaseStatusReason"`        // Reason for the status of the lease
-	CreatedOn                int64             `json:"CreatedOn"`                // Created Epoch Timestamp
-	LastModifiedOn           int64             `json:"LastModifiedOn"`           // Last Modified Epoch Timestamp
-	BudgetAmount             float64           `json:"BudgetAmount"`             // Budget Amount allocated for this lease
-	BudgetCurrency           string            `json:"BudgetCurrency"`           // Budget currency
-	BudgetNotificationEmails []string          `json:"BudgetNotificationEmails"` // Budget notification emails
-	LeaseStatusModifiedOn    int64             `json:"LeaseStatusModifiedOn"`    // Last Modified Epoch Timestamp
-	ExpiresOn                int64             `json:"ExpiresOn"`                // Lease expiration time as Epoch
+	AccountID                string                 `json:"AccountId"`                // AWS Account ID
+	PrincipalID              string                 `json:"PrincipalId"`              // Azure User Principal ID
+	ID                       string                 `json:"Id"`                       // Lease ID
+	LeaseStatus              LeaseStatus            `json:"LeaseStatus"`              // Status of the Lease
+	LeaseStatusReason        LeaseStatusReason      `json:"LeaseStatusReason"`        // Reason for the status of the lease
+	CreatedOn                int64                  `json:"CreatedOn"`                // Created Epoch Timestamp
+	LastModifiedOn           int64                  `json:"LastModifiedOn"`           // Last Modified Epoch Timestamp
+	BudgetAmount             float64                `json:"BudgetAmount"`             // Budget Amount allocated for this lease
+	BudgetCurrency           string                 `json:"BudgetCurrency"`           // Budget currency
+	BudgetNotificationEmails []string               `json:"BudgetNotificationEmails"` // Budget notification emails
+	LeaseStatusModifiedOn    int64                  `json:"LeaseStatusModifiedOn"`    // Last Modified Epoch Timestamp
+	ExpiresOn                int64                  `json:"ExpiresOn"`                // Lease expiration time as Epoch
+	Metadata                 map[string]interface{} `json:"Metadata"`                 // Arbitrary key-value metadata to store with lease object
 }
 
 // Timestamp is a timestamp type for epoch format
@@ -55,6 +56,8 @@ const (
 	NotReady AccountStatus = "NotReady"
 	// Leased status
 	Leased AccountStatus = "Leased"
+	// Orphaned status
+	Orphaned AccountStatus = "Orphaned"
 )
 
 // ParseAccountStatus - parses the string into an account status.
@@ -75,7 +78,7 @@ type LeaseStatus string
 
 const (
 	// EmptyLeaseStatus status
-	EmptyLeaseStatus LeaseStatus = "Empty"
+	EmptyLeaseStatus LeaseStatus = ""
 	// Active status
 	Active LeaseStatus = "Active"
 	// Inactive status
@@ -108,4 +111,7 @@ const (
 	// LeaseRolledBack means something happened in the system that caused the lease to be inactive
 	// based on an error happening and rollback occuring
 	LeaseRolledBack LeaseStatusReason = "Rollback"
+	// AccountOrphaned means that the health of the account was compromised.  The account has been orphaned
+	// which means the leases are also made Inactive
+	AccountOrphaned LeaseStatusReason = "AccountOrphaned"
 )

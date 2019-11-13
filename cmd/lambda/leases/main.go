@@ -11,6 +11,7 @@ import (
 	"github.com/Optum/dce/pkg/common"
 	"github.com/Optum/dce/pkg/db"
 	"github.com/Optum/dce/pkg/usage"
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sns"
 
@@ -27,25 +28,32 @@ const (
 	NextAccountIDParam   = "nextAccountId"
 	StatusParam          = "status"
 	LimitParam           = "limit"
+	Weekly               = "WEEKLY"
+	Monthly              = "MONTHLY"
 )
 
 var muxLambda *gorillamux.GorillaMuxAdapter
 
 var (
-	// Config - The configuration client
-	Config common.DefaultEnvConfig
-	// AWSSession - The AWS session
-	AWSSession *session.Session
-	// Dao - Database service
-	Dao db.DBer
-	// SnsSvc - SNS service
-	SnsSvc common.Notificationer
-	// UsageSvc - Service for getting usage
-	UsageSvc *usage.DB
+	config                   common.DefaultEnvConfig
+	awsSession               *session.Session
+	dao                      db.DBer
+	snsSvc                   common.Notificationer
+	usageSvc                 usage.Service
+	leaseAddedTopicARN       *string
+	principalBudgetAmount    *float64
+	principalBudgetPeriod    *string
+	maxLeaseBudgetAmount     *float64
+	maxLeasePeriod           *int64
+	queue                    common.Queue
+	resetQueueURL            string
+	snsService               common.Notificationer
+	accountDeletedTopicArn   string
+	defaultLeaseLengthInDays *int
 )
 
 // messageBody is the structured object of the JSON Message to send
-// to an SNS Topic for Provision and Decommission
+// to an SNS Topic for lease creation/destruction
 type messageBody struct {
 	Default string `json:"default"`
 	Body    string `json:"Body"`
@@ -53,6 +61,15 @@ type messageBody struct {
 
 func init() {
 	log.Println("Cold start; creating router for /leases")
+
+	leaseAddedTopicARN = aws.String(config.GetEnvVar("PROVISION_TOPIC", "DCEDefaultProvisionTopic"))
+	accountDeletedTopicArn = config.GetEnvVar("DECOMMISSION_TOPIC", "DefaultDecomissionTopic")
+	resetQueueURL = config.GetEnvVar("RESET_SQS_URL", "DefaultResetSQSURL")
+	principalBudgetAmount = aws.Float64(config.GetEnvFloatVar("PRINCIPAL_BUDGET_AMOUNT", 1000.00))
+	principalBudgetPeriod = aws.String(config.GetEnvVar("PRINCIPAL_BUDGET_PERIOD", Weekly))
+	maxLeaseBudgetAmount = aws.Float64(config.GetEnvFloatVar("MAX_LEASE_BUDGET_AMOUNT", 1000.00))
+	maxLeasePeriod = aws.Int64(int64(config.GetEnvIntVar("MAX_LEASE_PERIOD", 704800)))
+	defaultLeaseLengthInDays = aws.Int(config.GetEnvIntVar("DEFAULT_LEASE_LENGTH_IN_DAYS", 7))
 
 	leasesRoutes := api.Routes{
 		api.Route{
@@ -129,10 +146,10 @@ func buildBaseURL(r *http.Request) string {
 
 func main() {
 
-	AWSSession = newAWSSession()
+	awsSession = newAWSSession()
 	// Create the Database Service from the environment
-	Dao = newDBer()
-	SnsSvc = &common.SNS{Client: sns.New(AWSSession)}
+	dao = newDBer()
+	snsSvc = &common.SNS{Client: sns.New(awsSession)}
 
 	usageSvc, err := usage.NewFromEnv()
 	if err != nil {
@@ -140,7 +157,7 @@ func main() {
 		log.Fatal(errorMessage)
 	}
 
-	UsageSvc = usageSvc
+	usageSvc = usageSvc
 
 	// provisionLeaseTopicARN := common.RequireEnv("PROVISION_TOPIC")
 

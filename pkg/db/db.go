@@ -3,6 +3,7 @@ package db
 import (
 	"errors"
 	"fmt"
+	errors2 "github.com/pkg/errors"
 	"log"
 	"strconv"
 	"strings"
@@ -16,7 +17,9 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
+	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
+	"gopkg.in/oleiade/reflections.v1"
 )
 
 /*
@@ -25,9 +28,9 @@ The `DB` service abstracts all interactions with the DynamoDB tables
 
 // DB contains DynamoDB client and table names
 type DB struct {
-	// DynamoDB Client
-	Client *dynamodb.DynamoDB
 	// Name of the Account table
+	Client dynamodbiface.DynamoDBAPI
+	// Name of the RedboxAccount table
 	AccountTableName string
 	// Name of the Lease table
 	LeaseTableName string
@@ -39,6 +42,7 @@ type DB struct {
 
 // The DBer interface includes all methods used by the DB struct to interact with
 // DynamoDB. This is useful if we want to mock the DB service.
+//go:generate mockery -name DBer
 type DBer interface {
 	GetAccount(accountID string) (*Account, error)
 	GetReadyAccount() (*Account, error)
@@ -50,7 +54,8 @@ type DBer interface {
 	FindAccountsByPrincipalID(principalID string) ([]*Account, error)
 	PutAccount(account Account) error
 	DeleteAccount(accountID string) (*Account, error)
-	PutLease(account Lease) (*Lease, error)
+	PutLease(lease Lease) (*Lease, error)
+	UpsertLease(lease Lease) (*Lease, error)
 	TransitionAccountStatus(accountID string, prevStatus AccountStatus, nextStatus AccountStatus) (*Account, error)
 	TransitionLeaseStatus(accountID string, principalID string, prevStatus LeaseStatus, nextStatus LeaseStatus, leaseStatusReason LeaseStatusReason) (*Lease, error)
 	FindLeasesByAccount(accountID string) ([]*Lease, error)
@@ -58,6 +63,7 @@ type DBer interface {
 	FindLeasesByStatus(status LeaseStatus) ([]*Lease, error)
 	UpdateMetadata(accountID string, metadata map[string]interface{}) error
 	UpdateAccountPrincipalPolicyHash(accountID string, prevHash string, nextHash string) (*Account, error)
+	OrphanAccount(accountID string) (*Account, error)
 }
 
 // GetAccount returns an account record corresponding to an accountID
@@ -410,6 +416,83 @@ func (db *DB) PutLease(lease Lease) (
 	return unmarshalLease(result.Attributes)
 }
 
+// UpsertLease creates or updates the lease records in DynDB
+func (db *DB) UpsertLease(lease Lease) (*Lease, error) {
+	// Some basic validation of the lease
+	if len(lease.ID) == 0 {
+		return nil, fmt.Errorf(
+			"failed to create lease for %s/%s: missing ID", lease.PrincipalID, lease.AccountID,
+		)
+	}
+	if lease.ExpiresOn == 0 {
+		return nil, fmt.Errorf(
+			"failed to create lease for %s/%s: missing ExpiresOn", lease.PrincipalID, lease.AccountID,
+		)
+	}
+
+	// Lookup the `json` Tags on the Lease struct,
+	// and use them to build a DynDB Update Expression.
+	// (we want our update expression to use the same JSON
+	//  annotations that we're using everywhere else to marshal DB objects)
+	updateBuilder := expression.UpdateBuilder{}
+	reflectItems, err := reflections.Items(lease)
+	if err != nil {
+		return nil, err
+	}
+	for fieldName, fieldVal := range reflectItems {
+		if fieldName == "AccountID" ||
+			fieldName == "PrincipalID" {
+			continue
+		}
+		jsonFieldName, err := reflections.GetFieldTag(lease, fieldName, "json")
+		if err != nil {
+			return nil, err
+		}
+		updateBuilder = updateBuilder.Set(
+			expression.Name(jsonFieldName),
+			expression.Value(fieldVal),
+		)
+	}
+
+	// Compile the expression
+	expr, err := expression.NewBuilder().
+		WithUpdate(updateBuilder).
+		Build()
+	if err != nil {
+		return nil, errors2.Wrapf(err, "Failed to update lease %s/%s",
+			lease.PrincipalID, lease.AccountID)
+	}
+
+	// Update the lease (upsert)
+	res, err := db.Client.UpdateItem(&dynamodb.UpdateItemInput{
+		TableName: &db.LeaseTableName,
+		Key: map[string]*dynamodb.AttributeValue{
+			"AccountId":   {S: &lease.AccountID},
+			"PrincipalId": {S: &lease.PrincipalID},
+		},
+		ExpressionAttributeNames:  expr.Names(),
+		ExpressionAttributeValues: expr.Values(),
+		UpdateExpression:          expr.Update(),
+		ReturnValues:              aws.String("ALL_NEW"),
+	})
+	if err != nil {
+		msg := fmt.Sprintf("Failed to update lease %s/%s", lease.PrincipalID, lease.AccountID)
+		if aerr, ok := err.(awserr.Error); ok {
+			msg = fmt.Sprintf("%s [%s]", msg, aerr.Code())
+		}
+		return nil, errors2.Wrap(err, msg)
+	}
+
+	// Unmarshal the response back to a lease object
+	updatedLease, err := unmarshalLease(res.Attributes)
+	if err != nil {
+		return nil, errors2.Wrapf(err, "Failed to update lease %s/%s",
+			lease.PrincipalID, lease.AccountID)
+	}
+
+	return updatedLease, nil
+}
+
 // TransitionLeaseStatus updates a lease's status from prevStatus to nextStatus.
 // Will fail if the Lease was not previously set to `prevStatus`
 //
@@ -640,7 +723,7 @@ type GetLeasesInput struct {
 	StartKeys   map[string]string
 	PrincipalID string
 	AccountID   string
-	Status      string
+	Status      LeaseStatus
 	Limit       int64
 }
 
@@ -758,6 +841,38 @@ func (db *DB) UpdateMetadata(accountID string, metadata map[string]interface{}) 
 	}
 
 	return nil
+}
+
+// OrphanAccount puts account in Oprhaned status and inactivates any active leases
+func (db *DB) OrphanAccount(accountID string) (*Account, error) {
+	account, err := db.GetAccount(accountID)
+	if err != nil {
+		fmt.Printf("Issue getting account with id '%s': %s", accountID, err)
+		return nil, err
+	}
+	resAccount, err := db.TransitionAccountStatus(accountID, account.AccountStatus, Orphaned)
+	if err != nil {
+		fmt.Printf("Issue transitioning account '%s' status to orphaned: %s", accountID, err)
+		return nil, err
+	}
+	leases, err := db.GetLeases(GetLeasesInput{
+		AccountID: accountID,
+		Status:    Active,
+	})
+	if err != nil {
+		fmt.Printf("Issue getting leases with account id '%s': %s", accountID, err)
+		return resAccount, err
+	}
+	for _, lease := range leases.Results {
+		_, err = db.TransitionLeaseStatus(
+			accountID, lease.PrincipalID, Active, Inactive, AccountOrphaned)
+		if err != nil {
+			fmt.Printf("Issue transition lease '%s' to Inactive: %s", lease.ID, err)
+			return resAccount, err
+		}
+	}
+
+	return resAccount, nil
 }
 
 func unmarshalAccount(dbResult map[string]*dynamodb.AttributeValue) (*Account, error) {

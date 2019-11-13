@@ -7,17 +7,6 @@ import (
 	"strings"
 )
 
-// UtilService interface requires a method to receive credentials for an AWS
-// Role provided by the Role Input.
-//go:generate mockery -name Util
-type UtilService interface {
-	RequireEnv(env string) string
-	RequireEnvInt(env string) int
-	RequireEnvFloat(env string) float64
-	RequireEnvStringSlice(env string, sep string) []string
-	RequireEnvFloatSlice(env string, sep string) []float64
-}
-
 // RequireEnv validates and returns an environment variable's value if it exists
 func RequireEnv(env string) string {
 	val, ok := os.LookupEnv(env)

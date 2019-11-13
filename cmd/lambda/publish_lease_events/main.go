@@ -108,12 +108,16 @@ func handleRecord(input *handleRecordInput) error {
 		log.Printf("Transitioning from %s to %s", prevLeaseStatus, nextLeaseStatus)
 
 		// Lease is now expired if it transitioned from "Active" --> "Inactive"
-		isExpired := isActiveStatus(prevLeaseStatus) && !isActiveStatus(nextLeaseStatus)
+		didBecomeInactive := isActiveStatus(prevLeaseStatus) && !isActiveStatus(nextLeaseStatus)
 
-		if isExpired {
+		if didBecomeInactive {
 			// Before adding the account to any queues, make sure the account is
 			// updated to NotReady state.
 			_, err = input.dbSvc.TransitionAccountStatus(lease.AccountID, db.Leased, db.NotReady)
+			if err != nil {
+				log.Printf("ERROR: Failed to mark AccountStatus=NotReady for %s, after lease for %s became inactive",
+					lease.AccountID, lease.PrincipalID)
+			}
 
 			// Put the message on the SQS queue ONLY IF the status has gone
 			// to Inactive.
@@ -139,7 +143,7 @@ func handleRecord(input *handleRecordInput) error {
 		}
 
 		// Route the lease event to the correct ARN, now for backwards compatibility.
-		if isExpired {
+		if didBecomeInactive {
 			publishInput.topicArn = input.leaseLockedTopicArn
 		} else {
 			publishInput.topicArn = input.leaseUnlockedTopicArn

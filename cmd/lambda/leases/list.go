@@ -22,7 +22,7 @@ func GetLeases(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := Dao.GetLeases(getLeasesInput)
+	result, err := dao.GetLeases(getLeasesInput)
 
 	if err != nil {
 		response.WriteServerErrorWithResponse(w, fmt.Sprintf("Error querying leases: %s", err))
@@ -55,9 +55,10 @@ func parseGetLeasesInput(r *http.Request) (db.GetLeasesInput, error) {
 		StartKeys: make(map[string]string),
 	}
 
-	status := r.FormValue(StatusParam)
+	statusValue := r.FormValue(StatusParam)
+	status, err := db.ParseLeaseStatus(statusValue)
 
-	if len(status) > 0 {
+	if err != nil && len(status) > 0 {
 		query.Status = status
 	}
 

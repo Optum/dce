@@ -728,7 +728,7 @@ func TestDb(t *testing.T) {
 
 		t.Run("When there is a status", func(t *testing.T) {
 			output, err := dbSvc.GetLeases(db.GetLeasesInput{
-				Status: string(db.Inactive),
+				Status: db.Inactive,
 			})
 			assert.Nil(t, err)
 			assert.Equal(t, 2, len(output.Results), "only one lease should be returned")
@@ -761,7 +761,7 @@ func TestDb(t *testing.T) {
 			for shouldContinue {
 				output, err := dbSvc.GetLeases(db.GetLeasesInput{
 					Limit:     2,
-					Status:    string(db.Active),
+					Status:    db.Active,
 					StartKeys: next,
 				})
 
@@ -784,13 +784,75 @@ func TestDb(t *testing.T) {
 			output, err := dbSvc.GetLeases(db.GetLeasesInput{
 				AccountID:   accountIDOne,
 				PrincipalID: principalIDThree,
-				Status:      string(db.Inactive),
+				Status:      db.Inactive,
 			})
 
 			assert.Nil(t, err)
 			assert.Equal(t, 1, len(output.Results), "only one lease should be returned")
 			assert.Equal(t, db.Inactive, output.Results[0].LeaseStatus, "lease should be decommissioned")
 		})
+	})
+
+	t.Run("UpsertLease", func(t *testing.T) {
+		defer truncateLeaseTable(t, dbSvc)
+
+		t.Run("should create a new lease", func(t *testing.T) {
+			truncateLeaseTable(t, dbSvc)
+
+			leaseToCreate := db.Lease{
+				AccountID:                "123456789012",
+				PrincipalID:              "jdoe123",
+				ID:                       "uuid-1234",
+				LeaseStatus:              db.Active,
+				LeaseStatusReason:        db.LeaseActive,
+				CreatedOn:                100,
+				LastModifiedOn:           200,
+				LeaseStatusModifiedOn:    300,
+				ExpiresOn:                400,
+				BudgetAmount:             500,
+				BudgetCurrency:           "USD",
+				BudgetNotificationEmails: []string{"jdoe@example.com"},
+				Metadata: map[string]interface{}{
+					"foo": "bar",
+				},
+			}
+			leaseRes, err := dbSvc.UpsertLease(leaseToCreate)
+			require.Nil(t, err)
+
+			require.Equal(t, &leaseToCreate, leaseRes, "should return the updated leaseToCreate")
+
+			// Lookup the lease in the DB
+			foundLease, err := dbSvc.GetLeaseByID("uuid-1234")
+			require.Nil(t, err)
+			require.Equal(t, &leaseToCreate, foundLease, "Should find the created lease")
+
+			t.Run("should update an existing leaseToCreate", func(t *testing.T) {
+				// Make some modifications to our lease object
+				leaseToUpdate := leaseToCreate
+				leaseToUpdate.LeaseStatus = db.Inactive
+				leaseToUpdate.LeaseStatusReason = db.LeaseExpired
+				leaseToUpdate.BudgetAmount = 1000
+				leaseToUpdate.Metadata = map[string]interface{}{
+					"foo": map[string]interface{}{
+						"bar": "baz",
+					},
+				}
+
+				// Update the Lease in the DB
+				leaseRes, err = dbSvc.UpsertLease(leaseToUpdate)
+				require.Nil(t, err)
+
+				require.Equal(t, &leaseToUpdate, leaseRes, "Should return updated lease")
+
+				// Lookup the updated lease in the DB
+				// (note this would fail if a second lease was created
+				//  with the same ID as the first)
+				foundLease, err = dbSvc.GetLeaseByID("uuid-1234")
+				require.Nil(t, err)
+				require.Equal(t, &leaseToUpdate, foundLease, "Should return updated lease")
+			})
+		})
+
 	})
 }
 

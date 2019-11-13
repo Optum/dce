@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"testing"
 
@@ -15,48 +16,16 @@ import (
 
 func TestListLeases(t *testing.T) {
 
-	// t.Run("Empty leases", func(t *testing.T) {
+	t.Run("Empty leases", func(t *testing.T) {
 
-	// 	leasesResult := createEmptyLeasesOutput()
+		leasesResult := createEmptyLeasesOutput()
 
-	// 	mockLeaseInput := createGetEmptyLeasesInput()
-	// 	mockDb := mocks.DBer{}
-	// 	mockDb.On("GetLeases", *mockLeaseInput).Return(*leasesResult, nil)
-	// 	mockRequest := createGetEmptyLeasesRequest()
-
-	// 	Dao = &mockDb
-
-	// 	actualResponse, err := Handler(context.Background(), mockRequest)
-	// 	require.Nil(t, err)
-
-	// 	parsedResponse := []response.LeaseResponse{}
-	// 	err = json.Unmarshal([]byte(actualResponse.Body), &parsedResponse)
-	// 	require.Nil(t, err)
-
-	// 	require.Equal(t, 0, len(parsedResponse), "empty result")
-	// 	require.Equal(t, actualResponse.StatusCode, 200, "Returns a 200.")
-	// })
-
-	t.Run("When the invoking Call and there are no errors", func(t *testing.T) {
-
-		expectedLeaseResponses := []response.LeaseResponse{
-			{
-				ID:             "unique-id",
-				AccountID:      "987654321",
-				PrincipalID:    "12345",
-				LeaseStatus:    db.Active,
-				LastModifiedOn: 1561149393,
-			},
-		}
-
-		leasesResult := createLeasesOutput()
-
-		mockLeaseInput := createGetLeasesInput()
+		mockLeaseInput := createGetEmptyLeasesInput()
 		mockDb := mocks.DBer{}
 		mockDb.On("GetLeases", *mockLeaseInput).Return(*leasesResult, nil)
-		mockRequest := createGetLeasesRequest()
+		mockRequest := createGetEmptyLeasesRequest()
 
-		Dao = &mockDb
+		dao = &mockDb
 
 		actualResponse, err := Handler(context.Background(), mockRequest)
 		require.Nil(t, err)
@@ -65,26 +34,55 @@ func TestListLeases(t *testing.T) {
 		err = json.Unmarshal([]byte(actualResponse.Body), &parsedResponse)
 		require.Nil(t, err)
 
+		require.Equal(t, 0, len(parsedResponse), "empty result")
+		require.Equal(t, actualResponse.StatusCode, 200, "Returns a 200.")
+	})
+
+	t.Run("When the invoking Call and there are no errors", func(t *testing.T) {
+
+		expectedLeaseResponses := response.LeaseResponse{
+			ID:             "unique-id",
+			AccountID:      "987654321",
+			PrincipalID:    "12345",
+			LeaseStatus:    db.Active,
+			LastModifiedOn: 1561149393,
+		}
+
+		leasesResult := createSingleLeaseOutput()
+
+		mockDb := mocks.DBer{}
+		mockDb.On("GetLease", "987654321", "12345").Return(leasesResult, nil)
+		mockRequest := createGetSingleLeaseRequest()
+
+		dao = &mockDb
+
+		actualResponse, err := Handler(context.Background(), mockRequest)
+		require.Nil(t, err)
+
+		parsedResponse := response.LeaseResponse{}
+		err = json.Unmarshal([]byte(actualResponse.Body), &parsedResponse)
+		require.Nil(t, err)
+
 		require.Equal(t, expectedLeaseResponses, parsedResponse, "Returns a single lease.")
 		require.Equal(t, actualResponse.StatusCode, 200, "Returns a 200.")
 	})
 
-	// t.Run("When the query fails", func(t *testing.T) {
-	// 	expectedError := errors.New("Error")
-	// 	mockLeaseInput := createGetLeasesInput()
-	// 	leasesResult := createLeasesOutput()
-	// 	mockDb := mocks.DBer{}
-	// 	mockDb.On("GetLeases", *mockLeaseInput).Return(*leasesResult, expectedError)
-	// 	mockRequest := createGetLeasesRequest()
+	t.Run("When the query fails", func(t *testing.T) {
+		expectedError := errors.New("Error")
+		mockLeaseInput := createGetEmptyLeasesInput()
+		leasesResult := createLeasesOutput()
+		mockDb := mocks.DBer{}
+		mockDb.On("GetLeases", *mockLeaseInput).Return(*leasesResult, expectedError)
+		mockRequest := createGetLeasesRequest()
 
-	// 	Dao = &mockDb
+		dao = &mockDb
 
-	// 	actualResponse, err := Handler(context.Background(), mockRequest)
-	// 	require.Nil(t, err)
+		actualResponse, err := Handler(context.Background(), mockRequest)
+		require.Nil(t, err)
 
-	// 	require.Equal(t, actualResponse.StatusCode, 500, "Returns a 500.")
-	// 	require.Equal(t, actualResponse.Body, "{\"error\":{\"code\":\"ServerError\",\"message\":\"Error querying leases: Error\"}}")
-	// })
+		require.Equal(t, actualResponse.StatusCode, 500, "Returns a 500.")
+		require.Equal(t, actualResponse.Body, "{\"error\":{\"code\":\"ServerError\",\"message\":\"Error querying leases: Error\"}}")
+	})
 
 }
 
@@ -104,10 +102,19 @@ func createGetEmptyLeasesInput() *db.GetLeasesInput {
 	}
 }
 
-func createGetLeasesRequest() events.APIGatewayProxyRequest {
+func createGetSingleLeaseRequest() events.APIGatewayProxyRequest {
 	q := make(map[string]string)
 	q[PrincipalIDParam] = "12345"
 	q[AccountIDParam] = "987654321"
+	return events.APIGatewayProxyRequest{
+		HTTPMethod:            http.MethodGet,
+		QueryStringParameters: q,
+		Path:                  "/leases",
+	}
+}
+
+func createGetLeasesRequest() events.APIGatewayProxyRequest {
+	q := make(map[string]string)
 	return events.APIGatewayProxyRequest{
 		HTTPMethod:            http.MethodGet,
 		QueryStringParameters: q,
@@ -139,6 +146,16 @@ func createLeasesOutput() *db.GetLeasesOutput {
 	return &db.GetLeasesOutput{
 		NextKeys: nextKeys,
 		Results:  leases,
+	}
+}
+
+func createSingleLeaseOutput() *db.Lease {
+	return &db.Lease{
+		ID:             "unique-id",
+		AccountID:      "987654321",
+		PrincipalID:    "12345",
+		LeaseStatus:    db.Active,
+		LastModifiedOn: 1561149393,
 	}
 }
 

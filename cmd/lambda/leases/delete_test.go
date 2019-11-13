@@ -49,29 +49,23 @@ func TestDeleteController_Call(t *testing.T) {
 		LeaseStatus: db.Inactive,
 	}
 
-	// otherLease := &db.Lease{
-	// 	AccountID:   "123456789",
-	// 	PrincipalID: "23456",
-	// 	LeaseStatus: db.Inactive,
-	// }
-
 	// Set up the mocks...
 
 	// A bad request. What this means in lease delete world is that we have failed to
 	// parse the request body becausse it is empty.
 	badArgs := &args{ctx: context.Background(), req: createBadDeleteRequest()}
-	badRequestResponse := response.ClientBadRequestError(fmt.Sprintf("Failed to Parse Request Body: %s", ""))
+	badRequestResponse := response.CreateMultiValueHeaderAPIErrorResponse(http.StatusBadRequest, "ClientError", fmt.Sprintf("Failed to Parse Request Body: %s", "{}"))
 
 	// Another bad request. There are no accounts for the principal that is in the lease
 	// request
 	noAccountsForLeaseArgs := &args{ctx: context.Background(), req: createNoAccountsForLeaseRequest()}
 	mockDB.On("FindLeasesByPrincipal", "23456").Return(nil, nil)
-	noAccountsForLeaseResponse := response.ClientBadRequestError("No account leases found for 23456")
+	noAccountsForLeaseResponse := response.CreateMultiValueHeaderAPIErrorResponse(http.StatusBadRequest, "ClientError", "No leases found for 23456")
 
 	// A client error, because there is no active account for the principal ID
 	noActiveAccountForLeaseArgs := &args{ctx: context.Background(), req: createNoActiveAccountForLeaseRequest()}
 	mockDB.On("FindLeasesByPrincipal", "67890").Return(createNonMatchingAccountListDBResponse(), nil)
-	noActiveAccountForLeaseResponse := response.ClientBadRequestError("Account Lease is not active for 67890 - 987654321")
+	noActiveAccountForLeaseResponse := response.CreateMultiValueHeaderAPIErrorResponse(http.StatusBadRequest, "ClientError", "Lease is not active for 67890 - 987654321")
 
 	// Successful delete
 	successfulDeleteArgs := &args{ctx: context.Background(), req: createSuccessfulDeleteRequest()}
@@ -101,6 +95,9 @@ func TestDeleteController_Call(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
+			dao = tt.fields.Dao
+			snsService = tt.fields.SNS
+
 			got, err := Handler(tt.args.ctx, *tt.args.req)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("DeleteController.Call() error = %v, wantErr %v", err, tt.wantErr)
@@ -115,7 +112,10 @@ func TestDeleteController_Call(t *testing.T) {
 }
 
 func createBadDeleteRequest() *events.APIGatewayProxyRequest {
-	return &events.APIGatewayProxyRequest{}
+	return &events.APIGatewayProxyRequest{
+		HTTPMethod: http.MethodDelete,
+		Path:       "/leases",
+	}
 }
 
 func createNoAccountsForLeaseRequest() *events.APIGatewayProxyRequest {
@@ -125,7 +125,9 @@ func createNoAccountsForLeaseRequest() *events.APIGatewayProxyRequest {
 	}
 	requestBodyBytes, _ := json.Marshal(deleteLeaseRequest)
 	return &events.APIGatewayProxyRequest{
-		Body: string(requestBodyBytes),
+		HTTPMethod: http.MethodDelete,
+		Path:       "/leases",
+		Body:       string(requestBodyBytes),
 	}
 }
 
@@ -136,7 +138,9 @@ func createNoActiveAccountForLeaseRequest() *events.APIGatewayProxyRequest {
 	}
 	requestBodyBytes, _ := json.Marshal(deleteLeaseRequest)
 	return &events.APIGatewayProxyRequest{
-		Body: string(requestBodyBytes),
+		HTTPMethod: http.MethodDelete,
+		Path:       "/leases",
+		Body:       string(requestBodyBytes),
 	}
 }
 
@@ -147,7 +151,9 @@ func createSuccessfulDeleteRequest() *events.APIGatewayProxyRequest {
 	}
 	requestBodyBytes, _ := json.Marshal(deleteLeaseRequest)
 	return &events.APIGatewayProxyRequest{
-		Body: string(requestBodyBytes),
+		HTTPMethod: http.MethodDelete,
+		Path:       "/leases",
+		Body:       string(requestBodyBytes),
 	}
 }
 
@@ -191,5 +197,5 @@ func createSuccessDeleteResponse() events.APIGatewayProxyResponse {
 		LeaseStatus: db.Inactive,
 	}
 	leaseResponse := response.LeaseResponse(*lease)
-	return response.CreateJSONResponse(http.StatusOK, leaseResponse)
+	return response.CreateMultiValueHeaderJSONResponse(http.StatusOK, leaseResponse)
 }

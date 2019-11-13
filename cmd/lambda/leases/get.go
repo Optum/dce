@@ -16,7 +16,7 @@ import (
 func GetLeaseByID(w http.ResponseWriter, r *http.Request) {
 	// Fetch the account.
 	leaseID := mux.Vars(r)["leaseID"]
-	lease, err := Dao.GetLeaseByID(leaseID)
+	lease, err := dao.GetLeaseByID(leaseID)
 	if err != nil {
 		log.Printf("Error Getting Lease for Id: %s", leaseID)
 		response.WriteServerErrorWithResponse(w, fmt.Sprintf("Failed Get on Lease %s", leaseID))
@@ -40,9 +40,9 @@ func GetLeaseByID(w http.ResponseWriter, r *http.Request) {
 // GetLeasesByPrincipcalIDAndAccountID - Returns a list of leases by principal and account
 func GetLeasesByPrincipcalIDAndAccountID(w http.ResponseWriter, r *http.Request) {
 	// Fetch the account.
-	principalID := r.FormValue(AccountIDParam)
+	principalID := r.FormValue(PrincipalIDParam)
 	accountID := r.FormValue(AccountIDParam)
-	lease, err := Dao.GetLease(accountID, principalID)
+	lease, err := dao.GetLease(accountID, principalID)
 	if err != nil {
 		errMsg := fmt.Sprintf("Error getting lease for principal %s and acccount %s: %s", principalID, accountID, err.Error())
 		log.Println(errMsg)
@@ -63,7 +63,7 @@ func GetLeasesByPrincipcalIDAndAccountID(w http.ResponseWriter, r *http.Request)
 func GetLeasesByPrincipalID(w http.ResponseWriter, r *http.Request) {
 	// Fetch the account.
 	principalID := r.FormValue(AccountIDParam)
-	leases, err := Dao.FindLeasesByPrincipal(principalID)
+	leases, err := dao.FindLeasesByPrincipal(principalID)
 	if err != nil {
 		errMsg := fmt.Sprintf("Error getting leases for principal %s: %s", principalID, err.Error())
 		log.Printf(errMsg)
@@ -90,7 +90,7 @@ func GetLeasesByPrincipalID(w http.ResponseWriter, r *http.Request) {
 func GetLeasesByAccountID(w http.ResponseWriter, r *http.Request) {
 	// Fetch the account.
 	accountID := r.FormValue(AccountIDParam)
-	leases, err := Dao.FindLeasesByAccount(accountID)
+	leases, err := dao.FindLeasesByAccount(accountID)
 	if err != nil {
 		errMsg := fmt.Sprintf("Error getting leases for account %s: %s", accountID, err.Error())
 		log.Println(errMsg)
@@ -120,7 +120,7 @@ func GetLeasesByStatus(w http.ResponseWriter, r *http.Request) {
 	// Fetch the account.
 	leaseStatus := r.FormValue(StatusParam)
 	status, err := db.ParseLeaseStatus(leaseStatus)
-	leases, err := Dao.FindLeasesByStatus(status)
+	leases, err := dao.FindLeasesByStatus(status)
 	if err != nil {
 		errMsg := fmt.Sprintf("Error getting leases with status \"%s\": %s", leaseStatus, err.Error())
 		log.Println(errMsg)

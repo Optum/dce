@@ -10,15 +10,13 @@ import (
 	"github.com/Optum/dce/pkg/usage"
 )
 
-const Weekly = "WEEKLY"
-const Monthly = "MONTHLY"
-
 type leaseValidationContext struct {
-	maxLeaseBudgetAmount  float64
-	principalBudgetAmount float64
-	maxLeasePeriod        int64
-	principalBudgetPeriod string
-	usageRecords          []*usage.Usage
+	maxLeaseBudgetAmount     float64
+	principalBudgetAmount    float64
+	maxLeasePeriod           int64
+	principalBudgetPeriod    string
+	usageRecords             []*usage.Usage
+	defaultLeaseLengthInDays int
 }
 
 // ValidateLease validates lease budget amount and period
@@ -32,12 +30,22 @@ func validateLeaseFromRequest(context *leaseValidationContext, req *http.Request
 	err = decoder.Decode(&requestBody)
 
 	if err != nil || requestBody.PrincipalID == "" {
-		validationErrStr := fmt.Sprintf("Failed to Parse Request Body: %s", req.Body)
+		validationErrStr := "invalid request parameters"
 		return requestBody, false, validationErrStr, nil
 	}
 
+	// Set default expiresOn
+	if requestBody.ExpiresOn == 0 {
+		requestBody.ExpiresOn = time.Now().AddDate(0, 0, context.defaultLeaseLengthInDays).Unix()
+	}
+
+	// Set default metadata (empty object)
+	if requestBody.Metadata == nil {
+		requestBody.Metadata = map[string]interface{}{}
+	}
+
 	// Validate requested lease end date is greater than today
-	if requestBody.ExpiresOn != 0 && requestBody.ExpiresOn <= time.Now().Unix() {
+	if requestBody.ExpiresOn <= time.Now().Unix() {
 		validationErrStr := fmt.Sprintf("Requested lease has a desired expiry date less than today: %d", requestBody.ExpiresOn)
 		return requestBody, false, validationErrStr, nil
 	}

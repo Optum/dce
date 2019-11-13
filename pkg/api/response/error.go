@@ -51,9 +51,9 @@ func BadRequestError(message string) events.APIGatewayProxyResponse {
 }
 
 func RequestValidationError(message string) events.APIGatewayProxyResponse {
-	return CreateAPIErrorResponse(
+	return CreateMultiValueHeaderAPIErrorResponse(
 		400,
-		CreateErrorResponse("RequestValidationError", message),
+		"RequestValidationError", message,
 	)
 }
 
@@ -124,6 +124,11 @@ func UnauthorizedError() events.APIGatewayProxyResponse {
 		401,
 		CreateErrorResponse("Unauthorized", "Could not access the resource requested."),
 	)
+}
+
+// WriteServerError - Writes a server error with the specific message.
+func WriteServerError(w http.ResponseWriter) {
+	WriteServerErrorWithResponse(w, "Internal server error")
 }
 
 // WriteServerErrorWithResponse - Writes a server error with the specific message.
