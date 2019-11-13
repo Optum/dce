@@ -7,11 +7,7 @@ steps:
   # Configure the namespace used by Terraform
   # May be referenced as an env var (eg. "${NAMESPACE}")
   # Or as a pipeline variable (eg. "$(namespace)")
-  - script: |
-      PR_NUMBER="$(System.PullRequest.PullRequestNumber)"
-      # This is the branch name, or the git tag name
-      NS_BRANCH_OR_TAG="$(Build.SourceBranchName)"
-
+  - bash: |
       # TODO tag name can't be namespace, AWS doesn't like
       # it as a resource name.
       # If it's a tagged version, just call it `release` or something
@@ -27,6 +23,10 @@ steps:
       # See https://docs.microsoft.com/en-us/azure/devops/pipelines/process/variables?view=azure-devops&tabs=yaml%2Cbatch#set-in-script
       echo "##vso[task.setvariable variable=namespace]${NS}"
     displayName: "Configure AWS Namespace"
+    env:
+      PR_NUMBER: $(System.PullRequest.PullRequestNumber)
+      # This is the branch name, or the git tag name
+      NS_BRANCH_OR_TAG: $(Build.SourceBranchName)
 
   # Install Terraform
   - task: TerraformInstaller@0
