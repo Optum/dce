@@ -1133,8 +1133,8 @@ func TestApi(t *testing.T) {
 			resJSON := parseResponseJSON(t, res)
 			require.Equal(t, map[string]interface{}{
 				"error": map[string]interface{}{
-					"code":    "RequestValidationError",
-					"message": fmt.Sprintf("Unable to update account %s: " +
+					"code": "RequestValidationError",
+					"message": fmt.Sprintf("Unable to update account %s: "+
 						"admin role is not assumable by the master account", accountID),
 				},
 			}, resJSON)

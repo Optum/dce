@@ -669,7 +669,6 @@ func TestCreate(t *testing.T) {
 	})
 }
 
-
 func createAccountAPIRequest(t *testing.T, req interface{}) events.APIGatewayProxyRequest {
 	requestBody, err := json.Marshal(&req)
 	assert.Nil(t, err)

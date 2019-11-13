@@ -28,7 +28,6 @@ type updateAccountRequest struct {
 	Metadata            *map[string]interface{} `json:"metadata"`
 }
 
-
 func UpdateAccountByID(w http.ResponseWriter, r *http.Request) {
 	accountID := mux.Vars(r)["accountId"]
 
@@ -42,7 +41,6 @@ func UpdateAccountByID(w http.ResponseWriter, r *http.Request) {
 	}
 	request.ID = &accountID
 
-
 	// If the request includes a new adminRoleArn,
 	// validate that we can assume the ARN
 	if request.AdminRoleArn != nil {
@@ -54,7 +52,7 @@ func UpdateAccountByID(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			WriteRequestValidationError(
 				w,
-				fmt.Sprintf("Unable to update account %s: " +
+				fmt.Sprintf("Unable to update account %s: "+
 					"admin role is not assumable by the master account",
 					accountID),
 			)
@@ -69,7 +67,7 @@ func UpdateAccountByID(w http.ResponseWriter, r *http.Request) {
 	// 	internal bookkeeping.
 	var fieldsToUpdate []string
 	accountPartial := db.Account{
-		ID:           *request.ID,
+		ID: *request.ID,
 	}
 	if request.AdminRoleArn != nil {
 		fieldsToUpdate = append(fieldsToUpdate, "AdminRoleArn")
@@ -82,7 +80,7 @@ func UpdateAccountByID(w http.ResponseWriter, r *http.Request) {
 	if len(fieldsToUpdate) == 0 {
 		WriteRequestValidationError(
 			w,
-			fmt.Sprintf("Unable to update account %s: " +
+			fmt.Sprintf("Unable to update account %s: "+
 				"no updatable fields provided",
 				accountID),
 		)

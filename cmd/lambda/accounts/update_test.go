@@ -200,10 +200,10 @@ func TestUpdateAccountByID(t *testing.T) {
 			mock.Anything,
 			mock.Anything,
 		).Return(nil, &db.NotFoundError{
-				fmt.Sprintf(
-					"Unable to update account 123456789012: account does not exist",
-				),
-			},
+			fmt.Sprintf(
+				"Unable to update account 123456789012: account does not exist",
+			),
+		},
 		)
 
 		// Call the controller
@@ -253,7 +253,7 @@ func TestUpdateAccountByID(t *testing.T) {
 		util.ReplaceMock(&tokenSvc.Mock,
 			"AssumeRole",
 			&sts.AssumeRoleInput{
-				RoleArn: aws.String("new:admin:role"),
+				RoleArn:         aws.String("new:admin:role"),
 				RoleSessionName: aws.String("MasterAssumeRoleVerification"),
 			},
 		).Return(nil, errors.New("assume role failed"))
@@ -272,7 +272,7 @@ func TestUpdateAccountByID(t *testing.T) {
 		resJSON := unmarshal(t, res.Body)
 		require.Equal(t, map[string]interface{}{
 			"error": map[string]interface{}{
-				"code":    "RequestValidationError",
+				"code": "RequestValidationError",
 				"message": "Unable to update account 123: " +
 					"admin role is not assumable by the master account",
 			},
@@ -320,6 +320,6 @@ func TestUpdateAccountByID(t *testing.T) {
 
 }
 
-func newUpdateRequest(t *testing.T, accountId string, body map[string]interface{}) events.APIGatewayProxyRequest {
-	return newRequest(t, "PUT", fmt.Sprintf("/accounts/%s", accountId), body)
+func newUpdateRequest(t *testing.T, accountID string, body map[string]interface{}) events.APIGatewayProxyRequest {
+	return newRequest(t, "PUT", fmt.Sprintf("/accounts/%s", accountID), body)
 }

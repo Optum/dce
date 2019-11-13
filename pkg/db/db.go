@@ -374,7 +374,7 @@ func (db *DB) UpdateAccount(account Account, fieldsToUpdate []string) (*Account,
 
 	// Update the Account record
 	exprValues := expr.Values()
-	exprValues[":id"] = &dynamodb.AttributeValue{ S: &account.ID }
+	exprValues[":id"] = &dynamodb.AttributeValue{S: &account.ID}
 	res, err := db.Client.UpdateItem(&dynamodb.UpdateItemInput{
 		TableName: &db.AccountTableName,
 		Key: map[string]*dynamodb.AttributeValue{
