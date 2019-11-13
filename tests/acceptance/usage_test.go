@@ -43,12 +43,12 @@ func TestUsageDb(t *testing.T) {
 	const ttl int = 3
 
 	// Truncate tables, to make sure we're starting off clean
-	//truncateUsageTable(t, dbSvc)
+	truncateUsageTable(t, dbSvc)
 
 	t.Run("PutUsage / GetUsageByDateRange", func(t *testing.T) {
 
 		// Cleanup table on completion
-		//defer truncateUsageTable(t, dbSvc)
+		defer truncateUsageTable(t, dbSvc)
 
 		// Setup usage dates
 		currentTime := time.Now()

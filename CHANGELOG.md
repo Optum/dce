@@ -1,6 +1,7 @@
 ## vNext
 
 - Support `metadata` parameter in `/accounts` API endpoints
+- Add `PUT /accounts/:id` endpoint
 
 ## v0.23.0
 

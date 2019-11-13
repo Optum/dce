@@ -78,19 +78,27 @@ func init() {
 		},
 
 		// Routes without query strings go after all of the
+		// routes that use query strings for matchers.
 		api.Route{
 			"GetAllAccounts",
 			"GET",
 			"/accounts",
 			api.EmptyQueryString,
 			GetAllAccounts,
-		}, // routes that use query strings for matchers.
+		},
 		api.Route{
 			"GetAccountByID",
 			"GET",
 			"/accounts/{accountId}",
 			api.EmptyQueryString,
 			GetAccountByID,
+		},
+		api.Route{
+			"UpdateAccountByID",
+			"PUT",
+			"/accounts/{accountId}",
+			api.EmptyQueryString,
+			UpdateAccountByID,
 		},
 		api.Route{
 			"DeleteAccount",

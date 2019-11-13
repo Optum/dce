@@ -162,7 +162,7 @@ paths:
           name: id
           type: string
           required: true
-          description: accountId for lease
+          description: AWS Account ID
       responses:
         200:
           schema:
@@ -176,6 +176,52 @@ paths:
               type: "string"
         403:
           description: "Failed to retrieve account"
+      x-amazon-apigateway-integration:
+        uri: ${accounts_lambda}
+        httpMethod: "POST"
+        type: "aws_proxy"
+        passthroughBehavior: "when_no_match"
+      security:
+        - sigv4: []
+    put:
+      summary: Update an account
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: path
+          name: id
+          type: string
+          required: true
+          description: AWS Account ID
+        - in: body
+          name: account
+          description: Account parameters to modify
+          schema:
+            type: object
+            properties:
+              adminRoleArn:
+                type: string
+                description: |
+                  ARN for an IAM role within this AWS account. The DCE master account will assume this IAM role to execute operations within this AWS account. This IAM role is configured by the client, and must be configured with [a Trust Relationship with the DCE master account.](/https://docs.aws.amazon.com/IAM/latest/UserGuide/tutorial_cross-account-with-roles.html)
+              metadata:
+                type: object
+                additionalProperties: true
+                description: Arbitrary metadata to attach to the account object.
+
+      responses:
+        200:
+          $ref: "#/definitions/account"
+          headers:
+            Access-Control-Allow-Headers:
+              type: "string"
+            Access-Control-Allow-Methods:
+              type: "string"
+            Access-Control-Allow-Origin:
+              type: "string"
+        403:
+          description: "Forbidden"
       x-amazon-apigateway-integration:
         uri: ${accounts_lambda}
         httpMethod: "POST"

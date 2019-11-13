@@ -1060,6 +1060,111 @@ func TestApi(t *testing.T) {
 
 	})
 
+	t.Run("Update Account", func(t *testing.T) {
+		// Make sure the DB is clean
+		truncateDBTables(t, dbSvc)
+		defer truncateDBTables(t, dbSvc)
+
+		// Create an account
+		_ = apiRequest(t, &apiRequestInput{
+			method: "POST",
+			url:    apiURL + "/accounts",
+			json: map[string]interface{}{
+				"id":           accountID,
+				"adminRoleArn": adminRoleArn,
+			},
+			f: statusCodeAssertion(201),
+		})
+
+		t.Run("should update an account's metadata", func(t *testing.T) {
+			// wait a second, so we can check that timestamps are updated
+			time.Sleep(time.Second)
+
+			// PUT /accounts/:id
+			// with update to metadata
+			res := apiRequest(t, &apiRequestInput{
+				method: "PUT",
+				url:    apiURL + "/accounts/" + accountID,
+				json: map[string]interface{}{
+					"metadata": map[string]interface{}{
+						"foo": "bar",
+					},
+					// this shouldn't actually persist
+					"accountStatus": "hippos",
+				},
+				f: statusCodeAssertion(200),
+			})
+
+			// Check the JSON response
+			resJSON := parseResponseJSON(t, res)
+			require.Equal(t, map[string]interface{}{
+				"foo": "bar",
+			}, resJSON["metadata"], "Response includes updated metadata")
+			require.NotEqual(t, "hippos", resJSON["accountStatus"],
+				"shouldn't update non-updatable fields")
+			require.True(t, resJSON["lastModifiedOn"].(float64) > resJSON["createdOn"].(float64),
+				"should update lastModifiedOn timestamp")
+
+			// Check the DB record, to make sure it's updated
+			account, err := dbSvc.GetAccount(accountID)
+			require.Nil(t, err)
+
+			require.Equal(t, map[string]interface{}{
+				"foo": "bar",
+			}, account.Metadata, "db record metadata is updated")
+			require.NotEqual(t, "hippos", account.AccountStatus,
+				"shouldn't update non-updatable fields in DB")
+			require.True(t, account.LastModifiedOn > account.CreatedOn,
+				"should update lastModifiedOn timestamp")
+		})
+
+		t.Run("should fail if the new adminRoleArn is not assumable", func(t *testing.T) {
+			// PUT /accounts/:id
+			// with invalid adminRoleArn
+			res := apiRequest(t, &apiRequestInput{
+				method: "PUT",
+				url:    apiURL + "/accounts/" + accountID,
+				json: map[string]interface{}{
+					"adminRoleArn": adminRoleArn + "not-valid-role",
+				},
+				f: statusCodeAssertion(400),
+			})
+
+			resJSON := parseResponseJSON(t, res)
+			require.Equal(t, map[string]interface{}{
+				"error": map[string]interface{}{
+					"code":    "RequestValidationError",
+					"message": fmt.Sprintf("Unable to update account %s: " +
+						"admin role is not assumable by the master account", accountID),
+				},
+			}, resJSON)
+		})
+
+		t.Run("should return a 404 if the account doesn't exist", func(t *testing.T) {
+			// PUT /accounts/:id
+			// with invalid adminRoleArn
+			res := apiRequest(t, &apiRequestInput{
+				method: "PUT",
+				url:    apiURL + "/accounts/not-an-account-id",
+				json: map[string]interface{}{
+					"metadata": map[string]interface{}{
+						"foo": "bar",
+					},
+				},
+			})
+			require.Equal(t, 404, res.StatusCode)
+
+			resJSON := parseResponseJSON(t, res)
+			require.Equal(t, map[string]interface{}{
+				"error": map[string]interface{}{
+					"code":    "NotFound",
+					"message": "The requested resource could not be found.",
+				},
+			}, resJSON)
+		})
+
+	})
+
 	t.Run("Get Usage api", func(t *testing.T) {
 
 		t.Run("Should get an error for invalid date format", func(t *testing.T) {
@@ -1515,9 +1620,18 @@ type apiRequestInput struct {
 	//		f: func(r *testutil.R, apiResp *apiResponse) {
 	//			assert.Equal(r, 200, apiResp.StatusCode)
 	//		},
+	// or:
+	//		f: statusCodeAssertion(200)
 	//
 	// By default, this will check that the API returns a 2XX response
 	f func(r *testutil.R, apiResp *apiResponse)
+}
+
+func statusCodeAssertion(statusCode int) func(r *testutil.R, apiResp *apiResponse) {
+	return func(r *testutil.R, apiResp *apiResponse) {
+		// Defaults to returning 200
+		assert.Equal(r, statusCode, apiResp.StatusCode)
+	}
 }
 
 type apiResponse struct {

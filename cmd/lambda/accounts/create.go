@@ -130,6 +130,11 @@ func CreateAccount(w http.ResponseWriter, r *http.Request) {
 	}
 
 	accountResponseJSON, err := json.Marshal(accountResponse)
+	if err != nil {
+		log.Printf("ERROR: Failed to marshal account response for %s: %s", account.ID, err)
+		WriteServerErrorWithResponse(w, "Internal server error")
+		return
+	}
 
 	WriteAPIResponse(
 		w,
