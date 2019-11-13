@@ -1,7 +1,6 @@
 package tests
 
 import (
-	"fmt"
 	"sort"
 	"strconv"
 	"strings"
@@ -97,7 +96,6 @@ func TestUsageDb(t *testing.T) {
 			// GetUsageByDateRange for testStartDate and 3-days.
 			actualUsages, err := dbSvc.GetUsageByDateRange(testStartDate, testStartDate.AddDate(0, 0, 3))
 			require.Nil(t, err)
-			fmt.Println(&actualUsages)
 
 			sort.Slice(expectedUsages, func(i, j int) bool {
 				if expectedUsages[i].StartDate < expectedUsages[j].StartDate {
@@ -117,14 +115,6 @@ func TestUsageDb(t *testing.T) {
 				}
 				return actualUsages[i].PrincipalID < actualUsages[j].PrincipalID
 			})
-
-			for _, eUsage := range expectedUsages {
-				fmt.Printf("Expected: %v\n", *eUsage)
-			}
-
-			for _, aUsage := range actualUsages {
-				fmt.Printf("Actual: %v\n", *aUsage)
-			}
 
 			assert.Equal(r, expectedUsages, actualUsages)
 		})
