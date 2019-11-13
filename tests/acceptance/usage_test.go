@@ -92,7 +92,7 @@ func TestUsageDb(t *testing.T) {
 			}
 		}
 
-		testutil.Retry(t, 10, 10*time.Millisecond, func(r *testutil.R) {
+		testutil.Retry(t, 10, 2*time.Second, func(r *testutil.R) {
 			// GetUsageByDateRange for testStartDate and 3-days.
 			actualUsages, err := dbSvc.GetUsageByDateRange(testStartDate, testStartDate.AddDate(0, 0, 3))
 			require.Nil(t, err)
