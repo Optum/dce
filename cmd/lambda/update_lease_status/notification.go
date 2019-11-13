@@ -66,13 +66,14 @@ func sendBudgetNotificationEmail(input *sendBudgetNotificationEmailInput) error 
 		input.lease.PrincipalID, input.lease.AccountID, strings.Join(input.lease.BudgetNotificationEmails, ","))
 
 	return sendEmail(&sendEmailInput{
-		lease:                          input.lease,
-		emailSvc:                       input.emailSvc,
-		budgetNotificationFromEmail:    input.budgetNotificationFromEmail,
-		budgetNotificationBCCEmails:    input.budgetNotificationBCCEmails,
-		budgetNotificationTemplateHTML: input.budgetNotificationTemplateHTML,
-		budgetNotificationTemplateText: input.budgetNotificationTemplateText,
-		actualSpend:                    actualSpend,
+		lease:                             input.lease,
+		emailSvc:                          input.emailSvc,
+		budgetNotificationFromEmail:       input.budgetNotificationFromEmail,
+		budgetNotificationBCCEmails:       input.budgetNotificationBCCEmails,
+		budgetNotificationTemplateHTML:    input.budgetNotificationTemplateHTML,
+		budgetNotificationTemplateText:    input.budgetNotificationTemplateText,
+		budgetNotificationTemplateSubject: input.budgetNotificationTemplateSubject,
+		actualSpend:                       actualSpend,
 	}, thresholdPercentile)
 }
 
