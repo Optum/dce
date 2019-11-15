@@ -34,7 +34,7 @@ func TestCreate(t *testing.T) {
 		req := createAccountAPIRequest(t, CreateRequest{
 			ID:           "1234567890",
 			AdminRoleArn: "arn:*:*:*",
-		})
+		}, "doesntmatter")
 
 		mockDb := mocks.DBer{}
 		mockDb.On("GetAccount", "1234567890").Return(nil, nil)
@@ -98,7 +98,7 @@ func TestCreate(t *testing.T) {
 		req := createAccountAPIRequest(t, CreateRequest{
 			ID:           "1234567890",
 			AdminRoleArn: "",
-		})
+		}, "doesntmatter")
 		res, err := Handler(context.TODO(), req)
 		assert.Nil(t, err)
 
@@ -115,7 +115,7 @@ func TestCreate(t *testing.T) {
 		req := createAccountAPIRequest(t, CreateRequest{
 			ID:           "",
 			AdminRoleArn: "arn:mock",
-		})
+		}, "doesntmatter")
 		res, err := Handler(context.TODO(), req)
 		assert.Nil(t, err)
 
@@ -155,7 +155,7 @@ func TestCreate(t *testing.T) {
 			createAccountAPIRequest(t, CreateRequest{
 				ID:           "1234567890",
 				AdminRoleArn: "arn:iam:adminRole",
-			}),
+			}, "doesntmatter"),
 		)
 		assert.Nil(t, err)
 		assert.Equal(t,
@@ -215,7 +215,7 @@ func TestCreate(t *testing.T) {
 		req := createAccountAPIRequest(t, CreateRequest{
 			ID:           "1234567890",
 			AdminRoleArn: "arn:mock",
-		})
+		}, "doesntmatter")
 		res, err := Handler(context.TODO(), req)
 		assert.Nil(t, err)
 		assert.Equal(t, 201, res.StatusCode)
@@ -233,7 +233,7 @@ func TestCreate(t *testing.T) {
 		req := createAccountAPIRequest(t, CreateRequest{
 			ID:           "1234567890",
 			AdminRoleArn: "arn:mock",
-		})
+		}, "doesntmatter")
 		res, err := Handler(context.TODO(), req)
 		assert.Nil(t, err)
 
@@ -255,7 +255,7 @@ func TestCreate(t *testing.T) {
 		req := createAccountAPIRequest(t, CreateRequest{
 			ID:           "1234567890",
 			AdminRoleArn: "arn:mock",
-		})
+		}, "doesntmatter")
 		res, err := Handler(context.TODO(), req)
 		assert.Nil(t, err)
 
@@ -281,7 +281,7 @@ func TestCreate(t *testing.T) {
 		req := createAccountAPIRequest(t, CreateRequest{
 			ID:           "1234567890",
 			AdminRoleArn: "arn:mock",
-		})
+		}, "doesntmatter")
 		res, err := Handler(context.TODO(), req)
 		assert.Nil(t, err)
 
@@ -315,7 +315,7 @@ func TestCreate(t *testing.T) {
 		req := createAccountAPIRequest(t, CreateRequest{
 			ID:           "1234567890",
 			AdminRoleArn: "arn:mock",
-		})
+		}, "doesntmatter")
 		res, err := Handler(context.TODO(), req)
 		assert.Nil(t, err)
 		assert.Equal(t, 201, res.StatusCode, res.Body)
@@ -340,7 +340,7 @@ func TestCreate(t *testing.T) {
 		req := createAccountAPIRequest(t, CreateRequest{
 			ID:           "1234567890",
 			AdminRoleArn: "arn:mock",
-		})
+		}, "doesntmatter")
 		res, err := Handler(context.TODO(), req)
 		assert.Nil(t, err)
 
@@ -398,7 +398,7 @@ func TestCreate(t *testing.T) {
 			createAccountAPIRequest(t, CreateRequest{
 				ID:           "1234567890",
 				AdminRoleArn: "arn:mock",
-			}),
+			}, "doesntmatter"),
 		)
 		assert.Nil(t, err)
 		assert.Equal(t, res.StatusCode, 201)
@@ -419,7 +419,7 @@ func TestCreate(t *testing.T) {
 			createAccountAPIRequest(t, CreateRequest{
 				ID:           "1234567890",
 				AdminRoleArn: "arn:mock",
-			}),
+			}, "doesntmatter"),
 		)
 		assert.Nil(t, err)
 
@@ -454,7 +454,6 @@ func TestCreate(t *testing.T) {
 
 		// Setup expected AssumeRolePolicy
 		expectedTrustAccount := "0987654321"
-		CurrentAccountID = &expectedTrustAccount
 		expectedAssumeRolePolicy := strings.TrimSpace(`
 		{
 			"Version": "2012-10-17",
@@ -501,7 +500,8 @@ func TestCreate(t *testing.T) {
 			createAccountAPIRequest(t, CreateRequest{
 				ID:           "1234567890",
 				AdminRoleArn: "arn:mock",
-			}),
+			},
+				expectedTrustAccount),
 		)
 		assert.Nil(t, err)
 
@@ -524,7 +524,7 @@ func TestCreate(t *testing.T) {
 			createAccountAPIRequest(t, CreateRequest{
 				ID:           "1234567890",
 				AdminRoleArn: "arn:mock",
-			}),
+			}, "doesntmatter"),
 		)
 		assert.Nil(t, err)
 
@@ -616,13 +616,16 @@ func roleManagerStub() *roleManagerMocks.RoleManager {
 	return roleManagerMock
 }
 
-func createAccountAPIRequest(t *testing.T, req CreateRequest) events.APIGatewayProxyRequest {
+func createAccountAPIRequest(t *testing.T, req CreateRequest, accountID string) events.APIGatewayProxyRequest {
 	requestBody, err := json.Marshal(&req)
 	assert.Nil(t, err)
 	return events.APIGatewayProxyRequest{
 		HTTPMethod: "POST",
 		Path:       "/accounts",
 		Body:       string(requestBody),
+		RequestContext: events.APIGatewayProxyRequestContext{
+			AccountID: accountID,
+		},
 	}
 }
 
