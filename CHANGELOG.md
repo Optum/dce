@@ -1,3 +1,7 @@
+## next
+
+- Fixed bug where child account's DCEPrincipal role trusted itself rather than the master account
+
 ## v0.23.0
 
 - Added `/accounts?accountStatus=<status>` URL for querying accounts by status.
