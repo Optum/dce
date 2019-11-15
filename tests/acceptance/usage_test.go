@@ -1,7 +1,6 @@
 package tests
 
 import (
-	"fmt"
 	"sort"
 	"strconv"
 	"strings"
@@ -43,12 +42,12 @@ func TestUsageDb(t *testing.T) {
 	const ttl int = 3
 
 	// Truncate tables, to make sure we're starting off clean
-	//truncateUsageTable(t, dbSvc)
+	truncateUsageTable(t, dbSvc)
 
 	t.Run("PutUsage / GetUsageByDateRange", func(t *testing.T) {
 
 		// Cleanup table on completion
-		//defer truncateUsageTable(t, dbSvc)
+		defer truncateUsageTable(t, dbSvc)
 
 		// Setup usage dates
 		currentTime := time.Now()
@@ -93,11 +92,10 @@ func TestUsageDb(t *testing.T) {
 			}
 		}
 
-		testutil.Retry(t, 10, 10*time.Millisecond, func(r *testutil.R) {
+		testutil.Retry(t, 10, 2*time.Second, func(r *testutil.R) {
 			// GetUsageByDateRange for testStartDate and 3-days.
 			actualUsages, err := dbSvc.GetUsageByDateRange(testStartDate, testStartDate.AddDate(0, 0, 3))
 			require.Nil(t, err)
-			fmt.Println(&actualUsages)
 
 			sort.Slice(expectedUsages, func(i, j int) bool {
 				if expectedUsages[i].StartDate < expectedUsages[j].StartDate {
@@ -117,14 +115,6 @@ func TestUsageDb(t *testing.T) {
 				}
 				return actualUsages[i].PrincipalID < actualUsages[j].PrincipalID
 			})
-
-			for _, eUsage := range expectedUsages {
-				fmt.Printf("Expected: %v\n", *eUsage)
-			}
-
-			for _, aUsage := range actualUsages {
-				fmt.Printf("Actual: %v\n", *aUsage)
-			}
 
 			assert.Equal(r, expectedUsages, actualUsages)
 		})

@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
+	"github.com/stretchr/testify/require"
 	"net/http"
 	"strings"
 	"testing"
@@ -16,7 +16,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/Optum/dce/pkg/common"
 	commonMocks "github.com/Optum/dce/pkg/common/mocks"
 	"github.com/Optum/dce/pkg/db"
 	"github.com/Optum/dce/pkg/db/mocks"
@@ -531,90 +530,146 @@ func TestCreate(t *testing.T) {
 			MockAPIErrorResponse(http.StatusInternalServerError, "ServerError", "Internal server error"),
 			res)
 	})
-}
 
-// dbStub creates a mock DBer instance,
-// preconfigured to follow happy-path behavior
-func dbStub() *dbMocks.DBer {
-	mockDb := &dbMocks.DBer{}
-	// Mock the DB, so that the account doesn't already exist
-	mockDb.On("GetAccount", mock.Anything).
-		Return(nil, nil)
-	mockDb.On("PutAccount", mock.Anything).Return(nil)
-	mockDb.On("DeleteAccount", mock.Anything).
-		Return(func(accountID string) *db.Account {
-			return &db.Account{ID: accountID}
-		}, nil)
+	t.Run("should allow setting metadata", func(t *testing.T) {
+		stubAllServices()
 
-	return mockDb
-}
+		// Mock the DB
+		mockDB := &dbMocks.DBer{}
+		Dao = mockDB
 
-func queueStub() *commonMocks.Queue {
-	mockQueue := &commonMocks.Queue{}
-	mockQueue.On("SendMessage", mock.Anything, mock.Anything).
-		Return(nil)
+		// Should write account w/metadata to DB
+		mockDB.On("PutAccount",
+			mock.MatchedBy(func(acct db.Account) bool {
+				assert.Equal(t, acct.Metadata, map[string]interface{}{
+					"foo": "bar",
+					"faz": "baz",
+				})
 
-	return mockQueue
-}
+				return true
+			}),
+		).Return(nil)
 
-func snsStub() *commonMocks.Notificationer {
-	mockSNS := &commonMocks.Notificationer{}
-	mockSNS.On("PublishMessage", mock.Anything, mock.Anything, mock.Anything).
-		Return(aws.String("mock-message-id"), nil)
+		// stub out other DB methods
+		mockDB.On("GetAccount", mock.Anything).
+			Return(nil, nil)
 
-	return mockSNS
-}
+		// Call the controller with metadata
+		request := createAccountAPIRequest(t, map[string]interface{}{
+			"id":           "123456789012",
+			"adminRoleArn": "roleArn",
+			"metadata": map[string]interface{}{
+				"foo": "bar",
+				"faz": "baz",
+			},
+		})
+		res, err := Handler(context.TODO(), request)
+		require.Nil(t, err)
 
-func tokenServiceStub() common.TokenService {
-	tokenServiceMock := &commonMocks.TokenService{}
-	tokenServiceMock.On("AssumeRole", mock.Anything).
-		Return(nil, nil)
+		// Check the response body
+		resJSON := unmarshal(t, res.Body)
 
-	session := &awsMocks.AwsSession{}
-	session.On("ClientConfig", mock.Anything).Return(client.Config{
-		Config: &aws.Config{},
+		require.Equal(t, map[string]interface{}{
+			"foo": "bar",
+			"faz": "baz",
+		}, resJSON["metadata"])
+
+		mockDB.AssertExpectations(t)
 	})
-	tokenServiceMock.On("NewSession", mock.Anything, mock.Anything).
-		Return(session, nil)
 
-	return tokenServiceMock
+	t.Run("should allow any data type within metadata", func(t *testing.T) {
+		stubAllServices()
+
+		// Call the controller with a bunch of different data types
+		request := createAccountAPIRequest(t, map[string]interface{}{
+			"id":           "123456789012",
+			"adminRoleArn": "roleArn",
+			"metadata": map[string]interface{}{
+				"string": "foobar",
+				"int":    7,
+				"float":  0.5,
+				"bool":   true,
+				"obj": map[string]interface{}{
+					"nested": map[string]interface{}{
+						"object": "value",
+					},
+				},
+				"null": nil,
+			},
+		})
+		res, err := Handler(context.TODO(), request)
+		require.Nil(t, err)
+
+		// Check the response body
+		resJSON := unmarshal(t, res.Body)
+		require.Equal(t, map[string]interface{}{
+			"string": "foobar",
+			// something weird with json parsing types here
+			// that we have to cast it,
+			// but the point is that the API accepted the value, and returned it back
+			"int":   float64(7),
+			"float": 0.5,
+			"bool":  true,
+			"obj": map[string]interface{}{
+				"nested": map[string]interface{}{
+					"object": "value",
+				},
+			},
+			"null": nil,
+		}, resJSON["metadata"])
+	})
+
+	t.Run("should return an empty metadata JSON object if none is provided", func(t *testing.T) {
+		stubAllServices()
+
+		// Call the controller with no metadata param
+		request := createAccountAPIRequest(t, map[string]interface{}{
+			"id":           "123456789012",
+			"adminRoleArn": "roleArn",
+		})
+		res, err := Handler(context.TODO(), request)
+		require.Nil(t, err)
+
+		// Check the response body
+		// should return empty JSON object for metadata
+		resJSON := unmarshal(t, res.Body)
+		require.Equal(t, map[string]interface{}{}, resJSON["metadata"])
+	})
+
+	t.Run("should not allow non-object types for metadata", func(t *testing.T) {
+		stubAllServices()
+
+		invalidValues := []interface{}{
+			"string",
+			14.5,
+			true,
+		}
+
+		for _, metadata := range invalidValues {
+			// Call the controller with no metadata param
+			request := createAccountAPIRequest(t, map[string]interface{}{
+				"id":           "123456789012",
+				"adminRoleArn": "roleArn",
+				"metadata":     metadata,
+			})
+			res, err := Handler(context.TODO(), request)
+			require.Nil(t, err)
+
+			// Check the error response
+			require.Equalf(t, 400, res.StatusCode, "status code for %v", metadata)
+			resJSON := unmarshal(t, res.Body)
+			require.Equalf(t, map[string]interface{}{
+				"error": map[string]interface{}{
+					"code":    "ClientError",
+					"message": "invalid request parameters",
+				},
+			}, resJSON, "res JSON for %v", metadata)
+		}
+
+	})
 }
 
-func StoragerMock() common.Storager {
-	storagerMock := &commonMocks.Storager{}
-
-	storagerMock.On("GetTemplateObject", mock.Anything, mock.Anything, mock.Anything).
-		Return("", "", nil)
-
-	return storagerMock
-}
-
-func roleManagerStub() *roleManagerMocks.RoleManager {
-	roleManagerMock := &roleManagerMocks.RoleManager{}
-	roleManagerMock.On("SetIAMClient", mock.Anything)
-	roleManagerMock.On("CreateRoleWithPolicy", mock.Anything).
-		Return(
-			func(input *rolemanager.CreateRoleWithPolicyInput) *rolemanager.CreateRoleWithPolicyOutput {
-				return &rolemanager.CreateRoleWithPolicyOutput{
-					RoleName:   input.RoleName,
-					RoleArn:    "arn:aws:iam::1234567890:role/" + input.RoleName,
-					PolicyName: "DCEPrincipalDefaultPolicy",
-					PolicyArn:  "arn:aws:iam::1234567890:policy/DCEPrincipalDefaultPolicy",
-				}
-			}, nil,
-		)
-	roleManagerMock.On("DestroyRoleWithPolicy", mock.Anything).
-		Return(func(input *rolemanager.DestroyRoleWithPolicyInput) *rolemanager.DestroyRoleWithPolicyOutput {
-			return &rolemanager.DestroyRoleWithPolicyOutput{
-				RoleName:  input.RoleName,
-				PolicyArn: input.PolicyArn,
-			}
-		}, nil)
-
-	return roleManagerMock
-}
-
-func createAccountAPIRequest(t *testing.T, req CreateRequest) events.APIGatewayProxyRequest {
+func createAccountAPIRequest(t *testing.T, req interface{}) events.APIGatewayProxyRequest {
 	requestBody, err := json.Marshal(&req)
 	assert.Nil(t, err)
 	return events.APIGatewayProxyRequest{
@@ -622,14 +677,4 @@ func createAccountAPIRequest(t *testing.T, req CreateRequest) events.APIGatewayP
 		Path:       "/accounts",
 		Body:       string(requestBody),
 	}
-}
-
-func unmarshal(t *testing.T, jsonStr string) map[string]interface{} {
-	var data map[string]interface{}
-	err := json.Unmarshal([]byte(jsonStr), &data)
-	assert.Nil(t, err,
-		fmt.Sprintf("Failed to unmarshal JSON: %s; %s", jsonStr, err),
-	)
-
-	return data
 }

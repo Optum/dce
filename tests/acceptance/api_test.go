@@ -75,6 +75,11 @@ func TestApi(t *testing.T) {
 		tfOut["usage_table_name"].(string),
 	)
 
+	// Create an adminRole for the test account
+	adminRoleRes := createAdminRole(t, awsSession)
+	accountID := adminRoleRes.accountID
+	adminRoleArn := adminRoleRes.adminRoleArn
+
 	// Cleanup tables before and after tests
 	truncateAccountTable(t, dbSvc)
 	truncateLeaseTable(t, dbSvc)
@@ -680,11 +685,6 @@ func TestApi(t *testing.T) {
 		defer truncateDBTables(t, dbSvc)
 		defer truncateUsageTable(t, usageSvc)
 
-		// Create an adminRole for the account
-		adminRoleRes := createAdminRole(t, awsSession)
-		accountID := adminRoleRes.accountID
-		adminRoleArn := adminRoleRes.adminRoleArn
-
 		t.Run("STEP: Create Account", func(t *testing.T) {
 
 			// Add the current account to the account pool
@@ -984,6 +984,68 @@ func TestApi(t *testing.T) {
 
 	})
 
+	t.Run("Create account with metadata", func(t *testing.T) {
+		// Make sure the DB is clean
+		truncateDBTables(t, dbSvc)
+		defer truncateDBTables(t, dbSvc)
+
+		// Create an account with metadata
+		res := apiRequest(t, &apiRequestInput{
+			method: "POST",
+			url:    apiURL + "/accounts",
+			json: map[string]interface{}{
+				"id":           accountID,
+				"adminRoleArn": adminRoleArn,
+				"metadata": map[string]interface{}{
+					"foo": map[string]interface{}{
+						"bar": "baz",
+					},
+					"hello": "you",
+				},
+			},
+			f: func(r *testutil.R, apiResp *apiResponse) {
+				assert.Equal(r, 201, apiResp.StatusCode)
+			},
+		})
+
+		// Check the response
+		require.Equal(t, res.StatusCode, 201)
+		resJSON := parseResponseJSON(t, res)
+		require.Equal(t, map[string]interface{}{
+			"foo": map[string]interface{}{
+				"bar": "baz",
+			},
+			"hello": "you",
+		}, resJSON["metadata"])
+
+		// Check the DB record
+		dbAccount, err := dbSvc.GetAccount(accountID)
+		require.Nil(t, err)
+		require.Equal(t, map[string]interface{}{
+			"foo": map[string]interface{}{
+				"bar": "baz",
+			},
+			"hello": "you",
+		}, dbAccount.Metadata)
+
+		// Check the GET /accounts API response
+		getRes := apiRequest(t, &apiRequestInput{
+			method: "GET",
+			url:    apiURL + "/accounts/" + accountID,
+			f: func(r *testutil.R, apiResp *apiResponse) {
+				assert.Equal(r, 200, apiResp.StatusCode)
+			},
+		})
+		require.Equal(t, getRes.StatusCode, 200)
+		getResJSON := parseResponseJSON(t, getRes)
+		require.Equal(t, map[string]interface{}{
+			"foo": map[string]interface{}{
+				"bar": "baz",
+			},
+			"hello": "you",
+		}, getResJSON["metadata"])
+	})
+
 	t.Run("Delete Account", func(t *testing.T) {
 
 		t.Run("when the account does not exists", func(t *testing.T) {
@@ -994,6 +1056,111 @@ func TestApi(t *testing.T) {
 					assert.Equal(r, http.StatusNotFound, apiResp.StatusCode, "it returns a 404")
 				},
 			})
+		})
+
+	})
+
+	t.Run("Update Account", func(t *testing.T) {
+		// Make sure the DB is clean
+		truncateDBTables(t, dbSvc)
+		defer truncateDBTables(t, dbSvc)
+
+		// Create an account
+		_ = apiRequest(t, &apiRequestInput{
+			method: "POST",
+			url:    apiURL + "/accounts",
+			json: map[string]interface{}{
+				"id":           accountID,
+				"adminRoleArn": adminRoleArn,
+			},
+			f: statusCodeAssertion(201),
+		})
+
+		t.Run("should update an account's metadata", func(t *testing.T) {
+			// wait a second, so we can check that timestamps are updated
+			time.Sleep(time.Second)
+
+			// PUT /accounts/:id
+			// with update to metadata
+			res := apiRequest(t, &apiRequestInput{
+				method: "PUT",
+				url:    apiURL + "/accounts/" + accountID,
+				json: map[string]interface{}{
+					"metadata": map[string]interface{}{
+						"foo": "bar",
+					},
+					// this shouldn't actually persist
+					"accountStatus": "hippos",
+				},
+				f: statusCodeAssertion(200),
+			})
+
+			// Check the JSON response
+			resJSON := parseResponseJSON(t, res)
+			require.Equal(t, map[string]interface{}{
+				"foo": "bar",
+			}, resJSON["metadata"], "Response includes updated metadata")
+			require.NotEqual(t, "hippos", resJSON["accountStatus"],
+				"shouldn't update non-updatable fields")
+			require.True(t, resJSON["lastModifiedOn"].(float64) > resJSON["createdOn"].(float64),
+				"should update lastModifiedOn timestamp")
+
+			// Check the DB record, to make sure it's updated
+			account, err := dbSvc.GetAccount(accountID)
+			require.Nil(t, err)
+
+			require.Equal(t, map[string]interface{}{
+				"foo": "bar",
+			}, account.Metadata, "db record metadata is updated")
+			require.NotEqual(t, "hippos", account.AccountStatus,
+				"shouldn't update non-updatable fields in DB")
+			require.True(t, account.LastModifiedOn > account.CreatedOn,
+				"should update lastModifiedOn timestamp")
+		})
+
+		t.Run("should fail if the new adminRoleArn is not assumable", func(t *testing.T) {
+			// PUT /accounts/:id
+			// with invalid adminRoleArn
+			res := apiRequest(t, &apiRequestInput{
+				method: "PUT",
+				url:    apiURL + "/accounts/" + accountID,
+				json: map[string]interface{}{
+					"adminRoleArn": adminRoleArn + "not-valid-role",
+				},
+				f: statusCodeAssertion(400),
+			})
+
+			resJSON := parseResponseJSON(t, res)
+			require.Equal(t, map[string]interface{}{
+				"error": map[string]interface{}{
+					"code": "RequestValidationError",
+					"message": fmt.Sprintf("Unable to update account %s: "+
+						"admin role is not assumable by the master account", accountID),
+				},
+			}, resJSON)
+		})
+
+		t.Run("should return a 404 if the account doesn't exist", func(t *testing.T) {
+			// PUT /accounts/:id
+			// with invalid adminRoleArn
+			res := apiRequest(t, &apiRequestInput{
+				method: "PUT",
+				url:    apiURL + "/accounts/not-an-account-id",
+				json: map[string]interface{}{
+					"metadata": map[string]interface{}{
+						"foo": "bar",
+					},
+				},
+			})
+			require.Equal(t, 404, res.StatusCode)
+
+			resJSON := parseResponseJSON(t, res)
+			require.Equal(t, map[string]interface{}{
+				"error": map[string]interface{}{
+					"code":    "NotFound",
+					"message": "The requested resource could not be found.",
+				},
+			}, resJSON)
 		})
 
 	})
@@ -1448,11 +1615,23 @@ type apiRequestInput struct {
 	// Callback function to assert API responses.
 	// apiRequest() will continue to retry until this
 	// function passes assertions.
+	//
 	// eg.
 	//		f: func(r *testutil.R, apiResp *apiResponse) {
 	//			assert.Equal(r, 200, apiResp.StatusCode)
 	//		},
+	// or:
+	//		f: statusCodeAssertion(200)
+	//
+	// By default, this will check that the API returns a 2XX response
 	f func(r *testutil.R, apiResp *apiResponse)
+}
+
+func statusCodeAssertion(statusCode int) func(r *testutil.R, apiResp *apiResponse) {
+	return func(r *testutil.R, apiResp *apiResponse) {
+		// Defaults to returning 200
+		assert.Equal(r, statusCode, apiResp.StatusCode)
+	}
 }
 
 type apiResponse struct {

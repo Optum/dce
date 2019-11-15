@@ -1,8 +1,10 @@
 
 ## vNext
 
-- Added Lease Validation for check against max budget amount, max budget period, principal budget amount and principal budget period
 - Update Status Lambda - budget_check: Terminate lease if spend > Principal budget amount
+- Support `metadata` parameter in `/accounts` API endpoints
+- Add `PUT /accounts/:id` endpoint
+
 
 ## v0.23.0
 
