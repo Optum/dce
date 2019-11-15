@@ -2,11 +2,11 @@
 
 ## Principal Role Policy
 
-Any user that access their's lease will assume a role in the leased account.  When they assume this role they are restricted to what they access.  The policy is defined [here](https://github.com/Optum/dce/blob/master/modules/fixtures/policies/principal_policy.tmpl).  This policy is designed to protect the IAM principal policy and trusts so that DCE can continue to manage the account.  Additionaly the policy is designed around services that AWS Nuke supports.
+Users access their leased accounts through an assumed role. This role also restricts their privileges within their leased account.  The policy is defined [here](https://github.com/Optum/dce/blob/master/modules/fixtures/policies/principal_policy.tmpl).  This policy is designed to protect the IAM principal policy and trusts so that DCE can continue to manage the account.  Additionaly the policy is designed around services that AWS Nuke supports.
 
 ## Organizations and Service Control Policies (SCPs)
 
-It is possibly to implement DCE inside an AWS Organization.  There are additional benefits when doing this type of implementation including the ability to use SCPs.  The following is an example SCP policy that can be implemented to better protect DCE accounts.
+Implementing DCE in an AWS Organization provides the ability to use SCPs, which can be helpful for ensuring the resilience of your DCE resources. The following SCP is an example policy that contains two statements for protecting your DCE accounts:
 
 - **DenyChangesToAdminPrincipalRoleAndPolicy** is designed to prevent anyone other than the AdminRole from modifying the roles and policies used by DCE.
 - **DenyUnsupportedServices** is designed to allow access to services that are supported by AWS Nuke

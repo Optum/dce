@@ -186,8 +186,7 @@ func generateNukeConfig(svc *service, f io.Writer) error {
 			config.nukeTemplateBucket, config.nukeTemplateKey)
 
 		// Download the file from S3
-		templateFile = fmt.Sprintf("/tmp/nuke-config-template-%s.yml",
-			config.accountID)
+		templateFile = fmt.Sprintf("nuke-config-template-%s.yml", config.accountID)
 		err := svc.s3Service().Download(config.nukeTemplateBucket,
 			config.nukeTemplateKey, templateFile)
 		if err != nil {

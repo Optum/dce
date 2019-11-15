@@ -9,6 +9,7 @@ nav:
   - "API Reference": api-documentation.md
   - "API Auth": api-auth.md
   - "SNS Lifecycle Events": sns.md
+  - "Permissions and Policies": policies.md
   - Local Development: develop.md
   - Contribution Guidelines: CONTRIBUTING.md
   - Changes: CHANGELOG.md
