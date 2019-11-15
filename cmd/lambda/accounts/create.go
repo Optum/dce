@@ -209,14 +209,17 @@ func createPrincipalRole(childAccount db.Account, masterAccountID string) (*role
 				{
 					"Effect": "Allow",
 					"Principal": {
-						"AWS": "arn:aws:iam::%s:root"
+						"AWS": [
+							"arn:aws:iam::%s:root",
+							"arn:aws:iam::%s:root"
+						  ]
 					},
 					"Action": "sts:AssumeRole",
 					"Condition": {}
 				}
 			]
 		}
-	`, masterAccountID))
+	`, masterAccountID, childAccount.ID))
 
 	// Render the default policy for the principal
 
