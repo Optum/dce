@@ -15,6 +15,9 @@ import (
 // GetLeases - Gets all of the leases
 func GetLeases(w http.ResponseWriter, r *http.Request) {
 
+	// This has become a "fall-through" method for any of the URL combinations that
+	// don't match the explicit routes, so we parse input here to get all of the
+	// query string values that are supplied on the URL
 	getLeasesInput, err := parseGetLeasesInput(r)
 
 	if err != nil {
@@ -98,7 +101,6 @@ func parseGetLeasesInput(r *http.Request) (db.GetLeasesInput, error) {
 func buildNextURL(r *http.Request, nextParams map[string]string) string {
 	responseParams := make(map[string]string)
 	responseQueryStrings := make([]string, 0)
-	base := buildBaseURL(r)
 
 	for k, v := range r.URL.Query() {
 		responseParams[k] = v[0]
@@ -113,5 +115,5 @@ func buildNextURL(r *http.Request, nextParams map[string]string) string {
 	}
 
 	queryString := strings.Join(responseQueryStrings, "&")
-	return fmt.Sprintf("%s%s?%s", base, r.URL.EscapedPath(), queryString)
+	return fmt.Sprintf("%s?%s", r.URL.EscapedPath(), queryString)
 }

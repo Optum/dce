@@ -38,8 +38,7 @@ type Routes []Route
 func NewRouter(routes Routes) *mux.Router {
 	router := mux.NewRouter().StrictSlash(true)
 	for _, route := range routes {
-		var handler http.Handler
-		handler = route.HandlerFunc
+		handler := route.HandlerFunc
 
 		if len(route.Queries) == 0 {
 

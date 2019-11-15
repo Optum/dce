@@ -28,11 +28,25 @@ type createLeaseRequest struct {
 // CreateLease - Creates the lease
 func CreateLease(w http.ResponseWriter, r *http.Request) {
 
+	currentTime := time.Now()
+	usageStartTime := getBeginningOfCurrentBillingPeriod(aws.StringValue(principalBudgetPeriod))
+	usageEndTime := time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 23, 59, 59, 0, time.UTC)
+
+	usages, err := usageSvc.GetUsageByDateRange(usageStartTime, usageEndTime)
+
+	if err != nil {
+		response.WriteServerErrorWithResponse(w, err.Error())
+		return
+	}
+
 	c := leaseValidationContext{
 		maxLeaseBudgetAmount:     aws.Float64Value(maxLeaseBudgetAmount),
 		maxLeasePeriod:           aws.Int64Value(maxLeasePeriod),
 		defaultLeaseLengthInDays: aws.IntValue(defaultLeaseLengthInDays),
+		principalBudgetPeriod:    aws.StringValue(principalBudgetPeriod),
+		usageRecords:             usages,
 	}
+
 	// Extract the Body from the Request
 	requestBody, isValid, validationErrorMessage, err := validateLeaseFromRequest(&c, r)
 
@@ -56,13 +70,12 @@ func CreateLease(w http.ResponseWriter, r *http.Request) {
 		response.WriteServerErrorWithResponse(w, "Internal server error")
 		return
 	}
-	if principalLeases != nil {
-		for _, lease := range principalLeases {
-			if lease.LeaseStatus == db.Active {
-				msg := fmt.Sprintf("Principal already has an active lease for account %s", lease.AccountID)
-				response.WriteConflictError(w, msg)
-				return
-			}
+
+	for _, lease := range principalLeases {
+		if lease.LeaseStatus == db.Active {
+			msg := fmt.Sprintf("Principal already has an active lease for account %s", lease.AccountID)
+			response.WriteConflictError(w, msg)
+			return
 		}
 	}
 
@@ -78,7 +91,7 @@ func CreateLease(w http.ResponseWriter, r *http.Request) {
 		return
 	} else if account == nil {
 		errStr := "No Available accounts at this moment"
-		log.Printf(errStr)
+		log.Println(errStr)
 		response.WriteServiceUnavailableError(w, errStr)
 		return
 	}
@@ -110,7 +123,7 @@ func CreateLease(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Mark the accOunt as Status=Leased
-	account, err = dao.TransitionAccountStatus(account.ID, db.Ready, db.Leased)
+	_, err = dao.TransitionAccountStatus(account.ID, db.Ready, db.Leased)
 	if err != nil {
 		log.Printf("ERROR Failed to transition account %s to Leased for lease for %s. Attemping to deactivate lease...",
 			lease.AccountID, lease.PrincipalID)

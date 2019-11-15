@@ -141,7 +141,7 @@ func Handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 
 // buildBaseURL returns a base API url from the request properties.
 func buildBaseURL(r *http.Request) string {
-	return r.URL.String()
+	return fmt.Sprintf("%s://%s", r.URL.Scheme, r.URL.Hostname())
 }
 
 func main() {
@@ -151,48 +151,13 @@ func main() {
 	dao = newDBer()
 	snsSvc = &common.SNS{Client: sns.New(awsSession)}
 
-	usageSvc, err := usage.NewFromEnv()
+	usageService, err := usage.NewFromEnv()
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed to initialize usage service: %s", err)
 		log.Fatal(errorMessage)
 	}
 
-	usageSvc = usageSvc
-
-	// provisionLeaseTopicARN := common.RequireEnv("PROVISION_TOPIC")
-
-	// router := &api.Router{
-	// 	ResourceName: "/leases",
-	// 	GetController: GetController{
-	// 		Dao: dao,
-	// 	},
-	// 	ListController: ListController{
-	// 		Dao: dao,
-	// 	},
-	// 	DeleteController: DeleteController{
-	// 		Dao:                    dao,
-	// 		SNS:                    snsSvc,
-	// 		AccountDeletedTopicArn: accountDeletedTopicArn,
-	// 		ResetQueueURL:          resetQueueURL,
-	// 		Queue:                  queue,
-	// 	},
-	// 	CreateController: CreateController{
-	// 		Dao:                   dao,
-	// 		Provisioner:           prov,
-	// 		SNS:                   snsSvc,
-	// 		LeaseTopicARN:         &provisionLeaseTopicARN,
-	// 		UsageSvc:              usageSvc,
-	// 		PrincipalBudgetAmount: &principalBudgetAmount,
-	// 		PrincipalBudgetPeriod: &principalBudgetPeriod,
-	// 		MaxLeaseBudgetAmount:  &maxLeaseBudgetAmount,
-	// 		MaxLeasePeriod:        &maxLeasePeriod,
-	// 	},
-	// 	UserDetails: api.UserDetails{
-	// 		CognitoUserPoolID:        common.RequireEnv("COGNITO_USER_POOL_ID"),
-	// 		RolesAttributesAdminName: common.RequireEnv("COGNITO_ROLES_ATTRIBUTE_ADMIN_NAME"),
-	// 		CognitoClient:            cognitoidentityprovider.New(awsSession),
-	// 	},
-	// }
+	usageSvc = usageService
 
 	lambda.Start(Handler)
 }

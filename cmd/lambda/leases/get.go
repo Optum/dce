@@ -32,11 +32,6 @@ func GetLeaseByID(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(leaseResponse)
 }
 
-// GetAllLeases - Returns a list of leases by principal and account
-// func GetAllLeases(w http.ResponseWriter, r *http.Request) {
-
-// }
-
 // GetLeasesByPrincipcalIDAndAccountID - Returns a list of leases by principal and account
 func GetLeasesByPrincipcalIDAndAccountID(w http.ResponseWriter, r *http.Request) {
 	// Fetch the account.
@@ -62,16 +57,16 @@ func GetLeasesByPrincipcalIDAndAccountID(w http.ResponseWriter, r *http.Request)
 // GetLeasesByPrincipalID - Returns a list of leases by principal and account
 func GetLeasesByPrincipalID(w http.ResponseWriter, r *http.Request) {
 	// Fetch the account.
-	principalID := r.FormValue(AccountIDParam)
+	principalID := r.FormValue(PrincipalIDParam)
 	leases, err := dao.FindLeasesByPrincipal(principalID)
 	if err != nil {
 		errMsg := fmt.Sprintf("Error getting leases for principal %s: %s", principalID, err.Error())
-		log.Printf(errMsg)
+		log.Println(errMsg)
 		response.WriteServerErrorWithResponse(w, errMsg)
 		return
 	}
 
-	if leases == nil || len(leases) == 0 {
+	if len(leases) == 0 {
 		response.WriteNotFoundError(w)
 		return
 	}
@@ -98,7 +93,7 @@ func GetLeasesByAccountID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if leases == nil || len(leases) == 0 {
+	if len(leases) == 0 {
 		// We were throwing an error on these, but not sure that's the right thing
 		// to do with a REST URL with query string parameters.
 		response.WriteNotFoundError(w)
@@ -119,7 +114,7 @@ func GetLeasesByAccountID(w http.ResponseWriter, r *http.Request) {
 func GetLeasesByStatus(w http.ResponseWriter, r *http.Request) {
 	// Fetch the account.
 	leaseStatus := r.FormValue(StatusParam)
-	status, err := db.ParseLeaseStatus(leaseStatus)
+	status, _ := db.ParseLeaseStatus(leaseStatus)
 	leases, err := dao.FindLeasesByStatus(status)
 	if err != nil {
 		errMsg := fmt.Sprintf("Error getting leases with status \"%s\": %s", leaseStatus, err.Error())
@@ -127,7 +122,8 @@ func GetLeasesByStatus(w http.ResponseWriter, r *http.Request) {
 		response.WriteServerErrorWithResponse(w, errMsg)
 		return
 	}
-	if leases == nil || len(leases) == 0 {
+
+	if len(leases) == 0 {
 		response.WriteNotFoundError(w)
 		return
 	}

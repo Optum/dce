@@ -157,11 +157,6 @@ func createSuccessfulDeleteRequest() *events.APIGatewayProxyRequest {
 	}
 }
 
-func createNoAccountsForLeaseDBResponse() []*db.Lease {
-	leases := []*db.Lease{}
-	return leases
-}
-
 func createNonMatchingAccountListDBResponse() []*db.Lease {
 	leases := []*db.Lease{
 		{
@@ -182,12 +177,6 @@ func createSuccessfulDeleteDBResponse() []*db.Lease {
 		},
 	}
 	return leases
-}
-
-func createAccountForDelete() *db.Account {
-	return &db.Account{
-		ID: "987654321",
-	}
 }
 
 func createSuccessDeleteResponse() events.APIGatewayProxyResponse {

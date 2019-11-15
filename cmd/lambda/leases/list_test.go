@@ -5,16 +5,38 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/Optum/dce/pkg/api/response"
 	"github.com/Optum/dce/pkg/db"
 	"github.com/Optum/dce/pkg/db/mocks"
 	"github.com/aws/aws-lambda-go/events"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestListLeases(t *testing.T) {
+
+	t.Run("Building next URL", func(t *testing.T) {
+		body := strings.NewReader("")
+		request, err := http.NewRequest("GET", "http://example.com/api/leases?limit=2", body)
+
+		assert.Nil(t, err)
+
+		nextParams := make(map[string]string)
+
+		nextParams["AccountId"] = "1"
+		nextParams["PrincipalId"] = "b"
+
+		nextURL := buildNextURL(request, nextParams)
+
+		assert.Equal(t,
+			"/api/leases?limit=2&nextAccountId=1&nextPrincipalId=b",
+			nextURL,
+		)
+
+	})
 
 	t.Run("Empty leases", func(t *testing.T) {
 
@@ -84,15 +106,6 @@ func TestListLeases(t *testing.T) {
 		require.Equal(t, actualResponse.Body, "{\"error\":{\"code\":\"ServerError\",\"message\":\"Error querying leases: Error\"}}")
 	})
 
-}
-
-func createGetLeasesInput() *db.GetLeasesInput {
-	keys := make(map[string]string)
-	return &db.GetLeasesInput{
-		PrincipalID: "12345",
-		AccountID:   "987654321",
-		StartKeys:   keys,
-	}
 }
 
 func createGetEmptyLeasesInput() *db.GetLeasesInput {
