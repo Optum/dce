@@ -565,7 +565,7 @@ func TestCreate(t *testing.T) {
 				"foo": "bar",
 				"faz": "baz",
 			},
-		})
+		}, "doesntmatter")
 		res, err := Handler(context.TODO(), request)
 		require.Nil(t, err)
 
@@ -599,7 +599,7 @@ func TestCreate(t *testing.T) {
 				},
 				"null": nil,
 			},
-		})
+		}, "doesntmatter")
 		res, err := Handler(context.TODO(), request)
 		require.Nil(t, err)
 
@@ -629,7 +629,7 @@ func TestCreate(t *testing.T) {
 		request := createAccountAPIRequest(t, map[string]interface{}{
 			"id":           "123456789012",
 			"adminRoleArn": "roleArn",
-		})
+		}, "doesntmatter")
 		res, err := Handler(context.TODO(), request)
 		require.Nil(t, err)
 
@@ -654,7 +654,7 @@ func TestCreate(t *testing.T) {
 				"id":           "123456789012",
 				"adminRoleArn": "roleArn",
 				"metadata":     metadata,
-			})
+			}, "doesntmatter")
 			res, err := Handler(context.TODO(), request)
 			require.Nil(t, err)
 
