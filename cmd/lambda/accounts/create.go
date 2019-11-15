@@ -109,7 +109,8 @@ func CreateAccount(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create an IAM Role for the principal (end-user) to login to
-	createRolRes, policyHash, err := createPrincipalRole(account)
+	masterAccountID := *CurrentAccountID
+	createRolRes, policyHash, err := createPrincipalRole(account, masterAccountID)
 	if err != nil {
 		log.Printf("failed to create principal role for %s: %s", request.ID, err)
 		WriteServerErrorWithResponse(w, "Internal server error")
@@ -194,7 +195,7 @@ func (req *CreateRequest) Validate() (bool, *string) {
 	return true, nil
 }
 
-func createPrincipalRole(account db.Account) (*rolemanager.CreateRoleWithPolicyOutput, string, error) {
+func createPrincipalRole(childAccount db.Account, masterAccountID string) (*rolemanager.CreateRoleWithPolicyOutput, string, error) {
 	// Create an assume role policy,
 	// to let principals from the same account assume the role.
 	//
@@ -215,23 +216,23 @@ func createPrincipalRole(account db.Account) (*rolemanager.CreateRoleWithPolicyO
 				}
 			]
 		}
-	`, account.ID))
+	`, masterAccountID))
 
 	// Render the default policy for the principal
 
 	policy, policyHash, err := StorageSvc.GetTemplateObject(artifactsBucket, principalPolicyS3Key,
 		principalPolicyInput{
-			PrincipalPolicyArn:   fmt.Sprintf("arn:aws:iam::%s:policy/%s", account.ID, policyName),
-			PrincipalRoleArn:     fmt.Sprintf("arn:aws:iam::%s:role/%s", account.ID, principalRoleName),
+			PrincipalPolicyArn:   fmt.Sprintf("arn:aws:iam::%s:policy/%s", childAccount.ID, policyName),
+			PrincipalRoleArn:     fmt.Sprintf("arn:aws:iam::%s:role/%s", childAccount.ID, principalRoleName),
 			PrincipalIAMDenyTags: principalIAMDenyTags,
-			AdminRoleArn:         account.AdminRoleArn,
+			AdminRoleArn:         childAccount.AdminRoleArn,
 		})
 	if err != nil {
 		return nil, "", err
 	}
 
 	// Assume role into the new account
-	accountSession, err := TokenSvc.NewSession(AWSSession, account.AdminRoleArn)
+	accountSession, err := TokenSvc.NewSession(AWSSession, childAccount.AdminRoleArn)
 	if err != nil {
 		return nil, "", err
 	}
