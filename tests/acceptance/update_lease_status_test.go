@@ -1,34 +1,25 @@
 package tests
 
 import (
-	"bytes"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/gruntwork-io/terratest/modules/terraform"
 	"github.com/stretchr/testify/require"
-	"io/ioutil"
 	"net/http"
 	"testing"
-	"time"
 
 	"encoding/json"
 	"fmt"
-
-	"github.com/Optum/dce/pkg/db"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
-
 	"github.com/stretchr/testify/assert"
 
+	"github.com/Optum/dce/pkg/db"
+	"github.com/Optum/dce/pkg/usage"
 	"github.com/Optum/dce/tests/acceptance/testutil"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	sigv4 "github.com/aws/aws-sdk-go/aws/signer/v4"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
 )
 
 type getItemsRequest struct {
-	SortBy      string
-	SortOrder   string
-	ItemsToGet  int
 	PrincipalID string
 	AccountID   string
 }
@@ -58,9 +49,10 @@ type getItemsResponse struct {
 }
 
 func TestUpdateLeaseStatusLambda(t *testing.T) {
+
 	// Load Terraform outputs
 	tfOpts := &terraform.Options{
-		TerraformDir: "../../../modules",
+		TerraformDir: "../../modules",
 	}
 	tfOut := terraform.OutputAll(t, tfOpts)
 	apiURL := tfOut["api_url"].(string)
@@ -81,7 +73,14 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 		7,
 	)
 
-
+	// Configure the usage service
+	usageSvc := usage.New(
+		dynamodb.New(
+			awsSession,
+			aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
+		),
+		tfOut["usage_table_name"].(string),
+	)
 
 	// Create Lambda service client
 	lambdaClient := lambda.New(awsSession)
@@ -90,35 +89,53 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 	t.Run("update_lease_status", func(t *testing.T) {
 		t.Run("Should run update_lease_status lambda successfully", func(t *testing.T) {
 
-			// Create an account and Lease
-			acctID := "123"
+			// Make sure the DB is clean
+			truncateDBTables(t, dbSvc)
+			truncateUsageTable(t, usageSvc)
+			// Cleanup the DB when we're done
+			defer truncateDBTables(t, dbSvc)
+			defer truncateUsageTable(t, usageSvc)
+
+			// Create an adminRole for the account
+			adminRoleRes := createAdminRole(t, awsSession)
+			accountID := adminRoleRes.accountID
+			adminRoleArn := adminRoleRes.adminRoleArn
 			principalID := "user"
-			timeNow := time.Now().Unix()
-			err := dbSvc.PutAccount(db.Account{
-				ID:             acctID,
-				AccountStatus:  db.Ready,
-				LastModifiedOn: timeNow,
+
+			// Add the current account to the account pool
+			apiRequest(t, &apiRequestInput{
+				method: "POST",
+				url:    apiURL + "/accounts",
+				json: createAccountRequest{
+					ID:           accountID,
+					AdminRoleArn: adminRoleArn,
+				},
+				maxAttempts: 15,
+				f: func(r *testutil.R, apiResp *apiResponse) {
+					assert.Equal(r, 201, apiResp.StatusCode)
+				},
 			})
+
+			// Update Account status to ready
+			err := dbSvc.PutAccount(db.Account{
+				ID: accountID, AccountStatus: db.Ready})
 			require.Nil(t, err)
 
-			// Create the Provision Request Body
-			body := inputLeaseRequest{
-				PrincipalID: principalID,
-			}
-
-			// Send an API request
-			leaseResp := apiRequest(t, &apiRequestInput{
+			// Create a lease for above account
+			apiRequest(t, &apiRequestInput{
 				method: "POST",
 				url:    apiURL + "/leases",
-				json:   body,
+				json: leaseRequest{
+					PrincipalID: principalID,
+				},
+				maxAttempts: 15,
+				f: func(r *testutil.R, apiResp *apiResponse) {
+					assert.Equal(r, 201, apiResp.StatusCode)
+				},
 			})
 
-			// Verify response code
-			require.Equal(t, http.StatusCreated, leaseResp.StatusCode)
-
-
 			// Get the 10 most recent items
-			request := getItemsRequest{"time", "descending", 10, principalID, acctID}
+			request := getItemsRequest{principalID, accountID}
 
 			payload, err := json.Marshal(request)
 			require.Nil(t, err)
@@ -145,77 +162,5 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 
 		})
 	})
-}
 
-var chainCredentials = credentials.NewChainCredentials([]credentials.Provider{
-	&credentials.EnvProvider{},
-	&credentials.SharedCredentialsProvider{Filename: "", Profile: ""},
-})
-
-func apiRequest(t *testing.T, input *apiRequestInput) *apiResponse {
-	// Set defaults
-	if input.creds == nil {
-		input.creds = chainCredentials
-	}
-	if input.region == "" {
-		input.region = "us-east-1"
-	}
-	if input.maxAttempts == 0 {
-		input.maxAttempts = 15
-	}
-
-	// Create API request
-	req, err := http.NewRequest(input.method, input.url, nil)
-	assert.Nil(t, err)
-
-	// Sign our API request, using sigv4
-	// See https://docs.aws.amazon.com/general/latest/gr/sigv4_signing.html
-	signer := sigv4.NewSigner(input.creds)
-	now := time.Now().Add(time.Duration(30) * time.Second)
-	var signedHeaders http.Header
-	var apiResp *apiResponse
-	testutil.Retry(t, input.maxAttempts, 2*time.Second, func(r *testutil.R) {
-		// If there's a json provided, add it when signing
-		// Body does not matter if added before the signing, it will be overwritten
-		if input.json != nil {
-			payload, err := json.Marshal(input.json)
-			assert.Nil(t, err)
-			req.Header.Set("Content-Type", "application/json")
-			signedHeaders, err = signer.Sign(req, bytes.NewReader(payload),
-				"execute-api", input.region, now)
-		} else {
-			signedHeaders, err = signer.Sign(req, nil, "execute-api",
-				input.region, now)
-		}
-		assert.NoError(r, err)
-		assert.NotNil(r, signedHeaders)
-
-		// Send the API requests
-		// resp, err := http.DefaultClient.Do(req)
-		httpClient := http.Client{
-			Timeout: 60 * time.Second,
-		}
-		resp, err := httpClient.Do(req)
-		assert.NoError(r, err)
-
-		// Parse the JSON response
-		apiResp = &apiResponse{
-			Response: *resp,
-		}
-		defer resp.Body.Close()
-		var data interface{}
-
-		body, err := ioutil.ReadAll(resp.Body)
-		assert.NoError(r, err)
-
-		err = json.Unmarshal([]byte(body), &data)
-		if err == nil {
-			apiResp.json = data
-		}
-
-		if input.f != nil {
-			input.f(r, apiResp)
-		}
-	})
-	return apiResp
 }
