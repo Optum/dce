@@ -453,6 +453,8 @@ func TestCreate(t *testing.T) {
 		roleManager.On("SetIAMClient", mock.Anything)
 
 		// Setup expected AssumeRolePolicy
+		expectedTrustAccount := "0987654321"
+		CurrentAccountID = &expectedTrustAccount
 		expectedAssumeRolePolicy := strings.TrimSpace(`
 		{
 			"Version": "2012-10-17",
@@ -460,7 +462,7 @@ func TestCreate(t *testing.T) {
 				{
 					"Effect": "Allow",
 					"Principal": {
-						"AWS": "arn:aws:iam::1234567890:root"
+						"AWS": "arn:aws:iam::` + expectedTrustAccount + `:root"
 					},
 					"Action": "sts:AssumeRole",
 					"Condition": {}
