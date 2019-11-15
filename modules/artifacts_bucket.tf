@@ -32,7 +32,23 @@ resource "aws_s3_bucket" "artifacts" {
   # Send S3 access logs for this bucket to itself
   logging {
     target_bucket = local.artifact_bucket_name
-    target_prefix = "/logs"
+    target_prefix = "logs/"
+  }
+
+  // Expire logs after 7 days
+  lifecycle_rule {
+    id      = "logs"
+    prefix  = "logs/"
+    enabled = true
+
+    expiration {
+      days = 7
+    }
+
+    // Expire previous object versions after 1 day
+    noncurrent_version_expiration {
+      days = 1
+    }
   }
 
   tags = var.global_tags
