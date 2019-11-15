@@ -53,7 +53,7 @@ func TestArtifactsBucket(t *testing.T) {
 		)
 		require.Equal(t,
 			*loggingOutput.LoggingEnabled.TargetPrefix,
-			"/logs",
+			"logs/",
 			"Should log to the /logs prefix",
 		)
 	})

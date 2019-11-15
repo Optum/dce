@@ -28,3 +28,12 @@ type AccountNotFoundError struct {
 func (e *AccountNotFoundError) Error() string {
 	return e.err
 }
+
+// NotFoundError is returned when a resource is not found.
+type NotFoundError struct {
+	Err string
+}
+
+func (e *NotFoundError) Error() string {
+	return e.Err
+}
