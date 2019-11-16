@@ -34,7 +34,7 @@ func TestCreate(t *testing.T) {
 		req := createAccountAPIRequest(t, CreateRequest{
 			ID:           "1234567890",
 			AdminRoleArn: "arn:*:*:*",
-		}, "doesntmatter")
+		}, "")
 
 		mockDb := mocks.DBer{}
 		mockDb.On("GetAccount", "1234567890").Return(nil, nil)
@@ -98,7 +98,7 @@ func TestCreate(t *testing.T) {
 		req := createAccountAPIRequest(t, CreateRequest{
 			ID:           "1234567890",
 			AdminRoleArn: "",
-		}, "doesntmatter")
+		}, "")
 		res, err := Handler(context.TODO(), req)
 		assert.Nil(t, err)
 
@@ -115,7 +115,7 @@ func TestCreate(t *testing.T) {
 		req := createAccountAPIRequest(t, CreateRequest{
 			ID:           "",
 			AdminRoleArn: "arn:mock",
-		}, "doesntmatter")
+		}, "")
 		res, err := Handler(context.TODO(), req)
 		assert.Nil(t, err)
 
@@ -155,7 +155,7 @@ func TestCreate(t *testing.T) {
 			createAccountAPIRequest(t, CreateRequest{
 				ID:           "1234567890",
 				AdminRoleArn: "arn:iam:adminRole",
-			}, "doesntmatter"),
+			}, ""),
 		)
 		assert.Nil(t, err)
 		assert.Equal(t,
@@ -215,7 +215,7 @@ func TestCreate(t *testing.T) {
 		req := createAccountAPIRequest(t, CreateRequest{
 			ID:           "1234567890",
 			AdminRoleArn: "arn:mock",
-		}, "doesntmatter")
+		}, "")
 		res, err := Handler(context.TODO(), req)
 		assert.Nil(t, err)
 		assert.Equal(t, 201, res.StatusCode)
@@ -233,7 +233,7 @@ func TestCreate(t *testing.T) {
 		req := createAccountAPIRequest(t, CreateRequest{
 			ID:           "1234567890",
 			AdminRoleArn: "arn:mock",
-		}, "doesntmatter")
+		}, "")
 		res, err := Handler(context.TODO(), req)
 		assert.Nil(t, err)
 
@@ -255,7 +255,7 @@ func TestCreate(t *testing.T) {
 		req := createAccountAPIRequest(t, CreateRequest{
 			ID:           "1234567890",
 			AdminRoleArn: "arn:mock",
-		}, "doesntmatter")
+		}, "")
 		res, err := Handler(context.TODO(), req)
 		assert.Nil(t, err)
 
@@ -281,7 +281,7 @@ func TestCreate(t *testing.T) {
 		req := createAccountAPIRequest(t, CreateRequest{
 			ID:           "1234567890",
 			AdminRoleArn: "arn:mock",
-		}, "doesntmatter")
+		}, "")
 		res, err := Handler(context.TODO(), req)
 		assert.Nil(t, err)
 
@@ -315,7 +315,7 @@ func TestCreate(t *testing.T) {
 		req := createAccountAPIRequest(t, CreateRequest{
 			ID:           "1234567890",
 			AdminRoleArn: "arn:mock",
-		}, "doesntmatter")
+		}, "")
 		res, err := Handler(context.TODO(), req)
 		assert.Nil(t, err)
 		assert.Equal(t, 201, res.StatusCode, res.Body)
@@ -340,7 +340,7 @@ func TestCreate(t *testing.T) {
 		req := createAccountAPIRequest(t, CreateRequest{
 			ID:           "1234567890",
 			AdminRoleArn: "arn:mock",
-		}, "doesntmatter")
+		}, "")
 		res, err := Handler(context.TODO(), req)
 		assert.Nil(t, err)
 
@@ -398,7 +398,7 @@ func TestCreate(t *testing.T) {
 			createAccountAPIRequest(t, CreateRequest{
 				ID:           "1234567890",
 				AdminRoleArn: "arn:mock",
-			}, "doesntmatter"),
+			}, ""),
 		)
 		assert.Nil(t, err)
 		assert.Equal(t, res.StatusCode, 201)
@@ -419,7 +419,7 @@ func TestCreate(t *testing.T) {
 			createAccountAPIRequest(t, CreateRequest{
 				ID:           "1234567890",
 				AdminRoleArn: "arn:mock",
-			}, "doesntmatter"),
+			}, ""),
 		)
 		assert.Nil(t, err)
 
@@ -524,7 +524,7 @@ func TestCreate(t *testing.T) {
 			createAccountAPIRequest(t, CreateRequest{
 				ID:           "1234567890",
 				AdminRoleArn: "arn:mock",
-			}, "doesntmatter"),
+			}, ""),
 		)
 		assert.Nil(t, err)
 
@@ -565,7 +565,7 @@ func TestCreate(t *testing.T) {
 				"foo": "bar",
 				"faz": "baz",
 			},
-		}, "doesntmatter")
+		}, "")
 		res, err := Handler(context.TODO(), request)
 		require.Nil(t, err)
 
@@ -599,7 +599,7 @@ func TestCreate(t *testing.T) {
 				},
 				"null": nil,
 			},
-		}, "doesntmatter")
+		}, "")
 		res, err := Handler(context.TODO(), request)
 		require.Nil(t, err)
 
@@ -629,7 +629,7 @@ func TestCreate(t *testing.T) {
 		request := createAccountAPIRequest(t, map[string]interface{}{
 			"id":           "123456789012",
 			"adminRoleArn": "roleArn",
-		}, "doesntmatter")
+		}, "")
 		res, err := Handler(context.TODO(), request)
 		require.Nil(t, err)
 
@@ -654,7 +654,7 @@ func TestCreate(t *testing.T) {
 				"id":           "123456789012",
 				"adminRoleArn": "roleArn",
 				"metadata":     metadata,
-			}, "doesntmatter")
+			}, "")
 			res, err := Handler(context.TODO(), request)
 			require.Nil(t, err)
 
