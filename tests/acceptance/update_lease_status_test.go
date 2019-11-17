@@ -6,7 +6,9 @@ import (
 	"github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/gruntwork-io/terratest/modules/terraform"
 	"github.com/stretchr/testify/require"
+	"net/http"
 	"testing"
+	"time"
 
 	"encoding/json"
 	"fmt"
@@ -124,14 +126,19 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 	apiRequest(t, &apiRequestInput{
 		method: "POST",
 		url:    apiURL + "/leases",
-		json: leaseRequest{
+		json: inputLeaseRequest{
 			PrincipalID: principalID,
+			BudgetAmount:20.00,
+
 		},
 		maxAttempts: 15,
 		f: func(r *testutil.R, apiResp *apiResponse) {
 			assert.Equal(r, 201, apiResp.StatusCode)
 		},
 	})
+
+	// create usage
+	createTestUsage(t, apiURL, accountID, usageSvc)
 
 	// Test update_lease_status lambda
 	t.Run("update_lease_status", func(t *testing.T) {
@@ -156,4 +163,72 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 		})
 	})
 
+}
+
+func createTestUsage(t *testing.T, apiURL string, accountID string, usageSvc usage.Service) {
+	// Create usage
+	// Setup usage dates
+	const ttl int = 3
+	currentDate := time.Now()
+	testStartDate := time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), 0, 0, 0, 0, time.UTC)
+	testEndDate := time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), 23, 59, 59, 59, time.UTC)
+
+	// Create mock usage
+	var expectedUsages []*usage.Usage
+
+	usageStartDate := testStartDate
+	usageEndDate := testEndDate
+	startDate := testStartDate
+	endDate := testEndDate
+
+	timeToLive := startDate.AddDate(0, 0, ttl)
+
+	var testPrincipalID = "user"
+	var testAccountID = accountID
+
+	for i := 1; i <= 5; i++ {
+
+		input := usage.Usage{
+			PrincipalID:  testPrincipalID,
+			AccountID:    testAccountID,
+			StartDate:    startDate.Unix(),
+			EndDate:      endDate.Unix(),
+			CostAmount:   20.00,
+			CostCurrency: "USD",
+			TimeToLive:   timeToLive.Unix(),
+		}
+		err := usageSvc.PutUsage(input)
+		require.Nil(t, err)
+
+		expectedUsages = append(expectedUsages, &input)
+
+		usageEndDate = endDate
+		startDate = startDate.AddDate(0, 0, -1)
+		endDate = endDate.AddDate(0, 0, -1)
+	}
+
+	queryString := fmt.Sprintf("/usage?startDate=%d&endDate=%d", usageStartDate.Unix(), usageEndDate.Unix())
+
+	testutil.Retry(t, 10, 10*time.Millisecond, func(r *testutil.R) {
+
+		resp := apiRequest(t, &apiRequestInput{
+			method: "GET",
+			url:    apiURL + queryString,
+			json:   nil,
+		})
+
+		// Verify response code
+		assert.Equal(r, http.StatusOK, resp.StatusCode)
+
+		// Parse response json
+		data := parseResponseArrayJSON(t, resp)
+
+		//Verify response json
+		if len(data) > 0 && data[0] != nil {
+			usageJSON := data[0]
+			assert.Equal(r, "TestUser1", usageJSON["principalId"].(string))
+			assert.Equal(r, "TestAcct1", usageJSON["accountId"].(string))
+			assert.Equal(r, 100.00, usageJSON["costAmount"].(float64))
+		}
+	})
 }
