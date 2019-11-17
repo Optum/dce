@@ -1772,6 +1772,12 @@ func createAdminRole(t *testing.T, awsSession client.ConfigProvider) *createAdmi
 		RoleName:  aws.String(adminRoleName),
 		PolicyArn: aws.String("arn:aws:iam::aws:policy/IAMFullAccess"),
 	})
+
+	// Give the Admin Role Permission to access cost explorer
+	_, err = iamSvc.AttachRolePolicy(&iam.AttachRolePolicyInput{
+		RoleName:  aws.String(adminRoleName),
+		PolicyArn: aws.String("arn:aws:iam::391501768339:policy/CostExplorerFullAccess"),
+	})
 	require.Nil(t, err)
 
 	// IAM Role takes a while to propagate....
