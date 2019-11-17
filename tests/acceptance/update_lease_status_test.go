@@ -20,7 +20,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 )
 
-type getItemsRequest struct {
+type updateLeaseStatusRequest struct {
 	PrincipalID string
 	AccountID   string
 }
@@ -86,81 +86,153 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 	// Create Lambda service client
 	lambdaClient := lambda.New(awsSession)
 
-	// Make sure the DB is clean
-	truncateDBTables(t, dbSvc)
-	truncateUsageTable(t, usageSvc)
-
-	// Cleanup the DB when we're done
-	defer truncateDBTables(t, dbSvc)
-	defer truncateUsageTable(t, usageSvc)
-
 	// Create an adminRole for the account
 	adminRoleRes := createAdminRole(t, awsSession)
-	accountID := adminRoleRes.accountID
-	adminRoleArn := adminRoleRes.adminRoleArn
-	//adminRoleArn := "arn:aws:iam::391501768339:role/AWS_391501768339_Admins"
-	principalID := "user"
+	defer deleteAdminRole()
 
-	// Add the current account to the account pool
-	apiRequest(t, &apiRequestInput{
-		method: "POST",
-		url:    apiURL + "/accounts",
-		json: createAccountRequest{
-			ID:           accountID,
-			AdminRoleArn: adminRoleArn,
-		},
-		maxAttempts: 15,
-		f: func(r *testutil.R, apiResp *apiResponse) {
-			assert.Equal(r, 201, apiResp.StatusCode)
-		},
-	})
+	t.Run("Not exceeded lease budget does not result in Inactive lease.", func(t *testing.T) {
 
-	// Update Account status to ready
-	_,err = dbSvc.TransitionAccountStatus(
-		accountID,
-		db.NotReady, db.Ready,
-	)
-	require.Nil(t, err)
+		// Make sure the DB is clean
+		truncateDBTables(t, dbSvc)
+		truncateUsageTable(t, usageSvc)
 
-	// Create a lease for above account
-	apiRequest(t, &apiRequestInput{
-		method: "POST",
-		url:    apiURL + "/leases",
-		json: inputLeaseRequest{
-			PrincipalID: principalID,
-			BudgetAmount:20.00,
+		// Cleanup the DB after test is done
+		defer truncateDBTables(t, dbSvc)
+		defer truncateUsageTable(t, usageSvc)
 
-		},
-		maxAttempts: 15,
-		f: func(r *testutil.R, apiResp *apiResponse) {
-			assert.Equal(r, 201, apiResp.StatusCode)
-		},
-	})
+		accountID := adminRoleRes.accountID
+		adminRoleArn := adminRoleRes.adminRoleArn
+		principalID := "user"
 
-	// create usage
-	createTestUsage(t, apiURL, accountID, usageSvc)
-
-	// Test update_lease_status lambda
-	t.Run("update_lease_status", func(t *testing.T) {
-		t.Run("Should run update_lease_status lambda successfully", func(t *testing.T) {
-
-			// Get the 10 most recent items
-			request := getItemsRequest{principalID, accountID}
-
-			payload, err := json.Marshal(request)
-			require.Nil(t, err)
-
-			result, err := lambdaClient.Invoke(&lambda.InvokeInput{FunctionName: aws.String("update_lease_status-" + tfOut["namespace"].(string)), Payload: payload})
-			require.Nil(t, err)
-
-			var resp getItemsResponse
-
-			err = json.Unmarshal(result.Payload, &resp)
-			require.Nil(t, err)
-
-			fmt.Println(resp)
-
+		// Add current account to the account pool
+		apiRequest(t, &apiRequestInput{
+			method: "POST",
+			url:    apiURL + "/accounts",
+			json: createAccountRequest{
+				ID:           accountID,
+				AdminRoleArn: adminRoleArn,
+			},
+			maxAttempts: 15,
+			f: func(r *testutil.R, apiResp *apiResponse) {
+				assert.Equal(r, 201, apiResp.StatusCode)
+			},
 		})
+
+		// Update Account status to ready
+		_, err = dbSvc.TransitionAccountStatus(
+			accountID,
+			db.NotReady, db.Ready,
+		)
+		require.Nil(t, err)
+
+		// Create a lease for above created account
+		apiRequest(t, &apiRequestInput{
+			method: "POST",
+			url:    apiURL + "/leases",
+			json: inputLeaseRequest{
+				PrincipalID:  principalID,
+				BudgetAmount: 20.00,
+			},
+			maxAttempts: 15,
+			f: func(r *testutil.R, apiResp *apiResponse) {
+				assert.Equal(r, 201, apiResp.StatusCode)
+			},
+		})
+
+		// Invoke update_lease_status lambda
+		request := updateLeaseStatusRequest{principalID, accountID}
+		payload, err := json.Marshal(request)
+		require.Nil(t, err)
+
+		result, err := lambdaClient.Invoke(&lambda.InvokeInput{FunctionName: aws.String("update_lease_status-" + tfOut["namespace"].(string)), Payload: payload})
+		require.Nil(t, err)
+
+		var resp getItemsResponse
+
+		err = json.Unmarshal(result.Payload, &resp)
+		require.Nil(t, err)
+
+		fmt.Println(resp)
+
+		// Check lease status is active
+		lease, err := dbSvc.GetLease(accountID, "user")
+		require.Nil(t, err)
+		require.Equal(t, db.LeaseStatus("Active"), lease.LeaseStatus)
+		require.Equal(t, db.LeaseStatusReason("Active"), lease.LeaseStatusReason)
+	})
+
+	t.Run("Exceeded lease budget result in Inactive lease.", func(t *testing.T) {
+
+		// Make sure the DB is clean
+		truncateDBTables(t, dbSvc)
+		truncateUsageTable(t, usageSvc)
+
+		// Cleanup the DB when test execution is done
+		defer truncateDBTables(t, dbSvc)
+		defer truncateUsageTable(t, usageSvc)
+
+		accountID := adminRoleRes.accountID
+		adminRoleArn := adminRoleRes.adminRoleArn
+		principalID := "user"
+
+		// Add current account to the account pool
+		apiRequest(t, &apiRequestInput{
+			method: "POST",
+			url:    apiURL + "/accounts",
+			json: createAccountRequest{
+				ID:           accountID,
+				AdminRoleArn: adminRoleArn,
+			},
+			maxAttempts: 15,
+			f: func(r *testutil.R, apiResp *apiResponse) {
+				assert.Equal(r, 201, apiResp.StatusCode)
+			},
+		})
+
+		// Update Account status to ready
+		_, err = dbSvc.TransitionAccountStatus(
+			accountID,
+			db.NotReady, db.Ready,
+		)
+		require.Nil(t, err)
+
+		// Create a lease for above created account
+		apiRequest(t, &apiRequestInput{
+			method: "POST",
+			url:    apiURL + "/leases",
+			json: inputLeaseRequest{
+				PrincipalID:  principalID,
+				BudgetAmount: 20.00,
+			},
+			maxAttempts: 15,
+			f: func(r *testutil.R, apiResp *apiResponse) {
+				assert.Equal(r, 201, apiResp.StatusCode)
+			},
+		})
+
+		// create usage for this lease and account
+		createTestUsage(t, apiURL, accountID, usageSvc)
+
+		// Invoke update_lease_status lambda
+		request := updateLeaseStatusRequest{principalID, accountID}
+		payload, err := json.Marshal(request)
+		require.Nil(t, err)
+
+		result, err := lambdaClient.Invoke(&lambda.InvokeInput{FunctionName: aws.String("update_lease_status-" + tfOut["namespace"].(string)), Payload: payload})
+		require.Nil(t, err)
+
+		var resp getItemsResponse
+
+		err = json.Unmarshal(result.Payload, &resp)
+		require.Nil(t, err)
+
+		fmt.Println(resp)
+
+		// Check lease status is inactive due to lease over budget
+		lease, err := dbSvc.GetLease(accountID, "user")
+		require.Nil(t, err)
+		require.Equal(t, db.LeaseStatus("Inactive"), lease.LeaseStatus)
+		require.Equal(t, db.LeaseStatusReason("OverBudget"), lease.LeaseStatusReason)
 	})
 
 }
@@ -193,7 +265,7 @@ func createTestUsage(t *testing.T, apiURL string, accountID string, usageSvc usa
 			AccountID:    testAccountID,
 			StartDate:    startDate.Unix(),
 			EndDate:      endDate.Unix(),
-			CostAmount:   20.00,
+			CostAmount:   2000.00,
 			CostCurrency: "USD",
 			TimeToLive:   timeToLive.Unix(),
 		}
@@ -228,7 +300,7 @@ func createTestUsage(t *testing.T, apiURL string, accountID string, usageSvc usa
 			usageJSON := data[0]
 			assert.Equal(r, "TestUser1", usageJSON["principalId"].(string))
 			assert.Equal(r, "TestAcct1", usageJSON["accountId"].(string))
-			assert.Equal(r, 100.00, usageJSON["costAmount"].(float64))
+			assert.Equal(r, 10000.00, usageJSON["costAmount"].(float64))
 		}
 	})
 }
