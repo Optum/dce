@@ -6,7 +6,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/gruntwork-io/terratest/modules/terraform"
 	"github.com/stretchr/testify/require"
-	"net/http"
 	"testing"
 
 	"encoding/json"
@@ -151,9 +150,6 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 
 			err = json.Unmarshal(result.Payload, &resp)
 			require.Nil(t, err)
-
-			// If the status code is NOT 200, the call failed
-			require.Equal(t, http.StatusOK, resp.StatusCode)
 
 			fmt.Println(resp)
 
