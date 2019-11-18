@@ -73,7 +73,7 @@ variable "check_budget_enabled" {
   description = "If false, budgets will not be checked"
 }
 variable "budget_notification_from_email" {
-  type = string
+  type    = string
   default = "dce@example.com"
 }
 
