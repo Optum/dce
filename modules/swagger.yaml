@@ -1,7 +1,7 @@
 swagger: "2.0"
 info:
   version: "1.0"
-  title: ${namespace}
+  title: DCE API
 schemes:
   - https
 paths:
