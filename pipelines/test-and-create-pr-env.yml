@@ -65,9 +65,9 @@ steps:
       # it as a resource name.
       # If it's a tagged version, just call it `release` or something
       if [[ -z ${PR_NUMBER} ]]; then
-        NS="github-pr-93"
+        NS="github-pr-9321"
       else
-        NS="github-pr-93"
+        NS="github-pr-9321"
       fi
 
       echo "Namespace is ${NS}"
