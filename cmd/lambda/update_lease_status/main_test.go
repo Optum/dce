@@ -362,3 +362,18 @@ func Test_isLeaseExpired(t *testing.T) {
 		})
 	}
 }
+
+func TestGetBeginningOfCurrentBillingPeriod(t *testing.T) {
+
+	actualOutput := getBeginningOfCurrentBillingPeriod("WEEKLY")
+
+	currentTime := time.Now()
+	for currentTime.Weekday() != time.Sunday { // iterate back to Sunday
+		currentTime = currentTime.AddDate(0, 0, -1)
+	}
+
+	expectedOutput := time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 0, 0, 0, 0, time.UTC)
+
+	require.NotNil(t, actualOutput)
+	require.Equal(t, expectedOutput, actualOutput)
+}
