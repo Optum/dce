@@ -1,0 +1,258 @@
+pool:
+  vmImage: "Ubuntu 16.04"
+
+trigger: none
+
+# Run builds for PRs against `master`
+pr:
+  - master
+  - release/*
+
+stages:
+  - stage: TestAndBuild
+    jobs:
+      - job: Test
+        steps:
+          # Setup Python
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: "3.x"
+              addToPath: true
+              architecture: "x64"
+
+          # Install AWS ClI tool
+          - task: CmdLine@2
+            inputs:
+              script: "pip install awscli"
+            displayName: "Install awscli"
+
+          # Install Terraform
+          - task: TerraformInstaller@0
+            inputs:
+              terraformVersion: "0.12.7"
+            displayName: "Install Terraform"
+
+          # Install GO
+          - task: GoTool@0
+            inputs:
+              version: "1.12.6"
+            displayName: "Set up the Go workspace"
+
+          # Install tools needed for CI environment
+          - script: |
+              ./scripts/install_ci.sh
+            displayName: "Set up Golang CI Tools"
+
+          # Unit Tests
+          - script: |
+              make test
+            displayName: "Unit Tests"
+
+          # Publish code coverage results
+          - task: PublishCodeCoverageResults@1
+            inputs:
+              codeCoverageTool: Cobertura
+              summaryFileLocation: $(System.DefaultWorkingDirectory)/coverage.xml
+            condition: always()
+
+      - job: Build
+        dependsOn: Test
+        steps:
+          - script: |
+              make build
+            displayName: "Build"
+          - publish: $(System.DefaultWorkingDirectory)/bin
+            artifact: bin
+          - publish: $(System.DefaultWorkingDirectory)/modules
+            artifact: modules
+          - publish: $(System.DefaultWorkingDirectory)/scripts
+            artifact: deploy_scripts
+          - publish: $(System.DefaultWorkingDirectory)/tests
+            artifact: tests
+
+  - stage: Deploy
+    dependsOn: TestAndBuild
+    jobs:
+      - deployment: Deploy
+        displayName: Deploy
+        environment: "create"
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                # Configure the namespace used by Terraform
+                # May be referenced as an env var (eg. "${NAMESPACE}")
+                # Or as a pipeline variable (eg. "$(namespace)")
+                - bash: |
+                    # TODO tag name can't be namespace, AWS doesn't like
+                    # it as a resource name.
+                    # If it's a tagged version, just call it `release` or something
+                    if [[ -z ${PR_NUMBER} ]]; then
+                      NS="release"
+                    else
+                      NS="github-pr-${PR_NUMBER}"
+                    fi
+
+                    echo "Namespace is ${NS}"
+
+                    # Set the namespace as a Azure Pipeline variable
+                    # See https://docs.microsoft.com/en-us/azure/devops/pipelines/process/variables?view=azure-devops&tabs=yaml%2Cbatch#set-in-script
+                    echo "##vso[task.setvariable variable=namespace]${NS}"
+                  displayName: "Configure AWS Namespace"
+                  env:
+                    PR_NUMBER: $(System.PullRequest.PullRequestNumber)
+                    # This is the branch name, or the git tag name
+                    NS_BRANCH_OR_TAG: $(Build.SourceBranchName)
+                # Install Terraform
+                - task: TerraformInstaller@0
+                  inputs:
+                    terraformVersion: "0.12.7"
+                  displayName: "Install Terraform"
+
+                - bash: |
+                    echo '
+                    terraform {
+                      backend "s3" {
+                        region = "us-east-1"
+                      }
+                    }
+                    ' > backend.tf
+                  displayName: "Generate backend.tf"
+                  workingDirectory: "$(Pipeline.Workspace)/modules"
+
+                # terraform init
+                - task: TerraformTaskV1@0
+                  displayName: "terraform init"
+                  inputs:
+                    provider: "aws"
+                    command: "init"
+                    workingDirectory: "$(Pipeline.Workspace)/modules"
+                    backendServiceAWS: "AWS_Terraform_Connection"
+                    backendAWSBucketName: "$(BACKEND_AWS_BUCKET_NAME)"
+                    backendAWSKey: "$(namespace)/terraform.tfstate"
+
+                # terraform apply
+                - task: TerraformTaskV1@0
+                  name: "TfApply"
+                  displayName: "terraform apply"
+                  inputs:
+                    provider: "aws"
+                    command: "apply"
+                    workingDirectory: "$(Pipeline.Workspace)/modules"
+                    commandOptions: '-var="namespace=$(namespace)" -var="budget_notification_from_email=$(NOTIFY_EMAIL)"'
+                    environmentServiceNameAWS: "AWS_Terraform_Connection"
+
+                # Deploy Application Code to AWS
+                - task: AWSShellScript@1
+                  displayName: "Deploy Application Code"
+                  inputs:
+                    awsCredentials: "AWS_Login"
+                    regionName: "us-east-1"
+                    arguments: "$(Pipeline.Workspace)/bin/build_artifacts.zip $(namespace) $(ARTIFACTS_BUCKET_NAME)-$(namespace)"
+                    scriptType: "filePath"
+                    filePath: "$(Pipeline.Workspace)/deploy_scripts/deploy.sh"
+
+                # Functional Tests
+                - task: AWSShellScript@1
+                  displayName: "Functional Tests"
+                  inputs:
+                    awsCredentials: "AWS_Login"
+                    regionName: "us-east-1"
+                    scriptType: "inline"
+                    inlineScript: |
+                      cd $(Pipeline.Workspace)
+                      mkdir -p junit-report
+                      # Run functional tests
+                      go test -v ./tests/... 2>&1 | tee >(go-junit-report > junit-report/functional.xml)
+  - stage: Cleanup
+    dependsOn: Deploy
+    jobs:
+      - deployment: Deploy
+        displayName: TerraformDestroy
+        environment: "create"
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                # Configure the namespace used by Terraform
+                # May be referenced as an env var (eg. "${NAMESPACE}")
+                # Or as a pipeline variable (eg. "$(namespace)")
+                - bash: |
+                    # TODO tag name can't be namespace, AWS doesn't like
+                    # it as a resource name.
+                    # If it's a tagged version, just call it `release` or something
+                    if [[ -z $PR_NUMBER ]]; then
+                      NS="release"
+                    else
+                      NS="github-pr-$PR_NUMBER"
+                    fi
+
+                    echo "Namespace is ${NS}"
+
+                    # Set the namespace as a Azure Pipeline variable
+                    # See https://docs.microsoft.com/en-us/azure/devops/pipelines/process/variables?view=azure-devops&tabs=yaml%2Cbatch#set-in-script
+                    echo "##vso[task.setvariable variable=namespace]${NS}"
+                  displayName: "Configure AWS Namespace"
+                  env:
+                    PR_NUMBER: $(System.PullRequest.PullRequestNumber)
+                    # This is the branch name, or the git tag name
+                    NS_BRANCH_OR_TAG: $(Build.SourceBranchName)
+
+                # Generate backend.tf file
+                # Note that we don't commit this file to the repo
+                # to make local TF deployments easier (using local TF state)
+                - script: |
+                    echo '
+                    terraform {
+                      backend "s3" {
+                        region = "us-east-1"
+                      }
+                    }
+                    ' > backend.tf
+                  displayName: "Generate backend.tf"
+                  workingDirectory: "$(Pipeline.Workspace)/modules"
+
+                # Install Terraform
+                - task: TerraformInstaller@0
+                  inputs:
+                    terraformVersion: "0.12.7"
+                  displayName: "Install Terraform"
+
+                # terraform init
+                - task: TerraformTaskV1@0
+                  displayName: "terraform init"
+                  inputs:
+                    provider: "aws"
+                    command: "init"
+                    workingDirectory: "$(Pipeline.Workspace)/modules"
+                    backendServiceAWS: "AWS_Terraform_Connection"
+                    backendAWSBucketName: "$(BACKEND_AWS_BUCKET_NAME)"
+                    backendAWSKey: "$(namespace)/terraform.tfstate"
+
+                # terraform destroy
+                - task: TerraformTaskV1@0
+                  displayName: "terraform destroy"
+                  inputs:
+                    provider: "aws"
+                    command: "destroy"
+                    workingDirectory: "$(Pipeline.Workspace)/modules"
+                    commandOptions: '-var="namespace=$(namespace)" -var="budget_notification_from_email=$(NOTIFY_EMAIL)"'
+                    environmentServiceNameAWS: "AWS_Terraform_Connection"
+
+  - stage: Release
+    dependsOn: Cleanup
+    jobs:
+      - job: ReleaseArtifacts
+        steps:
+          # Publish a Github Release for tagged commits
+          # See https://docs.microsoft.com/en-us/azure/devops/pipelines/tasks/utility/github-release?view=azure-devops
+          - task: GithubRelease@0
+            displayName: "Create GitHub Release"
+            inputs:
+              gitHubConnection: Github
+              repositoryName: Optum/dce
+              assets: |
+                $(Pipeline.Workspace)/bin/build_artifacts.zip
+                $(Pipeline.Workspace)/bin/terraform_artifacts.zip
+                $(Pipeline.Workspace)/deploy_scripts/deploy.sh
+                $(Pipeline.Workspace)/deploy_scripts/restore_db.sh
