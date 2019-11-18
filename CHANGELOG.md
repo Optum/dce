@@ -4,6 +4,7 @@
 - Update Status Lambda - budget_check: Terminate lease if spend > Principal budget amount
 - Support `metadata` parameter in `/accounts` API endpoints
 - Add `PUT /accounts/:id` endpoint
+- Fixed bug where child account's DCEPrincipal role trusted itself rather than the master account
 
 
 ## v0.23.0

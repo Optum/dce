@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/stretchr/testify/require"
 	"net/http"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 
 	awsMocks "github.com/Optum/dce/pkg/awsiface/mocks"
 	"github.com/Optum/dce/pkg/rolemanager"
@@ -33,7 +34,7 @@ func TestCreate(t *testing.T) {
 		req := createAccountAPIRequest(t, CreateRequest{
 			ID:           "1234567890",
 			AdminRoleArn: "arn:*:*:*",
-		})
+		}, "")
 
 		mockDb := mocks.DBer{}
 		mockDb.On("GetAccount", "1234567890").Return(nil, nil)
@@ -97,7 +98,7 @@ func TestCreate(t *testing.T) {
 		req := createAccountAPIRequest(t, CreateRequest{
 			ID:           "1234567890",
 			AdminRoleArn: "",
-		})
+		}, "")
 		res, err := Handler(context.TODO(), req)
 		assert.Nil(t, err)
 
@@ -114,7 +115,7 @@ func TestCreate(t *testing.T) {
 		req := createAccountAPIRequest(t, CreateRequest{
 			ID:           "",
 			AdminRoleArn: "arn:mock",
-		})
+		}, "")
 		res, err := Handler(context.TODO(), req)
 		assert.Nil(t, err)
 
@@ -154,7 +155,7 @@ func TestCreate(t *testing.T) {
 			createAccountAPIRequest(t, CreateRequest{
 				ID:           "1234567890",
 				AdminRoleArn: "arn:iam:adminRole",
-			}),
+			}, ""),
 		)
 		assert.Nil(t, err)
 		assert.Equal(t,
@@ -214,7 +215,7 @@ func TestCreate(t *testing.T) {
 		req := createAccountAPIRequest(t, CreateRequest{
 			ID:           "1234567890",
 			AdminRoleArn: "arn:mock",
-		})
+		}, "")
 		res, err := Handler(context.TODO(), req)
 		assert.Nil(t, err)
 		assert.Equal(t, 201, res.StatusCode)
@@ -232,7 +233,7 @@ func TestCreate(t *testing.T) {
 		req := createAccountAPIRequest(t, CreateRequest{
 			ID:           "1234567890",
 			AdminRoleArn: "arn:mock",
-		})
+		}, "")
 		res, err := Handler(context.TODO(), req)
 		assert.Nil(t, err)
 
@@ -254,7 +255,7 @@ func TestCreate(t *testing.T) {
 		req := createAccountAPIRequest(t, CreateRequest{
 			ID:           "1234567890",
 			AdminRoleArn: "arn:mock",
-		})
+		}, "")
 		res, err := Handler(context.TODO(), req)
 		assert.Nil(t, err)
 
@@ -280,7 +281,7 @@ func TestCreate(t *testing.T) {
 		req := createAccountAPIRequest(t, CreateRequest{
 			ID:           "1234567890",
 			AdminRoleArn: "arn:mock",
-		})
+		}, "")
 		res, err := Handler(context.TODO(), req)
 		assert.Nil(t, err)
 
@@ -314,7 +315,7 @@ func TestCreate(t *testing.T) {
 		req := createAccountAPIRequest(t, CreateRequest{
 			ID:           "1234567890",
 			AdminRoleArn: "arn:mock",
-		})
+		}, "")
 		res, err := Handler(context.TODO(), req)
 		assert.Nil(t, err)
 		assert.Equal(t, 201, res.StatusCode, res.Body)
@@ -339,7 +340,7 @@ func TestCreate(t *testing.T) {
 		req := createAccountAPIRequest(t, CreateRequest{
 			ID:           "1234567890",
 			AdminRoleArn: "arn:mock",
-		})
+		}, "")
 		res, err := Handler(context.TODO(), req)
 		assert.Nil(t, err)
 
@@ -397,7 +398,7 @@ func TestCreate(t *testing.T) {
 			createAccountAPIRequest(t, CreateRequest{
 				ID:           "1234567890",
 				AdminRoleArn: "arn:mock",
-			}),
+			}, ""),
 		)
 		assert.Nil(t, err)
 		assert.Equal(t, res.StatusCode, 201)
@@ -418,7 +419,7 @@ func TestCreate(t *testing.T) {
 			createAccountAPIRequest(t, CreateRequest{
 				ID:           "1234567890",
 				AdminRoleArn: "arn:mock",
-			}),
+			}, ""),
 		)
 		assert.Nil(t, err)
 
@@ -452,6 +453,7 @@ func TestCreate(t *testing.T) {
 		roleManager.On("SetIAMClient", mock.Anything)
 
 		// Setup expected AssumeRolePolicy
+		expectedTrustAccount := "0987654321"
 		expectedAssumeRolePolicy := strings.TrimSpace(`
 		{
 			"Version": "2012-10-17",
@@ -459,7 +461,7 @@ func TestCreate(t *testing.T) {
 				{
 					"Effect": "Allow",
 					"Principal": {
-						"AWS": "arn:aws:iam::1234567890:root"
+						"AWS": "arn:aws:iam::` + expectedTrustAccount + `:root"
 					},
 					"Action": "sts:AssumeRole",
 					"Condition": {}
@@ -498,7 +500,8 @@ func TestCreate(t *testing.T) {
 			createAccountAPIRequest(t, CreateRequest{
 				ID:           "1234567890",
 				AdminRoleArn: "arn:mock",
-			}),
+			},
+				expectedTrustAccount),
 		)
 		assert.Nil(t, err)
 
@@ -521,7 +524,7 @@ func TestCreate(t *testing.T) {
 			createAccountAPIRequest(t, CreateRequest{
 				ID:           "1234567890",
 				AdminRoleArn: "arn:mock",
-			}),
+			}, ""),
 		)
 		assert.Nil(t, err)
 
@@ -562,7 +565,7 @@ func TestCreate(t *testing.T) {
 				"foo": "bar",
 				"faz": "baz",
 			},
-		})
+		}, "")
 		res, err := Handler(context.TODO(), request)
 		require.Nil(t, err)
 
@@ -596,7 +599,7 @@ func TestCreate(t *testing.T) {
 				},
 				"null": nil,
 			},
-		})
+		}, "")
 		res, err := Handler(context.TODO(), request)
 		require.Nil(t, err)
 
@@ -626,7 +629,7 @@ func TestCreate(t *testing.T) {
 		request := createAccountAPIRequest(t, map[string]interface{}{
 			"id":           "123456789012",
 			"adminRoleArn": "roleArn",
-		})
+		}, "")
 		res, err := Handler(context.TODO(), request)
 		require.Nil(t, err)
 
@@ -651,7 +654,7 @@ func TestCreate(t *testing.T) {
 				"id":           "123456789012",
 				"adminRoleArn": "roleArn",
 				"metadata":     metadata,
-			})
+			}, "")
 			res, err := Handler(context.TODO(), request)
 			require.Nil(t, err)
 
@@ -669,12 +672,15 @@ func TestCreate(t *testing.T) {
 	})
 }
 
-func createAccountAPIRequest(t *testing.T, req interface{}) events.APIGatewayProxyRequest {
+func createAccountAPIRequest(t *testing.T, req interface{}, accountID string) events.APIGatewayProxyRequest {
 	requestBody, err := json.Marshal(&req)
 	assert.Nil(t, err)
 	return events.APIGatewayProxyRequest{
 		HTTPMethod: "POST",
 		Path:       "/accounts",
 		Body:       string(requestBody),
+		RequestContext: events.APIGatewayProxyRequestContext{
+			AccountID: accountID,
+		},
 	}
 }
