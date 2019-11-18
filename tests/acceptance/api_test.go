@@ -36,7 +36,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 )
 
-var adminRoleName = "dce-api-test-admin-role-" + fmt.Sprintf("%v", time.Now().Unix())
+var adminRoleName = ""
 
 func TestMain(m *testing.M) {
 	code := m.Run()
@@ -76,7 +76,8 @@ func TestApi(t *testing.T) {
 	)
 
 	// Create an adminRole for the test account
-	adminRoleRes := createAdminRole(t, awsSession)
+	adminRoleName = "dce-api-test-admin-role-" + fmt.Sprintf("%v", time.Now().Unix())
+	adminRoleRes := createAdminRole(t, awsSession, adminRoleName)
 	accountID := adminRoleRes.accountID
 	adminRoleArn := adminRoleRes.adminRoleArn
 
@@ -1739,7 +1740,7 @@ type createAdminRoleOutput struct {
 	adminRoleArn string
 }
 
-func createAdminRole(t *testing.T, awsSession client.ConfigProvider) *createAdminRoleOutput {
+func createAdminRole(t *testing.T, awsSession client.ConfigProvider, adminRoleName string) *createAdminRoleOutput {
 	currentAccountID := aws2.GetAccountId(t)
 
 	// Create an Admin Role that can be assumed
