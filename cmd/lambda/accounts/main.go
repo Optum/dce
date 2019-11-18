@@ -32,6 +32,8 @@ import (
 var muxLambda *gorillamux.GorillaMuxAdapter
 
 var (
+	// CurrentAccountID - The ID of the AWS Account this is running in
+	CurrentAccountID *string
 	// AWSSession - The AWS session
 	AWSSession *session.Session
 	// RoleManager - Manages the roles
@@ -141,6 +143,7 @@ func initConfig() {
 
 // Handler - Handle the lambda function
 func Handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	CurrentAccountID = &req.RequestContext.AccountID
 	// If no name is provided in the HTTP request body, throw an error
 	return muxLambda.ProxyWithContext(ctx, req)
 }

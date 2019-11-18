@@ -2,6 +2,7 @@
 
 - Support `metadata` parameter in `/accounts` API endpoints
 - Add `PUT /accounts/:id` endpoint
+- Fixed bug where child account's DCEPrincipal role trusted itself rather than the master account
 
 ## v0.23.0
 
