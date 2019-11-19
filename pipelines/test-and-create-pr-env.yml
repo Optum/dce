@@ -33,7 +33,7 @@ steps:
   # Install Terraform
   - task: TerraformInstaller@0
     inputs:
-      terraformVersion: "0.12.13"
+      terraformVersion: "0.12.7"
     displayName: "Install Terraform"
 
   # Install GO
