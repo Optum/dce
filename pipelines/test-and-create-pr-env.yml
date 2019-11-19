@@ -81,6 +81,19 @@ steps:
       # This is the branch name, or the git tag name
       NS_BRANCH_OR_TAG: $(Build.SourceBranchName)
 
+  # Generate backend.tf file
+  # Note that we don't commit this file to the repo
+  # to make local TF deployments easier (using local TF state)
+  - script: |
+      echo '
+      terraform {
+        backend "s3" {
+          region = "us-east-1"
+        }
+      }
+      ' > ./modules/backend.tf
+    displayName: "Generate backend.tf"
+
   # terraform init
   - task: TerraformTaskV1@0
     displayName: "terraform init"
