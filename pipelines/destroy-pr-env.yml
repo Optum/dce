@@ -15,10 +15,10 @@ steps:
       # TODO tag name can't be namespace, AWS doesn't like
       # it as a resource name.
       # If it's a tagged version, just call it `release` or something
-      if [[ -z ${PR_NUMBER} ]]; then
-        NS="github-pr-9321"
+      if [[ -z $PR_NUMBER ]]; then
+        NS="release"
       else
-        NS="github-pr-9321"
+        NS="github-pr-$PR_NUMBER"
       fi
 
       echo "Namespace is ${NS}"
