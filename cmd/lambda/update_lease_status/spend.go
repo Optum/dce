@@ -102,7 +102,6 @@ func calculatePrincipalSpend(input *calculateSpendInput) (float64, error) {
 	// Budget period starts based on principal_budget_period variable value
 	currentTime := time.Now()
 	budgetStartTime := getBeginningOfCurrentBillingPeriod(input.principalBudgetPeriod)
-	// budget's `endTime` is set to yesterday
 	budgetEndTime := time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 23, 59, 59, 0, time.UTC)
 
 	log.Printf("Retrieving usage for lease %s @ %s for period %s to %s...",
