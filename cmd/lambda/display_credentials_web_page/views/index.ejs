@@ -1,0 +1,36 @@
+<!DOCTYPE html> 
+<html>
+    <head> 
+    <meta charset="utf-8">
+    <link rel="shortcut icon" type="image/png" href="public/favicon.png"/>
+    <script>
+        var SITE_PATH_PREFIX = "<%= SITE_PATH_PREFIX %>"
+        var APIGW_DEPLOYMENT_NAME = "<%= APIGW_DEPLOYMENT_NAME %>"
+        var API_PATH_PREFIX = ""
+        var IDENTITY_POOL_ID = "<%= IDENTITY_POOL_ID %>"
+        var USER_POOL_PROVIDER_NAME = "<%= USER_POOL_PROVIDER_NAME %>"
+        var USER_POOL_CLIENT_ID = "<%= USER_POOL_CLIENT_ID %>"
+        var USER_POOL_APP_WEB_DOMAIN = "<%= USER_POOL_APP_WEB_DOMAIN %>"
+        var USER_POOL_ID = "<%= USER_POOL_ID %>"
+    </script>
+    </head>
+
+    <body>
+        <script src="https://code.jquery.com/jquery-1.11.3.min.js"></script>
+        <script src="public/amazon-cognito-auth.min.js"></script>
+        <script src="https://sdk.amazonaws.com/js/aws-sdk-2.536.0.min.js"></script>
+        <script src="https://unpkg.com/vue"></script>
+
+        <div id="app" v-cloak>
+            <h1>Copy/paste these credentials into your terminal to use the DCE CLI.</h1>
+            <p>These credentials are temporary. You will need to authenticate again once they expire.</p>
+            
+            <h2>Mac/Linux</h2>
+            <code>export DCE_SYSTEM_CREDENTIALS={{ encodedCreds }}</code>
+            
+            <h2>Windows</h2>
+            <code>set DCE_SYSTEM_CREDENTIALS={{ encodedCreds }}</code>
+        </div>
+        <script src="public/main.js"></script>
+    </body>
+</html>
