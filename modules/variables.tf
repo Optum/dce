@@ -17,11 +17,6 @@ variable "namespace" {
   description = "The namespace for this Terraform run"
 }
 
-variable "organization_id" {
-  description = "The AWS Orgnanization ID the AWS Account is under."
-  default     = "STUB"
-}
-
 variable "reset_nuke_template_bucket" {
   description = "S3 bucket name containing the nuke configuration template. Use this to override the default nuke configuration."
   default     = "STUB"
@@ -54,7 +49,7 @@ variable "reset_image_pull_creds" {
 
 variable "reset_nuke_toggle" {
   description = "Indicator to set Nuke to not delete any resources. Use 'false' to indicate a Dry Run. NOTE: Cannot change Account status with this toggled off."
-  default     = "false"
+  default     = "true"
 }
 
 variable "populate_reset_queue_schedule_expression" {
@@ -78,7 +73,8 @@ variable "check_budget_enabled" {
   description = "If false, budgets will not be checked"
 }
 variable "budget_notification_from_email" {
-  type = string
+  type    = string
+  default = "STUB"
 }
 
 variable "budget_notification_bcc_emails" {
