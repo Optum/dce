@@ -31,7 +31,7 @@ Users (by default) are given access to the leasing and usage APIs.  This is done
 
 The DCE API accepts authentication via IAM credentials using [SigV4 signed requests](https://docs.aws.amazon.com/general/latest/gr/sigv4_signing.html).
 
-Note that any requests made via IAM Credentials will be treated as an [admin role](#admins). 
+Any requests made via IAM Credentials will be treated as an [admin role](#admins). 
 
 The process for signing requests with SigV4 is somewhat involved, but luckily there are a number of tools to make this easier. For example:
 
@@ -47,7 +47,7 @@ AWS also provides [examples for a number of languages in their docs](https://doc
 
 The IAM principal used to send requests to the DCE API must have sufficient permissions to execute API requests.
 
-The Terraform module in the repo provides an IAM policy with appropriate permissions for executing DCE API requests. You can access the policy name and ARN as Terraform outputs.
+The Terraform module in the repo provides an IAM policy with appropriate permissions for executing DCE API requests. The policy name and ARN are available as Terraform outputs.
 
 ```
 terraform output api_access_policy_name

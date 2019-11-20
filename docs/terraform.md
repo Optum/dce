@@ -1,6 +1,6 @@
 ## Deploying DCE with Terraform
 
-The AWS infrastructure for your DCE master account is defined as a Terraform module within the [github.com/Optum/dce](https://github.com/Optum/dce) repo. This infrastructure may be deployed using the [Terraform CLI](https://www.terraform.io/docs/commands/index.html):
+The AWS infrastructure for the DCE master account is defined as a Terraform module within the [github.com/Optum/dce](https://github.com/Optum/dce) repo. This infrastructure may be deployed using the [Terraform CLI](https://www.terraform.io/docs/commands/index.html):
 
 ```
 cd modules
@@ -28,7 +28,7 @@ deploy.sh build_artifacts.zip ${namespace} ${artifacts_bucket}
 
 ## Configuring Terraform Variables
 
-The DCE Terraform module accepts a number of configuration variables to tweak the behavior of your DCE deployment. These variables can be provided to the `terraform apply` CLI command, or configured in a `tfvars` file.
+The DCE Terraform module accepts a number of configuration variables to tweak the behavior of the DCE deployment. These variables can be provided to the `terraform apply` CLI command, or configured in a `tfvars` file.
  
  For example:
  
@@ -45,7 +45,7 @@ See [/modules/variables.tf](https://github.com/Optum/dce/blob/master/modules/var
 
 ## Accessing Terraform Outputs
 
-The DCE Terraform module outputs a number of parameters, which may be useful for interacting with the configured resources. For example, the `api_url` output tells you the base url for your DCE API Gateway endpoint.
+The DCE Terraform module outputs a number of parameters, which may be useful for interacting with the configured resources. For example, the `api_url` output provides the base url for your DCE API Gateway endpoint.
 
 Use the [`terraform output`](https://www.terraform.io/docs/commands/output.html) CLI command to access outputs.
 
@@ -61,7 +61,7 @@ For a full list of available outputs, see [/modules/outputs.tf](https://github.c
 
 You may want to extend the DCE Terraform configuration with our own infrastructure. For example, you may want to subscribe your own Lambda to DCE [SNS Lifecycle Events](sns.md). 
 
-To do this, you can pull in the DCE Terraform module as a submodule from within your own Terraform configuration:
+To do this, pull in the DCE Terraform module as a submodule from within your own Terraform configuration:
 
 ```hcl
 # Load DCE as a Terraform submodule

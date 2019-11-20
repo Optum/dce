@@ -32,10 +32,12 @@ dce accounts add \
     --admin-role-arn arn:aws:iam::123456789012:role/OrganizationAccountAccessRole
 
 # Lease an account
-dce leases create
+dce leases create \
+    --principal-id jdoe@example.com \
+    --budget-amount 100 --budget-currency USD
 
 # Login to your account
-dce leases login
+dce leases login <lease-id>
 ```
 
 ## Contributing to DCE

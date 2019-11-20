@@ -2,9 +2,9 @@
 
 ## Understanding Principal Policies
 
-When an AWS account is added to the [DCE account pool](concepts.md#account-pool), DCE will create a new IAM role and policy within the account, to be assumed by end-users (principals) of the account. 
+When an AWS account is added to the [DCE account pool](concepts.md#account-pool),an IAM role and policy are created within the account. This role is assumed by end-users when accessing their leased account.
 
-You'll see this new IAM role returned as `principalRoleArn` when you [create a new account via the DCE API](api-documentation.md#accounts). For example:
+The principal user's IAM role is returned as `principalRoleArn` when [creating a new account via the DCE API](api-documentation.md#accounts). For example:
 
 ```json
 {
@@ -17,25 +17,25 @@ You'll see this new IAM role returned as `principalRoleArn` when you [create a n
 By default, the `DCEPrincipal` role has _near-administrative_ access to their leased account, with a few exceptions:
 
 - Users may not create AWS support tickets 
-    - eg, we don't want users increasing service limits
+    - e.g., we don't want users increasing service limits
 - Users may not modify resources required by DCE to manage the child account
-    - eg. you cannot modify the IAM Trust Relationship which allows DCE master to assume into the child account's IAM roles
-- Users are limited to set of configured regions
+    - e.g. users cannot modify the IAM Trust Relationship which allows DCE master to assume into the child account's IAM roles
+- Users are limited to a set of configured regions
     - This is to limit the scope of account resets. See [_Configuring Account Resets_](howto.md#configure-account-resets)
 - Users are limited to AWS services which DCE knows how to destroy.
     - This is to prevent orphan resources in accounts after reset.
 
 ## Principal Role Security
 
-Note that, by default, **principal users may elevate their own IAM access**. For example, users may create a new IAM role with an attached `AdministrativeAccess` policy, assign the role to an EC2 instance, and then SSH into the instance as an admin user.
+By default, **principal users may elevate their own IAM access**. For example, users may create a new IAM role with an attached `AdministrativeAccess` policy, assign the role to an EC2 instance, and then SSH into the instance as an admin user.
 
-The best way to block this backdoor access to IAM policy elevation is through a [Service Control Policy](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_policies_scp.html), or SCP. An SCP is an organization-level policy which allows you to control access to _all_ IAM roles and users within the organizations. 
+The best way to block this backdoor access to IAM policy elevation is through a [Service Control Policy](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_policies_scp.html), or SCP. An SCP is an organization-level policy which allows administrators to control access to _all_ IAM roles and users within the organizations. 
 
 See [_DCE Service Control Policies_](#dce-service-control-policies-scp)
 
 ## DCE Service Control Policies (SCP)
 
-Implementing DCE in an AWS Organization provides the ability to use SCPs, which can be helpful for ensuring the resilience of your DCE resources. The following SCP is an example policy that contains two statements for protecting your DCE accounts:
+Implementing DCE in an AWS Organization provides the ability to use SCPs, which can be helpful for ensuring the resilience of DCE internal resources. The following SCP is an example policy that contains two statements for protecting your DCE accounts:
 
 - **DenyChangesToAdminPrincipalRoleAndPolicy** is designed to prevent anyone other than the AdminRole from modifying the roles and policies used by DCE.
 - **DenyUnsupportedServices** is designed to allow access only to services that are supported by AWS Nuke
@@ -178,7 +178,7 @@ Implementing DCE in an AWS Organization provides the ability to use SCPs, which 
 
 ## Customizing the Principal IAM Policy
 
-You may customize the IAM Policies for DCE Principals via Terraform variables. 
+Customize the IAM Policies for DCE Principals via Terraform variables. 
 
 See [_Configuring Terraform Variables_](terraform.md#configuring-terraform-variables).
 

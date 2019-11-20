@@ -74,7 +74,7 @@ variable "check_budget_enabled" {
 }
 variable "budget_notification_from_email" {
   type    = string
-  default = "dce@example.com"
+  default = "STUB"
 }
 
 variable "budget_notification_bcc_emails" {

@@ -4,7 +4,7 @@ A practical guide to common operations and customizations for DCE.
 
 ## Use the DCE API
 
-DCE provides a set of endpoints for managing your account pool, leases, and budgets. 
+DCE provides a set of endpoints for managing account pools and leases, and for monitoring account usage. 
 
 See [API Reference Documentation](./api-documentation.md) for details.
 
@@ -26,7 +26,7 @@ GET https://asdfghjkl.execute-api.us-east-1.amazonaws.com/api/accounts
 
 ## Use the DCE CLI
 
-DCE provides a CLI tool to allow you to deploy DCE, interact with DCE APIs, and login to DCE child accounts. For example:
+DCE provides a CLI tool to deploy DCE, interact with DCE APIs, and login to DCE child accounts. For example:
 
 ```bash
 # Deploy DCE
@@ -38,10 +38,12 @@ dce accounts add \
     --admin-role-arn arn:aws:iam::123456789012:role/OrganizationAccountAccessRole
 
 # Lease an account
-dce leases create
+dce leases create \
+    --principal-id jdoe@example.com \
+    --budget-amount 100 --budget-currency USD
 
 # Login to your account
-dce leases login
+dce leases login <lease-id>
 ```
 
 See the [github.com/Optum/dce-cli](https://github.com/Optum/dce-cli) repo for details.
@@ -51,20 +53,20 @@ See the [github.com/Optum/dce-cli](https://github.com/Optum/dce-cli) repo for de
 The easiest way for users to login to their DCE child account is via the [DCE CLI](https://github.com/Optum/dce-cli):
 
 ```
-dce leases login
+dce leases login <lease-id>
 ```
 
-This will generate an temporary CLI credentials for the AWS child account, and save it to the user's AWS CLI configuration.
+This command generates temporary CLI credentials for the AWS child account, and saves them to the user's AWS CLI configuration.
 
 See the [DCE CLI reference docs](https://github.com/Optum/dce-cli/blob/master/docs/dce_leases_login.md) for details.
 
-## Add Accounts the DCE Account Pool
+## Add Accounts to the DCE Account Pool
 
-DCE manages its collection of AWS accounts in an [account pool](concepts.md#account-pool). Each accounts in the pool is made available for [leasing](concepts.md#lease) by DCE users.
+DCE manages its collection of AWS accounts in an [account pool](concepts.md#account-pool). Each account in the pool is made available for [leasing](concepts.md#lease) by DCE users.
 
-Note that DCE _does not_ create AWS accounts for you. These must be added to the account pool by a DCE administrator. You can create accounts using the AWS [`CreateAccount` API](https://docs.aws.amazon.com/cli/latest/reference/organizations/create-account.html).
+DCE _does not_ create AWS accounts. These must be added to the account pool by a DCE administrator. You can create accounts using the AWS [`CreateAccount` API](https://docs.aws.amazon.com/cli/latest/reference/organizations/create-account.html).
 
-The child account must have an administrative IAM Role, with a trust relationship to allow the master account to assume the role. For example:
+The child account must have an administrative IAM Role with a trust relationship to allow the master account to assume the role. For example:
 
 ```json
 {
@@ -81,7 +83,7 @@ The child account must have an administrative IAM Role, with a trust relationshi
 }
 ```
 
-You can add the account to the pool using the DCE API:
+Add the account to the pool using the DCE API:
 
 `POST /accounts`
 ```json
@@ -103,9 +105,9 @@ dce accounts add \
 
 ## Configure Budgets and Lease Periods
 
-Every [lease](concepts.md#lease) against a DCE account comes with a configured **per-lease budget**, which limits AWS account spend during the course of the lease. Additionally there are **per-principal budgets**, which limit spend by a single user across multiple leases. This prevents a single user from creating multiple leases to as a way of circumventing lease budgets.
+Every [lease](concepts.md#lease) comes with a configured **per-lease budget**, which limits AWS account spend during the course of the lease. Additionally there are **per-principal budgets**, which limit spend by a single user across multiple lease during a budget period. This prevents a single user from creating multiple leases to as a way of circumventing lease budgets.
 
-When you deploy DCE, you have the option to configure budgets via [Terraform variables](terraform.md#configuring-terraform-variables).
+DCE budget may be configured as [Terraform variables](terraform.md#configuring-terraform-variables).
 
 | Variable | Default | Description |
 | --- | --- | --- |
@@ -117,24 +119,24 @@ When you deploy DCE, you have the option to configure budgets via [Terraform var
 
 ## Configure Account Resets
 
-To wipe clean AWS accounts between leases, DCE uses the [open source `aws-nuke` tool](https://github.com/rebuy-de/aws-nuke). This tool attempts to delete every single resource in your account, and will make several attempts to ensure everything is wiped clean.
+To [reset](concepts.md#reset) AWS accounts between leases, DCE uses the [open source `aws-nuke` tool](https://github.com/rebuy-de/aws-nuke). This tool attempts to delete every single resource in th AWS account, and will make several attempts to ensure everything is wiped clean.
 
-To prevent `aws-nuke` from deleting certain resources, you may provide a YAML configuration with a list of resource _filters_. (see [`aws-nuke` docs for the YAML filter configuration syntax](https://github.com/rebuy-de/aws-nuke#filtering-resources)). By default, DCE filters out resources which are critical to running DCE -- for example, the IAM roles for your account's `adminRoleArn` / `principalRoleArn`.
+To prevent `aws-nuke` from deleting certain resources, provide a YAML configuration with a list of resource _filters_. (see [`aws-nuke` docs for the YAML filter configuration syntax](https://github.com/rebuy-de/aws-nuke#filtering-resources)). By default, DCE filters out resources which are critical to running DCE -- for example, the IAM roles for your account's `adminRoleArn` / `principalRoleArn`.
 
 As a DCE implementor, you may have additional resources you wish protect from `aws-nuke`. If this is the case, you may specify your own custom `aws-nuke` YAML configuration:
 
-- Copy the contents of [`default-nuke-config-template.yml`](https://github.com/Optum/dce/blob/master/cmd/codebuild/reset/default-nuke-config-template.yml) into your own file
+- Copy the contents of [`default-nuke-config-template.yml`](https://github.com/Optum/dce/blob/master/cmd/codebuild/reset/default-nuke-config-template.yml) into a new file
 - Modify as needed.
-- Upload your YAML configuration file to an S3 bucket
+- Upload the YAML configuration file to an S3 bucket in the DCE master account
 
-You may then configure reset using [Terraform variables](terraform.md#configuring-terraform-variables):
+Then configure reset using [Terraform variables](terraform.md#configuring-terraform-variables):
 
 | Variable | Default | Description |
 | --- | --- | --- |
 | `reset_nuke_template_bucket` | See [`default-nuke-config-template.yml`](https://github.com/Optum/dce/blob/master/cmd/codebuild/reset/default-nuke-config-template.yml) | S3 bucket where a custom [aws-nuke](https://github.com/rebuy-de/aws-nuke) configuration is located |
 | `reset_nuke_template_key` | See [`default-nuke-config-template.yml`](https://github.com/Optum/dce/blob/master/cmd/codebuild/reset/default-nuke-config-template.yml) | S3 key within the `reset_nuke_template_bucket` where a custom [aws-nuke](https://github.com/rebuy-de/aws-nuke) configuration is located |
-| `reset_nuke_toggle` | `true` | Set to false to disable the reset process |
-| `allowed_regions` | _all AWS regions_ | AWS regions which will be nuked. Note that allowing fewer regions will drastically reduce the run time of aws-nuke | 
+| `reset_nuke_toggle` | `true` | Set to false to run `aws-nuke` in dry run mode |
+| `allowed_regions` | _all AWS regions_ | AWS regions which will be nuked. Allowing fewer regions will drastically reduce the run time of aws-nuke | 
 
 
 ## Customize Budget Notifications
@@ -166,9 +168,9 @@ Budget notification email templates are rendered using [golang templates](https:
 | ThresholdPercentile | The configured threshold percentage for the notification |
 
 
-## Backup your DCE Database Tables
+## Backup DCE Database Tables
 
-DCE does not backup your DynamoDB tables by default. However, if you want to restore a DynamoDB table from a backup, we do provide a helper script in [scripts/restore_db.sh](https://github.com/Optum/dce/blob/master/scripts/restore_db.sh). This script is also provided as a Github release artifact, for easy access.
+DCE does not backup DynamoDB tables by default. However, if you want to restore a DynamoDB table from a backup, we do provide a helper script in [scripts/restore_db.sh](https://github.com/Optum/dce/blob/master/scripts/restore_db.sh). This script is also provided as a Github release artifact, for easy access.
 
 To restore a DynamoDB table from a backup:
 
@@ -198,13 +200,13 @@ table_name=$(cd modules && terraform output leases_table_name)
   --force-delete-table
 ```
 
-After restoring your DynamoDB table from a backup, you should [re-apply Terraform](terraform.md#deploying-dce-with-terraform) to ensure that your table is in sync with your Terraform configuration.
+After restoring the DynamoDB table from a backup, [re-apply Terraform](terraform.md#deploying-dce-with-terraform) to ensure that your table is in sync with your Terraform configuration.
 
 See [AWS guide for backing up DynamoDB tables](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Backup.Tutorial.html).
 
 ## Monitor DCE
 
-DCE comes prebuild with a number of CloudWatch alarms, which will trigger when DCE systems encounter errors or behave abnormally.
+DCE comes prebuilt with a number of CloudWatch alarms, which will trigger when DCE systems encounter errors or behaves abnormally.
 
 These CloudWatch alarms are delivered to an SNS topic. The ARN of this SNS topic is available as [a Terraform output](terraform.md#accessing-terraform-outputs):
 
@@ -213,7 +215,7 @@ cd modules
 terraform output alarm_sns_topic_arn
 ```
 
-You can subscribe to this topic, in order to receive notifications. For example:
+Subscribe to this topic to receive alarm notifications. For example:
 
 ```bash
 aws sns subscribe \
