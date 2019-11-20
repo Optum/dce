@@ -42,13 +42,10 @@ new Vue({
         this.auth.getSession()
       },
       showSignedIn(session) {
-          console.log(session)
           if (session) {
             this.jwt = session.getIdToken().getJwtToken();
             var payload = this.jwt.split('.')[1];
-            var tokenobj = JSON.parse(atob(payload));
-            this.decodedJwt = JSON.stringify(tokenobj, undefined, 2);
-    
+            this.decodedJwt = JSON.parse(atob(payload));
           }
       },
       authorize() {
@@ -67,7 +64,6 @@ new Vue({
               console.error(error);
           } else {
               console.log('Successfully integrated with identity pool!');
-              console.log(AWS.config.credentials)
               let stsCreds = {}
               stsCreds.accessKeyId = AWS.config.credentials.accessKeyId
               stsCreds.secretAccessKey = AWS.config.credentials.secretAccessKey
