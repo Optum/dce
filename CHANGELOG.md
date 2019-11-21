@@ -1,8 +1,11 @@
+
 ## vNext
 
+- Update Status Lambda - budget_check: Terminate lease if spend > Principal budget amount
 - Support `metadata` parameter in `/accounts` API endpoints
 - Add `PUT /accounts/:id` endpoint
 - Fixed bug where child account's DCEPrincipal role trusted itself rather than the master account
+
 
 ## v0.23.0
 
@@ -66,6 +69,7 @@ Note that this release does ***not*** delete the old tables, to provide the oppo
 
 - Fixed issue with the lease check logic that was expiring non-expired leases.
 - Migration script to fix wrongly expired leases
+
 
 ## v0.19.1
 

@@ -72,6 +72,8 @@ func main() {
 			budgetNotificationTemplateText:         common.RequireEnv("BUDGET_NOTIFICATION_TEMPLATE_TEXT"),
 			budgetNotificationTemplateSubject:      common.RequireEnv("BUDGET_NOTIFICATION_TEMPLATE_SUBJECT"),
 			budgetNotificationThresholdPercentiles: common.RequireEnvFloatSlice("BUDGET_NOTIFICATION_THRESHOLD_PERCENTILES", ","),
+			principalBudgetAmount:                  common.RequireEnvFloat("PRINCIPAL_BUDGET_AMOUNT"),
+			principalBudgetPeriod:                  common.RequireEnv("PRINCIPAL_BUDGET_PERIOD"),
 		})
 		if err != nil {
 			log.Fatalf("Failed check budget: %s", err)
@@ -115,6 +117,8 @@ type lambdaHandlerInput struct {
 	budgetNotificationTemplateText         string
 	budgetNotificationTemplateSubject      string
 	budgetNotificationThresholdPercentiles []float64
+	principalBudgetAmount                  float64
+	principalBudgetPeriod                  string
 }
 
 func lambdaHandler(input *lambdaHandlerInput) error {
@@ -132,23 +136,39 @@ func lambdaHandler(input *lambdaHandlerInput) error {
 			input.lease.AccountID, input.lease.PrincipalID)
 	}
 
-	// Calculate actual spend for the account
-	actualSpend, err := calculateSpend(&calculateSpendInput{
-		account:    account,
-		lease:      input.lease,
-		tokenSvc:   input.tokenSvc,
-		budgetSvc:  input.budgetSvc,
-		usageSvc:   input.usageSvc,
-		awsSession: input.awsSession,
+	// Calculate actual spend for the lease
+	actualLeaseSpend, err := calculateLeaseSpend(&calculateSpendInput{
+		account:               account,
+		lease:                 input.lease,
+		tokenSvc:              input.tokenSvc,
+		budgetSvc:             input.budgetSvc,
+		usageSvc:              input.usageSvc,
+		awsSession:            input.awsSession,
+		principalBudgetPeriod: input.principalBudgetPeriod,
 	})
 	if err != nil {
 		return errors.Wrapf(err, "Failed to calculate spend for lease %s", leaseLogID)
 	}
+
+	// Calculate actual spend for the principal
+	actualPrincipalSpend, err := calculatePrincipalSpend(&calculateSpendInput{
+		account:               account,
+		lease:                 input.lease,
+		tokenSvc:              input.tokenSvc,
+		budgetSvc:             input.budgetSvc,
+		usageSvc:              input.usageSvc,
+		awsSession:            input.awsSession,
+		principalBudgetPeriod: input.principalBudgetPeriod,
+	})
+	if err != nil {
+		return errors.Wrapf(err, "Failed to calculate spend for principal %s", leaseLogID)
+	}
+
 	// Defer errors until the end, so we can continue on error
 	deferredErrors := []error{}
 	currentTimeEpoch := time.Now().Unix()
 
-	expired, reason := isLeaseExpired(input.lease, &leaseContext{currentTimeEpoch, actualSpend})
+	expired, reason := isLeaseExpired(input.lease, &leaseContext{currentTimeEpoch, actualLeaseSpend}, actualPrincipalSpend, input.principalBudgetAmount)
 
 	if expired {
 		// Update the lease status with the inactive status and current end time.
@@ -170,7 +190,8 @@ func lambdaHandler(input *lambdaHandlerInput) error {
 		budgetNotificationTemplateText:         input.budgetNotificationTemplateText,
 		budgetNotificationTemplateSubject:      input.budgetNotificationTemplateSubject,
 		budgetNotificationThresholdPercentiles: input.budgetNotificationThresholdPercentiles,
-		actualSpend:                            actualSpend,
+		actualLeaseSpend:                       actualLeaseSpend,
+		actualPrincipalSpend:                   actualPrincipalSpend,
 	})
 	if err != nil {
 		log.Printf("Failed to send budget notification emails for lease %s @ %s: %s",
@@ -188,12 +209,14 @@ func lambdaHandler(input *lambdaHandlerInput) error {
 
 // isLeaseExpried contains the logic for determining if a lease has already
 // expired, given the context.
-func isLeaseExpired(lease *db.Lease, context *leaseContext) (bool, db.LeaseStatusReason) {
+func isLeaseExpired(lease *db.Lease, context *leaseContext, actualPrincipalSpend float64, principalBudgetAmount float64) (bool, db.LeaseStatusReason) {
 
 	if context.expireDate >= lease.ExpiresOn {
 		return true, db.LeaseExpired
-	} else if context.actualSpend >= lease.BudgetAmount {
+	} else if context.actualSpend > lease.BudgetAmount {
 		return true, db.LeaseOverBudget
+	} else if actualPrincipalSpend > principalBudgetAmount {
+		return true, db.LeaseOverPrincipalBudget
 	}
 
 	return false, db.LeaseActive

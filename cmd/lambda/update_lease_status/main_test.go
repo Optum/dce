@@ -115,6 +115,7 @@ has exceeded its budget of $100. Actual spend is $150
 			budgetNotificationTemplateText:         emailTemplateText,
 			budgetNotificationTemplateSubject:      emailTemplateSubject,
 			budgetNotificationThresholdPercentiles: []float64{75, 100},
+			principalBudgetAmount:                  1000,
 		}
 
 		// Should grab the account from the DB, to get it's adminRoleArn
@@ -153,6 +154,7 @@ has exceeded its budget of $100. Actual spend is $150
 		budgetStartTime := time.Unix(input.lease.LeaseStatusModifiedOn, 0)
 		usageSvc.On("PutUsage", inputUsage).Return(nil)
 		usageSvc.On("GetUsageByDateRange", budgetStartTime, usageEndDate.AddDate(0, 0, -1)).Return(nil, nil)
+		usageSvc.On("GetUsageByDateRange", mock.Anything, mock.Anything).Return(nil, nil)
 
 		// Should transition from "Active" --> "FinanceLock"
 		if test.shouldTransitionLeaseStatus {
@@ -290,10 +292,12 @@ Actual spend is $76
 }
 func Test_isLeaseExpired(t *testing.T) {
 	type args struct {
-		lease   *db.Lease
-		context *leaseContext
+		lease                *db.Lease
+		context              *leaseContext
+		actualPrincipalSpend float64
 	}
 	emails := []string{"joe@example.com"}
+	principalBudgetAmount := 7000.00
 	lease := &db.Lease{
 		AccountID:                "12345",
 		PrincipalID:              "98765",
@@ -311,19 +315,29 @@ func Test_isLeaseExpired(t *testing.T) {
 		lease,
 		&leaseContext{
 			time.Now().AddDate(0, 0, -1).Unix(),
-			10}}
+			10},
+		10}
 
 	expiredLeaseTestArgs := &args{
 		lease,
 		&leaseContext{
 			time.Now().AddDate(0, 0, +1).Unix(),
-			10}}
+			10},
+		10}
 
 	overBudgetTest := &args{
 		lease,
 		&leaseContext{
 			time.Now().AddDate(0, 0, -1).Unix(),
-			5000}}
+			5000},
+		5000}
+
+	overPrincipalBudgetAmountTest := &args{
+		lease,
+		&leaseContext{
+			time.Now().AddDate(0, 0, -1).Unix(),
+			2500},
+		9000}
 
 	tests := []struct {
 		name  string
@@ -334,10 +348,11 @@ func Test_isLeaseExpired(t *testing.T) {
 		{"Non-expired lease test", *nonExpiredLeaseTestArgs, false, db.LeaseActive},
 		{"Expired lease test", *expiredLeaseTestArgs, true, db.LeaseExpired},
 		{"Over budget lease test", *overBudgetTest, true, db.LeaseOverBudget},
+		{"Over principal budget amount test", *overPrincipalBudgetAmountTest, true, db.LeaseOverPrincipalBudget},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, got1 := isLeaseExpired(tt.args.lease, tt.args.context)
+			got, got1 := isLeaseExpired(tt.args.lease, tt.args.context, tt.args.actualPrincipalSpend, principalBudgetAmount)
 			if got != tt.want {
 				t.Errorf("isLeaseExpired() got = %v, want %v", got, tt.want)
 			}
@@ -346,4 +361,19 @@ func Test_isLeaseExpired(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestGetBeginningOfCurrentBillingPeriod(t *testing.T) {
+
+	actualOutput := getBeginningOfCurrentBillingPeriod("WEEKLY")
+
+	currentTime := time.Now()
+	for currentTime.Weekday() != time.Sunday { // iterate back to Sunday
+		currentTime = currentTime.AddDate(0, 0, -1)
+	}
+
+	expectedOutput := time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 0, 0, 0, 0, time.UTC)
+
+	require.NotNil(t, actualOutput)
+	require.Equal(t, expectedOutput, actualOutput)
 }
