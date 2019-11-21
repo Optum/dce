@@ -51,7 +51,7 @@ As part of the v0.21.0 release, we are renaming all our DynamoDB tables to remov
 
 DynamoDB does not support in-place table renaming, so we will need to migrate data from each table to the newly renamed table.
 
-To do this, you may run the migration script in [/scripts/migrations/v0.21.0_rename_db_tables_dce](./scripts/migrations/v0.21.0_rename_db_tables_dce/main.go). This script will copy all data from the old tables to the new tables.
+To do this, you may run the migration script in [/scripts/migrations/v0.21.0_rename_db_tables_dce](https://github.com/Optum/dce/blob/master/scripts/migrations/v0.21.0_rename_db_tables_dce/main.go). This script will copy all data from the old tables to the new tables.
 
 Note that this release does ***not*** delete the old tables, to provide the opportunity to migrate data. Subsequent releases _will_ destroy the old tables. 
 

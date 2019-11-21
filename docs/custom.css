@@ -1,0 +1,7 @@
+/*
+https://github.com/mkdocs/mkdocs/issues/318
+Hide duplicate h1 title in nav
+ */
+li.toctree-l2:first-child {
+    display: none;
+}

@@ -1,4 +1,4 @@
-# Glossary
+# Concepts
 
 ## DCE
 
@@ -20,7 +20,7 @@ DCE _resets_ a leased child account during _any one_ of the following conditions
 * The amount set on the `budgetAmount` field is exceeded
 * With a `/leases` API call or CLI command
 
-To reset an account, DCE peforms the following actions, in order:
+To reset an account, DCE performs the following actions, in order:
 
 1. Marks the lease as Inactive
 1. Marks the account as Not Ready
@@ -98,7 +98,7 @@ to _Rollback_ and returns the child account to the child pool.
 
 ## Account Pool
 
-The _account pool_ is the collection of _[child accounts](#child-accounts)_ that
+The _account pool_ is the collection of _[child accounts](#child-account)_ that
 are available for leasing.
 
 ## Master Account
