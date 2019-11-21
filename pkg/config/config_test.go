@@ -52,7 +52,7 @@ func (w *Wuzz) GetName() string {
 	return w.Name
 }
 
-func TestDefaultConfigurater_LoadInto(t *testing.T) {
+func TestDefaultConfigurater_WithStruct(t *testing.T) {
 	actualStringVal := os.Getenv("SOME_STRING_VALUE")
 	// just checking... ;)
 	assert.Equal(t, ExpectedStrVal, actualStringVal)
@@ -65,7 +65,10 @@ func TestDefaultConfigurater_LoadInto(t *testing.T) {
 	var config exampleConfig
 	configurater := &DefaultConfigurater{}
 
-	err = configurater.LoadInto(&config)
+	err = configurater.
+		WithStruct(&config).
+		Build()
+
 	// log.Printf("%+v", config)
 	assert.Nil(t, err)
 	assert.Equal(t, ExpectedStrVal, config.StringValue)

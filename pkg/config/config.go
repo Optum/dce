@@ -16,18 +16,19 @@ type ConfigurationError error
 
 // GenericConfiguration is a generic structure that contains configuration
 type genericConfiguration struct {
-	services []interface{}
-	types    []reflect.Type
-	impls    []reflect.Value
-	vals     map[string]interface{}
-	errs     []error
-	envKeys  map[string]string
+	services  []interface{}
+	types     []reflect.Type
+	impls     []reflect.Value
+	vals      map[string]interface{}
+	errs      []error
+	envKeys   map[string]string
+	cfgStruct interface{}
 }
 
 // Configurater is the interface for providing configuration loading methods.
 type Configurater interface {
-	// LoadInto loads the configuration into the provided structure.
-	LoadInto(interface{}) error
+	// WithStruct loads the configuration into the provided structure.
+	WithStruct(interface{}) *Configurater
 	// WithService is a Builder Pattern method that allows you to specify services
 	// for the given type.
 	WithService(svc interface{}) *Configurater
@@ -42,25 +43,27 @@ type Configurater interface {
 	// the service is not found.
 	GetService(svcFor interface{}) error
 	// GetStringVal returns the value of the key as a string.
-	GetStringVal(key string) string
+	GetStringVal(key string) (string, error)
+	// GetStruct returns the populated struct specified in the `WithStruct` method.
+	GetStruct() (interface{}, error)
 	// Build builds the configuration.
 	Build() error
 }
 
 // DefaultConfigurater is the default implementation of a configuration loader.
 type DefaultConfigurater struct {
-	values  *genericConfiguration
-	parsers env.CustomParsers
-	isBuilt bool
+	values    *genericConfiguration
+	parsers   env.CustomParsers
+	isBuilt   bool
+	useStruct bool
 }
 
-// LoadInto loads the configuration into the provided structure.
-func (config *DefaultConfigurater) LoadInto(configObj interface{}) error {
-	config.parsers = config.createCustomParsers()
-	err := env.ParseWithFuncs(configObj, config.parsers)
-	// TODO: Add some more context to the error and consider wrapping with
-	// our ConfigurationError
-	return err
+// WithStruct loads the configuration into the provided structure.
+func (config *DefaultConfigurater) WithStruct(cfgStruct interface{}) *DefaultConfigurater {
+	config.useStruct = true
+	config.initialize()
+	config.values.cfgStruct = cfgStruct
+	return config
 }
 
 // WithService is a Builder Pattern method that allows you to specify services
@@ -121,6 +124,19 @@ func (config *DefaultConfigurater) GetService(svcFor interface{}) error {
 	return ConfigurationError(fmt.Errorf("no service found in configuration for key type: %s", k))
 }
 
+// GetStruct returns the populated struct specified in the `WithStruct` method.
+func (config *DefaultConfigurater) GetStruct() (interface{}, error) {
+	if !config.useStruct {
+		// TODO: Not sure if this should throw an error or just an empty struct...
+		return nil, ConfigurationError(errors.New("call `WithStruct` to supply a struct first"))
+	}
+
+	if !config.isBuilt {
+		return nil, ConfigurationError(errors.New("call Build() before attempting to get values"))
+	}
+	return config.values.cfgStruct, nil
+}
+
 // GetStringVal returns the value of the key as a string.
 func (config *DefaultConfigurater) GetStringVal(key string) (string, error) {
 	if !config.isBuilt {
@@ -138,10 +154,24 @@ func (config *DefaultConfigurater) GetStringVal(key string) (string, error) {
 
 // Build builds the configuration.
 func (config *DefaultConfigurater) Build() error {
+	if config.useStruct {
+		err := config.buildWithStruct()
+		if err != nil {
+			return ConfigurationError(fmt.Errorf("error while trying to parse configuration object: %s", err.Error()))
+		}
+	}
 	// TODO: Add any "expensive" operations here. Validations, type conversions, etc.
 	// We already have basic maps.
 	config.isBuilt = true
 	return nil
+}
+
+func (config *DefaultConfigurater) buildWithStruct() error {
+	config.parsers = config.createCustomParsers()
+	err := env.ParseWithFuncs(config.values.cfgStruct, config.parsers)
+	// TODO: Add some more context to the error and consider wrapping with
+	// our ConfigurationError
+	return err
 }
 
 func (config *DefaultConfigurater) initialize() {
