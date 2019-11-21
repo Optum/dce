@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -117,6 +118,29 @@ func TestResetPipeline(t *testing.T) {
 			dbSvc.AssertNumberOfCalls(t, "TransitionAccountStatus", 1)
 			require.Equal(t, errors.New("test error"), err)
 		})
+	})
+
+	t.Run("testNukeConfigGeneration", func(t *testing.T) {
+
+		var b bytes.Buffer
+		_config = &serviceConfig{
+			accountID:                  "ABC123",
+			accountAdminRoleName:       "AdminRole",
+			allowedRegions:             []string{"us-east-1", "us-west-1"},
+			accountPrincipalRoleName:   "PrincipalRole",
+			accountPrincipalPolicyName: "PrincipalPolicy",
+			nukeTemplateDefault:        "default-nuke-config-template.yml",
+			nukeTemplateBucket:         "STUB",
+			nukeTemplateKey:            "STUB",
+		}
+		svc := service{}
+
+		err := generateNukeConfig(&svc, &b)
+		assert.NoError(t, err)
+
+		got := b.String()
+		want := "regions:\n  - \"global\"\n  # DCE Principals roles are currently locked down\n  # to only access these two regions\n  # This significantly reduces the run time of nuke.\n  - \"us-east-1\"\n  - \"us-west-1\"\n\naccount-blacklist:\n  - \"999999999999\" # Arbitrary production account id\n\nresource-types:\n  excludes:\n    - S3Object # Let the S3Bucket delete all Objects instead of individual objects (optimization)\n\naccounts:\n  \"ABC123\": # Child Account\n    filters:\n      IAMPolicy:\n        - type: \"contains\"\n          value: \"PrincipalPolicy\"\n      IAMRole:\n        - \"AdminRole\"\n        - \"PrincipalRole\"\n      IAMRolePolicy:\n        - type: \"contains\"\n          value: \"AdminRole\"\n        - type: \"contains\"\n          value: \"PrincipalRole\"\n        - type: \"contains\"\n          value: \"PrincipalPolicy\"\n      IAMRolePolicyAttachment:\n        # Do not remove the policy from the principal user role\n        - \"PrincipalRole -> PrincipalPolicy\"\n"
+		assert.Equal(t, got, want, "Template subsitition works")
 	})
 }
 

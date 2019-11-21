@@ -62,6 +62,7 @@ var (
 	principalMaxSessionDuration int64
 	tags                        []*iam.Tag
 	resetQueueURL               string
+	allowedRegions              []string
 )
 
 func init() {
@@ -139,6 +140,7 @@ func initConfig() {
 	}
 	accountCreatedTopicArn = Config.GetEnvVar("ACCOUNT_CREATED_TOPIC_ARN", "DefaultAccountCreatedTopicArn")
 	resetQueueURL = Config.GetEnvVar("RESET_SQS_URL", "DefaultResetSQSUrl")
+	allowedRegions = strings.Split(Config.GetEnvVar("ALLOWED_REGIONS", "us-east-1"), ",")
 }
 
 // Handler - Handle the lambda function
