@@ -277,7 +277,7 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 			url:    apiURL + "/leases",
 			json: inputLeaseRequest{
 				PrincipalID:  principalID,
-				BudgetAmount: 300.00,
+				BudgetAmount: 199.00,
 			},
 			maxAttempts: 15,
 			f: func(r *testutil.R, apiResp *apiResponse) {
@@ -295,7 +295,7 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 			LeaseStatus:           db.LeaseStatus("Active"),
 			LeaseStatusModifiedOn: time.Now().AddDate(0, 0, -1).Unix(),
 			ExpiresOn:             time.Now().AddDate(0, 0, 3).Unix(),
-			BudgetAmount:          200.00,
+			BudgetAmount:          199.00,
 		}
 		payload, err := json.Marshal(request)
 		require.Nil(t, err)
@@ -355,7 +355,7 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 			url:    apiURL + "/leases",
 			json: inputLeaseRequest{
 				PrincipalID:  principalID,
-				BudgetAmount: 200.00,
+				BudgetAmount: 300.00,
 			},
 			maxAttempts: 15,
 			f: func(r *testutil.R, apiResp *apiResponse) {
@@ -433,7 +433,7 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 			url:    apiURL + "/leases",
 			json: inputLeaseRequest{
 				PrincipalID:  principalID,
-				BudgetAmount: 200.00,
+				BudgetAmount: 300.00,
 			},
 			maxAttempts: 15,
 			f: func(r *testutil.R, apiResp *apiResponse) {
