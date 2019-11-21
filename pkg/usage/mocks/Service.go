@@ -34,6 +34,29 @@ func (_m *Service) GetUsageByDateRange(startDate time.Time, endDate time.Time) (
 	return r0, r1
 }
 
+// GetUsageByPrincipal provides a mock function with given fields: startDate, principalID
+func (_m *Service) GetUsageByPrincipal(startDate time.Time, principalID string) ([]*usage.Usage, error) {
+	ret := _m.Called(startDate, principalID)
+
+	var r0 []*usage.Usage
+	if rf, ok := ret.Get(0).(func(time.Time, string) []*usage.Usage); ok {
+		r0 = rf(startDate, principalID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*usage.Usage)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(time.Time, string) error); ok {
+		r1 = rf(startDate, principalID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // PutUsage provides a mock function with given fields: input
 func (_m *Service) PutUsage(input usage.Usage) error {
 	ret := _m.Called(input)
