@@ -73,6 +73,8 @@ func TestApi(t *testing.T) {
 			aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
 		),
 		tfOut["usage_table_name"].(string),
+		"StartDate",
+		"PrincipalId",
 	)
 
 	// Create an adminRole for the test account

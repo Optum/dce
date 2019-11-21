@@ -76,6 +76,8 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 			aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
 		),
 		tfOut["usage_table_name"].(string),
+		"StartDate",
+		"PrincipalId",
 	)
 
 	// Create Lambda service client
