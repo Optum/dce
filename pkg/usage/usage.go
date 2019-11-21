@@ -131,7 +131,7 @@ func (db *DB) GetUsageByDateRange(startDate time.Time, endDate time.Time) ([]*Us
 
 // GetUsageByPrincipal returns usage amount for all leases for input Principal
 // startDate is epoch Unix date
-func (db *DB) GetUsageByPrincipal(startDate time.Time, principalId string) ([]*Usage, error) {
+func (db *DB) GetUsageByPrincipal(startDate time.Time, principalID string) ([]*Usage, error) {
 
 	Output := make([]*Usage, 0)
 
@@ -148,7 +148,7 @@ func (db *DB) GetUsageByPrincipal(startDate time.Time, principalId string) ([]*U
 
 	for {
 
-		var resp, err = db.Client.GetItem(getInputForGetItem(db, usageStartDate, principalId, db.ConsistendRead))
+		var resp, err = db.Client.GetItem(getInputForGetItem(db, usageStartDate, principalID, db.ConsistendRead))
 		if err != nil {
 			errorMessage := fmt.Sprintf("Failed to query usage record for start date \"%s\": %s.", startDate, err)
 			log.Print(errorMessage)
@@ -244,7 +244,7 @@ func getQueryInput(tableName string, startDate time.Time, startKey map[string]*d
 }
 
 // getInputForGetItem returns a GetItemInput for given inputs
-func getInputForGetItem(d *DB, startDate time.Time, principalId string, consistentRead bool) *dynamodb.GetItemInput {
+func getInputForGetItem(d *DB, startDate time.Time, principalID string, consistentRead bool) *dynamodb.GetItemInput {
 	getItemInput := dynamodb.GetItemInput{
 		TableName: aws.String(d.UsageTableName),
 		Key: map[string]*dynamodb.AttributeValue{
@@ -252,7 +252,7 @@ func getInputForGetItem(d *DB, startDate time.Time, principalId string, consiste
 				N: aws.String(strconv.FormatInt(startDate.Unix(), 10)),
 			},
 			d.SortKeyName: {
-				S: aws.String(principalId),
+				S: aws.String(principalID),
 			},
 		},
 		ConsistentRead: aws.Bool(consistentRead),
