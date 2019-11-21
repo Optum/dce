@@ -60,7 +60,7 @@ new Vue({
         var self = this
         AWS.config.credentials.refresh((error) => {
           if (error) {
-              self.encodedCreds = "Error Retrieving Credentials"
+              self.encodedCreds = ""
               console.error(error);
           } else {
               console.log('Successfully integrated with identity pool!');
@@ -72,6 +72,19 @@ new Vue({
               self.encodedCreds = btoa(JSON.stringify(stsCreds))
           }
         });
+      },
+      copyToClipboard() {
+          var copyTextarea = document.querySelector('.js-copytextarea');
+          copyTextarea.focus();
+          copyTextarea.select();
+
+          try {
+            var successful = document.execCommand('copy');
+            var msg = successful ? 'successful' : 'unsuccessful';
+            console.log('Copying text command was ' + msg);
+          } catch (err) {
+            console.log('Oops, unable to copy');
+          }
       }
   }
 })
