@@ -10,19 +10,22 @@ import (
 )
 
 type exampleConfig struct {
-	StringValue string `env:"SOME_STRING_VALUE"`
-	IntValue    int    `env:"SOME_INT_VALUE"`
+	StringValue        string   `env:"SOME_STRING_VALUE"`
+	ArrayOfStringValue []string `env:"SOME_ARRAY_OF_STRING_VALUE"`
+	IntValue           int      `env:"SOME_INT_VALUE"`
 }
 
 const (
 	ExpectedStrVal          = "foo"
 	ExpectedStrDefaultedVal = "defaultfoo"
+	ExpectedArrOfStrVal     = "one,two,three,four,five"
 	ExpectedIntVal          = 1
 )
 
 func init() {
 	os.Setenv("SOME_STRING_VALUE", ExpectedStrVal)
 	os.Setenv("SOME_INT_VALUE", strconv.Itoa(ExpectedIntVal))
+	os.Setenv("SOME_ARRAY_OF_STRING_VALUE", ExpectedArrOfStrVal)
 }
 
 type Foo interface {
@@ -67,6 +70,10 @@ func TestDefaultConfigurater_LoadInto(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, ExpectedStrVal, config.StringValue)
 	assert.Equal(t, ExpectedIntVal, config.IntValue)
+
+	// Parsing an array
+	expectedArrayOfStrings := []string{"one", "two", "three", "four", "five"}
+	assert.Equal(t, expectedArrayOfStrings, config.ArrayOfStringValue)
 }
 
 func TestDefaultConfigurater_TryToGetWithoutBuilding(t *testing.T) {
