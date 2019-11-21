@@ -46,7 +46,7 @@ type Usage struct {
 type Service interface {
 	PutUsage(input Usage) error
 	GetUsageByDateRange(startDate time.Time, endDate time.Time) ([]*Usage, error)
-	GetUsageByPrincipal(startDate time.Time, principalId string) ([]*Usage, error)
+	GetUsageByPrincipal(startDate time.Time, principalID string) ([]*Usage, error)
 }
 
 // PutUsage adds an item to Usage DB
