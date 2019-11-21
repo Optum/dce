@@ -83,7 +83,7 @@ resource "aws_iam_role_policy" "lambda_assume_role" {
     "Version": "2012-10-17",
     "Statement": [
         {
-            "Sid": "VisualEditor0",
+            "Sid": "AssumeRole",
             "Effect": "Allow",
             "Action": [
                 "sts:AssumeRole",
