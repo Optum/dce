@@ -24,6 +24,8 @@ type DB struct {
 	Client *dynamodb.DynamoDB
 	// Name of the Usage table
 	UsageTableName string
+	PartitionKeyName  string
+	SortKeyName       string
 	// Use Consistend Reads when scanning or querying.  When possbile.
 	ConsistendRead bool
 }
@@ -44,6 +46,7 @@ type Usage struct {
 type Service interface {
 	PutUsage(input Usage) error
 	GetUsageByDateRange(startDate time.Time, endDate time.Time) ([]*Usage, error)
+	GetUsageByPrincipal(startDate time.Time, principalId string) ([]*Usage, error)
 }
 
 // PutUsage adds an item to Usage DB
@@ -126,12 +129,61 @@ func (db *DB) GetUsageByDateRange(startDate time.Time, endDate time.Time) ([]*Us
 	return usageRecords, nil
 }
 
+// GetUsageByPrincipal returns usage amount for all leases for input Principal
+// startDate is epoch Unix date
+func (db *DB) GetUsageByPrincipal(startDate time.Time, principalId string) ([]*Usage, error) {
+
+	Output := make([]*Usage, 0)
+
+	// Convert startDate to the start time of that day
+	usageStartDate := time.Date(startDate.Year(), startDate.Month(), startDate.Day(), 0, 0, 0, 0, time.UTC)
+	currentDate := time.Now()
+	usageEndDate := time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), 23, 59, 59, 0, time.UTC)
+
+	if usageEndDate.Sub(usageStartDate) < 0 {
+		errorMessage := fmt.Sprintf("UsageStartDate \"%d\" should be a past date or today's date \"%d\".", usageStartDate.Unix(), usageEndDate.Unix())
+		log.Print(errorMessage)
+		return nil, nil
+	}
+
+	for {
+
+		var resp, err = db.Client.GetItem(getInputForGetItem(db, usageStartDate, principalId, db.ConsistendRead))
+		if err != nil {
+			errorMessage := fmt.Sprintf("Failed to query usage record for start date \"%s\": %s.", startDate, err)
+			log.Print(errorMessage)
+			return nil, err
+		}
+
+		item := Usage{}
+
+		err = dynamodbattribute.UnmarshalMap(resp.Item, &item)
+		if err != nil {
+			panic(fmt.Sprintf("Failed to unmarshal Record, %v", err))
+		}
+
+		Output = append(Output, &item)
+
+		// increment startdate by a day
+		usageStartDate = usageStartDate.AddDate(0, 0, 1)
+
+		// continue to get usage till usageEndDate
+		if usageEndDate.Sub(usageStartDate) < 0 {
+			break
+		}
+	}
+
+	return Output, nil
+}
+
 // New creates a new usage DB Service struct,
 // with all the necessary fields configured.
-func New(client *dynamodb.DynamoDB, usageTableName string) *DB {
+func New(client *dynamodb.DynamoDB, usageTableName string, partitionKeyName string, sortKeyName string) *DB {
 	return &DB{
 		Client:         client,
 		UsageTableName: usageTableName,
+		PartitionKeyName: partitionKeyName,
+		SortKeyName: sortKeyName,
 		ConsistendRead: false,
 	}
 }
@@ -154,6 +206,8 @@ func NewFromEnv() (*DB, error) {
 			aws.NewConfig().WithRegion(common.RequireEnv("AWS_CURRENT_REGION")),
 		),
 		common.RequireEnv("USAGE_CACHE_DB"),
+		"StartDate",
+		"PrincipalId",
 	), nil
 }
 
@@ -187,4 +241,21 @@ func getQueryInput(tableName string, startDate time.Time, startKey map[string]*d
 		},
 		ConsistentRead: aws.Bool(consistentRead),
 	}
+}
+
+// getInputForGetItem returns a GetItemInput for given inputs
+func getInputForGetItem(d *DB, startDate time.Time, principalId string, consistentRead bool) *dynamodb.GetItemInput {
+	getItemInput := dynamodb.GetItemInput{
+		TableName: aws.String(d.UsageTableName),
+		Key: map[string]*dynamodb.AttributeValue{
+			d.PartitionKeyName: {
+				N: aws.String(strconv.FormatInt(startDate.Unix(), 10)),
+			},
+			d.SortKeyName: {
+				S: aws.String(principalId),
+			},
+		},
+		ConsistentRead: aws.Bool(consistentRead),
+	}
+	return &getItemInput
 }
