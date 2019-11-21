@@ -23,9 +23,9 @@ type DB struct {
 	// DynamoDB Client
 	Client *dynamodb.DynamoDB
 	// Name of the Usage table
-	UsageTableName string
-	PartitionKeyName  string
-	SortKeyName       string
+	UsageTableName   string
+	PartitionKeyName string
+	SortKeyName      string
 	// Use Consistend Reads when scanning or querying.  When possbile.
 	ConsistendRead bool
 }
@@ -180,11 +180,11 @@ func (db *DB) GetUsageByPrincipal(startDate time.Time, principalId string) ([]*U
 // with all the necessary fields configured.
 func New(client *dynamodb.DynamoDB, usageTableName string, partitionKeyName string, sortKeyName string) *DB {
 	return &DB{
-		Client:         client,
-		UsageTableName: usageTableName,
+		Client:           client,
+		UsageTableName:   usageTableName,
 		PartitionKeyName: partitionKeyName,
-		SortKeyName: sortKeyName,
-		ConsistendRead: false,
+		SortKeyName:      sortKeyName,
+		ConsistendRead:   false,
 	}
 }
 
