@@ -2,8 +2,6 @@ package tests
 
 import (
 	"sort"
-	"strconv"
-	"strings"
 	"testing"
 	"time"
 
@@ -46,110 +44,75 @@ func TestUsageDb(t *testing.T) {
 	// Truncate tables, to make sure we're starting off clean
 	truncateUsageTable(t, dbSvc)
 
-	t.Run("PutUsage / GetUsageByDateRange", func(t *testing.T) {
+	apiURL := tfOut["api_url"].(string)
+	// create usage for this lease and account
+	expectedUsage := createUsageForInputAmount(t, apiURL, "123", dbSvc, 20.00)
 
-		// Cleanup table on completion
-		defer truncateUsageTable(t, dbSvc)
+	t.Run("Verify Get Usage By Date Range", func(t *testing.T) {
 
 		// Setup usage dates
 		currentTime := time.Now()
-		testStartDate := time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 0, 0, 0, 0, time.UTC).AddDate(0, -1, 0)
-		testEndDate := time.Date(testStartDate.Year(), testStartDate.Month(), testStartDate.Day(), 23, 59, 59, 0, time.UTC)
+		testStartDate := time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 0, 0, 0, 0, time.UTC).AddDate(0, 0, -10)
 
-		// Create mock usage
-		expectedUsages := []*usage.Usage{}
-		for a := 1; a <= 2; a++ {
+		testutil.Retry(t, 10, 2*time.Second, func(r *testutil.R) {
+			// GetUsageByDateRange for testStartDate and 3-days.
+			actualUsages, err := dbSvc.GetUsageByDateRange(testStartDate, testStartDate.AddDate(0, 0, 10))
+			require.Nil(t, err)
 
-			startDate := testStartDate
-			endDate := testEndDate
-
-			timeToLive := startDate.AddDate(0, 0, ttl)
-
-			var testPrinciplaID []string
-			var testAccountID []string
-
-			testPrinciplaID = append(testPrinciplaID, "Test")
-			testPrinciplaID = append(testPrinciplaID, strconv.Itoa(a))
-
-			testAccountID = append(testAccountID, "Acct")
-			testAccountID = append(testAccountID, strconv.Itoa(a))
-
-			for i := 1; i <= 3; i++ {
-
-				input := usage.Usage{
-					PrincipalID:  strings.Join(testPrinciplaID, ""),
-					AccountID:    strings.Join(testAccountID, ""),
-					StartDate:    startDate.Unix(),
-					EndDate:      endDate.Unix(),
-					CostAmount:   23.00,
-					CostCurrency: "USD",
-					TimeToLive:   timeToLive.Unix(),
+			sort.Slice(expectedUsage, func(i, j int) bool {
+				if expectedUsage[i].StartDate < expectedUsage[j].StartDate {
+					return true
 				}
-				err = dbSvc.PutUsage(input)
-				require.Nil(t, err)
-				expectedUsages = append(expectedUsages, &input)
-
-				startDate = startDate.AddDate(0, 0, 1)
-				endDate = endDate.AddDate(0, 0, 1)
-			}
-		}
-
-		t.Run("Verify Get Usage By Date Range", func(t *testing.T) {
-			testutil.Retry(t, 10, 2*time.Second, func(r *testutil.R) {
-				// GetUsageByDateRange for testStartDate and 3-days.
-				actualUsages, err := dbSvc.GetUsageByDateRange(testStartDate, testStartDate.AddDate(0, 0, 3))
-				require.Nil(t, err)
-
-				sort.Slice(expectedUsages, func(i, j int) bool {
-					if expectedUsages[i].StartDate < expectedUsages[j].StartDate {
-						return true
-					}
-					if expectedUsages[i].StartDate > expectedUsages[j].StartDate {
-						return false
-					}
-					return expectedUsages[i].PrincipalID < expectedUsages[j].PrincipalID
-				})
-				sort.Slice(actualUsages, func(i, j int) bool {
-					if actualUsages[i].StartDate < actualUsages[j].StartDate {
-						return true
-					}
-					if actualUsages[i].StartDate > actualUsages[j].StartDate {
-						return false
-					}
-					return actualUsages[i].PrincipalID < actualUsages[j].PrincipalID
-				})
-
-				assert.Equal(r, expectedUsages, actualUsages)
+				if expectedUsage[i].StartDate > expectedUsage[j].StartDate {
+					return false
+				}
+				return expectedUsage[i].PrincipalID < expectedUsage[j].PrincipalID
 			})
+			sort.Slice(actualUsages, func(i, j int) bool {
+				if actualUsages[i].StartDate < actualUsages[j].StartDate {
+					return true
+				}
+				if actualUsages[i].StartDate > actualUsages[j].StartDate {
+					return false
+				}
+				return actualUsages[i].PrincipalID < actualUsages[j].PrincipalID
+			})
+
+			assert.Equal(r, expectedUsage, actualUsages)
 		})
+	})
 
-		t.Run("Verify Get Usage By PrincipalId", func(t *testing.T) {
-			testutil.Retry(t, 10, 2*time.Second, func(r *testutil.R) {
+	t.Run("Verify Get Usage By PrincipalId", func(t *testing.T) {
 
-				actualUsages, err := dbSvc.GetUsageByPrincipal(testStartDate, "Test1")
-				require.Nil(t, err)
+		// Setup usage dates
+		currentTime := time.Now()
+		testStartDate := time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 0, 0, 0, 0, time.UTC).AddDate(0, 0, -9)
 
-				sort.Slice(expectedUsages, func(i, j int) bool {
-					if expectedUsages[i].StartDate < expectedUsages[j].StartDate {
-						return true
-					}
-					if expectedUsages[i].StartDate > expectedUsages[j].StartDate {
-						return false
-					}
-					return expectedUsages[i].PrincipalID < expectedUsages[j].PrincipalID
-				})
-				sort.Slice(actualUsages, func(i, j int) bool {
-					if actualUsages[i].StartDate < actualUsages[j].StartDate {
-						return true
-					}
-					if actualUsages[i].StartDate > actualUsages[j].StartDate {
-						return false
-					}
-					return actualUsages[i].PrincipalID < actualUsages[j].PrincipalID
-				})
+		testutil.Retry(t, 10, 2*time.Second, func(r *testutil.R) {
 
-				assert.Equal(r, expectedUsages, actualUsages)
+			actualUsage, err := dbSvc.GetUsageByPrincipal(testStartDate, "user")
+			require.Nil(t, err)
+
+			sort.Slice(expectedUsage, func(i, j int) bool {
+				if expectedUsage[i].StartDate < expectedUsage[j].StartDate {
+					return true
+				}
+				if expectedUsage[i].StartDate > expectedUsage[j].StartDate {
+					return false
+				}
+				return expectedUsage[i].PrincipalID < expectedUsage[j].PrincipalID
 			})
+			sort.Slice(actualUsage, func(i, j int) bool {
+				if actualUsage[i].StartDate < actualUsage[j].StartDate {
+					return true
+				}
+				if actualUsage[i].StartDate > actualUsage[j].StartDate {
+					return false
+				}
+				return actualUsage[i].PrincipalID < actualUsage[j].PrincipalID
+			})
+
+			assert.Equal(r, expectedUsage, actualUsage)
 		})
 	})
 
