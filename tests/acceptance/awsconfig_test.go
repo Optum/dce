@@ -58,9 +58,8 @@ func TestS3Client_FromConfig_WithBadRegion(t *testing.T) {
 	err = svcBldr.Config.GetService(&s3Client)
 
 	// try to use the client to list the bucket
-	result, err := s3Client.ListBuckets(&s3.ListBucketsInput{})
-	assert.Nil(t, err)
-	assert.NotNil(t, result)
+	_, err = s3Client.ListBuckets(&s3.ListBucketsInput{})
+	assert.NotNil(t, err)
 }
 
 func TestS3ClientAndSNSClient_FromConfig(t *testing.T) {
