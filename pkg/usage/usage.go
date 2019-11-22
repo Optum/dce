@@ -148,7 +148,7 @@ func (db *DB) GetUsageByPrincipal(startDate time.Time, principalID string) ([]*U
 
 	for {
 
-		var resp, err = db.Client.GetItem(getInputForGetUsageByPrincipalId(db, usageStartDate, principalID, db.ConsistendRead))
+		var resp, err = db.Client.GetItem(getInputForGetUsageByPrincipalID(db, usageStartDate, principalID, db.ConsistendRead))
 		if err != nil {
 			errorMessage := fmt.Sprintf("Failed to query usage record for start date \"%s\": %s.", startDate, err)
 			log.Print(errorMessage)
@@ -245,8 +245,8 @@ func getQueryInput(tableName string, startDate time.Time, startKey map[string]*d
 	}
 }
 
-// getInputForGetUsageByPrincipalId returns a GetItemInput for given inputs
-func getInputForGetUsageByPrincipalId(d *DB, startDate time.Time, principalID string, consistentRead bool) *dynamodb.GetItemInput {
+// getInputForGetUsageByPrincipalID returns a GetItemInput for given inputs
+func getInputForGetUsageByPrincipalID(d *DB, startDate time.Time, principalID string, consistentRead bool) *dynamodb.GetItemInput {
 	getItemInput := dynamodb.GetItemInput{
 		TableName: aws.String(d.UsageTableName),
 		Key: map[string]*dynamodb.AttributeValue{
