@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -9,75 +8,53 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/Optum/dce/pkg/usage"
-
 	"github.com/Optum/dce/pkg/api/response"
-	"github.com/aws/aws-lambda-go/events"
 )
 
-type getController struct {
-	Dao usage.DB
-}
 
-// Call - function to return usage for input date range
-func (controller getController) Call(ctx context.Context, req *events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	// Fetch the usage records.
-	i, err := strconv.ParseInt(req.QueryStringParameters["startDate"], 10, 64)
+// GetUsageByStartDateAndEndDate - Returns a list of usage by startDate and endDate
+func GetUsageByStartDateAndEndDate(w http.ResponseWriter, r *http.Request) {
+
+	i, err := strconv.ParseInt(r.FormValue(StartDateParam), 10, 64)
 	if err != nil {
-		errorMessage := fmt.Sprintf("Failed to parse usage start date: %s", err)
-		log.Print(errorMessage)
-		return response.CreateAPIErrorResponse(http.StatusBadRequest,
-			response.CreateErrorResponse(
-				"Invalid startDate", errorMessage)), nil
+		errorMsg := fmt.Sprintf("Failed to parse usage start date: %s", err)
+		log.Println(errorMsg)
+		response.RequestValidationError(errorMsg)
+		return
 	}
 	startDate := time.Unix(i, 0)
 
-	j, err := strconv.ParseInt(req.QueryStringParameters["endDate"], 10, 64)
+	j, err := strconv.ParseInt(r.FormValue(EndDateParam), 10, 64)
 	if err != nil {
-		errorMessage := fmt.Sprintf("Failed to parse usage end date: %s", err)
-		log.Print(errorMessage)
-		return response.CreateAPIErrorResponse(http.StatusBadRequest,
-			response.CreateErrorResponse(
-				"Invalid endDate", errorMessage)), nil
+		errorMsg := fmt.Sprintf("Failed to parse usage end date: %s", err)
+		log.Println(errorMsg)
+		response.RequestValidationError(errorMsg)
+		return
 	}
 	endDate := time.Unix(j, 0)
 
-	usageRecords, err := controller.Dao.GetUsageByDateRange(startDate, endDate)
-
+	usageRecords, err := UsageSvc.GetUsageByDateRange(startDate, endDate)
 	if err != nil {
-		log.Printf("Error Getting usage records for startDate %d: %s", startDate.Unix(), err)
-		return response.CreateAPIErrorResponse(http.StatusInternalServerError,
-			response.CreateErrorResponse("ServerError",
-				fmt.Sprintf("Failed to get usage records for start date %d",
-					startDate.Unix()))), nil
+		errMsg := fmt.Sprintf("Error getting usage for given start date %s and end date %s: %s", r.FormValue(StartDateParam), r.FormValue(EndDateParam), err.Error())
+		log.Println(errMsg)
+		response.ServerErrorWithResponse(errMsg)
+		return
 	}
 
 	// Serialize them for the JSON response.
-	usageResponses := []*response.UsageResponse{}
+	usageResponseItems := []*response.UsageResponse{}
 
 	for _, a := range usageRecords {
 		usageRes := response.UsageResponse(*a)
 		usageRes.StartDate = startDate.Unix()
 		usageRes.EndDate = endDate.Unix()
 		log.Printf("usage: %v", usageRes)
-		usageResponses = append(usageResponses, &usageRes)
+		usageResponseItems = append(usageResponseItems, &usageRes)
 	}
 
-	outputResponses := SumCostAmountByPrincipalID(usageResponses)
+	outputResponseItems := SumCostAmountByPrincipalID(usageResponseItems)
 
-	messageBytes, err := json.Marshal(outputResponses)
-
-	if err != nil {
-		errorMessage := fmt.Sprintf("Failed to serialize data: %s", err)
-		log.Print(errorMessage)
-		return response.CreateAPIErrorResponse(http.StatusInternalServerError,
-			response.CreateErrorResponse(
-				"ServerError", errorMessage)), nil
-	}
-
-	body := string(messageBytes)
-
-	return response.CreateAPIResponse(http.StatusOK, body), nil
+	json.NewEncoder(w).Encode(outputResponseItems)
 }
 
 // SumCostAmountByPrincipalID returns a unique subset of the input slice by finding unique PrincipalIds and adding cost amount for it.
