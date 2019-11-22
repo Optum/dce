@@ -28,7 +28,7 @@ type genericConfiguration struct {
 // Configurater is the interface for providing configuration loading methods.
 type Configurater interface {
 	// WithStruct loads the configuration into the provided structure.
-	WithStruct(interface{}) *Configurater
+	WithStruct(cfgStruct interface{}) *Configurater
 	// WithService is a Builder Pattern method that allows you to specify services
 	// for the given type.
 	WithService(svc interface{}) *Configurater

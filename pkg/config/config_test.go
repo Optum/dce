@@ -63,7 +63,8 @@ func TestDefaultConfigurater_WithStruct(t *testing.T) {
 	assert.Equal(t, ExpectedIntVal, actualIntVal)
 
 	var config exampleConfig
-	configurater := &DefaultConfigurater{}
+	var configurater Configurater
+	configurater = &DefaultConfigurater{}
 
 	err = configurater.
 		WithStruct(&config).
