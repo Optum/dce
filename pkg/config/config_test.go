@@ -52,7 +52,7 @@ func (w *Wuzz) GetName() string {
 	return w.Name
 }
 
-func TestDefaultConfigurater_WithStruct(t *testing.T) {
+func TestDCEConfigBuilder_WithStruct(t *testing.T) {
 	actualStringVal := os.Getenv("SOME_STRING_VALUE")
 	// just checking... ;)
 	assert.Equal(t, ExpectedStrVal, actualStringVal)
@@ -63,8 +63,7 @@ func TestDefaultConfigurater_WithStruct(t *testing.T) {
 	assert.Equal(t, ExpectedIntVal, actualIntVal)
 
 	var config exampleConfig
-	var configurater Configurater
-	configurater = &DefaultConfigurater{}
+	configurater := &DCEConfigBuilder{}
 
 	err = configurater.
 		WithStruct(&config).
@@ -80,8 +79,8 @@ func TestDefaultConfigurater_WithStruct(t *testing.T) {
 	assert.Equal(t, expectedArrayOfStrings, config.ArrayOfStringValue)
 }
 
-func TestDefaultConfigurater_TryToGetWithoutBuilding(t *testing.T) {
-	cfg := &DefaultConfigurater{}
+func TestDCEConfigBuilder_TryToGetWithoutBuilding(t *testing.T) {
+	cfg := &DCEConfigBuilder{}
 	cfg.WithVal("foo", "bar")
 
 	actualVal, err := cfg.GetStringVal("foo")
@@ -91,8 +90,8 @@ func TestDefaultConfigurater_TryToGetWithoutBuilding(t *testing.T) {
 	assert.True(t, len(actualVal) == 0)
 }
 
-func TestDefaultConfigurater_BuildWithValue(t *testing.T) {
-	cfg := &DefaultConfigurater{}
+func TestDCEConfigBuilder_BuildWithValue(t *testing.T) {
+	cfg := &DCEConfigBuilder{}
 	cfg.WithVal("bar", ExpectedStrVal).Build()
 
 	actualVal, err := cfg.GetStringVal("bar")
@@ -100,8 +99,8 @@ func TestDefaultConfigurater_BuildWithValue(t *testing.T) {
 	assert.Equal(t, ExpectedStrVal, actualVal)
 }
 
-func TestDefaultConfigurater_BuildWithValueButGetWithError(t *testing.T) {
-	cfg := &DefaultConfigurater{}
+func TestDCEConfigBuilder_BuildWithValueButGetWithError(t *testing.T) {
+	cfg := &DCEConfigBuilder{}
 	cfg.WithVal("bar", ExpectedStrVal).Build()
 
 	actualVal, err := cfg.GetStringVal("somenonexistantkey")
@@ -111,8 +110,8 @@ func TestDefaultConfigurater_BuildWithValueButGetWithError(t *testing.T) {
 	assert.True(t, len(actualVal) == 0)
 }
 
-func TestDefaultConfigurater_BuildWithEnvVar(t *testing.T) {
-	cfg := &DefaultConfigurater{}
+func TestDCEConfigBuilder_BuildWithEnvVar(t *testing.T) {
+	cfg := &DCEConfigBuilder{}
 	cfg.WithEnv("bar", "SOME_STRING_VALUE", ExpectedStrVal).Build()
 
 	actualVal, err := cfg.GetStringVal("bar")
@@ -120,8 +119,8 @@ func TestDefaultConfigurater_BuildWithEnvVar(t *testing.T) {
 	assert.Equal(t, ExpectedStrVal, actualVal)
 }
 
-func TestDefaultConfigurater_BuildWithEnvVarWithDefault(t *testing.T) {
-	cfg := &DefaultConfigurater{}
+func TestDCEConfigBuilder_BuildWithEnvVarWithDefault(t *testing.T) {
+	cfg := &DCEConfigBuilder{}
 	cfg.WithEnv("bar", "SOME_STRING_VALUE_THAT_DOES_NOT_EXIST", ExpectedStrDefaultedVal).Build()
 
 	actualVal, err := cfg.GetStringVal("bar")
@@ -129,8 +128,8 @@ func TestDefaultConfigurater_BuildWithEnvVarWithDefault(t *testing.T) {
 	assert.Equal(t, ExpectedStrDefaultedVal, actualVal)
 }
 
-func TestDefaultConfigurater_BuildWithService(t *testing.T) {
-	cfg := &DefaultConfigurater{}
+func TestDCEConfigBuilder_BuildWithService(t *testing.T) {
+	cfg := &DCEConfigBuilder{}
 	baz := &Baz{Message: "Baz is the jazz!"}
 	var iface Foo
 	cfg.WithService(baz).Build()
@@ -140,8 +139,8 @@ func TestDefaultConfigurater_BuildWithService(t *testing.T) {
 	assert.Equal(t, "Baz is the jazz!", iface.GetMessage())
 }
 
-func TestDefaultConfigurater_BuildWithMulitpleServices(t *testing.T) {
-	cfg := &DefaultConfigurater{}
+func TestDCEConfigBuilder_BuildWithMulitpleServices(t *testing.T) {
+	cfg := &DCEConfigBuilder{}
 	var iface Foo
 	var otherIface Fuzz
 
@@ -162,8 +161,8 @@ func TestDefaultConfigurater_BuildWithMulitpleServices(t *testing.T) {
 	assert.Equal(t, "The bear with no hair", otherIface.GetName())
 }
 
-func TestDefaultConfigurater_BuildWithServiceWithError(t *testing.T) {
-	cfg := &DefaultConfigurater{}
+func TestDCEConfigBuilder_BuildWithServiceWithError(t *testing.T) {
+	cfg := &DCEConfigBuilder{}
 	baz := &Baz{Message: "Baz is the jazz!"}
 	var otherIface Fuzz
 

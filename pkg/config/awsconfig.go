@@ -1,11 +1,26 @@
 package config
 
 import (
+	"fmt"
 	"log"
 	"reflect"
 	"runtime"
 
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/codebuild"
+	"github.com/aws/aws-sdk-go/service/codebuild/codebuildiface"
+	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
+	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider/cognitoidentityprovideriface"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
+	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3iface"
+	"github.com/aws/aws-sdk-go/service/sns"
+	"github.com/aws/aws-sdk-go/service/sns/snsiface"
+	"github.com/aws/aws-sdk-go/service/sqs"
+	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
+	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/aws/aws-sdk-go/service/sts/stsiface"
 )
 
 // AWSSessionKey is the key for the configuration for the AWS session
@@ -14,38 +29,13 @@ const AWSSessionKey = "AWSSession"
 // AWSConfigurationError is returned when an AWS service cannot be properly configured.
 type AWSConfigurationError error
 
-// AWSServiceBuilder creates the AWSServices structure, which contains references
-// to the AWS services.
-type AWSServiceBuilder interface {
-	// TODO: Session might need to stay internal. Not sure why it would
-	// NOT be ever called.
-	// WithSession tells the builder to add an AWS session to the result
-	// WithSession() *AWSServiceBuilder
-	// WithSTS tells the builder to add an AWS STS service to the `Configurater`
-	WithSTS() *AWSServiceBuilder
-	// WithSNS tells the builder to add an AWS SNS service to the `Configurater`
-	WithSNS() *AWSServiceBuilder
-	// WithSQS tells the builder to add an AWS SQS service to the `Configurater`
-	WithSQS() *AWSServiceBuilder
-	// WithDynamoDB tells the builder to add an AWS DynamoDB service to the `Configurater`
-	WithDynamoDB() *AWSServiceBuilder
-	// WithS3 tells the builder to add an AWS S3 service to the `Configurater`
-	WithS3() *AWSServiceBuilder
-	// WithCognito tells the builder to add an AWS Cognito service to the `Configurater`
-	WithCognito() *AWSServiceBuilder
-	// WithCodePipeline tells the builder to add an AWS CodePipeline service to the `Configurater`
-	WithCodePipeline() *AWSServiceBuilder
-	// Build creates and returns a structue with AWS services
-	Build() (*Configurater, error)
-}
-
 // createrFunc internal functions for handling the creation of the services
-type createrFunc func(config *Configurater) error
+type createrFunc func(config *DCEConfigBuilder) error
 
-// DefaultAWSServiceBuilder is the default implementation of the `AWSServiceBuilder`
-type DefaultAWSServiceBuilder struct {
+// AWSServiceBuilder is the default implementation of the `AWSServiceBuilder`
+type AWSServiceBuilder struct {
 	handlers []createrFunc
-	Config   *Configurater
+	Config   *DCEConfigBuilder
 }
 
 // WithSession tells the builder to add an AWS session to the result
@@ -54,50 +44,50 @@ type DefaultAWSServiceBuilder struct {
 // 	return bldr
 // }
 
-// WithSTS tells the builder to add an AWS STS service to the `Configurater`
-func (bldr *DefaultAWSServiceBuilder) WithSTS() *DefaultAWSServiceBuilder {
+// WithSTS tells the builder to add an AWS STS service to the `DefaultConfigurater`
+func (bldr *AWSServiceBuilder) WithSTS() *AWSServiceBuilder {
 	bldr.handlers = append(bldr.handlers, createSTS)
 	return bldr
 }
 
-// WithSNS tells the builder to add an AWS SNS service to the `Configurater`
-func (bldr *DefaultAWSServiceBuilder) WithSNS() *DefaultAWSServiceBuilder {
+// WithSNS tells the builder to add an AWS SNS service to the `DefaultConfigurater`
+func (bldr *AWSServiceBuilder) WithSNS() *AWSServiceBuilder {
 	bldr.handlers = append(bldr.handlers, createSNS)
 	return bldr
 }
 
-// WithSQS tells the builder to add an AWS SQS service to the `Configurater`
-func (bldr *DefaultAWSServiceBuilder) WithSQS() *DefaultAWSServiceBuilder {
+// WithSQS tells the builder to add an AWS SQS service to the `DefaultConfigurater`
+func (bldr *AWSServiceBuilder) WithSQS() *AWSServiceBuilder {
 	bldr.handlers = append(bldr.handlers, createSQS)
 	return bldr
 }
 
-// WithDynamoDB tells the builder to add an AWS DynamoDB service to the `Configurater`
-func (bldr *DefaultAWSServiceBuilder) WithDynamoDB() *DefaultAWSServiceBuilder {
+// WithDynamoDB tells the builder to add an AWS DynamoDB service to the `DefaultConfigurater`
+func (bldr *AWSServiceBuilder) WithDynamoDB() *AWSServiceBuilder {
 	bldr.handlers = append(bldr.handlers, createDynamoDB)
 	return bldr
 }
 
-// WithS3 tells the builder to add an AWS S3 service to the `Configurater`
-func (bldr *DefaultAWSServiceBuilder) WithS3() *DefaultAWSServiceBuilder {
+// WithS3 tells the builder to add an AWS S3 service to the `DefaultConfigurater`
+func (bldr *AWSServiceBuilder) WithS3() *AWSServiceBuilder {
 	bldr.handlers = append(bldr.handlers, createS3)
 	return bldr
 }
 
-// WithCognito tells the builder to add an AWS Cognito service to the `Configurater`
-func (bldr *DefaultAWSServiceBuilder) WithCognito() *DefaultAWSServiceBuilder {
+// WithCognito tells the builder to add an AWS Cognito service to the `DefaultConfigurater`
+func (bldr *AWSServiceBuilder) WithCognito() *AWSServiceBuilder {
 	bldr.handlers = append(bldr.handlers, createCognito)
 	return bldr
 }
 
-// WithCodePipeline tells the builder to add an AWS CodePipeline service to the `Configurater`
-func (bldr *DefaultAWSServiceBuilder) WithCodePipeline() *DefaultAWSServiceBuilder {
+// WithCodePipeline tells the builder to add an AWS CodePipeline service to the `DefaultConfigurater`
+func (bldr *AWSServiceBuilder) WithCodePipeline() *AWSServiceBuilder {
 	bldr.handlers = append(bldr.handlers, createCodePipeline)
 	return bldr
 }
 
 // Build creates and returns a structue with AWS services
-func (bldr *DefaultAWSServiceBuilder) Build() (*Configurater, error) {
+func (bldr *AWSServiceBuilder) Build() (*DCEConfigBuilder, error) {
 
 	// Create session is done first, and explicitly, because everything else
 	// uses it
@@ -117,46 +107,99 @@ func (bldr *DefaultAWSServiceBuilder) Build() (*Configurater, error) {
 		}
 	}
 
-	return bldr.Config, nil
+	// make certain build is called before returning.
+	err = bldr.Config.Build()
+	return bldr.Config, err
 }
 
-func createSession(config *Configurater) error {
+func createSession(config *DCEConfigBuilder) error {
 	awsSession, err := session.NewSession()
-	config.WithVal(AWSSessionKey, awsSession)
+	config.WithService(awsSession)
 	return err
 }
 
-func createSTS(config *Configurater) error {
-	// TODO: Add code in here to create the AWS session and add it to the configuration
+func getSession(config *DCEConfigBuilder) (*session.Session, error) {
+	var awsSession *session.Session
+	config.GetService(awsSession)
+	if awsSession == nil {
+		return nil, AWSConfigurationError(fmt.Errorf("error while trying to get session"))
+	}
+	return awsSession, nil
+}
+
+func createSTS(config *DCEConfigBuilder) error {
+	if awsSession, err := getSession(config); err == nil {
+		var stsSvc stsiface.STSAPI
+		stsSvc = sts.New(awsSession)
+		config.WithService(stsSvc)
+	} else {
+		return err
+	}
 	return nil
 }
 
-func createSNS(config *Configurater) error {
-	// TODO: Add code in here to create the AWS session and add it to the configuration
+func createSNS(config *DCEConfigBuilder) error {
+	if awsSession, err := getSession(config); err == nil {
+		var snsSvc snsiface.SNSAPI
+		snsSvc = sns.New(awsSession)
+		config.WithService(snsSvc)
+	} else {
+		return err
+	}
 	return nil
 }
 
-func createSQS(config *Configurater) error {
-	// TODO: Add code in here to create the AWS session and add it to the configuration
+func createSQS(config *DCEConfigBuilder) error {
+	if awsSession, err := getSession(config); err == nil {
+		var sqsSvc sqsiface.SQSAPI
+		sqsSvc = sqs.New(awsSession)
+		config.WithService(sqsSvc)
+	} else {
+		return err
+	}
 	return nil
 }
 
-func createDynamoDB(config *Configurater) error {
-	// TODO: Add code in here to create the AWS session and add it to the configuration
+func createDynamoDB(config *DCEConfigBuilder) error {
+	if awsSession, err := getSession(config); err == nil {
+		var dynamodbSvc dynamodbiface.DynamoDBAPI
+		dynamodbSvc = dynamodb.New(awsSession)
+		config.WithService(dynamodbSvc)
+	} else {
+		return err
+	}
 	return nil
 }
 
-func createS3(config *Configurater) error {
-	// TODO: Add code in here to create the AWS session and add it to the configuration
+func createS3(config *DCEConfigBuilder) error {
+	if awsSession, err := getSession(config); err == nil {
+		var s3Svc s3iface.S3API
+		s3Svc = s3.New(awsSession)
+		config.WithService(s3Svc)
+	} else {
+		return err
+	}
 	return nil
 }
 
-func createCognito(config *Configurater) error {
-	// TODO: Add code in here to create the AWS session and add it to the configuration
+func createCognito(config *DCEConfigBuilder) error {
+	if awsSession, err := getSession(config); err == nil {
+		var cognitoSvc cognitoidentityprovideriface.CognitoIdentityProviderAPI
+		cognitoSvc = cognitoidentityprovider.New(awsSession)
+		config.WithService(cognitoSvc)
+	} else {
+		return err
+	}
 	return nil
 }
 
-func createCodePipeline(config *Configurater) error {
-	// TODO: Add code in here to create the AWS session and add it to the configuration
+func createCodePipeline(config *DCEConfigBuilder) error {
+	if awsSession, err := getSession(config); err == nil {
+		var codeBuildSvc codebuildiface.CodeBuildAPI
+		codeBuildSvc = codebuild.New(awsSession)
+		config.WithService(codeBuildSvc)
+	} else {
+		return err
+	}
 	return nil
 }

@@ -25,33 +25,8 @@ type genericConfiguration struct {
 	cfgStruct interface{}
 }
 
-// Configurater is the interface for providing configuration loading methods.
-type Configurater interface {
-	// WithStruct loads the configuration into the provided structure.
-	WithStruct(cfgStruct interface{}) *Configurater
-	// WithService is a Builder Pattern method that allows you to specify services
-	// for the given type.
-	WithService(svc interface{}) *Configurater
-	// WithEnv allows you to point to an environment variable for the value and
-	// also specify a default using defaultValue
-	WithEnv(key string, envVar string, defaultValue interface{}) *Configurater
-	// WithVal allows you to hardcode string values into the configuration.
-	// This is good for testing, injecting known values or values derived by means
-	// outside the configuration.
-	WithVal(key string, val interface{}) *Configurater
-	// GetService retreives the service with the given type. An error is thrown if
-	// the service is not found.
-	GetService(svcFor interface{}) error
-	// GetStringVal returns the value of the key as a string.
-	GetStringVal(key string) (string, error)
-	// GetStruct returns the populated struct specified in the `WithStruct` method.
-	GetStruct() (interface{}, error)
-	// Build builds the configuration.
-	Build() error
-}
-
-// DefaultConfigurater is the default implementation of a configuration loader.
-type DefaultConfigurater struct {
+// DCEConfigBuilder is the default implementation of a configuration loader.
+type DCEConfigBuilder struct {
 	values    *genericConfiguration
 	parsers   env.CustomParsers
 	isBuilt   bool
@@ -59,7 +34,7 @@ type DefaultConfigurater struct {
 }
 
 // WithStruct loads the configuration into the provided structure.
-func (config *DefaultConfigurater) WithStruct(cfgStruct interface{}) *DefaultConfigurater {
+func (config *DCEConfigBuilder) WithStruct(cfgStruct interface{}) *DCEConfigBuilder {
 	config.useStruct = true
 	config.initialize()
 	config.values.cfgStruct = cfgStruct
@@ -68,7 +43,7 @@ func (config *DefaultConfigurater) WithStruct(cfgStruct interface{}) *DefaultCon
 
 // WithService is a Builder Pattern method that allows you to specify services
 // for the given type.
-func (config *DefaultConfigurater) WithService(svc interface{}) *DefaultConfigurater {
+func (config *DCEConfigBuilder) WithService(svc interface{}) *DCEConfigBuilder {
 	config.initialize()
 	config.values.services = append(config.values.services, svc)
 	config.values.types = append(config.values.types, reflect.TypeOf(svc))
@@ -78,7 +53,7 @@ func (config *DefaultConfigurater) WithService(svc interface{}) *DefaultConfigur
 
 // WithEnv allows you to point to an environment variable for the value and
 // also specify a default using defaultValu
-func (config *DefaultConfigurater) WithEnv(key string, envVar string, defaultValue interface{}) *DefaultConfigurater {
+func (config *DCEConfigBuilder) WithEnv(key string, envVar string, defaultValue interface{}) *DCEConfigBuilder {
 	config.initialize()
 
 	envVal, ok := os.LookupEnv(envVar)
@@ -95,7 +70,7 @@ func (config *DefaultConfigurater) WithEnv(key string, envVar string, defaultVal
 // WithVal allows you to hardcode string values into the configuration.
 // This is good for testing, injecting known values or values derived by means
 // outside the configuration.
-func (config *DefaultConfigurater) WithVal(key string, val interface{}) *DefaultConfigurater {
+func (config *DCEConfigBuilder) WithVal(key string, val interface{}) *DCEConfigBuilder {
 	config.initialize()
 	config.values.vals[key] = val
 	return config
@@ -103,7 +78,7 @@ func (config *DefaultConfigurater) WithVal(key string, val interface{}) *Default
 
 // GetService retreives the service with the given type. An error is thrown if
 // the service is not found.
-func (config *DefaultConfigurater) GetService(svcFor interface{}) error {
+func (config *DCEConfigBuilder) GetService(svcFor interface{}) error {
 	k := reflect.TypeOf(svcFor).Elem()
 	kind := k.Kind()
 	if kind == reflect.Ptr {
@@ -125,7 +100,7 @@ func (config *DefaultConfigurater) GetService(svcFor interface{}) error {
 }
 
 // GetStruct returns the populated struct specified in the `WithStruct` method.
-func (config *DefaultConfigurater) GetStruct() (interface{}, error) {
+func (config *DCEConfigBuilder) GetStruct() (interface{}, error) {
 	if !config.useStruct {
 		// TODO: Not sure if this should throw an error or just an empty struct...
 		return nil, ConfigurationError(errors.New("call `WithStruct` to supply a struct first"))
@@ -138,7 +113,7 @@ func (config *DefaultConfigurater) GetStruct() (interface{}, error) {
 }
 
 // GetStringVal returns the value of the key as a string.
-func (config *DefaultConfigurater) GetStringVal(key string) (string, error) {
+func (config *DCEConfigBuilder) GetStringVal(key string) (string, error) {
 	if !config.isBuilt {
 		return "", ConfigurationError(errors.New("call Build() before attempting to get values"))
 	}
@@ -152,8 +127,23 @@ func (config *DefaultConfigurater) GetStringVal(key string) (string, error) {
 	return val.(string), nil
 }
 
+// GetVal returns the raw value
+func (config *DCEConfigBuilder) GetVal(key string) (interface{}, error) {
+	if !config.isBuilt {
+		return "", ConfigurationError(errors.New("call Build() before attempting to get values"))
+	}
+
+	val, ok := config.values.vals[key]
+
+	if !ok {
+		return nil, ConfigurationError(fmt.Errorf("no value found in configuration for key: %s", key))
+	}
+
+	return val, nil
+}
+
 // Build builds the configuration.
-func (config *DefaultConfigurater) Build() error {
+func (config *DCEConfigBuilder) Build() error {
 	if config.useStruct {
 		err := config.buildWithStruct()
 		if err != nil {
@@ -166,7 +156,7 @@ func (config *DefaultConfigurater) Build() error {
 	return nil
 }
 
-func (config *DefaultConfigurater) buildWithStruct() error {
+func (config *DCEConfigBuilder) buildWithStruct() error {
 	config.parsers = config.createCustomParsers()
 	err := env.ParseWithFuncs(config.values.cfgStruct, config.parsers)
 	// TODO: Add some more context to the error and consider wrapping with
@@ -174,7 +164,7 @@ func (config *DefaultConfigurater) buildWithStruct() error {
 	return err
 }
 
-func (config *DefaultConfigurater) initialize() {
+func (config *DCEConfigBuilder) initialize() {
 	if config.values == nil {
 		config.values = &genericConfiguration{}
 	}
@@ -186,7 +176,7 @@ func (config *DefaultConfigurater) initialize() {
 	}
 }
 
-func (config *DefaultConfigurater) createCustomParsers() env.CustomParsers {
+func (config *DCEConfigBuilder) createCustomParsers() env.CustomParsers {
 	funcMap := env.CustomParsers{}
 	return funcMap
 }
