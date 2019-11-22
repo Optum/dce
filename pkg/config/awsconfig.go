@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"runtime"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/codebuild"
 	"github.com/aws/aws-sdk-go/service/codebuild/codebuildiface"
@@ -37,12 +38,6 @@ type AWSServiceBuilder struct {
 	awsSession *session.Session
 	Config     *DCEConfigBuilder
 }
-
-// WithSession tells the builder to add an AWS session to the result
-// func (bldr *DefaultAWSServiceBuilder) WithSession() *DefaultAWSServiceBuilder {
-// 	bldr.handlers = append(bldr.handlers, createSession)
-// 	return bldr
-// }
 
 // WithSTS tells the builder to add an AWS STS service to the `DefaultConfigurater`
 func (bldr *AWSServiceBuilder) WithSTS() *AWSServiceBuilder {
@@ -89,9 +84,16 @@ func (bldr *AWSServiceBuilder) WithCodePipeline() *AWSServiceBuilder {
 // Build creates and returns a structue with AWS services
 func (bldr *AWSServiceBuilder) Build() (*DCEConfigBuilder, error) {
 
+	err := bldr.Config.Build()
+	if err != nil {
+		// We failed to build the configuration, so honestly there is no
+		// point in continuating...
+		return bldr.Config, AWSConfigurationError(err)
+	}
+
 	// Create session is done first, and explicitly, because everything else
 	// uses it
-	err := bldr.createSession(bldr.Config)
+	err = bldr.createSession(bldr.Config)
 
 	if err != nil {
 		log.Printf("Could not create session: %s", err.Error())
@@ -108,13 +110,23 @@ func (bldr *AWSServiceBuilder) Build() (*DCEConfigBuilder, error) {
 	}
 
 	// make certain build is called before returning.
-	err = bldr.Config.Build()
-	return bldr.Config, err
+	return bldr.Config, nil
 }
 
 func (bldr *AWSServiceBuilder) createSession(config *DCEConfigBuilder) error {
 	var err error
-	bldr.awsSession, err = session.NewSession()
+	region, err := bldr.Config.GetStringVal("AWS_CURRENT_REGION")
+	if err == nil {
+		log.Printf("Using AWS region \"%s\" to create session...", region)
+		bldr.awsSession, err = session.NewSession(
+			&aws.Config{
+				Region: aws.String(region),
+			},
+		)
+	} else {
+		log.Println("Creating AWS session using defaults...")
+		bldr.awsSession, err = session.NewSession()
+	}
 	return err
 }
 
