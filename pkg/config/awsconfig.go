@@ -75,9 +75,9 @@ func (bldr *AWSServiceBuilder) WithCognito() *AWSServiceBuilder {
 	return bldr
 }
 
-// WithCodePipeline tells the builder to add an AWS CodePipeline service to the `DefaultConfigurater`
-func (bldr *AWSServiceBuilder) WithCodePipeline() *AWSServiceBuilder {
-	bldr.handlers = append(bldr.handlers, bldr.createCodePipeline)
+// WithCodeBuild tells the builder to add an AWS CodeBuild service to the `DefaultConfigurater`
+func (bldr *AWSServiceBuilder) WithCodeBuild() *AWSServiceBuilder {
+	bldr.handlers = append(bldr.handlers, bldr.createCodeBuild)
 	return bldr
 }
 
@@ -172,7 +172,7 @@ func (bldr *AWSServiceBuilder) createCognito(config *DCEConfigBuilder) error {
 	return nil
 }
 
-func (bldr *AWSServiceBuilder) createCodePipeline(config *DCEConfigBuilder) error {
+func (bldr *AWSServiceBuilder) createCodeBuild(config *DCEConfigBuilder) error {
 	var codeBuildSvc codebuildiface.CodeBuildAPI
 	codeBuildSvc = codebuild.New(bldr.awsSession)
 	config.WithService(codeBuildSvc)
