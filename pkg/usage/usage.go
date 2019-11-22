@@ -133,7 +133,7 @@ func (db *DB) GetUsageByDateRange(startDate time.Time, endDate time.Time) ([]*Us
 // startDate is epoch Unix date
 func (db *DB) GetUsageByPrincipal(startDate time.Time, principalID string) ([]*Usage, error) {
 
-	Output := make([]*Usage, 0)
+	output := make([]*Usage, 0)
 
 	// Convert startDate to the start time of that day
 	usageStartDate := time.Date(startDate.Year(), startDate.Month(), startDate.Day(), 0, 0, 0, 0, time.UTC)
@@ -148,7 +148,7 @@ func (db *DB) GetUsageByPrincipal(startDate time.Time, principalID string) ([]*U
 
 	for {
 
-		var resp, err = db.Client.GetItem(getInputForGetItem(db, usageStartDate, principalID, db.ConsistendRead))
+		var resp, err = db.Client.GetItem(getInputForGetUsageByPrincipalId(db, usageStartDate, principalID, db.ConsistendRead))
 		if err != nil {
 			errorMessage := fmt.Sprintf("Failed to query usage record for start date \"%s\": %s.", startDate, err)
 			log.Print(errorMessage)
@@ -159,10 +159,12 @@ func (db *DB) GetUsageByPrincipal(startDate time.Time, principalID string) ([]*U
 
 		err = dynamodbattribute.UnmarshalMap(resp.Item, &item)
 		if err != nil {
-			panic(fmt.Sprintf("Failed to unmarshal Record, %v", err))
+			errorMessage := fmt.Sprintf("Failed to unmarshal Record, %v", err)
+			log.Print(errorMessage)
+			return nil, err
 		}
 
-		Output = append(Output, &item)
+		output = append(output, &item)
 
 		// increment startdate by a day
 		usageStartDate = usageStartDate.AddDate(0, 0, 1)
@@ -173,7 +175,7 @@ func (db *DB) GetUsageByPrincipal(startDate time.Time, principalID string) ([]*U
 		}
 	}
 
-	return Output, nil
+	return output, nil
 }
 
 // New creates a new usage DB Service struct,
@@ -243,8 +245,8 @@ func getQueryInput(tableName string, startDate time.Time, startKey map[string]*d
 	}
 }
 
-// getInputForGetItem returns a GetItemInput for given inputs
-func getInputForGetItem(d *DB, startDate time.Time, principalID string, consistentRead bool) *dynamodb.GetItemInput {
+// getInputForGetUsageByPrincipalId returns a GetItemInput for given inputs
+func getInputForGetUsageByPrincipalId(d *DB, startDate time.Time, principalID string, consistentRead bool) *dynamodb.GetItemInput {
 	getItemInput := dynamodb.GetItemInput{
 		TableName: aws.String(d.UsageTableName),
 		Key: map[string]*dynamodb.AttributeValue{
