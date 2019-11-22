@@ -57,6 +57,13 @@ func init() {
 			[]string{StartDateParam, EndDateParam},
 			GetUsageByStartDateAndEndDate,
 		},
+		api.Route{
+			"GetUsageByStartDateAndPrincipalID",
+			"GET",
+			"/usage",
+			[]string{StartDateParam, PrincipalIDParam},
+			GetUsageByStartDateAndPrincipalID,
+		},
 	}
 	r := api.NewRouter(usageRoutes)
 	muxLambda = gorillamux.New(r)
