@@ -30,13 +30,13 @@ const AWSSessionKey = "AWSSession"
 type AWSConfigurationError error
 
 // createrFunc internal functions for handling the creation of the services
-type createrFunc func(config *DCEConfigBuilder) error
+type createrFunc func(config *ConfigurationBuilder) error
 
 // AWSServiceBuilder is the default implementation of the `AWSServiceBuilder`
 type AWSServiceBuilder struct {
 	handlers   []createrFunc
 	awsSession *session.Session
-	Config     *DCEConfigBuilder
+	Config     *ConfigurationBuilder
 }
 
 // WithSTS tells the builder to add an AWS STS service to the `DefaultConfigurater`
@@ -82,7 +82,7 @@ func (bldr *AWSServiceBuilder) WithCodeBuild() *AWSServiceBuilder {
 }
 
 // Build creates and returns a structue with AWS services
-func (bldr *AWSServiceBuilder) Build() (*DCEConfigBuilder, error) {
+func (bldr *AWSServiceBuilder) Build() (*ConfigurationBuilder, error) {
 
 	err := bldr.Config.Build()
 	if err != nil {
@@ -104,7 +104,6 @@ func (bldr *AWSServiceBuilder) Build() (*DCEConfigBuilder, error) {
 		err := f(bldr.Config)
 		if err != nil {
 			log.Printf("Error while trying to execute handler: %s", runtime.FuncForPC(reflect.ValueOf(f).Pointer()).Name())
-			// TODO: Do we want to keep going or stop at the first error?
 			return bldr.Config, AWSConfigurationError(err)
 		}
 	}
@@ -113,7 +112,7 @@ func (bldr *AWSServiceBuilder) Build() (*DCEConfigBuilder, error) {
 	return bldr.Config, nil
 }
 
-func (bldr *AWSServiceBuilder) createSession(config *DCEConfigBuilder) error {
+func (bldr *AWSServiceBuilder) createSession(config *ConfigurationBuilder) error {
 	var err error
 	region, err := bldr.Config.GetStringVal("AWS_CURRENT_REGION")
 	if err == nil {
@@ -130,49 +129,49 @@ func (bldr *AWSServiceBuilder) createSession(config *DCEConfigBuilder) error {
 	return err
 }
 
-func (bldr *AWSServiceBuilder) createSTS(config *DCEConfigBuilder) error {
+func (bldr *AWSServiceBuilder) createSTS(config *ConfigurationBuilder) error {
 	var stsSvc stsiface.STSAPI
 	stsSvc = sts.New(bldr.awsSession)
 	config.WithService(stsSvc)
 	return nil
 }
 
-func (bldr *AWSServiceBuilder) createSNS(config *DCEConfigBuilder) error {
+func (bldr *AWSServiceBuilder) createSNS(config *ConfigurationBuilder) error {
 	var snsSvc snsiface.SNSAPI
 	snsSvc = sns.New(bldr.awsSession)
 	config.WithService(snsSvc)
 	return nil
 }
 
-func (bldr *AWSServiceBuilder) createSQS(config *DCEConfigBuilder) error {
+func (bldr *AWSServiceBuilder) createSQS(config *ConfigurationBuilder) error {
 	var sqsSvc sqsiface.SQSAPI
 	sqsSvc = sqs.New(bldr.awsSession)
 	config.WithService(sqsSvc)
 	return nil
 }
 
-func (bldr *AWSServiceBuilder) createDynamoDB(config *DCEConfigBuilder) error {
+func (bldr *AWSServiceBuilder) createDynamoDB(config *ConfigurationBuilder) error {
 	var dynamodbSvc dynamodbiface.DynamoDBAPI
 	dynamodbSvc = dynamodb.New(bldr.awsSession)
 	config.WithService(dynamodbSvc)
 	return nil
 }
 
-func (bldr *AWSServiceBuilder) createS3(config *DCEConfigBuilder) error {
+func (bldr *AWSServiceBuilder) createS3(config *ConfigurationBuilder) error {
 	var s3Svc s3iface.S3API
 	s3Svc = s3.New(bldr.awsSession)
 	config.WithService(s3Svc)
 	return nil
 }
 
-func (bldr *AWSServiceBuilder) createCognito(config *DCEConfigBuilder) error {
+func (bldr *AWSServiceBuilder) createCognito(config *ConfigurationBuilder) error {
 	var cognitoSvc cognitoidentityprovideriface.CognitoIdentityProviderAPI
 	cognitoSvc = cognitoidentityprovider.New(bldr.awsSession)
 	config.WithService(cognitoSvc)
 	return nil
 }
 
-func (bldr *AWSServiceBuilder) createCodeBuild(config *DCEConfigBuilder) error {
+func (bldr *AWSServiceBuilder) createCodeBuild(config *ConfigurationBuilder) error {
 	var codeBuildSvc codebuildiface.CodeBuildAPI
 	codeBuildSvc = codebuild.New(bldr.awsSession)
 	config.WithService(codeBuildSvc)

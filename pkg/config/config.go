@@ -15,7 +15,7 @@ import (
 type ConfigurationError error
 
 // GenericConfiguration is a generic structure that contains configuration
-type genericConfiguration struct {
+type configurationValues struct {
 	services  []interface{}
 	types     []reflect.Type
 	impls     []reflect.Value
@@ -25,25 +25,23 @@ type genericConfiguration struct {
 	cfgStruct interface{}
 }
 
-// DCEConfigBuilder is the default implementation of a configuration loader.
-type DCEConfigBuilder struct {
-	values    *genericConfiguration
-	parsers   env.CustomParsers
-	isBuilt   bool
-	useStruct bool
+// ConfigurationBuilder is the default implementation of a configuration loader.
+type ConfigurationBuilder struct {
+	values  *configurationValues
+	parsers env.CustomParsers
+	isBuilt bool
 }
 
-// WithStruct loads the configuration into the provided structure.
-func (config *DCEConfigBuilder) WithStruct(cfgStruct interface{}) *DCEConfigBuilder {
-	config.useStruct = true
-	config.initialize()
-	config.values.cfgStruct = cfgStruct
-	return config
+// Unmarshal loads the configuration into the provided structure.
+func (config *ConfigurationBuilder) Unmarshal(cfgStruct interface{}) error {
+	config.parsers = config.createCustomParsers()
+	err := env.ParseWithFuncs(cfgStruct, config.parsers)
+	return err
 }
 
 // WithService is a Builder Pattern method that allows you to specify services
 // for the given type.
-func (config *DCEConfigBuilder) WithService(svc interface{}) *DCEConfigBuilder {
+func (config *ConfigurationBuilder) WithService(svc interface{}) *ConfigurationBuilder {
 	config.initialize()
 	config.values.services = append(config.values.services, svc)
 	config.values.types = append(config.values.types, reflect.TypeOf(svc))
@@ -52,8 +50,8 @@ func (config *DCEConfigBuilder) WithService(svc interface{}) *DCEConfigBuilder {
 }
 
 // WithEnv allows you to point to an environment variable for the value and
-// also specify a default using defaultValu
-func (config *DCEConfigBuilder) WithEnv(key string, envVar string, defaultValue interface{}) *DCEConfigBuilder {
+// also specify a default using defaultValue
+func (config *ConfigurationBuilder) WithEnv(key string, envVar string, defaultValue interface{}) *ConfigurationBuilder {
 	config.initialize()
 
 	envVal, ok := os.LookupEnv(envVar)
@@ -70,7 +68,7 @@ func (config *DCEConfigBuilder) WithEnv(key string, envVar string, defaultValue 
 // WithVal allows you to hardcode string values into the configuration.
 // This is good for testing, injecting known values or values derived by means
 // outside the configuration.
-func (config *DCEConfigBuilder) WithVal(key string, val interface{}) *DCEConfigBuilder {
+func (config *ConfigurationBuilder) WithVal(key string, val interface{}) *ConfigurationBuilder {
 	config.initialize()
 	config.values.vals[key] = val
 	return config
@@ -78,7 +76,7 @@ func (config *DCEConfigBuilder) WithVal(key string, val interface{}) *DCEConfigB
 
 // GetService retreives the service with the given type. An error is thrown if
 // the service is not found.
-func (config *DCEConfigBuilder) GetService(svcFor interface{}) error {
+func (config *ConfigurationBuilder) GetService(svcFor interface{}) error {
 	k := reflect.TypeOf(svcFor).Elem()
 	kind := k.Kind()
 	if kind == reflect.Ptr {
@@ -99,21 +97,8 @@ func (config *DCEConfigBuilder) GetService(svcFor interface{}) error {
 	return ConfigurationError(fmt.Errorf("no service found in configuration for key type: %s", k))
 }
 
-// GetStruct returns the populated struct specified in the `WithStruct` method.
-func (config *DCEConfigBuilder) GetStruct() (interface{}, error) {
-	if !config.useStruct {
-		// TODO: Not sure if this should throw an error or just an empty struct...
-		return nil, ConfigurationError(errors.New("call `WithStruct` to supply a struct first"))
-	}
-
-	if !config.isBuilt {
-		return nil, ConfigurationError(errors.New("call Build() before attempting to get values"))
-	}
-	return config.values.cfgStruct, nil
-}
-
 // GetStringVal returns the value of the key as a string.
-func (config *DCEConfigBuilder) GetStringVal(key string) (string, error) {
+func (config *ConfigurationBuilder) GetStringVal(key string) (string, error) {
 	if !config.isBuilt {
 		return "", ConfigurationError(errors.New("call Build() before attempting to get values"))
 	}
@@ -128,7 +113,7 @@ func (config *DCEConfigBuilder) GetStringVal(key string) (string, error) {
 }
 
 // GetVal returns the raw value
-func (config *DCEConfigBuilder) GetVal(key string) (interface{}, error) {
+func (config *ConfigurationBuilder) GetVal(key string) (interface{}, error) {
 	if !config.isBuilt {
 		return "", ConfigurationError(errors.New("call Build() before attempting to get values"))
 	}
@@ -143,30 +128,16 @@ func (config *DCEConfigBuilder) GetVal(key string) (interface{}, error) {
 }
 
 // Build builds the configuration.
-func (config *DCEConfigBuilder) Build() error {
-	if config.useStruct {
-		err := config.buildWithStruct()
-		if err != nil {
-			return ConfigurationError(fmt.Errorf("error while trying to parse configuration object: %s", err.Error()))
-		}
-	}
-	// TODO: Add any "expensive" operations here. Validations, type conversions, etc.
+func (config *ConfigurationBuilder) Build() error {
+	// Add any "expensive" operations here. Validations, type conversions, etc.
 	// We already have basic maps.
 	config.isBuilt = true
 	return nil
 }
 
-func (config *DCEConfigBuilder) buildWithStruct() error {
-	config.parsers = config.createCustomParsers()
-	err := env.ParseWithFuncs(config.values.cfgStruct, config.parsers)
-	// TODO: Add some more context to the error and consider wrapping with
-	// our ConfigurationError
-	return err
-}
-
-func (config *DCEConfigBuilder) initialize() {
+func (config *ConfigurationBuilder) initialize() {
 	if config.values == nil {
-		config.values = &genericConfiguration{}
+		config.values = &configurationValues{}
 	}
 	if config.values.envKeys == nil {
 		config.values.envKeys = make(map[string]string)
@@ -176,7 +147,7 @@ func (config *DCEConfigBuilder) initialize() {
 	}
 }
 
-func (config *DCEConfigBuilder) createCustomParsers() env.CustomParsers {
+func (config *ConfigurationBuilder) createCustomParsers() env.CustomParsers {
 	funcMap := env.CustomParsers{}
 	return funcMap
 }

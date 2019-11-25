@@ -27,7 +27,7 @@ import (
 
 func TestS3Client_FromConfig(t *testing.T) {
 
-	cfgBldr := &config.DCEConfigBuilder{}
+	cfgBldr := &config.ConfigurationBuilder{}
 	cfgBldr.WithEnv("AWS_CURRENT_REGION", "AWS_CURRENT_REGION", "us-east-1")
 	svcBldr := &config.AWSServiceBuilder{Config: cfgBldr}
 
@@ -46,7 +46,7 @@ func TestS3Client_FromConfig(t *testing.T) {
 
 func TestS3Client_FromConfig_WithBadRegion(t *testing.T) {
 
-	cfgBldr := &config.DCEConfigBuilder{}
+	cfgBldr := &config.ConfigurationBuilder{}
 	cfgBldr.WithEnv("AWS_CURRENT_REGION", "AWS_CURRENT_REGION", "mars-hemi-1")
 	svcBldr := &config.AWSServiceBuilder{Config: cfgBldr}
 
@@ -64,7 +64,7 @@ func TestS3Client_FromConfig_WithBadRegion(t *testing.T) {
 
 func TestS3ClientAndSNSClient_FromConfig(t *testing.T) {
 
-	cfgBldr := &config.DCEConfigBuilder{}
+	cfgBldr := &config.ConfigurationBuilder{}
 	cfgBldr.WithEnv("AWS_CURRENT_REGION", "AWS_CURRENT_REGION", "us-east-1")
 
 	svcBldr := &config.AWSServiceBuilder{Config: cfgBldr}
@@ -95,7 +95,7 @@ func TestS3ClientAndSNSClient_FromConfig(t *testing.T) {
 
 func TestAllClients_FromConfig(t *testing.T) {
 
-	cfgBldr := &config.DCEConfigBuilder{}
+	cfgBldr := &config.ConfigurationBuilder{}
 	cfgBldr.WithEnv("AWS_CURRENT_REGION", "AWS_CURRENT_REGION", "us-east-1")
 	svcBldr := &config.AWSServiceBuilder{Config: cfgBldr}
 
