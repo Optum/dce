@@ -260,8 +260,6 @@ paths:
         passthroughBehavior: "when_no_match"
       security:
         - sigv4: []
-
-
   "/auth":
     options:
       summary: CORS support
@@ -323,9 +321,6 @@ paths:
         httpMethod: "GET"
         type: "aws_proxy"
         passthroughBehavior: "when_no_match"
-
-
-
   "/leases":
     options:
       summary: CORS support

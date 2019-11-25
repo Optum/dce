@@ -17,7 +17,7 @@ new Vue({
       initCognitoSDK() {
         console.log("Initializing Cognito SDK")
         var authData = {
-                AppWebDomain: USER_POOL_APP_WEB_DOMAIN,
+                AppWebDomain: USER_POOL_APP_WEB_DOMAIN + ".auth." + AWS_CURRENT_REGION + ".amazoncognito.com",
                 ClientId: USER_POOL_CLIENT_ID,
                 RedirectUriSignIn: "https://" + window.location.hostname + "/" + APIGW_DEPLOYMENT_NAME + "/" + SITE_PATH_PREFIX,
                 RedirectUriSignOut: "https://" + window.location.hostname + "/" + APIGW_DEPLOYMENT_NAME + "/" + SITE_PATH_PREFIX,

@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"path/filepath"
+	"strings"
 )
 
 func GetAuthPage(w http.ResponseWriter, r *http.Request) {
@@ -42,10 +43,28 @@ func GetAuthPage(w http.ResponseWriter, r *http.Request) {
 		log.Print(errorMessage)
 		WriteServerErrorWithResponse(w, errorMessage)
 	}
+	w.Header().Set("Content-Type", "text/html")
+	w.WriteHeader(http.StatusOK)
 }
 
 func GetAuthPageAssets(w http.ResponseWriter, r *http.Request) {
 	fs := http.FileServer(http.Dir("./public"))
 	sp := http.StripPrefix("/auth/public", fs)
+
+	splitStr := strings.Split(r.URL.Path, ".")
+	ext := splitStr[len(splitStr)-1]
+	var contentType string
+	switch ext {
+	case "css":
+		contentType = "text/css"
+	case "js":
+		contentType = "text/javascript"
+	default:
+		contentType = "application/json"
+	}
+
+	fmt.Println(contentType)
+	w.Header().Set("Content-Type", contentType)
+	fmt.Println(w)
 	sp.ServeHTTP(w, r)
 }
