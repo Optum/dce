@@ -28,27 +28,27 @@ func init() {
 	os.Setenv("SOME_ARRAY_OF_STRING_VALUE", ExpectedArrOfStrVal)
 }
 
-type Foo interface {
+type Messager interface {
 	GetMessage() string
 }
 
-type Baz struct {
+type MessageSvc struct {
 	Message string
 }
 
-func (b *Baz) GetMessage() string {
+func (b *MessageSvc) GetMessage() string {
 	return b.Message
 }
 
-type Fuzz interface {
+type Namer interface {
 	GetName() string
 }
 
-type Wuzz struct {
+type NameSvc struct {
 	Name string
 }
 
-func (w *Wuzz) GetName() string {
+func (w *NameSvc) GetName() string {
 	return w.Name
 }
 
@@ -131,8 +131,8 @@ func TestConfigBuilder_BuildWithEnvVarWithDefault(t *testing.T) {
 
 func TestConfigBuilder_BuildWithService(t *testing.T) {
 	cfg := &ConfigurationBuilder{}
-	baz := &Baz{Message: "Baz is the jazz!"}
-	var iface Foo
+	baz := &MessageSvc{Message: "Baz is the jazz!"}
+	var iface Messager
 	err := cfg.WithService(baz).Build()
 	assert.Nil(t, err)
 
@@ -143,11 +143,11 @@ func TestConfigBuilder_BuildWithService(t *testing.T) {
 
 func TestConfigBuilder_BuildWithMulitpleServices(t *testing.T) {
 	cfg := &ConfigurationBuilder{}
-	var iface Foo
-	var otherIface Fuzz
+	var iface Messager
+	var otherIface Namer
 
-	baz := &Baz{Message: "Baz is the jazz!"}
-	wuz := &Wuzz{Name: "The bear with no hair"}
+	baz := &MessageSvc{Message: "Baz is the jazz!"}
+	wuz := &NameSvc{Name: "The bear with no hair"}
 
 	err := cfg.
 		WithService(baz).
@@ -166,10 +166,10 @@ func TestConfigBuilder_BuildWithMulitpleServices(t *testing.T) {
 
 func TestConfigBuilder_BuildWithServiceWithError(t *testing.T) {
 	cfg := &ConfigurationBuilder{}
-	baz := &Baz{Message: "Baz is the jazz!"}
-	var otherIface Fuzz
+	baz := &MessageSvc{Message: "Baz is the jazz!"}
+	var otherIface Namer
 
-	expectedErr := ConfigurationError(errors.New("no service found in configuration for key type: config.Fuzz"))
+	expectedErr := ConfigurationError(errors.New("no service found in configuration for key type: config.Namer"))
 
 	err := cfg.WithService(baz).Build()
 	assert.Nil(t, err)
