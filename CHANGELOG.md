@@ -5,7 +5,7 @@
 - Support `metadata` parameter in `/accounts` API endpoints
 - Add `PUT /accounts/:id` endpoint
 - Fixed bug where child account's DCEPrincipal role trusted itself rather than the master account
-
+- Fix default `budget_notification_from_email` TF var (See #143)
 
 ## v0.23.0
 
