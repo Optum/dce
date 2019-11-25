@@ -49,6 +49,13 @@ func init() {
 
 	usageRoutes := api.Routes{
 		api.Route{
+			"GetAllUsage",
+			"GET",
+			"/usage",
+			api.EmptyQueryString,
+			GetAllUsage,
+		},
+		api.Route{
 			"GetUsageByStartDateAndEndDate",
 			"GET",
 			"/usage",

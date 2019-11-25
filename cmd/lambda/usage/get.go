@@ -89,6 +89,37 @@ func GetUsageByStartDateAndPrincipalID(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(usageResponseItems)
 }
 
+// GetAllUsage - Returns a list of entire usage
+func GetAllUsage(w http.ResponseWriter, r *http.Request) {
+
+	log.Printf("Get all usage request: %v", r)
+	startDate := time.Now().AddDate(-1,0, 0).Unix()
+	endDate := time.Now()
+
+	usageRecords, err := UsageSvc.GetUsageByDateRange(startDate, endDate)
+	if err != nil {
+		errMsg := fmt.Sprintf("Error getting all usage : %s", err.Error())
+		log.Println(errMsg)
+		response.ServerErrorWithResponse(errMsg)
+		return
+	}
+
+	// Serialize them for the JSON response.
+	usageResponseItems := []*response.UsageResponse{}
+
+	for _, a := range usageRecords {
+		usageRes := response.UsageResponse(*a)
+		usageRes.StartDate = startDate.Unix()
+		usageRes.EndDate = endDate.Unix()
+		log.Printf("usage: %v", usageRes)
+		usageResponseItems = append(usageResponseItems, &usageRes)
+	}
+
+	outputResponseItems := SumCostAmountByPrincipalID(usageResponseItems)
+
+	json.NewEncoder(w).Encode(outputResponseItems)
+}
+
 // SumCostAmountByPrincipalID returns a unique subset of the input slice by finding unique PrincipalIds and adding cost amount for it.
 func SumCostAmountByPrincipalID(input []*response.UsageResponse) []*response.UsageResponse {
 	u := make([]*response.UsageResponse, 0, len(input))
