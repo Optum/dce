@@ -9,10 +9,8 @@ import (
 
 	"github.com/Optum/dce/pkg/api"
 	"github.com/Optum/dce/pkg/common"
-	"github.com/Optum/dce/pkg/db"
 	"github.com/Optum/dce/pkg/usage"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/sns"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
