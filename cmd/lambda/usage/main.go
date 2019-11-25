@@ -36,7 +36,7 @@ var (
 	AWSSession *session.Session
 
 	// UsageSvc - Service for getting usage
-	UsageSvc usage.DB
+	UsageSvc *usage.DB
 )
 
 // messageBody is the structured object of the JSON Message to send
@@ -98,7 +98,7 @@ func newAWSSession() *session.Session {
 	return awsSession
 }
 
-func newUsage() usage.DB {
+func newUsage() *usage.DB {
 	usageSvc, err := usage.NewFromEnv()
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed to initialize usage service: %s", err)

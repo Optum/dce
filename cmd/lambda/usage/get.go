@@ -11,7 +11,6 @@ import (
 	"github.com/Optum/dce/pkg/api/response"
 )
 
-
 // GetUsageByStartDateAndEndDate - Returns a list of usage by startDate and endDate
 func GetUsageByStartDateAndEndDate(w http.ResponseWriter, r *http.Request) {
 
@@ -70,7 +69,6 @@ func GetUsageByStartDateAndPrincipalID(w http.ResponseWriter, r *http.Request) {
 	startDate := time.Unix(i, 0)
 
 	principalID := r.FormValue(PrincipalIDParam)
-
 
 	usageRecords, err := UsageSvc.GetUsageByPrincipal(startDate, principalID)
 	if err != nil {
