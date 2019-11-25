@@ -11,6 +11,19 @@ import (
 
 // CreateAPIResponse is a helper function to create and return a valid response
 // for an API Gateway
+func CreateHTMLResponse(status int, body string) events.APIGatewayProxyResponse {
+	return events.APIGatewayProxyResponse{
+		StatusCode: status,
+		Headers: map[string]string{
+			"Content-Type":                "text/html",
+			"Access-Control-Allow-Origin": "*",
+		},
+		Body: body,
+	}
+}
+
+// CreateAPIResponse is a helper function to create and return a valid response
+// for an API Gateway
 func CreateAPIResponse(status int, body string) events.APIGatewayProxyResponse {
 	return events.APIGatewayProxyResponse{
 		StatusCode: status,

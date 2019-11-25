@@ -17,6 +17,7 @@ var EmptyQueryString []string
 type Route struct {
 	Name        string
 	Method      string
+	Prefix      string
 	Pattern     string
 	Queries     []string
 	HandlerFunc http.HandlerFunc
