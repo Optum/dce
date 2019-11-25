@@ -44,6 +44,18 @@ func TestGetAuth(t *testing.T) {
 		require.Equal(t, 200, actualResponse.StatusCode, "Returns a 200.")
 		require.Equal(t, actualResponse.Body, jsFile, "Returns js file")
 	})
+
+	t.Run("When invoke /auth/public/* and file does not exist, return 404", func(t *testing.T) {
+		// Arrange
+		mockRequest := events.APIGatewayProxyRequest{HTTPMethod: http.MethodGet, Path: "/auth/public/doesntexist.js"}
+
+		// Act
+		actualResponse, err := Handler(context.TODO(), mockRequest)
+		require.Nil(t, err)
+
+		// Assert
+		require.Equal(t, 404, actualResponse.StatusCode, "Returns a 404.")
+	})
 }
 
 func readFile(path string) string {
