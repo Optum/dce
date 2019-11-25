@@ -27,6 +27,7 @@ data "template_file" "api_swagger" {
     lease_auth_lambda = module.lease_auth_lambda.invoke_arn
     accounts_lambda   = module.accounts_lambda.invoke_arn
     usages_lambda     = module.usage_lambda.invoke_arn
+    credentials_web_page_lambda   = module.credentials_web_page_lambda.invoke_arn
     namespace         = "${var.namespace_prefix}-${var.namespace}"
   }
 }
@@ -57,6 +58,14 @@ resource "aws_lambda_permission" "allow_api_gateway_accounts_accounts_lambda" {
 
 resource "aws_lambda_permission" "allow_api_gateway_usages_lambda" {
   function_name = module.usage_lambda.arn
+  statement_id  = "AllowExecutionFromApiGateway"
+  action        = "lambda:InvokeFunction"
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_api_gateway_rest_api.gateway_api.execution_arn}/*/*"
+}
+
+resource "aws_lambda_permission" "allow_api_gateway_credentials_web_page_lambda" {
+  function_name = module.credentials_web_page_lambda.arn
   statement_id  = "AllowExecutionFromApiGateway"
   action        = "lambda:InvokeFunction"
   principal     = "apigateway.amazonaws.com"
