@@ -38,14 +38,11 @@ type Routes []Route
 func NewRouter(routes Routes) *mux.Router {
 	router := mux.NewRouter().StrictSlash(true)
 	for _, route := range routes {
-		var handler http.Handler
-		handler = route.HandlerFunc
-
-		if debug {
-			log.Printf("Adding route %s with pattern: \"%s\"", route.Name, route.Pattern)
-		}
+		handler := route.HandlerFunc
 
 		if len(route.Queries) == 0 {
+
+			log.Printf("Adding route %s with pattern: \"%s\"", route.Name, route.Pattern)
 
 			router.
 				Methods(route.Method).
@@ -55,9 +52,11 @@ func NewRouter(routes Routes) *mux.Router {
 		} else {
 			queryStringPairs := make([]string, len(route.Queries)*2)
 			for i := 0; i < len(route.Queries); i++ {
-				queryStringPairs[i] = route.Queries[i]
-				queryStringPairs[i+1] = fmt.Sprintf("{%s}", route.Queries[i])
+				queryStringPairs[i+i] = route.Queries[i]
+				queryStringPairs[i+i+1] = fmt.Sprintf("{%s}", route.Queries[i])
 			}
+
+			log.Printf("Adding route %s with pattern \"%s\" and query string parameters: %s", route.Name, route.Pattern, queryStringPairs)
 
 			router.
 				Methods(route.Method).
@@ -70,6 +69,7 @@ func NewRouter(routes Routes) *mux.Router {
 
 	router.Use(handlers.CORS())
 	router.Use(commonHeaders)
+	router.Use(logURL)
 	return router
 }
 
@@ -77,6 +77,13 @@ func commonHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Content-Type", "application/json")
 		w.Header().Add("Access-Control-Allow-Origin", "*")
+		next.ServeHTTP(w, r)
+	})
+}
+
+func logURL(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("Using URL: %s", r.URL)
 		next.ServeHTTP(w, r)
 	})
 }
