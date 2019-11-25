@@ -48,13 +48,7 @@ func init() {
 	log.Println("Cold start; creating router for /usage")
 
 	usageRoutes := api.Routes{
-		api.Route{
-			"GetAllUsage",
-			"GET",
-			"/usage",
-			api.EmptyQueryString,
-			GetAllUsage,
-		},
+
 		api.Route{
 			"GetUsageByStartDateAndEndDate",
 			"GET",
@@ -68,6 +62,13 @@ func init() {
 			"/usage",
 			[]string{StartDateParam, PrincipalIDParam},
 			GetUsageByStartDateAndPrincipalID,
+		},
+		api.Route{
+			"GetAllUsage",
+			"GET",
+			"/usage",
+			api.EmptyQueryString,
+			GetAllUsage,
 		},
 	}
 	r := api.NewRouter(usageRoutes)
