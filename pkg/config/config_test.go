@@ -52,7 +52,7 @@ func (w *Wuzz) GetName() string {
 	return w.Name
 }
 
-func TestConfigBuilder_WithStruct(t *testing.T) {
+func TestConfigBuilder_Unmarshal(t *testing.T) {
 	actualStringVal := os.Getenv("SOME_STRING_VALUE")
 	assert.Equal(t, ExpectedStrVal, actualStringVal)
 
