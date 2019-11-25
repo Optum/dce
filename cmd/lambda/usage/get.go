@@ -93,7 +93,7 @@ func GetUsageByStartDateAndPrincipalID(w http.ResponseWriter, r *http.Request) {
 func GetAllUsage(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("Get all usage request: %v", r)
-	startDate := time.Now().AddDate(-1,0, 0)
+	startDate := time.Now().AddDate(-1, 0, 0)
 	endDate := time.Now()
 
 	usageRecords, err := UsageSvc.GetUsageByDateRange(startDate, endDate)
