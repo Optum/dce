@@ -22,33 +22,6 @@ func CreateAPIResponse(status int, body string) events.APIGatewayProxyResponse {
 	}
 }
 
-// CreateMultiValueHeaderAPIResponse - creates a response with multi-value headers
-func CreateMultiValueHeaderAPIResponse(status int, body string) events.APIGatewayProxyResponse {
-	return events.APIGatewayProxyResponse{
-		StatusCode: status,
-		MultiValueHeaders: map[string][]string{
-			"Content-Type":                []string{"application/json"},
-			"Access-Control-Allow-Origin": []string{"*"},
-		},
-		Body: fmt.Sprintln(body),
-	}
-}
-
-// CreateMultiValueHeaderAPIErrorResponse - Creates an error response with mulit-value headers
-func CreateMultiValueHeaderAPIErrorResponse(status int, errorCode string, message string) events.APIGatewayProxyResponse {
-
-	errorJSON, _ := json.Marshal(CreateErrorResponse(errorCode, message))
-
-	return events.APIGatewayProxyResponse{
-		StatusCode: status,
-		MultiValueHeaders: map[string][]string{
-			"Content-Type":                []string{"application/json"},
-			"Access-Control-Allow-Origin": []string{"*"},
-		},
-		Body: string(errorJSON),
-	}
-}
-
 // CreateJSONResponse - Create a JSON response
 func CreateJSONResponse(status int, response interface{}) events.APIGatewayProxyResponse {
 	body, err := json.Marshal(response)
@@ -60,19 +33,6 @@ func CreateJSONResponse(status int, response interface{}) events.APIGatewayProxy
 	}
 
 	return CreateAPIResponse(status, string(body))
-}
-
-// CreateMultiValueHeaderJSONResponse - Creates a response with JSON in it with multi-value headers
-func CreateMultiValueHeaderJSONResponse(status int, response interface{}) events.APIGatewayProxyResponse {
-	body, err := json.Marshal(response)
-
-	// Create an error response, to handle the marshalling error
-	if err != nil {
-		log.Printf("Failed to marshal JSON response: %v; %v", response, err)
-		return ServerError()
-	}
-
-	return CreateMultiValueHeaderAPIResponse(status, string(body))
 }
 
 // CreateAPIErrorResponse is a helper function to create and return a valid error
