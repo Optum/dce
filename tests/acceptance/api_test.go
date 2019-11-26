@@ -1222,30 +1222,90 @@ func TestApi(t *testing.T) {
 			currentDate := time.Now()
 			testStartDate := time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), 0, 0, 0, 0, time.UTC)
 			testEndDate := time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), 23, 59, 59, 59, time.UTC)
-			queryString := fmt.Sprintf("/usage?startDate=%d&endDate=%d", testStartDate.Unix(), testEndDate.Unix())
-			requestURL := apiURL + queryString
+			var testPrincipalID = "TestUser1"
 
-			testutil.Retry(t, 10, 10*time.Millisecond, func(r *testutil.R) {
+			t.Run("Should be able to get usage by start date and end date", func(t *testing.T) {
+				queryString := fmt.Sprintf("/usage?startDate=%d&endDate=%d", testStartDate.Unix(), testEndDate.Unix())
+				requestURL := apiURL + queryString
 
-				resp := apiRequest(t, &apiRequestInput{
-					method: "GET",
-					url:    requestURL,
-					json:   nil,
+				testutil.Retry(t, 10, 10*time.Millisecond, func(r *testutil.R) {
+
+					resp := apiRequest(t, &apiRequestInput{
+						method: "GET",
+						url:    requestURL,
+						json:   nil,
+					})
+
+					// Verify response code
+					assert.Equal(r, http.StatusOK, resp.StatusCode)
+
+					// Parse response json
+					data := parseResponseArrayJSON(t, resp)
+
+					//Verify response json
+					if data[0] != nil {
+						usageJSON := data[0]
+						assert.Equal(r, "TestUser1", usageJSON["principalId"].(string))
+						assert.Equal(r, "TestAccount1", usageJSON["accountId"].(string))
+						assert.Equal(r, 2000.00, usageJSON["costAmount"].(float64))
+					}
 				})
+			})
 
-				// Verify response code
-				assert.Equal(r, http.StatusOK, resp.StatusCode)
+			t.Run("Should be able to get usage by start date and principalId", func(t *testing.T) {
+				queryString := fmt.Sprintf("/usage?startDate=%d&principalId=%s", testStartDate.Unix(), testPrincipalID)
+				requestURL := apiURL + queryString
 
-				// Parse response json
-				data := parseResponseArrayJSON(t, resp)
+				testutil.Retry(t, 10, 10*time.Millisecond, func(r *testutil.R) {
 
-				//Verify response json
-				if data[0] != nil {
-					usageJSON := data[0]
-					assert.Equal(r, "TestUser1", usageJSON["principalId"].(string))
-					assert.Equal(r, "TestAccount1", usageJSON["accountId"].(string))
-					assert.Equal(r, 2000.00, usageJSON["costAmount"].(float64))
-				}
+					resp := apiRequest(t, &apiRequestInput{
+						method: "GET",
+						url:    requestURL,
+						json:   nil,
+					})
+
+					// Verify response code
+					assert.Equal(r, http.StatusOK, resp.StatusCode)
+
+					// Parse response json
+					data := parseResponseArrayJSON(t, resp)
+
+					//Verify response json
+					if data[0] != nil {
+						usageJSON := data[0]
+						assert.Equal(r, "TestUser1", usageJSON["principalId"].(string))
+						assert.Equal(r, "TestAccount1", usageJSON["accountId"].(string))
+						assert.Equal(r, 2000.00, usageJSON["costAmount"].(float64))
+					}
+				})
+			})
+
+			t.Run("Should be able to get all usage", func(t *testing.T) {
+				queryString := "/usage"
+				requestURL := apiURL + queryString
+
+				testutil.Retry(t, 10, 10*time.Millisecond, func(r *testutil.R) {
+
+					resp := apiRequest(t, &apiRequestInput{
+						method: "GET",
+						url:    requestURL,
+						json:   nil,
+					})
+
+					// Verify response code
+					assert.Equal(r, http.StatusOK, resp.StatusCode)
+
+					// Parse response json
+					data := parseResponseArrayJSON(t, resp)
+
+					//Verify response json
+					if data[0] != nil {
+						usageJSON := data[0]
+						assert.Equal(r, "TestUser1", usageJSON["principalId"].(string))
+						assert.Equal(r, "TestAccount1", usageJSON["accountId"].(string))
+						assert.Equal(r, 2000.00, usageJSON["costAmount"].(float64))
+					}
+				})
 			})
 		})
 	})
