@@ -9,12 +9,12 @@ module "credentials_web_page_lambda" {
 
   environment = {
     APIGW_DEPLOYMENT_NAME          = "api"
-    IDENTITY_POOL_ID               = module.api_gateway_authorizer.identity_pool_id
+    PS_IDENTITY_POOL_ID            = module.ssm_parameter_names.identity_pool_id
     SITE_PATH_PREFIX               = "auth"
-    USER_POOL_APP_WEB_DOMAIN       = module.api_gateway_authorizer.user_pool_domain
-    USER_POOL_CLIENT_ID            = module.api_gateway_authorizer.client_id
-    USER_POOL_ID                   = module.api_gateway_authorizer.user_pool_id
-    USER_POOL_PROVIDER_NAME        = module.api_gateway_authorizer.user_pool_endpoint
+    PS_USER_POOL_APP_WEB_DOMAIN    = module.ssm_parameter_names.user_pool_domain
+    PS_USER_POOL_CLIENT_ID         = module.ssm_parameter_names.client_id
+    PS_USER_POOL_ID                = module.ssm_parameter_names.user_pool_id
+    PS_USER_POOL_PROVIDER_NAME     = module.ssm_parameter_names.user_pool_endpoint
     NAMESPACE                      = var.namespace
     AWS_CURRENT_REGION             = var.aws_region
   }

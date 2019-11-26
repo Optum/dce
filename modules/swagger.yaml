@@ -315,7 +315,68 @@ paths:
               type: "string"
             Access-Control-Allow-Origin:
               type: "string"
-
+      x-amazon-apigateway-integration:
+        uri: ${credentials_web_page_lambda}
+        httpMethod: "GET"
+        type: "aws_proxy"
+        passthroughBehavior: "when_no_match"
+  "/auth/{file+}":
+    options:
+      summary: CORS support
+      description: |
+        Enable CORS by returning correct headers
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      tags:
+        - CORS
+      x-amazon-apigateway-integration:
+        type: mock
+        requestTemplates:
+          application/json: |
+            {
+              "statusCode" : 200
+            }
+        responses:
+          "default":
+            statusCode: "200"
+            responseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'*'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+            responseTemplates:
+              application/json: |
+                {}
+      responses:
+        200:
+          description: Default response for CORS method
+          headers:
+            Access-Control-Allow-Headers:
+              type: "string"
+            Access-Control-Allow-Methods:
+              type: "string"
+            Access-Control-Allow-Origin:
+              type: "string"
+    get:
+      summary: Get the DCE system authentication web page
+      produces:
+        - text/html
+        - text/javascript
+        - text/css
+      responses:
+        200:
+          schema:
+            text/plain:
+              schema:
+                type: string
+          headers:
+            Access-Control-Allow-Headers:
+              type: "string"
+            Access-Control-Allow-Methods:
+              type: "string"
+            Access-Control-Allow-Origin:
+              type: "string"
       x-amazon-apigateway-integration:
         uri: ${credentials_web_page_lambda}
         httpMethod: "GET"

@@ -13,11 +13,55 @@ module "api_gateway_authorizer" {
   source             = "./authentication"
   name               = var.namespace_prefix
   namespace          = var.namespace
-  callback_urls      = var.cognito_callback_urls
+  callback_urls      = [aws_api_gateway_stage.api.invoke_url]
   logout_urls        = var.cognito_logout_urls
   identity_providers = var.cognito_identity_providers
   api_gateway_arn    = aws_api_gateway_stage.api.execution_arn
 }
+
+module "ssm_parameter_names" {
+  source             = "./ssm_parameter_names"
+  namespace          = var.namespace
+}
+
+resource "aws_ssm_parameter" "identity_pool_id" {
+  name = module.ssm_parameter_names.identity_pool_id
+  type  = "String"
+  value = module.api_gateway_authorizer.identity_pool_id
+}
+
+resource "aws_ssm_parameter" "user_pool_domain" {
+  name = module.ssm_parameter_names.user_pool_domain
+  type  = "String"
+  value = module.api_gateway_authorizer.user_pool_domain
+}
+
+resource "aws_ssm_parameter" "client_id" {
+  name = module.ssm_parameter_names.client_id
+  type  = "String"
+  value = module.api_gateway_authorizer.client_id
+}
+
+resource "aws_ssm_parameter" "user_pool_id" {
+  name = module.ssm_parameter_names.user_pool_id
+  type  = "String"
+  value = module.api_gateway_authorizer.user_pool_id
+}
+
+resource "aws_ssm_parameter" "user_pool_endpoint" {
+  name = module.ssm_parameter_names.user_pool_endpoint
+  type  = "String"
+  value = module.api_gateway_authorizer.user_pool_endpoint
+}
+
+
+# TODO: 
+#  1. Figure out why permission is not correctly granted for APIGwy to execute credentials_web_page_lambda
+#  2. Figure out solution for setting callback_url to apigwy deployment invoke url. Cyclical dependency may require making api call from cli after deployment as workaround
+
+
+
+
 
 data "template_file" "api_swagger" {
   template = file("${path.module}/swagger.yaml")

@@ -38,15 +38,13 @@ func init() {
 		api.Route{
 			Name:        "GetAuthPage",
 			Method:      "GET",
-			Prefix:      "",
 			Pattern:     "/auth",
 			Queries:     api.EmptyQueryString,
 			HandlerFunc: GetAuthPage,
 		},
 		api.Route{
-			Name:   "GetAuthPageAssets",
-			Method: "GET",
-			// Prefix:      "/auth/public/",
+			Name:        "GetAuthPageAssets",
+			Method:      "GET",
 			Pattern:     "/auth/public/{file}",
 			Queries:     api.EmptyQueryString,
 			HandlerFunc: GetAuthPageAssets,
