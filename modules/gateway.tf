@@ -56,10 +56,8 @@ resource "aws_ssm_parameter" "user_pool_endpoint" {
 
 
 # TODO: 
-#  1. Figure out why permission is not correctly granted for APIGwy to execute credentials_web_page_lambda
-#  2. Figure out solution for setting callback_url to apigwy deployment invoke url. Cyclical dependency may require making api call from cli after deployment as workaround
-
-
+#  1. Figure out solution for setting callback_url to apigwy deployment invoke url. Cyclical dependency may require making api call from cli after deployment as workaround
+#  2. Figure out why permission is not correctly granted for APIGwy to execute credentials_web_page_lambda
 
 
 

@@ -57,12 +57,21 @@ func init() {
 func initConfig() {
 	sitePathPrefix = Config.GetEnvVar("SITE_PATH_PREFIX", "sitePathPrefix")
 	apigwDeploymentName = Config.GetEnvVar("APIGW_DEPLOYMENT_NAME", "apigwDeploymentName")
-	identityPoolID = Config.GetEnvVar("IDENTITY_POOL_ID", "identityPoolID")
-	userPoolProviderName = Config.GetEnvVar("USER_POOL_PROVIDER_NAME", "userPoolProviderName")
-	userPoolClientID = Config.GetEnvVar("USER_POOL_CLIENT_ID", "userPoolClientID")
-	userPoolAppWebDomain = Config.GetEnvVar("USER_POOL_APP_WEB_DOMAIN", "userPoolAppWebDomain")
-	userPoolID = Config.GetEnvVar("USER_POOL_ID", "userPoolID")
 	awsCurrentRegion = Config.GetEnvVar("AWS_CURRENT_REGION", "awsCurrentRegion")
+
+	// ssmsvc := ssm.New(sess, aws.NewConfig().WithRegion("us-west-2"))
+	// keyname := "/MyService/MyApp/Dev/DATABASE_URI"
+	// withDecryption := false
+	// param, err := ssmsvc.GetParameter(&ssm.GetParameterInput{
+	// 	Name:           &keyname,
+	// 	WithDecryption: &withDecryption,
+	// })
+
+	identityPoolID = Config.GetEnvVar("PS_IDENTITY_POOL_ID", "identityPoolID")
+	userPoolProviderName = Config.GetEnvVar("PS_USER_POOL_PROVIDER_NAME", "userPoolProviderName")
+	userPoolClientID = Config.GetEnvVar("PS_USER_POOL_CLIENT_ID", "userPoolClientID")
+	userPoolAppWebDomain = Config.GetEnvVar("PS_USER_POOL_APP_WEB_DOMAIN", "userPoolAppWebDomain")
+	userPoolID = Config.GetEnvVar("PS_USER_POOL_ID", "userPoolID")
 }
 
 // Handler - Handle the lambda function
