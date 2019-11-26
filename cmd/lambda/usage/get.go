@@ -18,7 +18,7 @@ func GetUsageByStartDateAndEndDate(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		errorMsg := fmt.Sprintf("Failed to parse usage start date: %s", err)
 		log.Println(errorMsg)
-		response.BadRequestError(errorMsg)
+		WriteRequestValidationError(w, errorMsg)
 		return
 	}
 	startDate := time.Unix(i, 0)
@@ -27,7 +27,7 @@ func GetUsageByStartDateAndEndDate(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		errorMsg := fmt.Sprintf("Failed to parse usage end date: %s", err)
 		log.Println(errorMsg)
-		response.BadRequestError(errorMsg)
+		WriteRequestValidationError(w, errorMsg)
 		return
 	}
 	endDate := time.Unix(j, 0)
