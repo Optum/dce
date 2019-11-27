@@ -21,18 +21,17 @@ import (
 var muxLambda *gorillamux.GorillaMuxAdapter
 
 var (
+	identityPoolID 		 string
+	userPoolProviderName string
+	userPoolClientID     string
+	userPoolAppWebDomain string
+	userPoolID           string
 	sitePathPrefix       string
 	apigwDeploymentName  string
 	awsCurrentRegion     string
 	// Config - The configuration client
 	Config common.DefaultEnvConfig
 )
-
-var identityPoolID 		 string
-var userPoolProviderName string
-var userPoolClientID     string
-var userPoolAppWebDomain string
-var userPoolID           string
 
 func init() {
 	initConfig()
@@ -63,43 +62,37 @@ func initConfig() {
 	apigwDeploymentName = Config.GetEnvVar("APIGW_DEPLOYMENT_NAME", "apigwDeploymentName")
 	awsCurrentRegion = Config.GetEnvVar("AWS_CURRENT_REGION", "awsCurrentRegion")
 
-	a := "identityPoolID"
-	identityPoolID = a
-	b := "userPoolProviderName"
-	userPoolProviderName = b
-	c := "userPoolClientID"
-	userPoolClientID = c
-	d := "userPoolAppWebDomain"
-	userPoolAppWebDomain = d
-	e := "userPoolID"
-	userPoolID = e
-
+	identityPoolID = "identityPoolID"
+	userPoolProviderName = "userPoolProviderName"
+	userPoolClientID = "userPoolClientID"
+	userPoolAppWebDomain = "userPoolAppWebDomain"
+	userPoolID = "userPoolID"
 
 	GetParamStoreVars(
 		&GetPSVarsInput {
 			EnvironmentVariable: "PS_IDENTITY_POOL_ID",
 			LocalVariable: &identityPoolID,
-			Default: "identityPoolID",
+			Default: identityPoolID,
 		},
 		&GetPSVarsInput {
 			EnvironmentVariable: "PS_USER_POOL_PROVIDER_NAME",
 			LocalVariable: &userPoolProviderName,
-			Default: "userPoolProviderName",
+			Default: userPoolProviderName,
 		},
 		&GetPSVarsInput {
 			EnvironmentVariable: "PS_USER_POOL_CLIENT_ID",
 			LocalVariable: &userPoolClientID,
-			Default: "userPoolClientID",
+			Default: userPoolClientID,
 		},
 		&GetPSVarsInput {
 			EnvironmentVariable: "PS_USER_POOL_APP_WEB_DOMAIN",
 			LocalVariable: &userPoolAppWebDomain,
-			Default: "userPoolAppWebDomain",
+			Default: userPoolAppWebDomain,
 		},
 		&GetPSVarsInput {
 			EnvironmentVariable: "PS_USER_POOL_ID",
 			LocalVariable: &userPoolID,
-			Default: "userPoolID",
+			Default: userPoolID,
 		},
 	)
 }
@@ -194,13 +187,6 @@ func GetParamStoreVars(inputs ...*GetPSVarsInput) {
 	for _, invalidParam := range invalidParams {
 		log.Print("Invalid SSM Parameter: ", invalidParam)
 	}
-
-	log.Print("Local Vars: \n")
-	log.Print("identityPoolID: ", identityPoolID)
-	log.Print("userPoolProviderName: ", userPoolProviderName)
-	log.Print("userPoolClientID: ", userPoolClientID)
-	log.Print("userPoolAppWebDomain: ", userPoolAppWebDomain)
-	log.Print("userPoolID: ", userPoolID)
 }
 
 func getKeys(aMap map[string]*string) []*string{
