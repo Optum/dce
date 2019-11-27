@@ -22,21 +22,21 @@ func GetAuthPage(w http.ResponseWriter, r *http.Request) {
 	env := struct {
 		SITE_PATH_PREFIX         string
 		APIGW_DEPLOYMENT_NAME    string
+		AWS_CURRENT_REGION       string
 		IDENTITY_POOL_ID         string
 		USER_POOL_PROVIDER_NAME  string
 		USER_POOL_CLIENT_ID      string
 		USER_POOL_APP_WEB_DOMAIN string
 		USER_POOL_ID             string
-		AWS_CURRENT_REGION       string
 	}{
 		SITE_PATH_PREFIX:         sitePathPrefix,
 		APIGW_DEPLOYMENT_NAME:    apigwDeploymentName,
+		AWS_CURRENT_REGION:       awsCurrentRegion,
 		IDENTITY_POOL_ID:         identityPoolID,
 		USER_POOL_PROVIDER_NAME:  userPoolProviderName,
 		USER_POOL_CLIENT_ID:      userPoolClientID,
 		USER_POOL_APP_WEB_DOMAIN: userPoolAppWebDomain,
 		USER_POOL_ID:             userPoolID,
-		AWS_CURRENT_REGION:       awsCurrentRegion,
 	}
 	if err := tmpl.Execute(w, env); err != nil {
 		errorMessage := fmt.Sprintf("Failed to load web page: %s", err)

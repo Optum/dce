@@ -12,6 +12,9 @@ import (
 	"github.com/Optum/dce/pkg/common"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/awslabs/aws-lambda-go-api-proxy/gorillamux"
 )
 
@@ -20,15 +23,16 @@ var muxLambda *gorillamux.GorillaMuxAdapter
 var (
 	sitePathPrefix       string
 	apigwDeploymentName  string
-	identityPoolID       string
-	userPoolProviderName string
-	userPoolClientID     string
-	userPoolAppWebDomain string
-	userPoolID           string
 	awsCurrentRegion     string
 	// Config - The configuration client
 	Config common.DefaultEnvConfig
 )
+
+var identityPoolID 		 string
+var userPoolProviderName string
+var userPoolClientID     string
+var userPoolAppWebDomain string
+var userPoolID           string
 
 func init() {
 	initConfig()
@@ -59,19 +63,45 @@ func initConfig() {
 	apigwDeploymentName = Config.GetEnvVar("APIGW_DEPLOYMENT_NAME", "apigwDeploymentName")
 	awsCurrentRegion = Config.GetEnvVar("AWS_CURRENT_REGION", "awsCurrentRegion")
 
-	// ssmsvc := ssm.New(sess, aws.NewConfig().WithRegion("us-west-2"))
-	// keyname := "/MyService/MyApp/Dev/DATABASE_URI"
-	// withDecryption := false
-	// param, err := ssmsvc.GetParameter(&ssm.GetParameterInput{
-	// 	Name:           &keyname,
-	// 	WithDecryption: &withDecryption,
-	// })
+	a := "identityPoolID"
+	identityPoolID = a
+	b := "userPoolProviderName"
+	userPoolProviderName = b
+	c := "userPoolClientID"
+	userPoolClientID = c
+	d := "userPoolAppWebDomain"
+	userPoolAppWebDomain = d
+	e := "userPoolID"
+	userPoolID = e
 
-	identityPoolID = Config.GetEnvVar("PS_IDENTITY_POOL_ID", "identityPoolID")
-	userPoolProviderName = Config.GetEnvVar("PS_USER_POOL_PROVIDER_NAME", "userPoolProviderName")
-	userPoolClientID = Config.GetEnvVar("PS_USER_POOL_CLIENT_ID", "userPoolClientID")
-	userPoolAppWebDomain = Config.GetEnvVar("PS_USER_POOL_APP_WEB_DOMAIN", "userPoolAppWebDomain")
-	userPoolID = Config.GetEnvVar("PS_USER_POOL_ID", "userPoolID")
+
+	GetParamStoreVars(
+		&GetPSVarsInput {
+			EnvironmentVariable: "PS_IDENTITY_POOL_ID",
+			LocalVariable: &identityPoolID,
+			Default: "identityPoolID",
+		},
+		&GetPSVarsInput {
+			EnvironmentVariable: "PS_USER_POOL_PROVIDER_NAME",
+			LocalVariable: &userPoolProviderName,
+			Default: "userPoolProviderName",
+		},
+		&GetPSVarsInput {
+			EnvironmentVariable: "PS_USER_POOL_CLIENT_ID",
+			LocalVariable: &userPoolClientID,
+			Default: "userPoolClientID",
+		},
+		&GetPSVarsInput {
+			EnvironmentVariable: "PS_USER_POOL_APP_WEB_DOMAIN",
+			LocalVariable: &userPoolAppWebDomain,
+			Default: "userPoolAppWebDomain",
+		},
+		&GetPSVarsInput {
+			EnvironmentVariable: "PS_USER_POOL_ID",
+			LocalVariable: &userPoolID,
+			Default: "userPoolID",
+		},
+	)
 }
 
 // Handler - Handle the lambda function
@@ -117,4 +147,67 @@ func WriteAPIErrorResponse(w http.ResponseWriter, responseCode int,
 func WriteAPIResponse(w http.ResponseWriter, status int, body string) {
 	w.WriteHeader(status)
 	w.Write([]byte(body))
+}
+
+type GetPSVarsInput struct {
+	EnvironmentVariable string
+	LocalVariable *string
+	Default string
+}
+
+
+func GetParamStoreVars(inputs ...*GetPSVarsInput) {
+	sess, err := session.NewSessionWithOptions(session.Options{
+		Config:            aws.Config{Region: aws.String(awsCurrentRegion)},
+		SharedConfigState: session.SharedConfigEnable,
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	ssmsvc := ssm.New(sess, aws.NewConfig().WithRegion(awsCurrentRegion))
+	withDecryption := false
+
+	PSNamesToLocalVars := map[string]*string{}
+	for _, input := range inputs {
+		psName := Config.GetEnvVar(input.EnvironmentVariable, input.Default)
+		PSNamesToLocalVars[psName] = input.LocalVariable
+		log.Println("PSNamesToLocalVars[psName]: ", *PSNamesToLocalVars[psName])
+	}
+
+	PSNames := getKeys(PSNamesToLocalVars)
+	getParametersInput := &ssm.GetParametersInput{
+		Names: PSNames,
+		WithDecryption: &withDecryption,
+	}
+	getParametersOutput, err := ssmsvc.GetParameters(getParametersInput)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	params := getParametersOutput.Parameters
+	for _, param := range params {
+		log.Print("Retrieved SSM Parameter: ", param.GoString())
+		*PSNamesToLocalVars[*param.Name] = *param.Value
+	}
+
+	invalidParams := getParametersOutput.InvalidParameters
+	for _, invalidParam := range invalidParams {
+		log.Print("Invalid SSM Parameter: ", invalidParam)
+	}
+
+	log.Print("Local Vars: \n")
+	log.Print("identityPoolID: ", identityPoolID)
+	log.Print("userPoolProviderName: ", userPoolProviderName)
+	log.Print("userPoolClientID: ", userPoolClientID)
+	log.Print("userPoolAppWebDomain: ", userPoolAppWebDomain)
+	log.Print("userPoolID: ", userPoolID)
+}
+
+func getKeys(aMap map[string]*string) []*string{
+	keys := []*string{}
+	for k := range aMap {
+		newK := k
+		keys = append(keys, &newK)
+	}
+	return keys
 }
