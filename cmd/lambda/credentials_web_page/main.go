@@ -69,27 +69,27 @@ func initConfig() {
 	userPoolID = "userPoolID"
 
 	GetParamStoreVars(
-		&GetPSVarsInput {
+		&GetParamStoreVarsInput{
 			EnvironmentVariable: "PS_IDENTITY_POOL_ID",
 			LocalVariable: &identityPoolID,
 			Default: identityPoolID,
 		},
-		&GetPSVarsInput {
+		&GetParamStoreVarsInput{
 			EnvironmentVariable: "PS_USER_POOL_PROVIDER_NAME",
 			LocalVariable: &userPoolProviderName,
 			Default: userPoolProviderName,
 		},
-		&GetPSVarsInput {
+		&GetParamStoreVarsInput{
 			EnvironmentVariable: "PS_USER_POOL_CLIENT_ID",
 			LocalVariable: &userPoolClientID,
 			Default: userPoolClientID,
 		},
-		&GetPSVarsInput {
+		&GetParamStoreVarsInput{
 			EnvironmentVariable: "PS_USER_POOL_APP_WEB_DOMAIN",
 			LocalVariable: &userPoolAppWebDomain,
 			Default: userPoolAppWebDomain,
 		},
-		&GetPSVarsInput {
+		&GetParamStoreVarsInput{
 			EnvironmentVariable: "PS_USER_POOL_ID",
 			LocalVariable: &userPoolID,
 			Default: userPoolID,
@@ -142,14 +142,14 @@ func WriteAPIResponse(w http.ResponseWriter, status int, body string) {
 	w.Write([]byte(body))
 }
 
-type GetPSVarsInput struct {
+type GetParamStoreVarsInput struct {
 	EnvironmentVariable string
 	LocalVariable *string
 	Default string
 }
 
 
-func GetParamStoreVars(inputs ...*GetPSVarsInput) {
+func GetParamStoreVars(inputs ...*GetParamStoreVarsInput) {
 	sess, err := session.NewSessionWithOptions(session.Options{
 		Config:            aws.Config{Region: aws.String(awsCurrentRegion)},
 		SharedConfigState: session.SharedConfigEnable,
