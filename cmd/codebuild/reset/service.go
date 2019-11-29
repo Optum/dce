@@ -39,6 +39,7 @@ type serviceConfig struct {
 	accountPrincipalPolicyName string
 	accountAdminRoleName       string
 	accountAdminRoleARN        string
+	allowedRegions             []string
 
 	isNukeEnabled       bool
 	nukeTemplateDefault string

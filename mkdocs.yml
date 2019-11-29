@@ -1,11 +1,18 @@
 site_name: DCE Documentation
 nav:
   - Home: index.md
-  - Glossary: glossary.md
+  - Concepts: concepts.md
   - Quickstart: quickstart.md
-  - "Using the CLI": dce/dce.md
-  - "API Documentation": api-documentation.md
-  - "Advanced Deployment With Terrform": advanced-deployment-with-terraform.md
-  - Contributing: CONTRIBUTING.md
+  - How To: howto.md
+  - DCE IAM Policies: iam-policies.md
+  - Deploy with Terraform: terraform.md
+  - "API Reference": api-documentation.md
+  - "API Auth": api-auth.md
+  - "SNS Lifecycle Events": sns.md
+  - "Permissions and Policies": policies.md
+  - Local Development: develop.md
+  - Contribution Guidelines: CONTRIBUTING.md
   - Changes: CHANGELOG.md
 theme: readthedocs
+extra_css:
+  - custom.css

@@ -36,7 +36,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 )
 
-var adminRoleName = "dce-api-test-admin-role-" + fmt.Sprintf("%v", time.Now().Unix())
+var adminRoleName = ""
 
 func TestMain(m *testing.M) {
 	code := m.Run()
@@ -73,10 +73,13 @@ func TestApi(t *testing.T) {
 			aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
 		),
 		tfOut["usage_table_name"].(string),
+		"StartDate",
+		"PrincipalId",
 	)
 
 	// Create an adminRole for the test account
-	adminRoleRes := createAdminRole(t, awsSession)
+	adminRoleName = "dce-api-test-admin-role-" + fmt.Sprintf("%v", time.Now().Unix())
+	adminRoleRes := createAdminRole(t, awsSession, adminRoleName)
 	accountID := adminRoleRes.accountID
 	adminRoleArn := adminRoleRes.adminRoleArn
 
@@ -1186,7 +1189,7 @@ func TestApi(t *testing.T) {
 			// Verify error response json
 			// Get nested json in response json
 			errResp := data["error"].(map[string]interface{})
-			require.Equal(t, "Invalid startDate", errResp["code"].(string))
+			require.Equal(t, "RequestValidationError", errResp["code"].(string))
 			require.Equal(t, "Failed to parse usage start date: strconv.ParseInt: parsing \"2019-09-2\": invalid syntax",
 				errResp["message"].(string))
 		})
@@ -1219,30 +1222,90 @@ func TestApi(t *testing.T) {
 			currentDate := time.Now()
 			testStartDate := time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), 0, 0, 0, 0, time.UTC)
 			testEndDate := time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), 23, 59, 59, 59, time.UTC)
-			queryString := fmt.Sprintf("/usage?startDate=%d&endDate=%d", testStartDate.Unix(), testEndDate.Unix())
-			requestURL := apiURL + queryString
+			var testPrincipalID = "TestUser1"
 
-			testutil.Retry(t, 10, 10*time.Millisecond, func(r *testutil.R) {
+			t.Run("Should be able to get usage by start date and end date", func(t *testing.T) {
+				queryString := fmt.Sprintf("/usage?startDate=%d&endDate=%d", testStartDate.Unix(), testEndDate.Unix())
+				requestURL := apiURL + queryString
 
-				resp := apiRequest(t, &apiRequestInput{
-					method: "GET",
-					url:    requestURL,
-					json:   nil,
+				testutil.Retry(t, 10, 10*time.Millisecond, func(r *testutil.R) {
+
+					resp := apiRequest(t, &apiRequestInput{
+						method: "GET",
+						url:    requestURL,
+						json:   nil,
+					})
+
+					// Verify response code
+					assert.Equal(r, http.StatusOK, resp.StatusCode)
+
+					// Parse response json
+					data := parseResponseArrayJSON(t, resp)
+
+					//Verify response json
+					if data[0] != nil {
+						usageJSON := data[0]
+						assert.Equal(r, "TestUser1", usageJSON["principalId"].(string))
+						assert.Equal(r, "TestAccount1", usageJSON["accountId"].(string))
+						assert.Equal(r, 2000.00, usageJSON["costAmount"].(float64))
+					}
 				})
+			})
 
-				// Verify response code
-				assert.Equal(r, http.StatusOK, resp.StatusCode)
+			t.Run("Should be able to get usage by start date and principalId", func(t *testing.T) {
+				queryString := fmt.Sprintf("/usage?startDate=%d&principalId=%s", testStartDate.Unix(), testPrincipalID)
+				requestURL := apiURL + queryString
 
-				// Parse response json
-				data := parseResponseArrayJSON(t, resp)
+				testutil.Retry(t, 10, 10*time.Millisecond, func(r *testutil.R) {
 
-				//Verify response json
-				if data[0] != nil {
-					usageJSON := data[0]
-					assert.Equal(r, "TestUser1", usageJSON["principalId"].(string))
-					assert.Equal(r, "TestAccount1", usageJSON["accountId"].(string))
-					assert.Equal(r, 2000.00, usageJSON["costAmount"].(float64))
-				}
+					resp := apiRequest(t, &apiRequestInput{
+						method: "GET",
+						url:    requestURL,
+						json:   nil,
+					})
+
+					// Verify response code
+					assert.Equal(r, http.StatusOK, resp.StatusCode)
+
+					// Parse response json
+					data := parseResponseArrayJSON(t, resp)
+
+					//Verify response json
+					if data[0] != nil {
+						usageJSON := data[0]
+						assert.Equal(r, "TestUser1", usageJSON["principalId"].(string))
+						assert.Equal(r, "TestAccount1", usageJSON["accountId"].(string))
+						assert.Equal(r, 2000.00, usageJSON["costAmount"].(float64))
+					}
+				})
+			})
+
+			t.Run("Should be able to get all usage", func(t *testing.T) {
+				queryString := "/usage"
+				requestURL := apiURL + queryString
+
+				testutil.Retry(t, 10, 10*time.Millisecond, func(r *testutil.R) {
+
+					resp := apiRequest(t, &apiRequestInput{
+						method: "GET",
+						url:    requestURL,
+						json:   nil,
+					})
+
+					// Verify response code
+					assert.Equal(r, http.StatusOK, resp.StatusCode)
+
+					// Parse response json
+					data := parseResponseArrayJSON(t, resp)
+
+					//Verify response json
+					if data[0] != nil {
+						usageJSON := data[0]
+						assert.Equal(r, "TestUser1", usageJSON["principalId"].(string))
+						assert.Equal(r, "TestAccount1", usageJSON["accountId"].(string))
+						assert.Equal(r, 10000.00, usageJSON["costAmount"].(float64))
+					}
+				})
 			})
 		})
 	})
@@ -1739,7 +1802,7 @@ type createAdminRoleOutput struct {
 	adminRoleArn string
 }
 
-func createAdminRole(t *testing.T, awsSession client.ConfigProvider) *createAdminRoleOutput {
+func createAdminRole(t *testing.T, awsSession client.ConfigProvider, adminRoleName string) *createAdminRoleOutput {
 	currentAccountID := aws2.GetAccountId(t)
 
 	// Create an Admin Role that can be assumed
@@ -1771,6 +1834,12 @@ func createAdminRole(t *testing.T, awsSession client.ConfigProvider) *createAdmi
 	_, err = iamSvc.AttachRolePolicy(&iam.AttachRolePolicyInput{
 		RoleName:  aws.String(adminRoleName),
 		PolicyArn: aws.String("arn:aws:iam::aws:policy/IAMFullAccess"),
+	})
+
+	// Give the Admin Role Permission to access cost explorer
+	_, err = iamSvc.AttachRolePolicy(&iam.AttachRolePolicyInput{
+		RoleName:  aws.String(adminRoleName),
+		PolicyArn: aws.String("arn:aws:iam::391501768339:policy/CostExplorerFullAccess"),
 	})
 	require.Nil(t, err)
 

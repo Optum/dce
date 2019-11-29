@@ -91,6 +91,8 @@ const (
 	LeaseExpired LeaseStatusReason = "Expired"
 	// LeaseOverBudget means the lease is over its budgeted amount and is therefore reset/reclaimed.
 	LeaseOverBudget LeaseStatusReason = "OverBudget"
+	// LeaseOverPrincipalBudget means the lease is over its principal budgeted amount and is therefore reset/reclaimed.
+	LeaseOverPrincipalBudget LeaseStatusReason = "OverPrincipalBudget"
 	// LeaseDestroyed means the lease has been deleted via an API call or other user action.
 	LeaseDestroyed LeaseStatusReason = "Destroyed"
 	// LeaseActive means the lease is still active.

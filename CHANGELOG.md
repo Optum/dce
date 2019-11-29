@@ -1,8 +1,13 @@
+
 ## vNext
 
+- Update Status Lambda - budget_check: Terminate lease if spend > Principal budget amount
 - Support `metadata` parameter in `/accounts` API endpoints
 - Add `PUT /accounts/:id` endpoint
 - Fixed bug where child account's DCEPrincipal role trusted itself rather than the master account
+- Add GetUsageByPrincipal
+- Fix default `budget_notification_from_email` TF var (See #143)
+
 
 ## v0.23.0
 
@@ -48,7 +53,7 @@ As part of the v0.21.0 release, we are renaming all our DynamoDB tables to remov
 
 DynamoDB does not support in-place table renaming, so we will need to migrate data from each table to the newly renamed table.
 
-To do this, you may run the migration script in [/scripts/migrations/v0.21.0_rename_db_tables_dce](./scripts/migrations/v0.21.0_rename_db_tables_dce/main.go). This script will copy all data from the old tables to the new tables.
+To do this, you may run the migration script in [/scripts/migrations/v0.21.0_rename_db_tables_dce](https://github.com/Optum/dce/blob/master/scripts/migrations/v0.21.0_rename_db_tables_dce/main.go). This script will copy all data from the old tables to the new tables.
 
 Note that this release does ***not*** delete the old tables, to provide the opportunity to migrate data. Subsequent releases _will_ destroy the old tables. 
 
@@ -66,6 +71,7 @@ Note that this release does ***not*** delete the old tables, to provide the oppo
 
 - Fixed issue with the lease check logic that was expiring non-expired leases.
 - Migration script to fix wrongly expired leases
+
 
 ## v0.19.1
 

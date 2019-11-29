@@ -3,7 +3,7 @@
 The purpose of this quickstart is to show how to deploy DCE into
 a _master account_ and to show you how to add other AWS accounts
 into the _account pool_. To understand more about _master accounts_,
-_child accounts_, _account pools_, and _leases_, see [the glossary](/glossary/).
+_child accounts_, _account pools_, and _leases_, see [the concepts documentation](concepts.md).
 
 ## Prerequisites
 
@@ -26,14 +26,14 @@ greater detail below):
 1. Deploy DCE to your master account.
 1. Provision the IAM role in the child account.
 1. Add each account to the account pool by using the 
-[CLI](/using-the-cli/) or [REST API](/api-documentation/).
+[CLI](https://github.com/Optum/dce-cli) or [REST API](api-documentation.md).
 
 Each of these steps is covered in greater detail in the sections below.
 
 ## Using the CLI
 
 To deploy DCE into the "master" account, you will need to start out with
-an existing AWS account. The `dce` [command line interface](dce/dce/) (CLI) 
+an existing AWS account. The `dce` [command line interface](https://github.com/Optum/dce-cli) (CLI) 
 is the easiest way to deploy DCE into your master account.
 
 ## Using the REST API
@@ -58,7 +58,7 @@ command as shown here:
 
 1. Verify that the AWS CLI is [configured](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html).
 with an IAM user that has admin-level permissions in your AWS 
-[master account](/glossary/#master-account).
+[master account](concepts.md#master-account).
 1. Make sure that the AWS region is set to *us-east-1* by using the command
 as shown:
 
@@ -93,20 +93,6 @@ To create an account using the API, use an HTTP POST to the URL
 The response will be as shown:
 
 ```json
-HTTP/1.1 201 Created
-Access-Control-Allow-Origin: *
-Connection: keep-alive
-Content-Length: 312
-Content-Type: application/json
-Date: Tue, 29 Oct 2019 20:09:44 GMT
-Via: 1.1 5175c0b4bfaddbfcca703b6ef1dc6bad.cloudfront.net (CloudFront)
-X-Amz-Cf-Id: DYwJXcmH3UJ3yLFdB7CYfxI-6szcpYKF-soPz9pesI6JmU-Nu3t2xg==
-X-Amz-Cf-Pop: ORD52-C1
-X-Amzn-Trace-Id: Root=1-5db89c87-9bef5e560d1c2129624430d3;Sampled=0
-X-Cache: Miss from cloudfront
-x-amz-apigw-id: CV1lOEOwIAMFQag=
-x-amzn-RequestId: 5ef9f032-bed2-45e2-abf8-7051d15ef966
-
 {
     "accountStatus": "NotReady",
     "adminRoleArn": "arn:aws:iam::123456789012:role/DCEAdmin",
@@ -123,20 +109,6 @@ And you can verify the account is there by using the API, this time
 with an HTTP GET *${api_url}/accounts* to get the following response:
 
 ```json
-HTTP/1.1 200 OK
-Access-Control-Allow-Origin: *
-Connection: keep-alive
-Content-Length: 311
-Content-Type: application/json
-Date: Tue, 29 Oct 2019 20:15:36 GMT
-Via: 1.1 613fc2ce2843d97a87bffbdb759c82a5.cloudfront.net (CloudFront)
-X-Amz-Cf-Id: hZcEUzHmgnCCXX6rUI5Lc-W3CTIqkb7Sjh01lVZtti7b41mGbvpuSg==
-X-Amz-Cf-Pop: ORD52-C1
-X-Amzn-Trace-Id: Root=1-5db89de8-667c3c90d45d54d08e96e9d0;Sampled=0
-X-Cache: Miss from cloudfront
-x-amz-apigw-id: CV2cVGJSIAMFb8w=
-x-amzn-RequestId: ab46c728-60cf-48ee-a838-e0d076025667
-
 [
     {
         "accountStatus": "Ready",
@@ -173,19 +145,6 @@ content to the *${api_url}/leases* endpoint:
 You will see a response that looks like this:
 
 ```json
-HTTP/1.1 201 Created
-Connection: keep-alive
-Content-Length: 372
-Content-Type: application/json
-Date: Tue, 29 Oct 2019 20:39:46 GMT
-Via: 1.1 05ce646a2ff6febe063c256476b18a9c.cloudfront.net (CloudFront)
-X-Amz-Cf-Id: Yo5Q0vd4yReiQI_tD4IVvpkP7HgFqUk3X3DJ8wLeR0Gpl0mh_jYkxg==
-X-Amz-Cf-Pop: ORD52-C2
-X-Amzn-Trace-Id: Root=1-5db8a391-5577d7a477be61bde1c39308;Sampled=0
-X-Cache: Miss from cloudfront
-x-amz-apigw-id: CV5-yF_coAMFd4A=
-x-amzn-RequestId: f4848ef9-d577-4465-a0d2-dd33e792f4a5
-
 {
     "accountId": "123456789012",
     "budgetAmount": 20,
@@ -209,8 +168,6 @@ again to see that the account status has been changed to
 `Leased`:
 
 ```json
-HTTP/1.1 200 OK
-// snipped...
 [
     {
         "accountStatus": "Leased",
@@ -225,7 +182,7 @@ HTTP/1.1 200 OK
 ]
 ```
 Once you see the first lease provisioned in the system, you are ready to use your
-first lease! See [logging into your leased account](#logging-into-your-leased-account).
+first lease! See [logging into your leased account](howto.md#login-to-your-dce-account).
 
 ### Listing leases
 
@@ -233,19 +190,6 @@ To list the leases, use an HTTP GET request to the *${api_url}/leases* endpoint
 to see the response as shown here:
 
 ```json
-HTTP/1.1 200 OK
-Connection: keep-alive
-Content-Length: 380
-Content-Type: application/json
-Date: Wed, 30 Oct 2019 12:47:46 GMT
-Via: 1.1 0e31b6655e8230805e58fd71c1351ba1.cloudfront.net (CloudFront)
-X-Amz-Cf-Id: pGPruQ4PEi2KGd3O-R2eUl48fuEUesNdR1UhOnrNgf_fYlJ0SQwzaA==
-X-Amz-Cf-Pop: ORD52-C1
-X-Amzn-Trace-Id: Root=1-5db98671-b6dd22900fc6c8367b3b6084;Sampled=0
-X-Cache: Miss from cloudfront
-x-amz-apigw-id: CYHxsH2VoAMFwxQ=
-x-amzn-RequestId: d306e800-dfd1-4a53-88b1-2a5d469c9cd6
-
 [
     {
         "accountId": "123456789012",
@@ -283,8 +227,6 @@ with the following request body:
 The API response for a successful lease destroy looks like this:
 
 ```json
-HTTP/1.1 200 OK
-// snipped...
 {
     "accountId": "519777115644",
     "budgetAmount": 20,

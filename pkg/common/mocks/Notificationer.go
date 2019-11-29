@@ -9,13 +9,13 @@ type Notificationer struct {
 	mock.Mock
 }
 
-// PublishMessage provides a mock function with given fields: _a0, _a1, _a2
-func (_m *Notificationer) PublishMessage(_a0 *string, _a1 *string, _a2 bool) (*string, error) {
-	ret := _m.Called(_a0, _a1, _a2)
+// PublishMessage provides a mock function with given fields: topicArn, message, isJSON
+func (_m *Notificationer) PublishMessage(topicArn *string, message *string, isJSON bool) (*string, error) {
+	ret := _m.Called(topicArn, message, isJSON)
 
 	var r0 *string
 	if rf, ok := ret.Get(0).(func(*string, *string, bool) *string); ok {
-		r0 = rf(_a0, _a1, _a2)
+		r0 = rf(topicArn, message, isJSON)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*string)
@@ -24,7 +24,7 @@ func (_m *Notificationer) PublishMessage(_a0 *string, _a1 *string, _a2 bool) (*s
 
 	var r1 error
 	if rf, ok := ret.Get(1).(func(*string, *string, bool) error); ok {
-		r1 = rf(_a0, _a1, _a2)
+		r1 = rf(topicArn, message, isJSON)
 	} else {
 		r1 = ret.Error(1)
 	}

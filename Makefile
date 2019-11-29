@@ -33,18 +33,49 @@ build:
 generate:
 	go generate ./...
 
-deploy_local: build
-	./scripts/deploy_local/deploy_local_build.sh
+# deploy builds and deploys go code
+# to Lamdbas and CodeBuilds in AWS.
+# Before running this command, you will need
+deploy: clean build
+	cd modules && \
+	ns=$$(terraform output namespace) && \
+	bucket=$$(terraform output artifacts_bucket_name) && \
+	cd .. && \
+	./scripts/deploy.sh bin/build_artifacts.zip $${ns} $${bucket}
 
-destroy_local:
-	./scripts/deploy_local/destroy_local_build.sh
 
+# `make documentation`
+#
+# Generates DCE docs
+#
+# This repo uses [MkDocs](https://www.mkdocs.org/) to generate and serve documentation.
+#
+# Before running this make command, you must first:
+#
+# - Install [Python](https://www.python.org/downloads/)
+# - Install [npm v5.2+](https://www.npmjs.com/get-npm)
+# - Run `pip install -r ./requirements.txt` to install MkDocs
+#
+# To generate and serve docs, run:
+#
+# ```.env
+# make documentation
+# mkdocs serve
+# ```
+#
+# This will serve the documentation at http://127.0.0.1:8000/
+#
+# Public-facing docs are served by readthedocs.io
 documentation:
 	cp -f CONTRIBUTING.md ./docs/CONTRIBUTING.md > /dev/null
 	cp -f CHANGELOG.md ./docs/CHANGELOG.md > /dev/null
 	cp -f CODE_OF_CONDUCT.md ./docs/CODE_OF_CONDUCT.md > /dev/null
 	cp -f INDIVIDUAL_CONTRIBUTOR_LICENSE.md ./docs/INDIVIDUAL_CONTRIBUTOR_LICENSE.md > /dev/null
 	./scripts/generate-docs.sh
+
+# Serve the documentation locally
+serve_docs:
+	mkdocs serve
 
 
 install:
