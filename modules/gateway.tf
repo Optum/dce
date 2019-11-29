@@ -54,13 +54,6 @@ resource "aws_ssm_parameter" "user_pool_endpoint" {
   value = module.api_gateway_authorizer.user_pool_endpoint
 }
 
-
-# TODO: 
-#  1. Figure out solution for setting callback_url to apigwy deployment invoke url. Cyclical dependency may require making api call from cli after deployment as workaround
-#  2. Figure out why permission is not correctly granted for APIGwy to execute credentials_web_page_lambda
-
-
-
 data "template_file" "api_swagger" {
   template = file("${path.module}/swagger.yaml")
 
@@ -105,6 +98,8 @@ resource "aws_lambda_permission" "allow_api_gateway_usages_lambda" {
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_api_gateway_rest_api.gateway_api.execution_arn}/*/*"
 }
+
+
 
 resource "aws_lambda_permission" "allow_api_gateway_credentials_web_page_lambda" {
   function_name = module.credentials_web_page_lambda.arn

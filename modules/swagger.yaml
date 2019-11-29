@@ -317,7 +317,7 @@ paths:
               type: "string"
       x-amazon-apigateway-integration:
         uri: ${credentials_web_page_lambda}
-        httpMethod: "GET"
+        httpMethod: "POST"
         type: "aws_proxy"
         passthroughBehavior: "when_no_match"
   "/auth/{file+}":
@@ -359,7 +359,7 @@ paths:
             Access-Control-Allow-Origin:
               type: "string"
     get:
-      summary: Get the DCE system authentication web page
+      summary: Get the DCE system authentication web page static assets
       produces:
         - text/html
         - text/javascript
@@ -379,7 +379,7 @@ paths:
               type: "string"
       x-amazon-apigateway-integration:
         uri: ${credentials_web_page_lambda}
-        httpMethod: "GET"
+        httpMethod: "POST"
         type: "aws_proxy"
         passthroughBehavior: "when_no_match"
   "/leases":
