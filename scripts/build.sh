@@ -31,7 +31,7 @@ if [ -e $i/main.go ];then
       cd ./cmd/lambda/$mod_name
       zip --must-match \
           ../../../bin/lambda/$mod_name.zip \
-          $mod_name \
+          ../../../bin/lambda/$mod_name \
           public/* \
           views/*
       cd ../../..
