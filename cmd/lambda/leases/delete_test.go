@@ -188,5 +188,5 @@ func createSuccessDeleteResponse() events.APIGatewayProxyResponse {
 		LeaseStatus: db.Inactive,
 	}
 	leaseResponse := response.LeaseResponse(*lease)
-	return response.CreateJSONResponse(http.StatusOK, leaseResponse)
+	return response.CreateApiGatewayJSONResponse(http.StatusOK, leaseResponse)
 }

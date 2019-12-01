@@ -20,7 +20,7 @@ func GetAllAccounts(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed to query database: %s", err)
 		log.Print(errorMessage)
-		WriteServerErrorWithResponse(w, errorMessage)
+		response.WriteServerErrorWithResponse(w, errorMessage)
 	}
 
 	// Serialize them for the JSON response.
@@ -43,12 +43,12 @@ func GetAccountByID(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed List on Account Lease %s", accountID)
 		log.Print(errorMessage)
-		WriteServerErrorWithResponse(w, errorMessage)
+		response.WriteServerErrorWithResponse(w, errorMessage)
 		return
 	}
 
 	if account == nil {
-		WriteNotFoundError(w)
+		response.WriteNotFoundError(w)
 		return
 	}
 
@@ -68,11 +68,11 @@ func GetAccountByStatus(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed to query database: %s", err)
 		log.Print(errorMessage)
-		WriteServerErrorWithResponse(w, errorMessage)
+		response.WriteServerErrorWithResponse(w, errorMessage)
 	}
 
 	if len(accounts) == 0 {
-		WriteNotFoundError(w)
+		response.WriteNotFoundError(w)
 		return
 	}
 

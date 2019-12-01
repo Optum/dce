@@ -86,5 +86,5 @@ func (c DeleteController) Call(ctx context.Context, req *events.APIGatewayProxyR
 	}
 
 	leaseResponse := response.LeaseResponse(*updatedLease)
-	return response.CreateJSONResponse(http.StatusOK, leaseResponse), nil
+	return response.CreateApiGatewayJSONResponse(http.StatusOK, leaseResponse), nil
 }
