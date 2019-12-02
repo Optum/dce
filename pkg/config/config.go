@@ -58,7 +58,8 @@ func (config *DefaultConfigurationBuilder) Unmarshal(cfgStruct interface{}) erro
 	return err
 }
 
-// Dump dumps the current config into the provided structure.
+// Dump dumps the current config into the provided structure. Config keys are matched to
+// cfgStruct fields using the "env" tag.
 func (config *DefaultConfigurationBuilder) Dump(cfgStruct interface{}) error {
 	decoder, err := mapstructure.NewDecoder(
 		&mapstructure.DecoderConfig{
