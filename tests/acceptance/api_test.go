@@ -1826,7 +1826,11 @@ func createAdminRole(t *testing.T, awsSession client.ConfigProvider, adminRoleNa
 		Path:                     aws.String("/"),
 		RoleName:                 aws.String(adminRoleName),
 	})
+	if err != nil && strings.Contains(err.Error(), iam.ErrCodeEntityAlreadyExistsException) {
+		err = nil
+	}
 	require.Nil(t, err)
+
 	adminRoleArn := *roleRes.Role.Arn
 
 	// Give the Admin Role Permission to create other IAM Roles
@@ -1853,9 +1857,11 @@ func createAdminRole(t *testing.T, awsSession client.ConfigProvider, adminRoleNa
 		PolicyName:     &costExplorerPolicyName,
 	})
 
-	if !strings.Contains(err.Error(), iam.ErrCodeEntityAlreadyExistsException) {
-		require.Nil(t, err)
+	if err != nil && strings.Contains(err.Error(), iam.ErrCodeEntityAlreadyExistsException) {
+		err = nil
 	}
+	require.Nil(t, err)
+
 	_, err = iamSvc.AttachRolePolicy(&iam.AttachRolePolicyInput{
 		RoleName:  aws.String(adminRoleName),
 		PolicyArn: aws.String(fmt.Sprintf("arn:aws:iam::%s:policy/%s", currentAccountID, costExplorerPolicyName)),
