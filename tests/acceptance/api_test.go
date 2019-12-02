@@ -1837,9 +1837,28 @@ func createAdminRole(t *testing.T, awsSession client.ConfigProvider, adminRoleNa
 	})
 
 	// Give the Admin Role Permission to access cost explorer
+	costExplorerPolicyName := "CostExplorerFullAccess"
+	costExplorerPolicyDocument := `{
+				"Version": "2012-10-17",
+				"Statement": [
+					{
+						"Effect": "Allow",
+						"Action": "ce:*",
+						"Resource": "*"
+					}
+				]
+			}`
+	_, err = iamSvc.CreatePolicy(&iam.CreatePolicyInput{
+		PolicyDocument: &costExplorerPolicyDocument,
+		PolicyName:     &costExplorerPolicyName,
+	})
+
+	if !strings.Contains(err.Error(), iam.ErrCodeEntityAlreadyExistsException){
+		require.Nil(t, err)
+	}
 	_, err = iamSvc.AttachRolePolicy(&iam.AttachRolePolicyInput{
 		RoleName:  aws.String(adminRoleName),
-		PolicyArn: aws.String("arn:aws:iam::391501768339:policy/CostExplorerFullAccess"),
+		PolicyArn: aws.String(fmt.Sprintf("arn:aws:iam::%s:policy/%s", currentAccountID, costExplorerPolicyName)),
 	})
 	require.Nil(t, err)
 
