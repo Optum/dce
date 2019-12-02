@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/Optum/dce/pkg/api/response"
 	"html/template"
 	"log"
 	"net/http"
@@ -16,7 +17,7 @@ func GetAuthPage(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed to load web page: %s", err)
 		log.Print(errorMessage)
-		WriteServerErrorWithResponse(w, errorMessage)
+		response.WriteServerErrorWithResponse(w, errorMessage)
 	}
 
 	env := struct {
@@ -29,19 +30,19 @@ func GetAuthPage(w http.ResponseWriter, r *http.Request) {
 		USER_POOL_APP_WEB_DOMAIN string
 		USER_POOL_ID             string
 	}{
-		SITE_PATH_PREFIX:         sitePathPrefix,
-		APIGW_DEPLOYMENT_NAME:    apigwDeploymentName,
-		AWS_CURRENT_REGION:       awsCurrentRegion,
-		IDENTITY_POOL_ID:         identityPoolID,
-		USER_POOL_PROVIDER_NAME:  userPoolProviderName,
-		USER_POOL_CLIENT_ID:      userPoolClientID,
-		USER_POOL_APP_WEB_DOMAIN: userPoolAppWebDomain,
-		USER_POOL_ID:             userPoolID,
+		SITE_PATH_PREFIX:         Config.SitePathPrefix,
+		APIGW_DEPLOYMENT_NAME:    Config.ApigwDeploymentName,
+		AWS_CURRENT_REGION:       Config.AwsCurrentRegion,
+		IDENTITY_POOL_ID:         Config.IdentityPoolID,
+		USER_POOL_PROVIDER_NAME:  Config.UserPoolProviderName,
+		USER_POOL_CLIENT_ID:      Config.UserPoolClientID,
+		USER_POOL_APP_WEB_DOMAIN: Config.UserPoolAppWebDomain,
+		USER_POOL_ID:             Config.UserPoolID,
 	}
 	if err := tmpl.Execute(w, env); err != nil {
 		errorMessage := fmt.Sprintf("Failed to load web page: %s", err)
 		log.Print(errorMessage)
-		WriteServerErrorWithResponse(w, errorMessage)
+		response.WriteServerErrorWithResponse(w, errorMessage)
 	}
 	w.Header().Set("Content-Type", "text/html")
 	w.WriteHeader(http.StatusOK)

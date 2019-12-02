@@ -2,36 +2,31 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"log"
-	"net/http"
-
 	"github.com/Optum/dce/pkg/api"
-	"github.com/Optum/dce/pkg/api/response"
-	"github.com/Optum/dce/pkg/common"
+	"github.com/Optum/dce/pkg/config"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/awslabs/aws-lambda-go-api-proxy/gorillamux"
+	"log"
 )
 
 var muxLambda *gorillamux.GorillaMuxAdapter
 
-var (
-	identityPoolID 		 string
-	userPoolProviderName string
-	userPoolClientID     string
-	userPoolAppWebDomain string
-	userPoolID           string
-	sitePathPrefix       string
-	apigwDeploymentName  string
-	awsCurrentRegion     string
-	// Config - The configuration client
-	Config common.DefaultEnvConfig
-)
+type CredentialsWebPageConfig struct {
+	AwsCurrentRegion     string `env:"AWS_CURRENT_REGION"`
+	SitePathPrefix       string `env:"SITE_PATH_PREFIX"`
+	ApigwDeploymentName  string `env:"APIGW_DEPLOYMENT_NAME"`
+	IdentityPoolID       string `env:"PS_IDENTITY_POOL_ID"`
+	UserPoolProviderName string `env:"PS_USER_POOL_PROVIDER_NAME"`
+	UserPoolClientID     string `env:"PS_USER_POOL_CLIENT_ID"`
+	UserPoolAppWebDomain string `env:"PS_USER_POOL_APP_WEB_DOMAIN"`
+	UserPoolID           string `env:"PS_USER_POOL_ID"`
+}
+
+var Config *CredentialsWebPageConfig
+var CfgBldr config.ConfigurationBuilder
+
 
 func init() {
 	initConfig()
@@ -56,45 +51,30 @@ func init() {
 	r := api.NewRouter(authRoutes)
 	muxLambda = gorillamux.New(r)
 }
-
 func initConfig() {
-	sitePathPrefix = Config.GetEnvVar("SITE_PATH_PREFIX", "sitePathPrefix")
-	apigwDeploymentName = Config.GetEnvVar("APIGW_DEPLOYMENT_NAME", "apigwDeploymentName")
-	awsCurrentRegion = Config.GetEnvVar("AWS_CURRENT_REGION", "awsCurrentRegion")
+	CfgBldr = &config.DefaultConfigurationBuilder{}
+	CfgBldr.WithEnv("AWS_CURRENT_REGION", "AWS_CURRENT_REGION", "us-east-1")
+	CfgBldr.WithEnv("SITE_PATH_PREFIX", "SITE_PATH_PREFIX", "sitePathPrefix")
+	CfgBldr.WithEnv("APIGW_DEPLOYMENT_NAME", "APIGW_DEPLOYMENT_NAME", "apigwDeploymentName")
+	CfgBldr.WithParameterStoreEnv("PS_IDENTITY_POOL_ID", "PS_IDENTITY_POOL_ID", "identityPoolID")
+	CfgBldr.WithParameterStoreEnv("PS_USER_POOL_PROVIDER_NAME", "PS_USER_POOL_PROVIDER_NAME", "userPoolProviderName")
+	CfgBldr.WithParameterStoreEnv("PS_USER_POOL_CLIENT_ID", "PS_USER_POOL_CLIENT_ID", "userPoolClientID")
+	CfgBldr.WithParameterStoreEnv("PS_USER_POOL_APP_WEB_DOMAIN", "PS_USER_POOL_APP_WEB_DOMAIN", "userPoolAppWebDomain")
+	CfgBldr.WithParameterStoreEnv("PS_USER_POOL_ID", "PS_USER_POOL_ID", "userPoolID")
+	svcBldr := &config.DefaultAWSServiceBuilder{Config: CfgBldr}
+	_, err := svcBldr.
+		WithSSM().
+		Build()
+	if err != nil {
+		errorMessage := fmt.Sprintf("Failed to initialize parameter store: %s", err)
+		log.Fatal(errorMessage)
+	}
 
-	identityPoolID = "identityPoolID"
-	userPoolProviderName = "userPoolProviderName"
-	userPoolClientID = "userPoolClientID"
-	userPoolAppWebDomain = "userPoolAppWebDomain"
-	userPoolID = "userPoolID"
-
-	GetParamStoreVars(
-		&GetParamStoreVarsInput{
-			EnvironmentVariable: "PS_IDENTITY_POOL_ID",
-			LocalVariable: &identityPoolID,
-			Default: identityPoolID,
-		},
-		&GetParamStoreVarsInput{
-			EnvironmentVariable: "PS_USER_POOL_PROVIDER_NAME",
-			LocalVariable: &userPoolProviderName,
-			Default: userPoolProviderName,
-		},
-		&GetParamStoreVarsInput{
-			EnvironmentVariable: "PS_USER_POOL_CLIENT_ID",
-			LocalVariable: &userPoolClientID,
-			Default: userPoolClientID,
-		},
-		&GetParamStoreVarsInput{
-			EnvironmentVariable: "PS_USER_POOL_APP_WEB_DOMAIN",
-			LocalVariable: &userPoolAppWebDomain,
-			Default: userPoolAppWebDomain,
-		},
-		&GetParamStoreVarsInput{
-			EnvironmentVariable: "PS_USER_POOL_ID",
-			LocalVariable: &userPoolID,
-			Default: userPoolID,
-		},
-	)
+	Config = &CredentialsWebPageConfig{}
+	if err := CfgBldr.Dump(Config); err != nil {
+		errorMessage := fmt.Sprintf("Failed to initialize parameter store: %s", err)
+		log.Fatal(errorMessage)
+	}
 }
 
 // Handler - Handle the lambda function
@@ -105,95 +85,4 @@ func Handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 func main() {
 	// Send Lambda requests to the router
 	lambda.Start(Handler)
-}
-
-// WriteServerErrorWithResponse - Writes a server error with the specific message.
-func WriteServerErrorWithResponse(w http.ResponseWriter, message string) {
-	WriteAPIErrorResponse(
-		w,
-		http.StatusInternalServerError,
-		"ServerError",
-		message,
-	)
-}
-
-// WriteAPIErrorResponse - Writes the error response out to the provided ResponseWriter
-func WriteAPIErrorResponse(w http.ResponseWriter, responseCode int,
-	errCode string, errMessage string) {
-	// Create the Error Response
-	errResp := response.CreateErrorResponse(errCode, errMessage)
-	apiResponse, err := json.Marshal(errResp)
-
-	// Should most likely not return an error since response.ErrorResponse
-	// is structured to be json compatible
-	if err != nil {
-		log.Printf("Failed to Create Valid Error Response: %s", err)
-		WriteAPIResponse(w, http.StatusInternalServerError, fmt.Sprintf(
-			"{\"error\":\"Failed to Create Valid Error Response: %s\"", err))
-	}
-
-	// Write an error
-	WriteAPIResponse(w, responseCode, string(apiResponse))
-}
-
-// WriteAPIResponse - Writes the response out to the provided ResponseWriter
-func WriteAPIResponse(w http.ResponseWriter, status int, body string) {
-	w.WriteHeader(status)
-	w.Write([]byte(body))
-}
-
-type GetParamStoreVarsInput struct {
-	EnvironmentVariable string
-	LocalVariable *string
-	Default string
-}
-
-
-func GetParamStoreVars(inputs ...*GetParamStoreVarsInput) {
-	sess, err := session.NewSessionWithOptions(session.Options{
-		Config:            aws.Config{Region: aws.String(awsCurrentRegion)},
-		SharedConfigState: session.SharedConfigEnable,
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
-	ssmsvc := ssm.New(sess, aws.NewConfig().WithRegion(awsCurrentRegion))
-	withDecryption := false
-
-	PSNamesToLocalVars := map[string]*string{}
-	for _, input := range inputs {
-		psName := Config.GetEnvVar(input.EnvironmentVariable, input.Default)
-		PSNamesToLocalVars[psName] = input.LocalVariable
-		log.Println("PSNamesToLocalVars[psName]: ", *PSNamesToLocalVars[psName])
-	}
-
-	PSNames := getKeys(PSNamesToLocalVars)
-	getParametersInput := &ssm.GetParametersInput{
-		Names: PSNames,
-		WithDecryption: &withDecryption,
-	}
-	getParametersOutput, err := ssmsvc.GetParameters(getParametersInput)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	params := getParametersOutput.Parameters
-	for _, param := range params {
-		log.Print("Retrieved SSM Parameter: ", param.GoString())
-		*PSNamesToLocalVars[*param.Name] = *param.Value
-	}
-
-	invalidParams := getParametersOutput.InvalidParameters
-	for _, invalidParam := range invalidParams {
-		log.Print("Invalid SSM Parameter: ", invalidParam)
-	}
-}
-
-func getKeys(aMap map[string]*string) []*string{
-	keys := []*string{}
-	for k := range aMap {
-		newK := k
-		keys = append(keys, &newK)
-	}
-	return keys
 }

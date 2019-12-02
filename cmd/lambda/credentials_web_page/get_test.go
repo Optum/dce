@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"github.com/Optum/dce/pkg/config/mocks"
+	"github.com/stretchr/testify/mock"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -15,8 +17,23 @@ import (
 
 func TestGetAuth(t *testing.T) {
 
-	t.Run("When invoke /auth and there are no errors then repond with html", func(t *testing.T) {
+	t.Run("When invoke /auth and there are no errors then respond with html", func(t *testing.T) {
 		// Arrange
+		mockConfig := mocks.ConfigurationBuilder{}
+		mockConfig.On("WithEnv", mock.Anything, mock.Anything, mock.Anything)
+		mockConfig.On("WithParameterStoreEnv", mock.Anything, mock.Anything, mock.Anything)
+		CfgBldr = &mockConfig
+		expectedCurrentRegion := "expectedCurrentRegion"
+		Config = &CredentialsWebPageConfig{
+			AwsCurrentRegion: expectedCurrentRegion,
+			SitePathPrefix: "",
+			ApigwDeploymentName: "",
+			IdentityPoolID: "",
+			UserPoolProviderName: "",
+			UserPoolClientID: "",
+			UserPoolAppWebDomain: "",
+			UserPoolID: "",
+		}
 		mockRequest := events.APIGatewayProxyRequest{HTTPMethod: http.MethodGet, Path: "/auth"}
 
 		// Act
@@ -25,7 +42,7 @@ func TestGetAuth(t *testing.T) {
 
 		// Assert
 		require.Contains(t, actualResponse.Body, "<html>", "Returns html page")
-		require.Contains(t, actualResponse.Body, "identityPoolID", "Template variables are rendered to default values")
+		require.Contains(t, actualResponse.Body, expectedCurrentRegion, "Template variables are rendered to default values")
 		require.Equal(t, actualResponse.StatusCode, 200, "Returns a 200.")
 	})
 

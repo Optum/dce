@@ -11,7 +11,6 @@ github.com/aws/aws-lambda-go v1.11.1/go.mod h1:Rr2SMTLeSMKgD45uep9V/NP8tnbCcySgu
 github.com/aws/aws-sdk-go v1.17.8/go.mod h1:KmX6BPdI08NWTb3/sm4ZGu5ShLoqVDhKgpiN924inxo=
 github.com/aws/aws-sdk-go v1.25.36 h1:4+TL/Y2G5hsR1zdfHmjNG1ou1WEqsSWk8v7m1GaDKyo=
 github.com/aws/aws-sdk-go v1.25.36/go.mod h1:KmX6BPdI08NWTb3/sm4ZGu5ShLoqVDhKgpiN924inxo=
-github.com/aws/aws-sdk-go v1.25.39 h1:1xxya3nsUaFlEZuoE5PWsIEd47RoDV/kkOGt0qEuwNw=
 github.com/awslabs/aws-lambda-go-api-proxy v0.5.0 h1:mmzE5dJ2yt23lmWr6QNtCCAA3H0k4DGWsttilSRnSdI=
 github.com/awslabs/aws-lambda-go-api-proxy v0.5.0/go.mod h1:9ZpbR64sd0A73+ylC1tP63Kyz2VhijeDw1O8naJqehA=
 github.com/aymerick/raymond v2.0.2+incompatible/go.mod h1:osfaiScAUVup+UC9Nfq76eWqDhXlp+4UYaA8uhTBO6g=
@@ -89,6 +88,8 @@ github.com/mattn/goveralls v0.0.2/go.mod h1:8d1ZMHsd7fW6IRPKQh46F2WRpyib5/X4FOpe
 github.com/mb0/glob v0.0.0-20160210091149-1eb79d2de6c4 h1:NK3O7S5FRD/wj7ORQ5C3Mx1STpyEMuFe+/F0Lakd1Nk=
 github.com/mb0/glob v0.0.0-20160210091149-1eb79d2de6c4/go.mod h1:FqD3ES5hx6zpzDainDaHgkTIqrPaI9uX4CVWqYZoQjY=
 github.com/microcosm-cc/bluemonday v1.0.2/go.mod h1:iVP4YcDBq+n/5fb23BhYFvIMq/leAFZyRl6bYmGDlGc=
+github.com/mitchellh/mapstructure v1.1.2 h1:fmNYVwqnSfB9mZU6OS2O6GsXM+wcskZDuKQzvN1EDeE=
+github.com/mitchellh/mapstructure v1.1.2/go.mod h1:FVVH3fgwuzCH5S8UJGiWEs2h04kUh9fWfEaFds41c1Y=
 github.com/oleiade/reflections v1.0.0 h1:0ir4pc6v8/PJ0yw5AEtMddfXpWBXg9cnG7SgSoJuCgY=
 github.com/oleiade/reflections v1.0.0/go.mod h1:RbATFBbKYkVdqmSFtx13Bb/tVhR0lgOBXunWTZKeL4w=
 github.com/onsi/ginkgo v0.0.0-20180119174237-747514b53ddd h1:b2wg8HW/u55DT7Y/vamdEn/jdvtsGkxzl+0+iHa5YmE=
