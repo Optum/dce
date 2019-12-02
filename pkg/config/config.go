@@ -186,7 +186,6 @@ func (config *DefaultConfigurationBuilder) GetVal(key string) (interface{}, erro
 		return nil, ConfigurationError(fmt.Errorf("no value found in configuration for key: %s", key))
 	}
 
-
 	return val, nil
 }
 

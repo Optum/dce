@@ -1853,7 +1853,7 @@ func createAdminRole(t *testing.T, awsSession client.ConfigProvider, adminRoleNa
 		PolicyName:     &costExplorerPolicyName,
 	})
 
-	if !strings.Contains(err.Error(), iam.ErrCodeEntityAlreadyExistsException){
+	if !strings.Contains(err.Error(), iam.ErrCodeEntityAlreadyExistsException) {
 		require.Nil(t, err)
 	}
 	_, err = iamSvc.AttachRolePolicy(&iam.AttachRolePolicyInput{
