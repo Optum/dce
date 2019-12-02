@@ -25,14 +25,14 @@ func TestGetAuth(t *testing.T) {
 		CfgBldr = &mockConfig
 		expectedCurrentRegion := "expectedCurrentRegion"
 		Config = &CredentialsWebPageConfig{
-			AwsCurrentRegion: expectedCurrentRegion,
-			SitePathPrefix: "",
-			ApigwDeploymentName: "",
-			IdentityPoolID: "",
+			AwsCurrentRegion:     expectedCurrentRegion,
+			SitePathPrefix:       "",
+			ApigwDeploymentName:  "",
+			IdentityPoolID:       "",
 			UserPoolProviderName: "",
-			UserPoolClientID: "",
+			UserPoolClientID:     "",
 			UserPoolAppWebDomain: "",
-			UserPoolID: "",
+			UserPoolID:           "",
 		}
 		mockRequest := events.APIGatewayProxyRequest{HTTPMethod: http.MethodGet, Path: "/auth"}
 

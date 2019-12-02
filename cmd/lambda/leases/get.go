@@ -35,5 +35,5 @@ func (controller GetController) Call(ctx context.Context, req *events.APIGateway
 	}
 
 	leaseResponse := response.LeaseResponse(*lease)
-	return response.CreateApiGatewayJSONResponse(http.StatusOK, leaseResponse), nil
+	return response.CreateAPIGatewayJSONResponse(http.StatusOK, leaseResponse), nil
 }

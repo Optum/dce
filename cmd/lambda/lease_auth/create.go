@@ -105,7 +105,7 @@ func (controller CreateController) Call(ctx context.Context, req *events.APIGate
 		SessionToken:    *assumeRoleOutput.Credentials.SessionToken,
 		ConsoleURL:      consoleURL,
 	}
-	return response.CreateApiGatewayJSONResponse(http.StatusCreated, result), nil
+	return response.CreateAPIGatewayJSONResponse(http.StatusCreated, result), nil
 }
 
 func (controller CreateController) buildConsoleURL(creds sts.Credentials) (string, error) {

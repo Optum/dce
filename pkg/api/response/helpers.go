@@ -22,8 +22,8 @@ func CreateAPIGatewayResponse(status int, body string) events.APIGatewayProxyRes
 	}
 }
 
-// CreateApiGatewayJSONResponse - Create a JSON response
-func CreateApiGatewayJSONResponse(status int, response interface{}) events.APIGatewayProxyResponse {
+// CreateAPIGatewayJSONResponse - Create a JSON response
+func CreateAPIGatewayJSONResponse(status int, response interface{}) events.APIGatewayProxyResponse {
 	body, err := json.Marshal(response)
 
 	// Create an error response, to handle the marshalling error

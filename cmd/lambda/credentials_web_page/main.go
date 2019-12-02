@@ -27,7 +27,6 @@ type CredentialsWebPageConfig struct {
 var Config *CredentialsWebPageConfig
 var CfgBldr config.ConfigurationBuilder
 
-
 func init() {
 	initConfig()
 
