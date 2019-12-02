@@ -108,7 +108,7 @@ func TestConfigBuilder_DumpIntoSuperset(t *testing.T) {
 		StringValue        string   `env:"SOME_STRING_VALUE"`
 		ArrayOfStringValue []string `env:"SOME_ARRAY_OF_STRING_VALUE"`
 		IntValue           int      `env:"SOME_INT_VALUE"`
-		extraVal string
+		extraVal           string
 	}
 
 	err := configurater.Dump(&configSuperset)
@@ -204,7 +204,7 @@ func TestConfigBuilder_BuildWithParameterStoreEnvVar(t *testing.T) {
 	getParametersOutput := ssm.GetParametersOutput{
 		Parameters: []*ssm.Parameter{
 			&ssm.Parameter{
-				Name: &paramName,
+				Name:  &paramName,
 				Value: &expectedSSMVal,
 			},
 		},

@@ -63,7 +63,7 @@ func (config *DefaultConfigurationBuilder) Dump(cfgStruct interface{}) error {
 	decoder, err := mapstructure.NewDecoder(
 		&mapstructure.DecoderConfig{
 			TagName: "env",
-			Result: cfgStruct,
+			Result:  cfgStruct,
 		})
 	if err != nil {
 		panic(err)
@@ -119,7 +119,7 @@ func (config *DefaultConfigurationBuilder) WithParameterStoreEnv(key string, env
 		config.values.vals[key] = ParameterStoreVal{
 			Key:           key,
 			ParameterName: envVal,
-			DefaultValue: defaultValue,
+			DefaultValue:  defaultValue,
 		}
 	}
 
