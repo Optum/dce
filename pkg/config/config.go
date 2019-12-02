@@ -106,8 +106,8 @@ type ParameterStoreVal struct {
 }
 
 // WithParameterStoreEnv sets a config value from SSM Parameter store. The Parameter name is taken
-// from the provided environment variable. If the environment variable or SSM parameter can't be retrieved, then
-// the default value is used.
+// from the provided environment variable. If the environment variable or SSM parameter can't be retrieved,
+// then the default value is used.
 // Requires that an SSM service of type ssmiface.SSMAPI is contained within config
 func (config *DefaultConfigurationBuilder) WithParameterStoreEnv(key string, envVar string, defaultValue string) *DefaultConfigurationBuilder {
 	config.initialize()
@@ -221,7 +221,7 @@ func (config *DefaultConfigurationBuilder) createCustomParsers() env.CustomParse
 
 func (config *DefaultConfigurationBuilder) retrieveParameterStoreVals() error {
 
-	// Detect values that need to be retrieved from ssm
+	// Detect values that need to be retrieved from SSM
 	valsToRetrieve := map[string]ParameterStoreVal{}
 	for _, val := range config.values.vals {
 		if _, ok := val.(ParameterStoreVal); ok {
@@ -231,7 +231,7 @@ func (config *DefaultConfigurationBuilder) retrieveParameterStoreVals() error {
 	}
 
 	if len(valsToRetrieve) != 0 {
-		// config must contain an SSM service to retrieve vals from ssm
+		// config must contain an SSM service to retrieve vals from SSM
 		var ssmClient ssmiface.SSMAPI
 		if err := config.GetService(&ssmClient); err != nil {
 			return err
