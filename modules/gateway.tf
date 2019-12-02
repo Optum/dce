@@ -20,36 +20,36 @@ module "api_gateway_authorizer" {
 }
 
 module "ssm_parameter_names" {
-  source             = "./ssm_parameter_names"
-  namespace          = var.namespace
+  source    = "./ssm_parameter_names"
+  namespace = var.namespace
 }
 
 resource "aws_ssm_parameter" "identity_pool_id" {
-  name = module.ssm_parameter_names.identity_pool_id
+  name  = module.ssm_parameter_names.identity_pool_id
   type  = "String"
   value = module.api_gateway_authorizer.identity_pool_id
 }
 
 resource "aws_ssm_parameter" "user_pool_domain" {
-  name = module.ssm_parameter_names.user_pool_domain
+  name  = module.ssm_parameter_names.user_pool_domain
   type  = "String"
   value = module.api_gateway_authorizer.user_pool_domain
 }
 
 resource "aws_ssm_parameter" "client_id" {
-  name = module.ssm_parameter_names.client_id
+  name  = module.ssm_parameter_names.client_id
   type  = "String"
   value = module.api_gateway_authorizer.client_id
 }
 
 resource "aws_ssm_parameter" "user_pool_id" {
-  name = module.ssm_parameter_names.user_pool_id
+  name  = module.ssm_parameter_names.user_pool_id
   type  = "String"
   value = module.api_gateway_authorizer.user_pool_id
 }
 
 resource "aws_ssm_parameter" "user_pool_endpoint" {
-  name = module.ssm_parameter_names.user_pool_endpoint
+  name  = module.ssm_parameter_names.user_pool_endpoint
   type  = "String"
   value = module.api_gateway_authorizer.user_pool_endpoint
 }
@@ -58,12 +58,12 @@ data "template_file" "api_swagger" {
   template = file("${path.module}/swagger.yaml")
 
   vars = {
-    leases_lambda     = module.leases_lambda.invoke_arn
-    lease_auth_lambda = module.lease_auth_lambda.invoke_arn
-    accounts_lambda   = module.accounts_lambda.invoke_arn
-    usages_lambda     = module.usage_lambda.invoke_arn
-    credentials_web_page_lambda   = module.credentials_web_page_lambda.invoke_arn
-    namespace         = "${var.namespace_prefix}-${var.namespace}"
+    leases_lambda               = module.leases_lambda.invoke_arn
+    lease_auth_lambda           = module.lease_auth_lambda.invoke_arn
+    accounts_lambda             = module.accounts_lambda.invoke_arn
+    usages_lambda               = module.usage_lambda.invoke_arn
+    credentials_web_page_lambda = module.credentials_web_page_lambda.invoke_arn
+    namespace                   = "${var.namespace_prefix}-${var.namespace}"
   }
 }
 

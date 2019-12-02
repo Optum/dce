@@ -8,14 +8,14 @@ module "credentials_web_page_lambda" {
   alarm_topic_arn = aws_sns_topic.alarms_topic.arn
 
   environment = {
-    APIGW_DEPLOYMENT_NAME          = "api"
-    PS_IDENTITY_POOL_ID            = module.ssm_parameter_names.identity_pool_id
-    SITE_PATH_PREFIX               = "auth"
-    PS_USER_POOL_APP_WEB_DOMAIN    = module.ssm_parameter_names.user_pool_domain
-    PS_USER_POOL_CLIENT_ID         = module.ssm_parameter_names.client_id
-    PS_USER_POOL_ID                = module.ssm_parameter_names.user_pool_id
-    PS_USER_POOL_PROVIDER_NAME     = module.ssm_parameter_names.user_pool_endpoint
-    NAMESPACE                      = var.namespace
-    AWS_CURRENT_REGION             = var.aws_region
+    APIGW_DEPLOYMENT_NAME       = "api"
+    PS_IDENTITY_POOL_ID         = module.ssm_parameter_names.identity_pool_id
+    SITE_PATH_PREFIX            = "auth"
+    PS_USER_POOL_APP_WEB_DOMAIN = module.ssm_parameter_names.user_pool_domain
+    PS_USER_POOL_CLIENT_ID      = module.ssm_parameter_names.client_id
+    PS_USER_POOL_ID             = module.ssm_parameter_names.user_pool_id
+    PS_USER_POOL_PROVIDER_NAME  = module.ssm_parameter_names.user_pool_endpoint
+    NAMESPACE                   = var.namespace
+    AWS_CURRENT_REGION          = var.aws_region
   }
 }
