@@ -1826,6 +1826,7 @@ func createAdminRole(t *testing.T, awsSession client.ConfigProvider, adminRoleNa
 		Path:                     aws.String("/"),
 		RoleName:                 aws.String(adminRoleName),
 	})
+	fmt.Println(err)
 	if err != nil && strings.Contains(err.Error(), iam.ErrCodeEntityAlreadyExistsException) {
 		err = nil
 	}
