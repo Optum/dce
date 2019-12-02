@@ -103,10 +103,16 @@ func (bldr *DefaultAWSServiceBuilder) WithSSM() *DefaultAWSServiceBuilder {
 
 // Build creates and returns a structue with AWS services
 func (bldr *DefaultAWSServiceBuilder) Build() (*ConfigurationBuilder, error) {
+	err := bldr.Config.Build()
+	if err != nil {
+		// We failed to build the configuration, so honestly there is no
+		// point in continuating...
+		return &bldr.Config, AWSConfigurationError(err)
+	}
 
 	// Create session is done first, and explicitly, because everything else
 	// uses it
-	err := bldr.createSession(&bldr.Config)
+	err = bldr.createSession(&bldr.Config)
 
 	if err != nil {
 		log.Printf("Could not create session: %s", err.Error())
@@ -121,10 +127,8 @@ func (bldr *DefaultAWSServiceBuilder) Build() (*ConfigurationBuilder, error) {
 		}
 	}
 
-	err = bldr.Config.Build()
-	if err != nil {
-		// We failed to build the configuration, so honestly there is no
-		// point in continuating...
+	// Setting config values from parameter store requires services to be configured first
+	if err := bldr.Config.RetrieveParameterStoreVals(); err != nil {
 		return &bldr.Config, AWSConfigurationError(err)
 	}
 

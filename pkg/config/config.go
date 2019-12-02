@@ -4,9 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/aws/aws-sdk-go/service/ssm"
-	"log"
-
 	"github.com/aws/aws-sdk-go/service/ssm/ssmiface"
+	"log"
 	"os"
 	"reflect"
 
@@ -40,6 +39,7 @@ type ConfigurationBuilder interface {
 	GetService(svcFor interface{}) error
 	GetStringVal(key string) (string, error)
 	GetVal(key string) (interface{}, error)
+	RetrieveParameterStoreVals() error
 	Build() error
 }
 
@@ -186,6 +186,7 @@ func (config *DefaultConfigurationBuilder) GetVal(key string) (interface{}, erro
 		return nil, ConfigurationError(fmt.Errorf("no value found in configuration for key: %s", key))
 	}
 
+
 	return val, nil
 }
 
@@ -193,10 +194,6 @@ func (config *DefaultConfigurationBuilder) GetVal(key string) (interface{}, erro
 func (config *DefaultConfigurationBuilder) Build() error {
 	// Add any "expensive" operations here. Validations, type conversions, etc.
 	// We already have basic maps.
-
-	if err := config.retrieveParameterStoreVals(); err != nil {
-		return err
-	}
 
 	config.isBuilt = true
 	return nil
@@ -219,7 +216,7 @@ func (config *DefaultConfigurationBuilder) createCustomParsers() env.CustomParse
 	return funcMap
 }
 
-func (config *DefaultConfigurationBuilder) retrieveParameterStoreVals() error {
+func (config *DefaultConfigurationBuilder) RetrieveParameterStoreVals() error {
 
 	// Detect values that need to be retrieved from SSM
 	valsToRetrieve := map[string]ParameterStoreVal{}

@@ -96,6 +96,20 @@ func (_m *ConfigurationBuilder) GetVal(key string) (interface{}, error) {
 	return r0, r1
 }
 
+// RetrieveParameterStoreVals provides a mock function with given fields:
+func (_m *ConfigurationBuilder) RetrieveParameterStoreVals() error {
+	ret := _m.Called()
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func() error); ok {
+		r0 = rf()
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // Unmarshal provides a mock function with given fields: cfgStruct
 func (_m *ConfigurationBuilder) Unmarshal(cfgStruct interface{}) error {
 	ret := _m.Called(cfgStruct)

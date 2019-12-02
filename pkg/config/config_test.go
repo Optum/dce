@@ -214,7 +214,9 @@ func TestConfigBuilder_BuildWithParameterStoreEnvVar(t *testing.T) {
 	})).Return(&getParametersOutput, nil)
 
 	// Act
-	err := cfg.WithParameterStoreEnv("bar", "SOME_STRING_VALUE", "defaultVal").Build()
+	cfg.WithParameterStoreEnv("bar", "SOME_STRING_VALUE", "defaultVal")
+	svcBuilder := &DefaultAWSServiceBuilder{Config: cfg}
+	_, err := svcBuilder.Build()
 
 	// Assert
 	assert.Nil(t, err)
@@ -239,7 +241,9 @@ func TestConfigBuilder_BuildWithParameterStoreEnvVar_UsesDefaultWhenInvalidParam
 	})).Return(&getParametersOutput, nil)
 
 	// Act
-	err := cfg.WithParameterStoreEnv("bar", "SOME_STRING_VALUE", defaultValue).Build()
+	cfg.WithParameterStoreEnv("bar", "SOME_STRING_VALUE", defaultValue)
+	svcBuilder := &DefaultAWSServiceBuilder{Config: cfg}
+	_, err := svcBuilder.Build()
 
 	// Assert
 	assert.Nil(t, err)
