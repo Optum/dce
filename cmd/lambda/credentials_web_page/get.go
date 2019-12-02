@@ -44,8 +44,6 @@ func GetAuthPageAssets(w http.ResponseWriter, r *http.Request) {
 		contentType = "application/json"
 	}
 
-	fmt.Println(contentType)
 	w.Header().Set("Content-Type", contentType)
-	fmt.Println(w)
 	sp.ServeHTTP(w, r)
 }
