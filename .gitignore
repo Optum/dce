@@ -60,6 +60,7 @@ override.tf.json
 
 # Other stuff
 *.zip
+.idea/
 
 junit-report/
 test.output.txt
