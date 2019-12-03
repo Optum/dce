@@ -1826,9 +1826,6 @@ func createAdminRole(t *testing.T, awsSession client.ConfigProvider, adminRoleNa
 		Path:                     aws.String("/"),
 		RoleName:                 aws.String(adminRoleName),
 	})
-	if err != nil && strings.Contains(err.Error(), iam.ErrCodeEntityAlreadyExistsException) {
-		err = nil
-	}
 	require.Nil(t, err)
 
 	adminRoleArn := *roleRes.Role.Arn
@@ -1857,6 +1854,7 @@ func createAdminRole(t *testing.T, awsSession client.ConfigProvider, adminRoleNa
 		PolicyName:     &costExplorerPolicyName,
 	})
 
+	// Ignore errors indicating the policy already exists (e.g. if a previous test run already created the policy)
 	if err != nil && strings.Contains(err.Error(), iam.ErrCodeEntityAlreadyExistsException) {
 		err = nil
 	}
