@@ -20,7 +20,7 @@ We have some general guidelines towards contributing to this project.
 
 *Go*
 
-The source code for this project is written in Go. You are welcome to add versions of files for other languages, however the core code will remain in Go.
+The Lambda and CodeBuild function code is written in Golang.  We prefer that similar contributed code also be written in Golang.  Please ensure your Golang code is formatted by [gofmt](https://golang.org/cmd/gofmt/) and linted by [golint](https://godoc.org/golang.org/x/lint).
 
 ## Pull Requests
 
