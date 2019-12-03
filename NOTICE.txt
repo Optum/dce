@@ -1,0 +1,17 @@
+DCE
+
+Copyright 2019 Optum
+
+Project Description:
+====================
+Disposable Cloud Environment (DCE) manages ephemeral AWS accounts for easy and secure access to the cloud.
+
+Author(s):
+Amuda Palani (@AmudaPalani)
+Edan Schwartz (@eschwartz)
+Nathan A. Good (@nathanagood)
+Kevin DeJong (@kddejong)
+Matthew Meyers (@marinatedpork)
+Amudha Palani (@AmudhaPalani)
+Joshua Marsh (@joshmarsh)
+Kapil Thangavelu (@kapilt)
