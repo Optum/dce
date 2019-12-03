@@ -58,14 +58,14 @@ resource "aws_cognito_identity_pool_roles_attachment" "_" {
     mapping_rule {
       claim      = "cognito:groups"
       match_type = "Contains"
-      role_arn   = "${aws_iam_role.user.arn}"
+      role_arn   = "${aws_iam_role.admin.arn}"
       value      = "Admin"
     }
 
     mapping_rule {
       claim      = "custom:roles"
       match_type = "Contains"
-      role_arn   = "${aws_iam_role.user.arn}"
+      role_arn   = "${aws_iam_role.admin.arn}"
       value      = "Admin"
     }
   }
