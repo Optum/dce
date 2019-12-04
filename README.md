@@ -12,7 +12,7 @@ At the end of the lease, or if the lease's budget is reached, the account is wip
 
 Deploy your own Disposable Cloud Environment by following our [quick start guide](./docs/quickstart.md), available on our documentation website:
 
-[dce.readthedocs.io](./docs/index.md)
+[dce.readthedocs.io](https://dce.readthedocs.io)
 
 ## DCE CLI
 
