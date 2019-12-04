@@ -1,5 +1,3 @@
-![Disposable Cloud Environment Logo](./docs/dce-logo.png)
-
 # Disposable Cloud Environment (DCE)
 
 > **DCE is your playground in the cloud**
