@@ -9,7 +9,7 @@ Describe the big picture of your changes here to communicate to the maintainers 
 ## Types of changes
 
 <!--
-What types of changes does your code introduce to the module?
+What types of changes does your code introduce to the repo?
 Put an `x` in the boxes that apply
 -->
 
@@ -29,21 +29,6 @@ Put an `x` in the boxes that apply. You can also fill these out after creating t
 - [ ] I have added automated tests that prove my fix is effective or that my feature works
 - [ ] I have added necessary documentation (`README.md`, inline comments, etc.)
 - [ ] I have updated the `CHANGELOG.md` under a `## next` release, with a short summary of my changes
-
-
-## Dependencies and Blockers
-
-
-
-<!--
-
-Is there anything preventing this PR from being merged and deployed to prod?
-
-eg. other PRs that are required, external blockers, etc.
-
-If so, this is a high-risk deployment, and we should call this out for manual attention
-
--->
 
 
 ## Relevant Links
