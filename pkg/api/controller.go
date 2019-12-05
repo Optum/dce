@@ -27,7 +27,6 @@ type Router struct {
 	GetController    Controller
 	CreateController Controller
 	UserDetails      UserDetailer
-
 }
 
 // Route - provides a router for the given resource

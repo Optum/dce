@@ -48,7 +48,7 @@ func main() {
 			TokenService:  tokenSvc,
 			FederationURL: federationURL,
 			ConsoleURL:    consoleURL,
-			UserDetailer: userDetails,
+			UserDetailer:  userDetails,
 		},
 		UserDetails: userDetails,
 	}
