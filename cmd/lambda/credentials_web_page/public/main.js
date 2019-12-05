@@ -86,6 +86,9 @@ new Vue({
           } catch (err) {
             console.log('Oops, unable to copy');
           }
-      }
+      },
+      signOut() {
+          this.auth.signOut()
+      },
   }
 })

@@ -25,6 +25,7 @@
             <h1 class="center-text">DCE CLI Credentials</h1>
             <button @click="copyToClipboard()" class="js-textareacopybtn center-block">Copy To Clipboard</button>
             <textarea rows="10" cols="50" class="js-copytextarea center-block" id="credentialscontainer"></textarea>
+            <button @click="signOut()" class="center-block">Sign Out</button>
         </div>
         <script src="/api/auth/public/main.js"></script>
     </body>
