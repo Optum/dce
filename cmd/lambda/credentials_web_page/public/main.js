@@ -29,7 +29,7 @@ new Vue({
         this.auth.userhandler = {
           onSuccess: function(result) {
             console.log("Sign in success")
-            self.showSignedIn(result)
+            self.processSession(result)
           },
           onFailure: function(err) {
             console.log("Error!" + err)
@@ -41,7 +41,7 @@ new Vue({
         console.log("Signing in")
         this.auth.getSession()
       },
-      showSignedIn(session) {
+      processSession(session) {
           if (session) {
             this.jwt = session.getIdToken().getJwtToken();
             var payload = this.jwt.split('.')[1];
@@ -52,6 +52,7 @@ new Vue({
         // Add the User's Id Token to the Cognito credentials login map.
         AWS.config.update({region:AWS_CURRENT_REGION});
         var logins = {}
+        localStorage.clear();
         logins[USER_POOL_PROVIDER_NAME] = this.jwt
         AWS.config.credentials = new AWS.CognitoIdentityCredentials({
             IdentityPoolId: IDENTITY_POOL_ID,
