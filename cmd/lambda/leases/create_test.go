@@ -5,15 +5,17 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+	"reflect"
+	"strings"
+	"testing"
+	"time"
+
 	"github.com/Optum/dce/pkg/usage"
 	util "github.com/Optum/dce/tests/testutils"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"reflect"
-	"strings"
-	"testing"
-	"time"
 
 	"github.com/stretchr/testify/mock"
 
@@ -38,7 +40,7 @@ func TestCreateController_Call(t *testing.T) {
 				PrincipalBudgetAmount *float64
 				PrincipalBudgetPeriod *string
 				MaxLeaseBudgetAmount  *float64
-				MaxLeasePeriod        *int
+				MaxLeasePeriod        *int64
 			}
 		)
 		type args struct {
@@ -49,14 +51,19 @@ func TestCreateController_Call(t *testing.T) {
 		leaseTopicARN := "some-topic-arn"
 		messageID := "message123456789"
 
-		principalBudgetAmount := 1000.00
-		principalBudgetPeriod := "WEEKLY"
-		maxLeaseBudgetAmount := 1000.00
-		MaxLeasePeriod := 704800
+		amount := 1000.00
+		period := "WEEKLY"
+		leasePeriod := int64(704800)
+
+		principalBudgetAmount = &amount
+		principalBudgetPeriod = &period
+		maxLeaseBudgetAmount = &amount
+		maxLeasePeriod = &leasePeriod
 
 		dbMock := stubDb()
 		snsMock := &commonMock.Notificationer{}
 		usageMock := &mockUsage.Service{}
+		sevenDaysOut := time.Now().AddDate(0, 0, 7).Unix()
 
 		// Should create/update the lease record
 		util.ReplaceMock(&dbMock.Mock, "UpsertLease", mock.MatchedBy(func(lease db.Lease) bool {
@@ -68,7 +75,7 @@ func TestCreateController_Call(t *testing.T) {
 			assert.Equal(t, float64(50), lease.BudgetAmount)
 			assert.Equal(t, "USD", lease.BudgetCurrency)
 			assert.Equal(t, []string{"user3@example.com", "user2@example.com"}, lease.BudgetNotificationEmails)
-			assert.Equal(t, int64(1973757051), lease.ExpiresOn)
+			assert.Equal(t, sevenDaysOut, lease.ExpiresOn)
 
 			assert.InDelta(t, time.Now().Unix(), lease.CreatedOn, 2)
 			assert.Equal(t, lease.CreatedOn, lease.LastModifiedOn)
@@ -87,14 +94,14 @@ func TestCreateController_Call(t *testing.T) {
 			SNS:                   snsMock,
 			LeaseTopicARN:         &leaseTopicARN,
 			UsageSvc:              usageMock,
-			PrincipalBudgetAmount: &principalBudgetAmount,
-			PrincipalBudgetPeriod: &principalBudgetPeriod,
-			MaxLeaseBudgetAmount:  &maxLeaseBudgetAmount,
-			MaxLeasePeriod:        &MaxLeasePeriod,
+			PrincipalBudgetAmount: principalBudgetAmount,
+			PrincipalBudgetPeriod: principalBudgetPeriod,
+			MaxLeaseBudgetAmount:  maxLeaseBudgetAmount,
+			MaxLeasePeriod:        maxLeasePeriod,
 		}
 
 		successResponse := createSuccessCreateResponse()
-		badRequestResponse := response.RequestValidationError("invalid request parameters")
+		badRequestResponse := response.CreateMultiValueHeaderAPIErrorResponse(http.StatusBadRequest, "RequestValidationError", "invalid request parameters")
 		pastRequestResponse := response.RequestValidationError("Requested lease has a desired expiry date less than today: 1570627876")
 		invalidBudgetRequestResponse := response.RequestValidationError("Requested lease has a budget amount of 5000.000000, which is greater than max lease budget amount of 1000.000000")
 		invalidBudgetPeriodRequestResponse := response.RequestValidationError("Requested lease has a budget expires on of 1577745392, which is greater than max lease period of 1573176192")
@@ -148,9 +155,9 @@ func TestCreateController_Call(t *testing.T) {
 					LeaseTopicARN:         &leaseTopicARN,
 					UsageSvc:              usageMock,
 					PrincipalBudgetAmount: aws.Float64(9999999999),
-					PrincipalBudgetPeriod: &principalBudgetPeriod,
+					PrincipalBudgetPeriod: principalBudgetPeriod,
 					MaxLeaseBudgetAmount:  aws.Float64(9999999999),
-					MaxLeasePeriod:        aws.Int(600000000),
+					MaxLeasePeriod:        aws.Int64(600000000),
 				},
 				args:    *successArgs,
 				want:    *successResponse,
@@ -159,17 +166,15 @@ func TestCreateController_Call(t *testing.T) {
 		}
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
-				c := CreateController{
-					Dao:                   tt.fields.Dao,
-					SNS:                   tt.fields.SNS,
-					LeaseAddedTopicARN:    tt.fields.LeaseTopicARN,
-					UsageSvc:              tt.fields.UsageSvc,
-					PrincipalBudgetAmount: tt.fields.PrincipalBudgetAmount,
-					PrincipalBudgetPeriod: tt.fields.PrincipalBudgetPeriod,
-					MaxLeaseBudgetAmount:  tt.fields.MaxLeaseBudgetAmount,
-					MaxLeasePeriod:        tt.fields.MaxLeasePeriod,
-				}
-				got, err := c.Call(tt.args.ctx, tt.args.req)
+				dao = tt.fields.Dao
+				snsSvc = tt.fields.SNS
+				leaseAddedTopicARN = tt.fields.LeaseTopicARN
+				usageSvc = tt.fields.UsageSvc
+				principalBudgetAmount = tt.fields.PrincipalBudgetAmount
+				principalBudgetPeriod = tt.fields.PrincipalBudgetPeriod
+				maxLeaseBudgetAmount = tt.fields.MaxLeaseBudgetAmount
+				maxLeasePeriod = tt.fields.MaxLeasePeriod
+				got, err := Handler(tt.args.ctx, *tt.args.req)
 				if (err != nil) != tt.wantErr {
 					t.Errorf("CreateController.Call() error = %v, wantErr %v", err, tt.wantErr)
 					return
@@ -196,19 +201,19 @@ func TestCreateController_Call(t *testing.T) {
 			}}, nil)
 
 		// Create the controller
-		controller := stubCreateController()
-		controller.Dao = dbMock
+		dao = dbMock
 
 		// Call the controller
-		res, err := controller.Call(context.TODO(), apiGatewayRequest(t, map[string]interface{}{
+		res, err := Handler(context.TODO(), *apiGatewayRequest(t, map[string]interface{}{
 			"principalId":    "jdoe123",
 			"budgetAmount":   100,
 			"budgetCurrency": "USD",
+			"expiresOn":      time.Now().AddDate(0, 0, 7).Unix(),
 		}))
 		require.Nil(t, err)
 		// Check HTTP error response
 		require.Equal(t,
-			response.ConflictError("Principal already has an active lease for account 123456789012"),
+			response.CreateMultiValueHeaderAPIErrorResponse(http.StatusConflict, "ClientError", "Principal already has an active lease for account 123456789012"),
 			res,
 		)
 	})
@@ -216,8 +221,7 @@ func TestCreateController_Call(t *testing.T) {
 	t.Run("should mark the account.Status=Leased", func(t *testing.T) {
 		// Setup the controller
 		dbMock := stubDb()
-		controller := stubCreateController()
-		controller.Dao = dbMock
+		dao = dbMock
 
 		// Return a ready account
 		util.ReplaceMock(&dbMock.Mock, "GetReadyAccount").
@@ -229,10 +233,11 @@ func TestCreateController_Call(t *testing.T) {
 		).Return(&db.Account{}, nil)
 
 		// Call the controller
-		res, err := controller.Call(context.TODO(), apiGatewayRequest(t, map[string]interface{}{
+		res, err := Handler(context.TODO(), *apiGatewayRequest(t, map[string]interface{}{
 			"principalId":    "jdoe123",
 			"budgetAmount":   100,
 			"budgetCurrency": "USD",
+			"expiresOn":      time.Now().AddDate(0, 0, 7).Unix(),
 		}))
 		require.Nil(t, err)
 		require.Equal(t, 201, res.StatusCode)
@@ -252,11 +257,10 @@ func TestCreateController_Call(t *testing.T) {
 			return &lease
 		}, nil)
 
-		controller := stubCreateController()
-		controller.Dao = dbMock
+		dao = dbMock
 
 		// Call the controller
-		res, err := controller.Call(context.TODO(), apiGatewayRequest(t, map[string]interface{}{
+		res, err := Handler(context.TODO(), *apiGatewayRequest(t, map[string]interface{}{
 			"principalId":    "jdoe123",
 			"budgetAmount":   100,
 			"budgetCurrency": "USD",
@@ -271,8 +275,7 @@ func TestCreateController_Call(t *testing.T) {
 	t.Run("should create lease with metadata", func(t *testing.T) {
 		// Setup the controller
 		dbMock := stubDb()
-		controller := stubCreateController()
-		controller.Dao = dbMock
+		dao = dbMock
 
 		// Should put lease metadata to DB
 		util.ReplaceMock(&dbMock.Mock, "UpsertLease",
@@ -288,7 +291,7 @@ func TestCreateController_Call(t *testing.T) {
 		}, nil)
 
 		// Call the controller with some metadata
-		res, err := controller.Call(context.TODO(), apiGatewayRequest(t, map[string]interface{}{
+		res, err := Handler(context.TODO(), *apiGatewayRequest(t, map[string]interface{}{
 			"principalId":    "pid",
 			"budgetAmount":   100,
 			"budgetCurrency": "USD",
@@ -316,8 +319,7 @@ func TestCreateController_Call(t *testing.T) {
 		// Setup the controller
 		// Setup the controller
 		dbMock := stubDb()
-		controller := stubCreateController()
-		controller.Dao = dbMock
+		dao = dbMock
 
 		// Should put lease metadata to DB
 		util.ReplaceMock(&dbMock.Mock, "UpsertLease",
@@ -340,7 +342,7 @@ func TestCreateController_Call(t *testing.T) {
 		}, nil)
 
 		// Call the controller with some metadata
-		res, err := controller.Call(context.TODO(), apiGatewayRequest(t, map[string]interface{}{
+		res, err := Handler(context.TODO(), *apiGatewayRequest(t, map[string]interface{}{
 			"principalId":    "pid",
 			"budgetAmount":   100,
 			"budgetCurrency": "USD",
@@ -382,8 +384,7 @@ func TestCreateController_Call(t *testing.T) {
 		// Setup the controller
 		// Setup the controller
 		dbMock := stubDb()
-		controller := stubCreateController()
-		controller.Dao = dbMock
+		dao = dbMock
 
 		// Should put lease metadata to DB
 		util.ReplaceMock(&dbMock.Mock, "UpsertLease",
@@ -397,7 +398,7 @@ func TestCreateController_Call(t *testing.T) {
 		}, nil)
 
 		// Call the controller with no metadata
-		res, err := controller.Call(context.TODO(), apiGatewayRequest(t, map[string]interface{}{
+		res, err := Handler(context.TODO(), *apiGatewayRequest(t, map[string]interface{}{
 			"principalId":    "pid",
 			"budgetAmount":   100,
 			"budgetCurrency": "USD",
@@ -415,7 +416,6 @@ func TestCreateController_Call(t *testing.T) {
 	})
 
 	t.Run("should not allow non-object types for metadata", func(t *testing.T) {
-		controller := stubCreateController()
 
 		// Metadata must be a JSON object
 		invalidMetadatas := []interface{}{
@@ -426,7 +426,7 @@ func TestCreateController_Call(t *testing.T) {
 
 		for _, metadata := range invalidMetadatas {
 			// Call the controller with invalid metadata values
-			res, err := controller.Call(context.TODO(), apiGatewayRequest(t, map[string]interface{}{
+			res, err := Handler(context.TODO(), *apiGatewayRequest(t, map[string]interface{}{
 				"principalId":    "pid",
 				"budgetAmount":   100,
 				"budgetCurrency": "USD",
@@ -446,8 +446,7 @@ func TestCreateController_Call(t *testing.T) {
 	t.Run("should deactivate the lease if the account status update fails", func(t *testing.T) {
 		// Setup the controller
 		dbMock := stubDb()
-		controller := stubCreateController()
-		controller.Dao = dbMock
+		dao = dbMock
 
 		// Mock account status update to fail
 		util.ReplaceMock(&dbMock.Mock, "TransitionAccountStatus",
@@ -461,7 +460,7 @@ func TestCreateController_Call(t *testing.T) {
 		).Return(&db.Lease{}, nil)
 
 		// Call the controller
-		res, err := controller.Call(context.TODO(), apiGatewayRequest(t, map[string]interface{}{
+		res, err := Handler(context.TODO(), *apiGatewayRequest(t, map[string]interface{}{
 			"principalId":    "jdoe123",
 			"budgetAmount":   100,
 			"budgetCurrency": "USD",
@@ -469,7 +468,7 @@ func TestCreateController_Call(t *testing.T) {
 		require.Nil(t, err)
 
 		// Should return a 500 error
-		require.Equal(t, response.ServerError(), res)
+		require.Equal(t, response.CreateMultiValueHeaderAPIErrorResponse(http.StatusInternalServerError, "ServerError", "Internal server error"), res)
 
 		// Should have deactivated lease
 		dbMock.AssertNumberOfCalls(t, "TransitionLeaseStatus", 1)
@@ -482,9 +481,8 @@ func TestCreateController_Call(t *testing.T) {
 			Return(nil, errors.New("test error"))
 
 		dbMock := stubDb()
-		controller := stubCreateController()
-		controller.SNS = snsMock
-		controller.Dao = dbMock
+		snsSvc = snsMock
+		dao = dbMock
 
 		// Should deactivate the lease
 		util.ReplaceMock(&dbMock.Mock, "TransitionLeaseStatus",
@@ -498,7 +496,7 @@ func TestCreateController_Call(t *testing.T) {
 		).Return(&db.Account{}, nil)
 
 		// Call the controller
-		res, err := controller.Call(context.TODO(), apiGatewayRequest(t, map[string]interface{}{
+		res, err := Handler(context.TODO(), *apiGatewayRequest(t, map[string]interface{}{
 			"principalId":    "jdoe123",
 			"budgetAmount":   100,
 			"budgetCurrency": "USD",
@@ -506,7 +504,7 @@ func TestCreateController_Call(t *testing.T) {
 		require.Nil(t, err)
 
 		// Should return a 500 error
-		require.Equal(t, response.ServerError(), res)
+		require.Equal(t, response.CreateMultiValueHeaderAPIErrorResponse(http.StatusInternalServerError, "ServerError", "Internal server error"), res)
 
 		// Should have deactivated lease
 		dbMock.AssertNumberOfCalls(t, "TransitionLeaseStatus", 1)
@@ -521,9 +519,8 @@ func TestCreateController_Call(t *testing.T) {
 			Return(nil, errors.New("test error"))
 
 		dbMock := stubDb()
-		controller := stubCreateController()
-		controller.SNS = snsMock
-		controller.Dao = dbMock
+		snsSvc = snsMock
+		dao = dbMock
 
 		// Should deactivate the lease (FAILS)
 		util.ReplaceMock(&dbMock.Mock, "TransitionLeaseStatus",
@@ -532,7 +529,7 @@ func TestCreateController_Call(t *testing.T) {
 		).Return(nil, errors.New("test error"))
 
 		// Call the controller
-		res, err := controller.Call(context.TODO(), apiGatewayRequest(t, map[string]interface{}{
+		res, err := Handler(context.TODO(), *apiGatewayRequest(t, map[string]interface{}{
 			"principalId":    "jdoe123",
 			"budgetAmount":   100,
 			"budgetCurrency": "USD",
@@ -540,7 +537,7 @@ func TestCreateController_Call(t *testing.T) {
 		require.Nil(t, err)
 
 		// Should return a 500 error
-		require.Equal(t, response.ServerError(), res)
+		require.Equal(t, response.CreateMultiValueHeaderAPIErrorResponse(http.StatusInternalServerError, "ServerError", "Internal server error"), res)
 
 		// Should have deactivated lease
 		dbMock.AssertNumberOfCalls(t, "TransitionLeaseStatus", 1)
@@ -551,16 +548,19 @@ func TestCreateController_Call(t *testing.T) {
 }
 
 func createSuccessfulCreateRequest() *events.APIGatewayProxyRequest {
+	sevenDaysOut := time.Now().AddDate(0, 0, 7).Unix()
 	createLeaseRequest := &createLeaseRequest{
 		PrincipalID:              "jdoe123",
 		BudgetAmount:             50,
 		BudgetCurrency:           "USD",
 		BudgetNotificationEmails: []string{"user3@example.com", "user2@example.com"},
-		ExpiresOn:                1973757051,
+		ExpiresOn:                sevenDaysOut,
 	}
 	requestBodyBytes, _ := json.Marshal(createLeaseRequest)
 	return &events.APIGatewayProxyRequest{
-		Body: string(requestBodyBytes),
+		HTTPMethod: http.MethodPost,
+		Path:       "/leases",
+		Body:       string(requestBodyBytes),
 	}
 }
 
@@ -569,12 +569,17 @@ func apiGatewayRequest(t *testing.T, jsonObj map[string]interface{}) *events.API
 	require.Nilf(t, err, "failed to marshal JSON: %v", jsonObj)
 
 	return &events.APIGatewayProxyRequest{
-		Body: string(reqBody),
+		HTTPMethod: http.MethodPost,
+		Path:       "/leases",
+		Body:       string(reqBody),
 	}
 }
 
 func createBadCreateRequest() *events.APIGatewayProxyRequest {
-	return &events.APIGatewayProxyRequest{}
+	return &events.APIGatewayProxyRequest{
+		HTTPMethod: http.MethodPost,
+		Path:       "/leases",
+	}
 }
 
 func createPastCreateRequest() *events.APIGatewayProxyRequest {
@@ -587,7 +592,9 @@ func createPastCreateRequest() *events.APIGatewayProxyRequest {
 	}
 	requestBodyBytes, _ := json.Marshal(createLeaseRequest)
 	return &events.APIGatewayProxyRequest{
-		Body: string(requestBodyBytes),
+		HTTPMethod: http.MethodPost,
+		Path:       "/leases",
+		Body:       string(requestBodyBytes),
 	}
 }
 
@@ -626,7 +633,9 @@ func invalidBudgetAmountCreateRequest() *events.APIGatewayProxyRequest {
 	}
 	requestBodyBytes, _ := json.Marshal(createLeaseRequest)
 	return &events.APIGatewayProxyRequest{
-		Body: string(requestBodyBytes),
+		HTTPMethod: http.MethodPost,
+		Path:       "/leases",
+		Body:       string(requestBodyBytes),
 	}
 }
 
@@ -640,23 +649,9 @@ func invalidBudgetPeriodCreateRequest() *events.APIGatewayProxyRequest {
 	}
 	requestBodyBytes, _ := json.Marshal(createLeaseRequest)
 	return &events.APIGatewayProxyRequest{
-		Body: string(requestBodyBytes),
-	}
-}
-
-// stubCreateController creates a CreateController instance
-// with stubbed out / default values for a fields
-func stubCreateController() CreateController {
-	return CreateController{
-		Dao:                      stubDb(),
-		SNS:                      snsStub(),
-		LeaseAddedTopicARN:       aws.String("stub"),
-		UsageSvc:                 stubUsageService(),
-		DefaultLeaseLengthInDays: 7,
-		PrincipalBudgetAmount:    aws.Float64(1000),
-		PrincipalBudgetPeriod:    aws.String(Weekly),
-		MaxLeaseBudgetAmount:     aws.Float64(1000),
-		MaxLeasePeriod:           aws.Int(704800),
+		HTTPMethod: http.MethodPost,
+		Path:       "/leases",
+		Body:       string(requestBodyBytes),
 	}
 }
 
