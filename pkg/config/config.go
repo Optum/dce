@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"strings"
 
 	"github.com/caarlos0/env"
 )
@@ -110,6 +111,12 @@ func (config *ConfigurationBuilder) GetStringVal(key string) (string, error) {
 	}
 
 	return val.(string), nil
+}
+
+// GetBoolVal returns the environment variable as a boolean
+func (config *ConfigurationBuilder) GetBoolVal(key string) (bool, error) {
+	str, err := config.GetStringVal(key)
+	return (strings.ToLower(str) == "true"), err
 }
 
 // GetVal returns the raw value
