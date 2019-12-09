@@ -6,13 +6,19 @@ import (
 	"github.com/gorilla/mux"
 
 	"github.com/Optum/dce/pkg/account"
+	"github.com/Optum/dce/pkg/data"
 	"github.com/Optum/dce/pkg/model"
 )
 
 // GetAllAccounts - Returns all the accounts.
 func GetAllAccounts(w http.ResponseWriter, r *http.Request) {
 	// Fetch the accounts.
-	accounts, err := account.GetAccounts(DataSvc)
+	var dao *data.Account
+	if err := Services.Config.GetService(dao); err != nil {
+		ErrorHandler(w, err)
+		return
+	}
+	accounts, err := account.GetAccounts(dao)
 
 	if err != nil {
 		ErrorHandler(w, err)
@@ -26,7 +32,12 @@ func GetAllAccounts(w http.ResponseWriter, r *http.Request) {
 func GetAccountByID(w http.ResponseWriter, r *http.Request) {
 
 	accountID := mux.Vars(r)["accountId"]
-	account, err := account.GetAccountByID(accountID, DataSvc)
+	var dao *data.Account
+	if err := Services.Config.GetService(dao); err != nil {
+		ErrorHandler(w, err)
+		return
+	}
+	account, err := account.GetAccountByID(accountID, dao)
 
 	if err != nil {
 		ErrorHandler(w, err)
@@ -42,7 +53,13 @@ func GetAccountByStatus(w http.ResponseWriter, r *http.Request) {
 	accountStatus := r.FormValue("accountStatus")
 	status := model.AccountStatus(accountStatus)
 
-	accounts, err := account.GetAccountsByStatus(status, DataSvc)
+	var dao *data.Account
+	if err := Services.Config.GetService(dao); err != nil {
+		ErrorHandler(w, err)
+		return
+	}
+
+	accounts, err := account.GetAccountsByStatus(status, dao)
 
 	if err != nil {
 		ErrorHandler(w, err)

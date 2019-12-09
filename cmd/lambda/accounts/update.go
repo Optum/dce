@@ -6,8 +6,6 @@ import (
 
 	"github.com/Optum/dce/pkg/api/response"
 	"github.com/Optum/dce/pkg/db"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/gorilla/mux"
 )
 
@@ -43,10 +41,10 @@ func UpdateAccountByID(w http.ResponseWriter, r *http.Request) {
 	// If the request includes a new adminRoleArn,
 	// validate that we can assume the ARN
 	if request.AdminRoleArn != nil {
-		_, err = TokenSvc.AssumeRole(&sts.AssumeRoleInput{
-			RoleArn:         request.AdminRoleArn,
-			RoleSessionName: aws.String("MasterAssumeRoleVerification"),
-		})
+		//_, err = TokenSvc.AssumeRole(&sts.AssumeRoleInput{
+		//	RoleArn:         request.AdminRoleArn,
+		//	RoleSessionName: aws.String("MasterAssumeRoleVerification"),
+		//})
 
 		if err != nil {
 			ErrorHandler(w, err)
@@ -76,8 +74,14 @@ func UpdateAccountByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var dao db.DBer
+	if err := Services.Config.GetService(&dao); err != nil {
+		ErrorHandler(w, err)
+		return
+	}
+
 	// Update the DB record
-	acct, err := Dao.UpdateAccount(accountPartial, fieldsToUpdate)
+	acct, err := dao.UpdateAccount(accountPartial, fieldsToUpdate)
 	if err != nil {
 		// If the account doesn't exist, return a 404
 		ErrorHandler(w, err)
