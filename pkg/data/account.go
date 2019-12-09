@@ -16,8 +16,8 @@ import (
 // Account - Data Layer Struct
 type Account struct {
 	AwsDynamoDB    dynamodbiface.DynamoDBAPI
-	TableName      string
-	ConsistentRead bool
+	TableName      string `env:"ACCOUNT_DB"`
+	ConsistentRead bool   `env:"USE_CONSISTENT_READS" envDefault:"false"`
 }
 
 // Update the Account record in DynamoDB
@@ -61,7 +61,7 @@ func (a *Account) Update(account *model.Account, lastModifiedOn *int64) error {
 }
 
 // Delete the Account record in DynamoDB
-func (a *Account) Delete(accountID string, account *model.Account) error {
+func (a *Account) Delete(account *model.Account) error {
 
 	res, err := a.AwsDynamoDB.DeleteItem(
 		&dynamodb.DeleteItemInput{
@@ -71,7 +71,7 @@ func (a *Account) Delete(accountID string, account *model.Account) error {
 			ReturnValues: aws.String("ALL_NEW"),
 			Key: map[string]*dynamodb.AttributeValue{
 				"Id": {
-					S: aws.String(accountID),
+					S: aws.String(account.ID),
 				},
 			},
 		},

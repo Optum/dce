@@ -22,9 +22,10 @@ import (
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/aws/aws-sdk-go/service/sts/stsiface"
 
+	"github.com/Optum/dce/pkg/common"
+	"github.com/Optum/dce/pkg/data"
 	"github.com/Optum/dce/pkg/db"
 	"github.com/Optum/dce/pkg/rolemanager"
-	"github.com/Optum/dce/pkg/common"
 )
 
 // AWSSessionKey is the key for the configuration for the AWS session
@@ -100,6 +101,12 @@ func (bldr *ServiceBuilder) WithDAO() *ServiceBuilder {
 // WithStorageService tells the builder to add the DCE DAO (DBer) service to the `ConfigurationBuilder`
 func (bldr *ServiceBuilder) WithStorageService() *ServiceBuilder {
 	bldr.handlers = append(bldr.handlers, bldr.createStorageService)
+	return bldr
+}
+
+// WithDataService tells the builder to add the Data service to the `ConfigurationBuilder`
+func (bldr *ServiceBuilder) WithDataService() *ServiceBuilder {
+	bldr.handlers = append(bldr.handlers, bldr.createDataService)
 	return bldr
 }
 
@@ -239,5 +246,27 @@ func (bldr *ServiceBuilder) createStorageService(config *ConfigurationBuilder) e
 	var storageService common.Storager
 	storageService = &common.S3{}
 	config.WithService(storageService)
+	return nil
+}
+
+func (bldr *ServiceBuilder) createDataService(config *ConfigurationBuilder) error {
+	var dataService data.Account
+
+	var dynamodbSvc dynamodbiface.DynamoDBAPI
+	err := bldr.Config.GetService(&dynamodbSvc)
+
+	if err != nil {
+		return err
+	}
+
+	daoSvcImpl := data.Account{}
+
+	err = bldr.Config.Unmarshal(daoSvcImpl)
+	if err != nil {
+		return err
+	}
+
+	daoSvcImpl.AwsDynamoDB = dynamodbSvc
+	config.WithService(dataService)
 	return nil
 }
