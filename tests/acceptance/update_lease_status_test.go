@@ -76,6 +76,8 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 			aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
 		),
 		tfOut["usage_table_name"].(string),
+		"StartDate",
+		"PrincipalId",
 	)
 
 	// Create Lambda service client
@@ -472,7 +474,7 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 
 }
 
-func createUsageForInputAmount(t *testing.T, apiURL string, accountID string, usageSvc usage.Service, costAmount float64) {
+func createUsageForInputAmount(t *testing.T, apiURL string, accountID string, usageSvc usage.Service, costAmount float64) []*usage.Usage {
 	// Create usage
 	// Setup usage dates
 	const ttl int = 3
@@ -538,4 +540,6 @@ func createUsageForInputAmount(t *testing.T, apiURL string, accountID string, us
 			assert.Equal(r, 1000.00, usageJSON["costAmount"].(float64))
 		}
 	})
+
+	return expectedUsages
 }
