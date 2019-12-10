@@ -147,7 +147,7 @@ func SumCostAmountByPrincipalID(input []*response.UsageResponse) []*response.Usa
 }
 
 
-// buildNextURL merges the next parameters into the request parameters and returns an API URL.
+// buildNextURL merges the next parameters into the request parameters and returns an API URL
 func buildNextURL(r *http.Request, nextParams map[string]string) string {
 	responseParams := make(map[string]string)
 	responseQueryStrings := make([]string, 0)
