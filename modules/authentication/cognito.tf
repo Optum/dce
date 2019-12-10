@@ -1,5 +1,5 @@
 resource "aws_cognito_user_pool" "_" {
-  name = "${var.name}${var.namespace}"
+  name = "${var.name}-${var.namespace}"
 
   admin_create_user_config {
     allow_admin_create_user_only = true
@@ -19,7 +19,7 @@ resource "aws_cognito_user_pool" "_" {
 }
 
 resource "aws_cognito_user_pool_client" "_" {
-  name = "${var.name}${var.namespace}"
+  name = "${var.name}-${var.namespace}"
 
   user_pool_id                         = aws_cognito_user_pool._.id
   generate_secret                      = false
