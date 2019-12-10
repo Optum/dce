@@ -71,7 +71,7 @@ new Vue({
               stsCreds.sessionToken = AWS.config.credentials.sessionToken
               stsCreds.expireTime = this.decodedJwt.exp
               self.encodedCreds = btoa(JSON.stringify(stsCreds))
-              document.getElementById("credentialscontainer").innerHTML += self.encodedCreds;
+              document.getElementById("credentialscontainer").innerHTML += self.encodedCreds + "&#13;&#10;";
           }
         });
       },
