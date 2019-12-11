@@ -9,10 +9,10 @@ func (a *Account) UpdatePrincipalPolicyHash(nextHash string, input Writer) error
 	//policyManager, err := rolemanager.NewPolicyManager(a)
 	//policyManager.MergePolicy(&rolemanager.MergePolicyInput{})
 
-	a.data.PrincipalPolicyHash = "test"
+	*a.data.PrincipalPolicyHash = "test"
 	//conditionBuilder := expression.ConditionBuilder{}
 	//conditionBuilder = expression.Name("PrincipalPolicyHash").Equal(expression.Value(a.PrincipalPolicyHash))
 
-	err := a.Update(input)
+	err := a.save(input)
 	return err
 }

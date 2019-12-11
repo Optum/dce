@@ -11,8 +11,10 @@ import (
 	"github.com/aws/aws-sdk-go/service/iam"
 
 	"github.com/Optum/dce/pkg/api/response"
+	"github.com/Optum/dce/pkg/model"
 	"github.com/aws/aws-sdk-go/aws/session"
 
+	"github.com/Optum/dce/pkg/account"
 	"github.com/Optum/dce/pkg/api"
 	"github.com/Optum/dce/pkg/errors"
 	"github.com/aws/aws-lambda-go/events"
@@ -22,19 +24,25 @@ import (
 	"github.com/awslabs/aws-lambda-go-api-proxy/gorillamux"
 )
 
+// Accounter - Only exported for mockery
+type Accounter interface {
+	Update(d model.Account, u account.Updater, am account.Manager) error
+}
+
 type accountControllerConfiguration struct {
-	policyName                  string   `env:"PRINCIPAL_POLICY_NAME" defaultEnv:"DCEPrincipalDefaultPolicy"`
-	accountCreatedTopicArn      string   `env:"ACCOUNT_CREATED_TOPIC_ARN" defaultEnv:"DefaultAccountCreatedTopicArn"`
-	accountDeletedTopicArn      string   `env:"ACCOUNT_DELETED_TOPIC_ARN"`
-	artifactsBucket             string   `env:"ARTIFACTS_BUCKET" defaultEnv:"DefaultArtifactBucket"`
-	principalPolicyS3Key        string   `env:"PRINCIPAL_POLICY_S3_KEY" defaultEnv:"DefaultPrincipalPolicyS3Key"`
-	principalRoleName           string   `env:"PRINCIPAL_ROLE_NAME" defaultEnv:"DCEPrincipal"`
-	principalPolicyName         string   `env:"PRINCIPAL_POLICY_NAME"`
-	principalIAMDenyTags        []string `env:"PRINCIPAL_IAM_DENY_TAGS" defaultEnv:"DefaultPrincipalIamDenyTags"`
-	principalMaxSessionDuration int64    `env:"PRINCIPAL_MAX_SESSION_DURATION" defaultEnv:"100"`
-	tags                        []*iam.Tag
-	resetQueueURL               string   `env:"RESET_SQS_URL" defaultEnv:"DefaultResetSQSUrl"`
-	allowedRegions              []string `env:"ALLOWED_REGIONS" defaultEnv:"us-east-1"`
+	Debug                       string   `env:"DEBUG" defaultEnv:"false"`
+	PolicyName                  string   `env:"PRINCIPAL_POLICY_NAME" defaultEnv:"DCEPrincipalDefaultPolicy"`
+	AccountCreatedTopicArn      string   `env:"ACCOUNT_CREATED_TOPIC_ARN" defaultEnv:"DefaultAccountCreatedTopicArn"`
+	AccountDeletedTopicArn      string   `env:"ACCOUNT_DELETED_TOPIC_ARN"`
+	ArtifactsBucket             string   `env:"ARTIFACTS_BUCKET" defaultEnv:"DefaultArtifactBucket"`
+	PrincipalPolicyS3Key        string   `env:"PRINCIPAL_POLICY_S3_KEY" defaultEnv:"DefaultPrincipalPolicyS3Key"`
+	PrincipalRoleName           string   `env:"PRINCIPAL_ROLE_NAME" defaultEnv:"DCEPrincipal"`
+	PrincipalPolicyName         string   `env:"PRINCIPAL_POLICY_NAME"`
+	PrincipalIAMDenyTags        []string `env:"PRINCIPAL_IAM_DENY_TAGS" defaultEnv:"DefaultPrincipalIamDenyTags"`
+	PrincipalMaxSessionDuration int64    `env:"PRINCIPAL_MAX_SESSION_DURATION" defaultEnv:"100"`
+	Tags                        []*iam.Tag
+	ResetQueueURL               string   `env:"RESET_SQS_URL" defaultEnv:"DefaultResetSQSUrl"`
+	AllowedRegions              []string `env:"ALLOWED_REGIONS" defaultEnv:"us-east-1"`
 }
 
 type tagSettings struct {
@@ -127,7 +135,8 @@ func init() {
 // loaded from env vars.
 func initConfig() {
 	cfgBldr := &config.ConfigurationBuilder{}
-	if err := cfgBldr.Unmarshal(&Settings); err != nil {
+	Settings = &accountControllerConfiguration{}
+	if err := cfgBldr.Unmarshal(Settings); err != nil {
 		log.Fatalf("Could not load configuration: %s", err.Error())
 	}
 
@@ -147,9 +156,10 @@ func initConfig() {
 		WithRoleManager().
 		WithStorageService().
 		WithDataService().
+		WithAccountManager().
 		Build()
 
-	if err != nil {
+	if err == nil {
 		Services = svcBldr
 	}
 }
@@ -181,6 +191,7 @@ func WriteAPIResponse(w http.ResponseWriter, status int, body interface{}) {
 	json.NewEncoder(w).Encode(body)
 }
 
+// ErrorHandler returns the appropriate HTTP code depending on the error recieved
 func ErrorHandler(w http.ResponseWriter, err error) {
 	var status int
 	var code string

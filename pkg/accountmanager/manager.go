@@ -21,8 +21,14 @@ type AccountManager struct {
 }
 
 // Setup creates a new session manager struct
-func (am *AccountManager) Setup(adminRoleArn arn.ARN) error {
+func (am *AccountManager) Setup(i string) error {
 	var err error
+
+	adminRoleArn, err := arn.Parse(i)
+	if err != nil {
+		return fmt.Errorf("Admin Role Arn isn't the appropriate format: %s: %w", err, errors.ErrValidation)
+	}
+
 	// Prevent setting this multiple times just in case
 	am.awsSession = session.Must(session.NewSession())
 

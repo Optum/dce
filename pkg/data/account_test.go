@@ -1,6 +1,7 @@
 package data
 
 import (
+	"log"
 	"testing"
 
 	awsmocks "github.com/Optum/dce/pkg/awsiface/mocks"
@@ -86,7 +87,7 @@ func TestGet(t *testing.T) {
 		item := &model.Account{}
 		err := accountData.GetAccountByID(accountID, item)
 		assert.Error(t, err, "Account not found")
-		assert.NotNil(t, item.ID, "")
+		assert.Nil(t, item.ID)
 	})
 
 }
@@ -122,11 +123,13 @@ func TestDelete(t *testing.T) {
 			AwsDynamoDB: &mockDynamo,
 			TableName:   "Accounts",
 		}
-		item := &model.Account{}
-		err := accountData.Delete(accountID, item)
+		item := &model.Account{
+			ID: &accountID,
+		}
+		err := accountData.Delete(item)
 		assert.NoError(t, err)
-		assert.Equal(t, item.ID, accountID)
-		assert.Equal(t, item.Status, model.Ready)
+		assert.Equal(t, *item.ID, accountID)
+		assert.Equal(t, *item.Status, model.Ready)
 	})
 
 }
@@ -137,48 +140,41 @@ func TestUpdate(t *testing.T) {
 		mockDynamo := awsmocks.DynamoDBAPI{}
 
 		accountID := "abc123"
-		lastModifiedOn := int64(1573592058)
+		newLastModifiedOn := int64(1573592058)
+		oldLastModifiedOn := int64(1573592057)
 
 		mockDynamo.On("PutItem", mock.MatchedBy(func(input *dynamodb.PutItemInput) bool {
 			return (*input.TableName == "Accounts" &&
 				*input.Item["Id"].S == "abc123" &&
 				*input.Item["AccountStatus"].S == "Ready" &&
 				*input.Item["Metadata"].M["key"].S == "value" &&
-				*input.ReturnValues == "ALL_NEW")
+				*input.Item["LastModifiedOn"].N == "1573592058" &&
+				*input.ExpressionAttributeValues[":0"].N == "1573592057")
 		})).Return(
-			&dynamodb.PutItemOutput{
-				Attributes: map[string]*dynamodb.AttributeValue{
-					"Id": {
-						S: aws.String(accountID),
-					},
-					"LastModifiedOn": {
-						N: aws.String("1573592058"),
-					},
-					"Metadata": {
-						M: map[string]*dynamodb.AttributeValue{
-							"key": {
-								S: aws.String("value"),
-							},
-						},
-					},
-				},
-			}, nil,
+			&dynamodb.PutItemOutput{}, nil,
 		)
 		accountData := &Account{
 			AwsDynamoDB: &mockDynamo,
 			TableName:   "Accounts",
 		}
+
+		accountStatus := model.Ready
+		metadata := map[string]interface{}{
+			"key": "value",
+		}
+		roleArn := "testArn"
 		item := &model.Account{
-			ID: accountID,
-			Metadata: map[string]interface{}{
-				"key": "value",
-			},
-			Status: "Ready",
+			ID:             &accountID,
+			Metadata:       metadata,
+			Status:         &accountStatus,
+			AdminRoleArn:   &roleArn,
+			LastModifiedOn: &newLastModifiedOn,
 		}
 
-		err := accountData.Update(item, &lastModifiedOn)
+		err := accountData.Update(item, &oldLastModifiedOn)
 		assert.NoError(t, err)
-		assert.Equal(t, item.LastModifiedOn, int64(1573592058))
+		log.Printf("%d\n", *item.LastModifiedOn)
+		assert.NotEqual(t, *item.LastModifiedOn, oldLastModifiedOn)
 	})
 
 }

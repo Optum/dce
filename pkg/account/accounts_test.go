@@ -5,6 +5,7 @@ import (
 
 	dataMocks "github.com/Optum/dce/pkg/account/mocks"
 	"github.com/Optum/dce/pkg/model"
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -12,17 +13,17 @@ func TestGetAccountsByStatus(t *testing.T) {
 
 	t.Run("should return a list of accounts by Status", func(t *testing.T) {
 		mocksReader := &dataMocks.MultipleReader{}
-
+		accountStatus := model.Ready
 		mocksReader.On("GetAccountsByStatus", "Ready").
 			Return(
 				&model.Accounts{
 					model.Account{
-						ID:     "1",
-						Status: model.Ready,
+						ID:     aws.String("1"),
+						Status: &accountStatus,
 					},
 					model.Account{
-						ID:     "2",
-						Status: model.Ready,
+						ID:     aws.String("2"),
+						Status: &accountStatus,
 					},
 				}, nil,
 			)
@@ -47,12 +48,12 @@ func TestGetAccountsByPrincipalId(t *testing.T) {
 			Return(
 				&model.Accounts{
 					model.Account{
-						ID:               "1",
-						PrincipalRoleArn: principalID,
+						ID:               aws.String("1"),
+						PrincipalRoleArn: &principalID,
 					},
 					model.Account{
-						ID:               "2",
-						PrincipalRoleArn: principalID,
+						ID:               aws.String("1"),
+						PrincipalRoleArn: &principalID,
 					},
 				}, nil,
 			)
