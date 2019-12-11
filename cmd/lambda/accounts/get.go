@@ -32,11 +32,13 @@ func GetAllAccounts(w http.ResponseWriter, r *http.Request) {
 func GetAccountByID(w http.ResponseWriter, r *http.Request) {
 
 	accountID := mux.Vars(r)["accountId"]
-	var dao *data.Account
+
+	dao := &data.Account{}
 	if err := Services.Config.GetService(dao); err != nil {
 		ErrorHandler(w, err)
 		return
 	}
+
 	account, err := account.GetAccountByID(accountID, dao)
 
 	if err != nil {

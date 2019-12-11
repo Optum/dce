@@ -2,61 +2,66 @@ package main
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
+	"fmt"
 	"net/http"
 	"testing"
 
-	"github.com/Optum/dce/pkg/api/response"
-	"github.com/Optum/dce/pkg/db"
-	"github.com/Optum/dce/pkg/db/mocks"
+	"github.com/Optum/dce/pkg/config"
+	"github.com/Optum/dce/pkg/errors"
+	"github.com/Optum/dce/pkg/model"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/stretchr/testify/require"
 )
 
+type mockData struct{}
+
+func (d *mockData) GetAccountByID(accountID string, account *model.Account) error {
+	if accountID == "error" {
+		return errors.ErrInternalServer
+	}
+
+	readyAccount := model.Ready
+	lastModifiedOn := int64(1561149393)
+
+	account.ID = &accountID
+	account.Status = &readyAccount
+	account.LastModifiedOn = &lastModifiedOn
+	return nil
+}
+
 func TestGetAccountByID(t *testing.T) {
 
 	t.Run("When the invoking Call and there are no errors", func(t *testing.T) {
-		expectedAccount := &db.Account{
-			ID:             "123456789",
-			AccountStatus:  db.Ready,
-			LastModifiedOn: 1561149393,
-		}
-		expectedAccountResponse := &response.AccountResponse{
-			ID:             "123456789",
-			AccountStatus:  db.Ready,
-			LastModifiedOn: 1561149393,
-		}
-		mockDb := mocks.DBer{}
-		mockDb.On("GetAccount", "123456789").Return(expectedAccount, nil)
-		mockRequest := events.APIGatewayProxyRequest{HTTPMethod: http.MethodGet, Path: "/accounts/123456789"}
 
-		Dao = &mockDb
+		accountID := "123456789"
+		mockRequest := events.APIGatewayProxyRequest{HTTPMethod: http.MethodGet, Path: fmt.Sprintf("/accounts/%s", accountID)}
 
+		mockDataImpl := &mockData{}
+		cfgBldr.WithEnv("AWS_CURRENT_REGION", "AWS_CURRENT_REGION", "us-east-1").Build()
+		svcBldr := &config.ServiceBuilder{Config: cfgBldr}
+
+		_, err := svcBldr.
+			// AWS services...
+			WithDynamoDB().
+			WithSTS().
+			WithS3().
+			WithSNS().
+			WithSQS().
+			// DCE services...
+			WithDAO().
+			WithRoleManager().
+			WithStorageService().
+			WithDataService().
+			WithAccountManager().
+			Build()
+
+		if err == nil {
+			Services = svcBldr
+		}
 		actualResponse, err := Handler(context.TODO(), mockRequest)
 		require.Nil(t, err)
 
-		parsedResponse := &response.AccountResponse{}
-		err = json.Unmarshal([]byte(actualResponse.Body), parsedResponse)
-		require.Nil(t, err)
-
-		require.Equal(t, expectedAccountResponse, parsedResponse, "Returns a single account.")
 		require.Equal(t, actualResponse.StatusCode, 200, "Returns a 200.")
-	})
-
-	t.Run("When the query fails", func(t *testing.T) {
-		expectedError := errors.New("Error")
-		mockDb := mocks.DBer{}
-		mockDb.On("GetAccount", "123456789").Return(nil, expectedError)
-		mockRequest := events.APIGatewayProxyRequest{HTTPMethod: http.MethodGet, Path: "/accounts/123456789"}
-
-		Dao = &mockDb
-
-		actualResponse, err := Handler(context.TODO(), mockRequest)
-		require.Nil(t, err)
-
-		require.Equal(t, actualResponse.StatusCode, 500, "Returns a 500.")
-		require.Equal(t, actualResponse.Body, "{\"error\":{\"code\":\"ServerError\",\"message\":\"Failed List on Account Lease 123456789\"}}", "Returns an error response.")
 	})
 
 }

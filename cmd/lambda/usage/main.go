@@ -12,8 +12,10 @@ import (
 	"github.com/Optum/dce/pkg/common"
 	"github.com/Optum/dce/pkg/usage"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/iam"
 
 	"github.com/Optum/dce/pkg/api/response"
+	"github.com/Optum/dce/pkg/config"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 
@@ -27,6 +29,21 @@ const (
 	AccountIDParam   = "accountId"
 )
 
+type usageControllerConfiguration struct {
+	policyName                  string   `env:"PRINCIPAL_POLICY_NAME" defaultEnv:"DCEPrincipalDefaultPolicy"`
+	accountCreatedTopicArn      string   `env:"ACCOUNT_CREATED_TOPIC_ARN" defaultEnv:"DefaultAccountCreatedTopicArn"`
+	accountDeletedTopicArn      string   `env:"ACCOUNT_DELETED_TOPIC_ARN"`
+	artifactsBucket             string   `env:"ARTIFACTS_BUCKET" defaultEnv:"DefaultArtifactBucket"`
+	principalPolicyS3Key        string   `env:"PRINCIPAL_POLICY_S3_KEY" defaultEnv:"DefaultPrincipalPolicyS3Key"`
+	principalRoleName           string   `env:"PRINCIPAL_ROLE_NAME" defaultEnv:"DCEPrincipal"`
+	principalPolicyName         string   `env:"PRINCIPAL_POLICY_NAME"`
+	principalIAMDenyTags        []string `env:"PRINCIPAL_IAM_DENY_TAGS" defaultEnv:"DefaultPrincipalIamDenyTags"`
+	principalMaxSessionDuration int64    `env:"PRINCIPAL_MAX_SESSION_DURATION" defaultEnv:"100"`
+	tags                        []*iam.Tag
+	resetQueueURL               string   `env:"RESET_SQS_URL" defaultEnv:"DefaultResetSQSUrl"`
+	allowedRegions              []string `env:"ALLOWED_REGIONS" defaultEnv:"us-east-1"`
+}
+
 var muxLambda *gorillamux.GorillaMuxAdapter
 
 var (
@@ -37,6 +54,11 @@ var (
 
 	// UsageSvc - Service for getting usage
 	UsageSvc *usage.DB
+
+	// Services configuration
+	Services *config.ServiceBuilder
+	// Settings - the configuration settings for the controller
+	Settings *usageControllerConfiguration
 )
 
 // messageBody is the structured object of the JSON Message to send
@@ -73,7 +95,7 @@ func init() {
 			GetAllUsage,
 		},
 	}
-	r := api.NewRouter(usageRoutes)
+	r := api.NewRouter(Services.Config, usageRoutes)
 	muxLambda = gorillamux.New(r)
 }
 

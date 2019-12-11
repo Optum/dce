@@ -7,10 +7,10 @@ import (
 
 	gErrors "errors"
 
-	"github.com/Optum/dce/pkg/awsiface"
 	"github.com/Optum/dce/pkg/errors"
 	"github.com/Optum/dce/pkg/model"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	validation "github.com/go-ozzo/ozzo-validation"
 )
 
 // Updater put an item into the data store
@@ -47,18 +47,20 @@ type Writer interface {
 	Deleter
 }
 
-type AccountReaderUpdater interface {
+// ReaderUpdater includes Reader and Writer interfaces
+type ReaderUpdater interface {
 	Reader
 	Updater
 }
 
+// Eventer for publishing events
 type Eventer interface {
 	Publish() error
 }
 
-type AccountExecutor interface {
-	AssumeRole(roleArn string) error
-	CreateRole() error
+// Manager manages all the actions against an account
+type Manager interface {
+	Setup(adminRole string) error
 }
 
 // Account is a type corresponding to a Account table record
@@ -68,40 +70,44 @@ type Account struct {
 
 // ID Returns the Account ID
 func (a *Account) ID() string {
-	return a.data.ID
+	return *a.data.ID
 }
 
 // Status Returns the Account ID
 func (a *Account) Status() model.AccountStatus {
-	return a.data.Status
+	return *a.data.Status
 }
 
 // AdminRoleArn Returns the Admin Role Arn
 func (a *Account) AdminRoleArn() string {
-	return a.data.AdminRoleArn
+	return *a.data.AdminRoleArn
 }
 
 // PrincipalRoleArn Returns the Principal Role Arn
 func (a *Account) PrincipalRoleArn() string {
-	return a.data.PrincipalRoleArn
+	return *a.data.PrincipalRoleArn
 }
 
 // PrincipalPolicyHash Returns the Principal Role Hash
 func (a *Account) PrincipalPolicyHash() string {
-	return a.data.PrincipalPolicyHash
+	return *a.data.PrincipalPolicyHash
 }
 
 // Metadata Returns the Principal Role Hash
 func (a *Account) Metadata() map[string]interface{} {
-	return a.data.Metadata
+	return *a.data.Metadata
+}
+
+func (a *Account) updateStatus(nextStatus model.AccountStatus) {
+	*a.data.Status = nextStatus
 }
 
 // UpdateStatus updates account status for a given accountID and
 // returns the updated record on success
 func (a *Account) UpdateStatus(nextStatus model.AccountStatus, u Updater) error {
 
-	a.data.Status = nextStatus
-	err := a.Update(u)
+	a.updateStatus(nextStatus)
+	err := a.save(u)
 	if err != nil {
 		return fmt.Errorf(
 			"unable to update account status from \"%v\" to \"%v\" on account %s: %w",
@@ -115,18 +121,16 @@ func (a *Account) UpdateStatus(nextStatus model.AccountStatus, u Updater) error 
 	return nil
 }
 
-// Update the Account record in DynamoDB
-func (a *Account) Update(u Updater) error {
-
+func (a *Account) save(u Updater) error {
 	var lastModifiedOn *int64
 	now := time.Now().Unix()
-	if a.data.LastModifiedOn == 0 {
+	if a.data.LastModifiedOn == nil {
 		lastModifiedOn = nil
-		a.data.CreatedOn = now
-		a.data.LastModifiedOn = now
+		a.data.CreatedOn = &now
+		a.data.LastModifiedOn = &now
 	} else {
-		lastModifiedOn = &a.data.LastModifiedOn
-		a.data.LastModifiedOn = now
+		lastModifiedOn = a.data.LastModifiedOn
+		a.data.LastModifiedOn = &now
 	}
 
 	err := u.Update(&a.data, lastModifiedOn)
@@ -140,6 +144,37 @@ func (a *Account) Update(u Updater) error {
 			}
 		}
 		return err
+	}
+	return nil
+}
+
+// Update the Account record in DynamoDB
+func (a *Account) Update(d model.Account, u Updater, am Manager) error {
+	err := validation.ValidateStruct(&d,
+		// ID has to be empty
+		validation.Field(&d.ID, validation.By(isNilOrEqual(*a.data.ID))),
+		validation.Field(&d.AdminRoleArn, validation.By(isNilOrUsableAdminRole(am))),
+	)
+	if err != nil {
+		return fmt.Errorf("input validation error \"%s\": %w", err, errors.ErrValidation)
+	}
+
+	if d.AdminRoleArn != nil {
+		a.data.AdminRoleArn = d.AdminRoleArn
+	}
+	if d.PrincipalRoleArn != nil {
+		a.data.PrincipalRoleArn = d.PrincipalRoleArn
+	}
+	if d.Metadata != nil {
+		a.data.Metadata = d.Metadata
+	}
+	if d.Status != nil {
+		a.data.Status = d.Status
+	}
+
+	err = a.save(u)
+	if err != nil {
+		return fmt.Errorf("unable to update account \"%s\": %w", a.data.ID, err)
 	}
 	return nil
 }
@@ -164,11 +199,6 @@ func (a *Account) OrphanAccount() error {
 	return nil
 }
 
-// AssumeAdminRole - Assume an Accounts Admin Role
-func (a *Account) AssumeAdminRole() (awsiface.AwsSession, error) {
-	return awsToken.NewSession(awsSession, a.AdminRoleArn())
-}
-
 // GetAccountByID returns an account from ID
 func GetAccountByID(ID string, d SingleReader) (*Account, error) {
 
@@ -178,6 +208,14 @@ func GetAccountByID(ID string, d SingleReader) (*Account, error) {
 	return &newAccount, err
 }
 
+// New returns an account from ID
+func New(data model.Account) *Account {
+	return &Account{
+		data: data,
+	}
+}
+
+// MarshalJSON Marshals the data inside the account
 func (a *Account) MarshalJSON() ([]byte, error) {
 	return json.Marshal(a.data)
 }
@@ -193,14 +231,15 @@ func GetReadyAccount(d Reader) (*Account, error) {
 	return &(*accounts)[0], err
 }
 
-func CreateAccount(ID string, AdminRoleArn string, Metadata map[string]interface{}, d AccountReaderUpdater) (*Account, error) {
+// CreateAccount creates a new account
+func CreateAccount(ID string, AdminRoleArn string, Metadata map[string]interface{}, d ReaderUpdater) (*Account, error) {
 	// Check if the account already exists
 	existingAccount, err := GetAccountByID(ID, d)
 	if !gErrors.Is(err, errors.ErrNotFound) {
 		if err != nil {
 			return nil, fmt.Errorf("Failed to add account %s to pool: %w", ID, err)
 		}
-		if existingAccount.data.ID != "" {
+		if existingAccount.data.ID != nil {
 			return nil, fmt.Errorf("account %s already exists: %w", ID, errors.ErrConflict)
 		}
 	}
@@ -217,12 +256,13 @@ func CreateAccount(ID string, AdminRoleArn string, Metadata map[string]interface
 	//}
 
 	// Prepare the account record
+	accountStatus := model.NotReady
 	account := &Account{
 		data: model.Account{
-			ID:           ID,
-			Status:       model.NotReady,
-			AdminRoleArn: AdminRoleArn,
-			Metadata:     Metadata,
+			ID:           &ID,
+			Status:       &accountStatus,
+			AdminRoleArn: &AdminRoleArn,
+			Metadata:     &Metadata,
 		},
 	}
 
@@ -236,7 +276,7 @@ func CreateAccount(ID string, AdminRoleArn string, Metadata map[string]interface
 	//account.PrincipalPolicyHash = policyHash
 
 	// Write the Account to the DB
-	err = account.Update(d)
+	err = account.save(d)
 	if err != nil {
 		return nil, fmt.Errorf("failed to add account %s to pool with error: %s: %w", ID, err, errors.ErrInternalServer)
 	}

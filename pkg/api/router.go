@@ -6,9 +6,9 @@ import (
 	"net/http"
 
 	"github.com/Optum/dce/pkg/common"
+	"github.com/Optum/dce/pkg/config"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	"github.com/Optum/dce/pkg/config"
 )
 
 // EmptyQueryString - Empty query string to prevent

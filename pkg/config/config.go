@@ -78,7 +78,7 @@ func (config *ConfigurationBuilder) WithVal(key string, val interface{}) *Config
 // GetService retreives the service with the given type. An error is thrown if
 // the service is not found.
 func (config *ConfigurationBuilder) GetService(svcFor interface{}) error {
-	k := reflect.TypeOf(svcFor).Elem()
+	k := reflect.TypeOf(svcFor)
 	kind := k.Kind()
 	if kind == reflect.Ptr {
 		k = k.Elem()
@@ -91,7 +91,7 @@ func (config *ConfigurationBuilder) GetService(svcFor interface{}) error {
 			).Set(config.values.impls[i])
 			return nil
 		} else if kind == reflect.Struct && k.AssignableTo(t.Elem()) {
-			reflect.ValueOf(svcFor).Elem().Set(config.values.impls[i])
+			reflect.ValueOf(svcFor).Elem().Set(config.values.impls[i].Elem())
 			return nil
 		}
 	}
