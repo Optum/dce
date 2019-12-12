@@ -44,7 +44,7 @@ var (
 	// Services handles the configuration of the AWS services
 	Services *config.ServiceBuilder
 	// Settings - the configuration settings for the controller
-	Settings *usageControllerConfiguration
+	Settings *controllerConfiguration
 )
 
 // messageBody is the structured object of the JSON Message to send
@@ -56,8 +56,8 @@ type messageBody struct {
 
 func init() {
 	initConfig()
-	log.Println("Cold start; creating router for /usage")
 
+	log.Println("Cold start; creating router for /usage")
 	usageRoutes := api.Routes{
 
 		api.Route{
@@ -86,9 +86,11 @@ func init() {
 	muxLambda = gorillamux.New(r)
 }
 
+// initConfig configures package-level variables
+// loaded from env vars.
 func initConfig() {
 	cfgBldr := &config.ConfigurationBuilder{}
-	Settings = &usageControllerConfiguration{}
+	Settings = &controllerConfiguration{}
 	if err := cfgBldr.Unmarshal(Settings); err != nil {
 		log.Fatalf("Could not load configuration: %s", err.Error())
 	}

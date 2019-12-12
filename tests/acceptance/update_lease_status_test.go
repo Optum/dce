@@ -1,17 +1,20 @@
 package tests
 
 import (
+	"log"
+	"net/http"
+	"testing"
+	"time"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/gruntwork-io/terratest/modules/terraform"
 	"github.com/stretchr/testify/require"
-	"net/http"
-	"testing"
-	"time"
 
 	"encoding/json"
 	"fmt"
+
 	"github.com/stretchr/testify/assert"
 
 	"github.com/Optum/dce/pkg/db"
@@ -530,6 +533,7 @@ func createUsageForInputAmount(t *testing.T, apiURL string, accountID string, us
 		assert.Equal(r, http.StatusOK, resp.StatusCode)
 
 		// Parse response json
+		log.Printf("%+v\n", resp)
 		data := parseResponseArrayJSON(t, resp)
 
 		//Verify response json
