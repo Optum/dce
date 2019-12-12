@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -16,13 +17,13 @@ func TestLeaseHandlers(t *testing.T) {
 			AccountID: "123456789012",
 		}
 
-		context := LeaseExecutionContext{}
+		ctx := context.Background()
 
-		leaseCreator := &DefaultLeaseCommander{}
+		leaseCreator := &MultiStepHandler{}
 
 		leaseCreator.AddStep("Step 1", Step1, true)
 		leaseCreator.AddStep("Step 2", Step2, true)
-		_, err := leaseCreator.Execute(context, lease)
+		_, err := leaseCreator.Execute(ctx, lease)
 
 		assert.NotNil(t, err)
 		assert.Equal(t, db.Inactive, lease.LeaseStatus)
@@ -36,13 +37,13 @@ func TestLeaseHandlers(t *testing.T) {
 			AccountID: "123456789012",
 		}
 
-		context := LeaseExecutionContext{}
+		ctx := context.Background()
 
-		leaseCreator := &DefaultLeaseCommander{}
+		leaseCreator := &MultiStepHandler{}
 
 		leaseCreator.AddStep("Step 1", Step1, false)
 		leaseCreator.AddStep("Step 2", Step2, true)
-		success, err := leaseCreator.Execute(context, lease)
+		success, err := leaseCreator.Execute(ctx, lease)
 
 		// Overall execution is failed, but there is no overall error
 		assert.False(t, success)
@@ -60,12 +61,12 @@ func TestLeaseHandlers(t *testing.T) {
 			AccountID: "123456789012",
 		}
 
-		context := LeaseExecutionContext{}
+		ctx := context.Background()
 
-		leaseCreator := &DefaultLeaseCommander{}
+		leaseCreator := &MultiStepHandler{}
 
 		leaseCreator.AddStep("Step 2", Step2, true)
-		success, err := leaseCreator.Execute(context, lease)
+		success, err := leaseCreator.Execute(ctx, lease)
 
 		// Only one successful task, should be true.
 		assert.True(t, success)
@@ -79,12 +80,12 @@ func TestLeaseHandlers(t *testing.T) {
 
 }
 
-func Step1(context interface{}, lease *db.Lease) error {
+func Step1(ctx context.Context, lease *db.Lease) error {
 	lease.LeaseStatus = db.Inactive
 	return errors.New("error while performing step")
 }
 
-func Step2(context interface{}, lease *db.Lease) error {
+func Step2(ctx context.Context, lease *db.Lease) error {
 	lease.LeaseStatus = db.Active
 	return nil
 }

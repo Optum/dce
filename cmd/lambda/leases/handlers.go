@@ -1,15 +1,14 @@
 package main
 
 import (
+	"context"
 	"fmt"
 
-	"github.com/Optum/dce/pkg/common"
 	"github.com/Optum/dce/pkg/db"
-	"github.com/Optum/dce/pkg/usage"
 )
 
 // StepHandler - Handler for leases
-type StepHandler func(context interface{}, lease *db.Lease) error
+type StepHandler func(ctx context.Context, lease *db.Lease) error
 
 // StepConfiguration - Configuration for lease handlers
 type StepConfiguration struct {
@@ -18,29 +17,15 @@ type StepConfiguration struct {
 	failOnError bool
 }
 
-// LeaseExecutionContext - Execution context for leases.
-type LeaseExecutionContext struct {
-	Dao      db.DBer
-	SnsSvc   common.Notificationer
-	UsageSvc usage.Service
-}
-
-// LeaseCommander - Interface for handling lease-related tasks
-type LeaseCommander interface {
-	AddStep(name string, handler StepHandler, failOnError bool) error
-	Execute(context LeaseExecutionContext, lease *db.Lease) (bool, error)
-	Errors() []error
-}
-
-// DefaultLeaseCommander - Default behavior
-type DefaultLeaseCommander struct {
-	taskConfiguration []StepConfiguration
-	errorList         []error
+// MultiStepHandler - Default behavior
+type MultiStepHandler struct {
+	TaskConfiguration []StepConfiguration
+	ErrorList         []error
 }
 
 // AddStep - Adds the tasks to the list of tasks to perform
-func (tasker *DefaultLeaseCommander) AddStep(name string, handler StepHandler, failOnError bool) error {
-	tasker.taskConfiguration = append(tasker.taskConfiguration, StepConfiguration{
+func (m *MultiStepHandler) AddStep(name string, handler StepHandler, failOnError bool) error {
+	m.TaskConfiguration = append(m.TaskConfiguration, StepConfiguration{
 		name:        name,
 		handler:     handler,
 		failOnError: failOnError,
@@ -49,22 +34,22 @@ func (tasker *DefaultLeaseCommander) AddStep(name string, handler StepHandler, f
 }
 
 // Execute - Performs all of the registered tasks
-func (tasker *DefaultLeaseCommander) Execute(context LeaseExecutionContext, lease *db.Lease) (bool, error) {
+func (m *MultiStepHandler) Execute(ctx context.Context, lease *db.Lease) (bool, error) {
 	// Iterate through the tasks. Pay attention to the failOnError
-	for _, t := range tasker.taskConfiguration {
-		err := t.handler(context, lease)
+	for _, t := range m.TaskConfiguration {
+		err := t.handler(ctx, lease)
 		if err != nil {
-			tasker.errorList = append(tasker.errorList, fmt.Errorf("%s: %s", t.name, err.Error()))
+			m.ErrorList = append(m.ErrorList, fmt.Errorf("%s: %s", t.name, err.Error()))
 			if t.failOnError {
 				return false, err
 			}
 		}
 	}
 
-	return (len(tasker.errorList) == 0), nil
+	return (len(m.ErrorList) == 0), nil
 }
 
 // Errors gets the errors encountered during execution
-func (tasker *DefaultLeaseCommander) Errors() []error {
-	return tasker.errorList
+func (m *MultiStepHandler) Errors() []error {
+	return m.ErrorList
 }
