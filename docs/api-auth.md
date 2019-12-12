@@ -1,5 +1,4 @@
-# DCE API Authentication / Authorization
-
+# API Auth
 
 There are two ways to authenticate against the DCE APIs:
 
