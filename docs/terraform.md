@@ -1,8 +1,8 @@
-## Deploying DCE with Terraform
+# Deploy with Terraform
 
 The AWS infrastructure for the DCE master account is defined as a Terraform module within the [github.com/Optum/dce](https://github.com/Optum/dce) repo. This infrastructure may be deployed using the [Terraform CLI](https://www.terraform.io/docs/commands/index.html):
 
-```
+```bash
 cd modules
 terraform init
 terraform apply
@@ -12,14 +12,14 @@ See [terraform.io](https://www.terraform.io/) for more information on using Terr
 
 After the Terraform deployment is complete, you will need to build and deploy the application code to AWS:
 
-```
+```bash
 make deploy
 ``` 
 
 Alternatively, you can download the build artifacts from [a Github release](https://github.com/Optum/dce/releases), and deploy them directly.
 Both the `deploy.sh` and `build_artifacts.zip` are supplied with the github release:
 
-```
+```bash
 cd modules
 namespace=$(terraform output namespace)
 artifacts_bucket=$(terraform output artifacts_bucket_name)
@@ -32,7 +32,7 @@ The DCE Terraform module accepts a number of configuration variables to tweak th
  
  For example:
  
-```
+```bash
 terraform apply \
     -var namespace=nonprod \
     -var check_budget_enabled=false \
