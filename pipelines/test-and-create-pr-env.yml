@@ -39,7 +39,7 @@ steps:
   # Install GO
   - task: GoTool@0
     inputs:
-      version: "1.12.6"
+      version: "1.13.4"
     displayName: "Set up the Go workspace"
 
   # Install tools needed for CI environment
