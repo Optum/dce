@@ -24,7 +24,7 @@ resource "aws_cognito_user_pool_client" "_" {
   user_pool_id                         = aws_cognito_user_pool._.id
   generate_secret                      = false
   allowed_oauth_flows                  = ["implicit", "code"]
-  allowed_oauth_scopes                 = ["profile", "openid", "email"]
+  allowed_oauth_scopes                 = ["openid", "email"]
   supported_identity_providers         = var.identity_providers
   allowed_oauth_flows_user_pool_client = true
   callback_urls                        = var.callback_urls
