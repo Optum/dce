@@ -8,6 +8,7 @@
 - Add GetUsageByPrincipal
 - Fix default `budget_notification_from_email` TF var (See #143)
 - Replace GetUsageByDateRange with GetUsageByPrincipal method in POST lease validation
+- Add `GET /auth` and `GET /auth/{file+}` endpoints for retrieving credentials web page
 
 
 ## v0.23.0
