@@ -64,16 +64,6 @@ func validateLeaseFromRequest(context *leaseValidationContext, req *http.Request
 		return requestBody, false, validationErrStr, nil
 	}
 
-	// Validate requested lease budget amount is less than PRINCIPAL_BUDGET_AMOUNT for current principal billing period
-	// usageStartTime := getBeginningOfCurrentBillingPeriod(context.principalBudgetPeriod)
-	// usageEndTime := time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 23, 59, 59, 0, time.UTC)
-
-	// usageRecords, err := UsageSvc.GetUsageByDateRange(usageStartTime, usageEndTime)
-	// if err != nil {
-	// 	errStr := fmt.Sprintf("Failed to retrieve usage: %s", err)
-	// 	return requestBody, true, "", errors.New(errStr)
-	// }
-
 	// Group by PrincipalID to get sum of total spent for current billing period
 	spent := 0.0
 	for _, usageItem := range context.usageRecords {

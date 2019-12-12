@@ -93,13 +93,6 @@ func GetLeasesByAccountID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if len(leases) == 0 {
-		// We were throwing an error on these, but not sure that's the right thing
-		// to do with a REST URL with query string parameters.
-		response.WriteNotFoundError(w)
-		return
-	}
-
 	leaseResponses := []*response.LeaseResponse{}
 
 	for _, l := range leases {
@@ -110,7 +103,7 @@ func GetLeasesByAccountID(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(leaseResponses)
 }
 
-// GetLeasesByStatus - Returns a list of leases by principal and account
+// GetLeasesByStatus - Returns a list of leases by lease status
 func GetLeasesByStatus(w http.ResponseWriter, r *http.Request) {
 	// Fetch the account.
 	leaseStatus := r.FormValue(StatusParam)

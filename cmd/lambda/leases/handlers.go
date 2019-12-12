@@ -59,7 +59,6 @@ func (tasker *DefaultLeaseCommander) Execute(context LeaseExecutionContext, leas
 				return false, err
 			}
 		}
-		// otherwise, nothing to see here... move along.
 	}
 
 	return (len(tasker.errorList) == 0), nil
