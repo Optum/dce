@@ -6,7 +6,24 @@ import "errors"
 var ErrBadRequest = errors.New("bad request")
 
 // ErrValidation for errors doing validation of the data
-var ErrValidation = errors.New("validation error")
+type ErrValidation struct {
+	Message string
+	Err     error
+}
+
+func (e *ErrValidation) Error() string { return e.Message }
+
+// Unwrap provides the underlying error
+func (e *ErrValidation) Unwrap() error { return e.Err }
+
+// Is helps with new errors validation
+func (e *ErrValidation) Is(target error) bool {
+	t, ok := target.(*ErrValidation)
+	if !ok {
+		return false
+	}
+	return (e.Message == t.Message || t.Message == "")
+}
 
 // ErrNotFound resource not found
 var ErrNotFound = errors.New("not found")

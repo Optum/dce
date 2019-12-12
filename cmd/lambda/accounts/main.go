@@ -7,8 +7,15 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iam"
+	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/aws/aws-sdk-go/service/sns"
+	"github.com/aws/aws-sdk-go/service/sqs"
+	"github.com/aws/aws-sdk-go/service/sts"
 
 	"github.com/Optum/dce/pkg/api/response"
 	"github.com/Optum/dce/pkg/model"
@@ -16,7 +23,10 @@ import (
 
 	"github.com/Optum/dce/pkg/account"
 	"github.com/Optum/dce/pkg/api"
+	"github.com/Optum/dce/pkg/common"
+	"github.com/Optum/dce/pkg/db"
 	"github.com/Optum/dce/pkg/errors"
+	"github.com/Optum/dce/pkg/rolemanager"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 
@@ -59,6 +69,18 @@ var (
 	Services *config.ServiceBuilder
 	// Settings - the configuration settings for the controller
 	Settings *accountControllerConfiguration
+)
+
+var (
+	// Soon to be deprecated - Legacy support
+	AWSSession  *session.Session
+	Dao         db.DBer
+	SnsSvc      common.Notificationer
+	Queue       common.Queue
+	TokenSvc    common.TokenService
+	StorageSvc  common.Storager
+	RoleManager rolemanager.RoleManager
+	Config      common.DefaultEnvConfig
 )
 
 var (
@@ -162,6 +184,23 @@ func initConfig() {
 	if err == nil {
 		Services = svcBldr
 	}
+
+	policyName = Config.GetEnvVar("PRINCIPAL_POLICY_NAME", "DCEPrincipalDefaultPolicy")
+	artifactsBucket = Config.GetEnvVar("ARTIFACTS_BUCKET", "DefaultArtifactBucket")
+	principalPolicyS3Key = Config.GetEnvVar("PRINCIPAL_POLICY_S3_KEY", "DefaultPrincipalPolicyS3Key")
+	principalRoleName = Config.GetEnvVar("PRINCIPAL_ROLE_NAME", "DCEPrincipal")
+	principalIAMDenyTags = strings.Split(Config.GetEnvVar("PRINCIPAL_IAM_DENY_TAGS", "DefaultPrincipalIamDenyTags"), ",")
+	principalMaxSessionDuration = int64(Config.GetEnvIntVar("PRINCIPAL_MAX_SESSION_DURATION", 100))
+	tags = []*iam.Tag{
+		{Key: aws.String("Terraform"), Value: aws.String("False")},
+		{Key: aws.String("Source"), Value: aws.String("github.com/Optum/dce//cmd/lambda/accounts")},
+		{Key: aws.String("Environment"), Value: aws.String(Config.GetEnvVar("TAG_ENVIRONMENT", "DefaultTagEnvironment"))},
+		{Key: aws.String("Contact"), Value: aws.String(Config.GetEnvVar("TAG_CONTACT", "DefaultTagContact"))},
+		{Key: aws.String("AppName"), Value: aws.String(Config.GetEnvVar("TAG_APP_NAME", "DefaultTagAppName"))},
+	}
+	accountCreatedTopicArn = Config.GetEnvVar("ACCOUNT_CREATED_TOPIC_ARN", "DefaultAccountCreatedTopicArn")
+	resetQueueURL = Config.GetEnvVar("RESET_SQS_URL", "DefaultResetSQSUrl")
+	allowedRegions = strings.Split(Config.GetEnvVar("ALLOWED_REGIONS", "us-east-1"), ",")
 }
 
 // Handler - Handle the lambda function
@@ -172,8 +211,30 @@ func Handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 }
 
 func main() {
+	Dao = newDBer()
+	AWSSession = newAWSSession()
+	Queue = common.SQSQueue{Client: sqs.New(AWSSession)}
+	SnsSvc = &common.SNS{Client: sns.New(AWSSession)}
+	TokenSvc = common.STS{Client: sts.New(AWSSession)}
+
+	StorageSvc = common.S3{
+		Client:  s3.New(AWSSession),
+		Manager: s3manager.NewDownloader(AWSSession),
+	}
+
+	RoleManager = &rolemanager.IAMRoleManager{}
 	// Send Lambda requests to the router
 	lambda.Start(Handler)
+}
+
+func newDBer() db.DBer {
+	dao, err := db.NewFromEnv()
+	if err != nil {
+		errorMessage := fmt.Sprintf("Failed to initialize database: %s", err)
+		log.Fatal(errorMessage)
+	}
+
+	return dao
 }
 
 func newAWSSession() *session.Session {
@@ -195,29 +256,34 @@ func WriteAPIResponse(w http.ResponseWriter, status int, body interface{}) {
 func ErrorHandler(w http.ResponseWriter, err error) {
 	var status int
 	var code string
+	var message string
 	// Print the Error Message
-	log.Print(err)
+	log.Printf("Error: %+v\n", err)
 
 	// Determine status code
 	if gErrors.Is(err, errors.ErrNotFound) {
 		status = http.StatusNotFound
 		code = "NotFound"
-	} else if gErrors.Is(err, errors.ErrValidation) {
+		message = err.Error()
+	} else if gErrors.Is(err, &errors.ErrValidation{}) {
 		status = http.StatusBadRequest
 		code = "RequestValidationError"
+		message = err.Error()
 	} else if gErrors.Is(err, errors.ErrConflict) {
 		status = http.StatusConflict
 		code = "Conflict"
+		message = err.Error()
 	} else {
 		status = http.StatusInternalServerError
 		code = "ServerError"
+		message = err.Error()
 	}
 	WriteAPIResponse(
 		w,
 		status,
 		response.CreateErrorResponse(
 			code,
-			err.Error(),
+			message,
 		),
 	)
 }

@@ -13,7 +13,7 @@ import (
 // GetAllAccounts - Returns all the accounts.
 func GetAllAccounts(w http.ResponseWriter, r *http.Request) {
 	// Fetch the accounts.
-	var dao *data.Account
+	dao := &data.Account{}
 	if err := Services.Config.GetService(dao); err != nil {
 		ErrorHandler(w, err)
 		return
@@ -55,7 +55,7 @@ func GetAccountByStatus(w http.ResponseWriter, r *http.Request) {
 	accountStatus := r.FormValue("accountStatus")
 	status := model.AccountStatus(accountStatus)
 
-	var dao *data.Account
+	dao := &data.Account{}
 	if err := Services.Config.GetService(dao); err != nil {
 		ErrorHandler(w, err)
 		return

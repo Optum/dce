@@ -26,7 +26,10 @@ func (am *AccountManager) Setup(i string) error {
 
 	adminRoleArn, err := arn.Parse(i)
 	if err != nil {
-		return fmt.Errorf("Admin Role Arn isn't the appropriate format: %s: %w", err, errors.ErrValidation)
+		return &errors.ErrValidation{
+			Message: "admin role arn is not a valid arn",
+			Err:     err,
+		}
 	}
 
 	// Prevent setting this multiple times just in case
@@ -34,7 +37,13 @@ func (am *AccountManager) Setup(i string) error {
 
 	// Create the credentials from AssumeRoleProvider to assume the role
 	creds := stscreds.NewCredentials(am.awsSession, adminRoleArn.String())
-
+	_, err = creds.Get()
+	if err != nil {
+		return &errors.ErrValidation{
+			Message: "cannot assume admin role arn",
+			Err:     err,
+		}
+	}
 	am.awsConfig = aws.NewConfig().WithCredentials(creds)
 
 	am.adminRoleArn = adminRoleArn

@@ -150,32 +150,35 @@ func (a *Account) save(u Updater) error {
 
 // Update the Account record in DynamoDB
 func (a *Account) Update(d model.Account, u Updater, am Manager) error {
-	fmt.Printf("ID: %s\n", *a.data.ID)
 	err := validation.ValidateStruct(&d,
 		// ID has to be empty
 		validation.Field(&d.ID, validation.NilOrNotEmpty, validation.In(*a.data.ID)),
 		validation.Field(&d.AdminRoleArn, validation.By(isNilOrUsableAdminRole(am))),
+		//validation.Field(&d.AdminRoleArn, validation.By(isNil)),
+		validation.Field(&d.ID, validation.By(isNil)),
+		validation.Field(&d.LastModifiedOn, validation.By(isNil)),
+		validation.Field(&d.Status, validation.By(isNil)),
+		validation.Field(&d.CreatedOn, validation.By(isNil)),
+		validation.Field(&d.PrincipalRoleArn, validation.By(isNil)),
+		validation.Field(&d.PrincipalPolicyHash, validation.By(isNil)),
 	)
 	if err != nil {
-		return fmt.Errorf("input validation error \"%s\": %w", err, errors.ErrValidation)
+		return &errors.ErrValidation{
+			Message: fmt.Sprintf("update validation error: %s", err.Error()),
+			Err:     err,
+		}
 	}
 
 	if d.AdminRoleArn != nil {
 		a.data.AdminRoleArn = d.AdminRoleArn
 	}
-	if d.PrincipalRoleArn != nil {
-		a.data.PrincipalRoleArn = d.PrincipalRoleArn
-	}
 	if d.Metadata != nil {
 		a.data.Metadata = d.Metadata
-	}
-	if d.Status != nil {
-		a.data.Status = d.Status
 	}
 
 	err = a.save(u)
 	if err != nil {
-		return fmt.Errorf("unable to update account \"%s\": %w", *a.data.ID, err)
+		return fmt.Errorf("unable to update account %s: %w", *a.data.ID, err)
 	}
 	return nil
 }

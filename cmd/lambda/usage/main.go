@@ -29,7 +29,7 @@ const (
 	AccountIDParam   = "accountId"
 )
 
-type usageControllerConfiguration struct {
+type controllerConfiguration struct {
 	policyName                  string   `env:"PRINCIPAL_POLICY_NAME" defaultEnv:"DCEPrincipalDefaultPolicy"`
 	accountCreatedTopicArn      string   `env:"ACCOUNT_CREATED_TOPIC_ARN" defaultEnv:"DefaultAccountCreatedTopicArn"`
 	accountDeletedTopicArn      string   `env:"ACCOUNT_DELETED_TOPIC_ARN"`
@@ -58,7 +58,7 @@ var (
 	// Services configuration
 	Services *config.ServiceBuilder
 	// Settings - the configuration settings for the controller
-	Settings *usageControllerConfiguration
+	Settings *controllerConfiguration
 )
 
 // messageBody is the structured object of the JSON Message to send
@@ -69,8 +69,9 @@ type messageBody struct {
 }
 
 func init() {
-	log.Println("Cold start; creating router for /usage")
+	initConfig()
 
+	log.Println("Cold start; creating router for /usage")
 	usageRoutes := api.Routes{
 
 		api.Route{
@@ -97,6 +98,39 @@ func init() {
 	}
 	r := api.NewRouter(Services.Config, usageRoutes)
 	muxLambda = gorillamux.New(r)
+}
+
+// initConfig configures package-level variables
+// loaded from env vars.
+func initConfig() {
+	cfgBldr := &config.ConfigurationBuilder{}
+	Settings = &controllerConfiguration{}
+	if err := cfgBldr.Unmarshal(Settings); err != nil {
+		log.Fatalf("Could not load configuration: %s", err.Error())
+	}
+
+	// load up the values into the various settings...
+	cfgBldr.WithEnv("AWS_CURRENT_REGION", "AWS_CURRENT_REGION", "us-east-1").Build()
+	svcBldr := &config.ServiceBuilder{Config: cfgBldr}
+
+	_, err := svcBldr.
+		// AWS services...
+		WithDynamoDB().
+		WithSTS().
+		WithS3().
+		WithSNS().
+		WithSQS().
+		// DCE services...
+		WithDAO().
+		WithRoleManager().
+		WithStorageService().
+		WithDataService().
+		WithAccountManager().
+		Build()
+
+	if err == nil {
+		Services = svcBldr
+	}
 }
 
 // Handler - Handle the lambda function
