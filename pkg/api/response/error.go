@@ -44,7 +44,7 @@ type ErrorBase struct {
 }
 
 func BadRequestError(message string) events.APIGatewayProxyResponse {
-	return CreateAPIErrorResponse(
+	return CreateAPIGatewayErrorResponse(
 		http.StatusBadRequest,
 		CreateErrorResponse("ClientError", message),
 	)
@@ -58,69 +58,69 @@ func RequestValidationError(message string) events.APIGatewayProxyResponse {
 }
 
 func UnsupportedMethodError(method string) events.APIGatewayProxyResponse {
-	return CreateAPIErrorResponse(
+	return CreateAPIGatewayErrorResponse(
 		http.StatusMethodNotAllowed,
 		CreateErrorResponse("ClientError", fmt.Sprintf("Method %s is not allowed", method)),
 	)
 }
 
 func ClientErrorWithResponse(message string) events.APIGatewayProxyResponse {
-	return CreateAPIErrorResponse(
+	return CreateAPIGatewayErrorResponse(
 		500,
 		CreateErrorResponse("ClientError", message),
 	)
 }
 
 func ClientBadRequestError(message string) events.APIGatewayProxyResponse {
-	return CreateAPIErrorResponse(
+	return CreateAPIGatewayErrorResponse(
 		http.StatusBadRequest,
 		CreateErrorResponse("ClientError", message),
 	)
 }
 func ServerError() events.APIGatewayProxyResponse {
-	return CreateAPIErrorResponse(
+	return CreateAPIGatewayErrorResponse(
 		500,
 		CreateErrorResponse("ServerError", "Internal server error"),
 	)
 }
 
 func ServerErrorWithResponse(message string) events.APIGatewayProxyResponse {
-	return CreateAPIErrorResponse(
+	return CreateAPIGatewayErrorResponse(
 		500,
 		CreateErrorResponse("ServerError", message),
 	)
 }
 
 func ServiceUnavailableError(message string) events.APIGatewayProxyResponse {
-	return CreateAPIErrorResponse(
+	return CreateAPIGatewayErrorResponse(
 		http.StatusServiceUnavailable,
 		CreateErrorResponse("ServerError", message),
 	)
 }
 
 func AlreadyExistsError() events.APIGatewayProxyResponse {
-	return CreateAPIErrorResponse(
+	return CreateAPIGatewayErrorResponse(
 		409,
 		CreateErrorResponse("AlreadyExistsError", "The requested resource cannot be created, as it conflicts with an existing resource"),
 	)
 }
 
 func ConflictError(message string) events.APIGatewayProxyResponse {
-	return CreateAPIErrorResponse(
+	return CreateAPIGatewayErrorResponse(
 		http.StatusConflict,
 		CreateErrorResponse("ClientError", message),
 	)
 }
 
 func NotFoundError() events.APIGatewayProxyResponse {
-	return CreateAPIErrorResponse(
+	return CreateAPIGatewayErrorResponse(
 		404,
 		CreateErrorResponse("NotFound", "The requested resource could not be found."),
 	)
 }
 
 func UnauthorizedError() events.APIGatewayProxyResponse {
-	return CreateAPIErrorResponse(
+	return CreateAPIGatewayErrorResponse(
 		401,
 		CreateErrorResponse("Unauthorized", "Could not access the resource requested."),
 	)

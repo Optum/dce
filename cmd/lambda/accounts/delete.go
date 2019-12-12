@@ -49,7 +49,7 @@ func DeleteAccount(w http.ResponseWriter, r *http.Request) {
 	// Push the account to the Reset Queue, so it gets cleaned up
 	sendToResetQueue(deletedAccount.ID)
 
-	// json.NewEncoder(w).Encode(response.CreateAPIResponse(http.StatusNoContent, ""))
+	// json.NewEncoder(w).Encode(response.CreateAPIGatewayResponse(http.StatusNoContent, ""))
 	response.WriteAPIResponse(w, http.StatusNoContent, "")
 }
 

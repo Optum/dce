@@ -29,6 +29,11 @@ func main() {
 	awsSession := newAWSSession()
 	tokenSvc := common.STS{Client: sts.New(awsSession)}
 	cognitoSvc := cognitoidentityprovider.New(awsSession)
+	userDetails := &api.UserDetails{
+		CognitoUserPoolID:        common.RequireEnv("COGNITO_USER_POOL_ID"),
+		RolesAttributesAdminName: common.RequireEnv("COGNITO_ROLES_ATTRIBUTE_ADMIN_NAME"),
+		CognitoClient:            cognitoSvc,
+	}
 
 	router := &api.Router{
 		ResourceName: "/auth",
@@ -37,12 +42,9 @@ func main() {
 			TokenService:  tokenSvc,
 			FederationURL: federationURL,
 			ConsoleURL:    consoleURL,
-			UserDetailer: &api.UserDetails{
-				CognitoUserPoolID:        common.RequireEnv("COGNITO_USER_POOL_ID"),
-				RolesAttributesAdminName: common.RequireEnv("COGNITO_ROLES_ATTRIBUTE_ADMIN_NAME"),
-				CognitoClient:            cognitoSvc,
-			},
+			UserDetailer:  userDetails,
 		},
+		UserDetails: userDetails,
 	}
 
 	lambda.Start(router.Route)

@@ -1,0 +1,31 @@
+<!DOCTYPE html> 
+<html>
+    <head> 
+    <meta charset="utf-8">
+    <link rel="stylesheet" type="text/css" href="/api/auth/public/main.css" />
+    <script>
+        var SITE_PATH_PREFIX = "{{.SitePathPrefix}}"
+        var APIGW_DEPLOYMENT_NAME = "{{.ApigwDeploymentName}}"
+        var AWS_CURRENT_REGION = "{{.AwsCurrentRegion}}"
+        var IDENTITY_POOL_ID = "{{.IdentityPoolID}}"
+        var USER_POOL_PROVIDER_NAME = "{{.UserPoolProviderName}}"
+        var USER_POOL_CLIENT_ID = "{{.UserPoolClientID}}"
+        var USER_POOL_APP_WEB_DOMAIN = "{{.UserPoolAppWebDomain}}"
+        var USER_POOL_ID = "{{.UserPoolID}}"
+    </script>
+    </head>
+
+    <body>
+        <script src="/api/auth/public/amazon-cognito-auth.min.js"></script>
+        <script src="https://sdk.amazonaws.com/js/aws-sdk-2.536.0.min.js"></script>
+        <script src="/api/auth/public/vue.min.js"></script>
+
+        <div id="app" v-cloak>
+            <h1 class="center-text">DCE CLI Credentials</h1>
+            <button @click="copyToClipboard()" class="js-textareacopybtn center-block">Copy To Clipboard</button>
+            <textarea rows="10" cols="50" class="js-copytextarea center-block" id="credentialscontainer"></textarea>
+            <button @click="signOut()" class="center-block">Sign Out</button>
+        </div>
+        <script src="/api/auth/public/main.js"></script>
+    </body>
+</html>

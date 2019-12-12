@@ -9,9 +9,9 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 )
 
-// CreateAPIResponse is a helper function to create and return a valid response
+// CreateAPIGatewayResponse is a helper function to create and return a valid response
 // for an API Gateway
-func CreateAPIResponse(status int, body string) events.APIGatewayProxyResponse {
+func CreateAPIGatewayResponse(status int, body string) events.APIGatewayProxyResponse {
 	return events.APIGatewayProxyResponse{
 		StatusCode: status,
 		Headers: map[string]string{
@@ -49,8 +49,8 @@ func CreateMultiValueHeaderAPIErrorResponse(status int, errorCode string, messag
 	}
 }
 
-// CreateJSONResponse - Create a JSON response
-func CreateJSONResponse(status int, response interface{}) events.APIGatewayProxyResponse {
+// CreateAPIGatewayJSONResponse - Create a JSON response
+func CreateAPIGatewayJSONResponse(status int, response interface{}) events.APIGatewayProxyResponse {
 	body, err := json.Marshal(response)
 
 	// Create an error response, to handle the marshalling error
@@ -59,7 +59,7 @@ func CreateJSONResponse(status int, response interface{}) events.APIGatewayProxy
 		return ServerError()
 	}
 
-	return CreateAPIResponse(status, string(body))
+	return CreateAPIGatewayResponse(status, string(body))
 }
 
 // CreateMultiValueHeaderJSONResponse - Creates a response with JSON in it with multi-value headers
@@ -75,9 +75,9 @@ func CreateMultiValueHeaderJSONResponse(status int, response interface{}) events
 	return CreateMultiValueHeaderAPIResponse(status, string(body))
 }
 
-// CreateAPIErrorResponse is a helper function to create and return a valid error
+// CreateAPIGatewayErrorResponse is a helper function to create and return a valid error
 // response message for the API
-func CreateAPIErrorResponse(responseCode int,
+func CreateAPIGatewayErrorResponse(responseCode int,
 	errResp ErrorResponse) events.APIGatewayProxyResponse {
 	// Create the Error Response
 	apiResponse, err := json.Marshal(errResp)
@@ -86,10 +86,10 @@ func CreateAPIErrorResponse(responseCode int,
 	// is structured to be json compatible
 	if err != nil {
 		log.Printf("Failed to Create Valid Error Response: %s", err)
-		return CreateAPIResponse(http.StatusInternalServerError, fmt.Sprintf(
+		return CreateAPIGatewayResponse(http.StatusInternalServerError, fmt.Sprintf(
 			"{\"error\":\"Failed to Create Valid Error Response: %s\"", err))
 	}
 
 	// Return an error
-	return CreateAPIResponse(responseCode, string(apiResponse))
+	return CreateAPIGatewayResponse(responseCode, string(apiResponse))
 }
