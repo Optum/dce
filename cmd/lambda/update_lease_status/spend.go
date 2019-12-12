@@ -117,7 +117,7 @@ func calculatePrincipalSpend(input *calculateSpendInput) (float64, error) {
 
 	spend := 0.0
 	for _, usage := range usageRecords {
-			spend = spend + usage.CostAmount
+		spend = spend + usage.CostAmount
 	}
 
 	log.Printf("Principal %s has spent $%.2f of their current principal budget amount",
