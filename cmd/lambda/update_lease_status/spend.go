@@ -110,14 +110,17 @@ func calculatePrincipalSpend(input *calculateSpendInput) (float64, error) {
 	)
 
 	// Query Usage cache DB
-	usageRecords, err := input.usageSvc.GetUsageByPrincipal(budgetStartTime, input.lease.PrincipalID)
+	usageRecords, err := input.usageSvc.GetUsageByDateRange(budgetStartTime, budgetEndTime)
 	if err != nil {
 		return 0, errors.Wrapf(err, "Failed to retrieve usage for account %s", input.lease.AccountID)
 	}
 
 	spend := 0.0
 	for _, usage := range usageRecords {
-		spend = spend + usage.CostAmount
+		log.Printf("usage records retrieved: %v", usage)
+		if usage.PrincipalID == input.lease.PrincipalID {
+			spend = spend + usage.CostAmount
+		}
 	}
 
 	log.Printf("Principal %s has spent $%.2f of their current principal budget amount",
