@@ -36,7 +36,7 @@ func UpdateAccountByID(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&request)
 	if err != nil {
-		WriteAPIErrorResponse(w, http.StatusBadRequest, "ClientError", "invalid request parameters")
+		response.WriteAPIErrorResponse(w, http.StatusBadRequest, "ClientError", "invalid request parameters")
 		return
 	}
 	request.ID = &accountID
@@ -50,7 +50,7 @@ func UpdateAccountByID(w http.ResponseWriter, r *http.Request) {
 		})
 
 		if err != nil {
-			WriteRequestValidationError(
+			response.WriteRequestValidationError(
 				w,
 				fmt.Sprintf("Unable to update account %s: "+
 					"admin role is not assumable by the master account",
@@ -78,7 +78,7 @@ func UpdateAccountByID(w http.ResponseWriter, r *http.Request) {
 		accountPartial.Metadata = *request.Metadata
 	}
 	if len(fieldsToUpdate) == 0 {
-		WriteRequestValidationError(
+		response.WriteRequestValidationError(
 			w,
 			fmt.Sprintf("Unable to update account %s: "+
 				"no updatable fields provided",
@@ -92,23 +92,23 @@ func UpdateAccountByID(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		// If the account doesn't exist, return a 404
 		if _, ok := err.(*db.NotFoundError); ok {
-			WriteNotFoundError(w)
+			response.WriteNotFoundError(w)
 			return
 		}
 		// Other DB errors return a 500
 		log.Printf("ERROR: Failed to update account %s: %s", *request.ID, err)
-		WriteServerErrorWithResponse(w, "Internal Server Error")
+		response.WriteServerErrorWithResponse(w, "Internal Server Error")
 		return
 	}
 
 	accountJSON, err := json.Marshal(response.AccountResponse(*acct))
 	if err != nil {
 		log.Printf("ERROR: Failed to marshal account response for %s: %s", *request.ID, err)
-		WriteServerErrorWithResponse(w, "Internal server error")
+		response.WriteServerErrorWithResponse(w, "Internal server error")
 		return
 	}
 
-	WriteAPIResponse(
+	response.WriteAPIResponse(
 		w,
 		http.StatusOK,
 		string(accountJSON),
