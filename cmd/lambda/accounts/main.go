@@ -118,7 +118,7 @@ func init() {
 			"GET",
 			"/accounts",
 			api.EmptyQueryString,
-			GetAllAccounts,
+			GetAccounts,
 		},
 		api.Route{
 			"GetAccountByID",

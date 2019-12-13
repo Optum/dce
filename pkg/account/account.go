@@ -30,9 +30,8 @@ type SingleReader interface {
 
 // MultipleReader reads multiple accounts from the data store
 type MultipleReader interface {
-	GetAccounts() (*model.Accounts, error)
+	GetAccounts(*model.Account) (*model.Accounts, error)
 	GetAccountsByStatus(status string) (*model.Accounts, error)
-	GetAccountsByPrincipalID(principalID string) (*model.Accounts, error)
 }
 
 // Reader data Layer

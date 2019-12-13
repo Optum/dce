@@ -4,6 +4,7 @@ import (
 	"github.com/Optum/dce/pkg/model"
 )
 
+// Accounts is a list of type Account
 type Accounts []Account
 
 func modelToAccounts(accounts *model.Accounts) *Accounts {
@@ -27,21 +28,10 @@ func GetAccountsByStatus(status model.AccountStatus, d MultipleReader) (*Account
 	return modelToAccounts(accounts), nil
 }
 
-// GetAccountsByPrincipalID Get a list of accounts based on Principal ID
-func GetAccountsByPrincipalID(principalID string, d MultipleReader) (*Accounts, error) {
-	accounts := &model.Accounts{}
-	accounts, err := d.GetAccountsByPrincipalID(principalID)
-	if err != nil {
-		return nil, err
-	}
-
-	return modelToAccounts(accounts), nil
-}
-
 // GetAccounts Get a list of accounts based on Principal ID
-func GetAccounts(d MultipleReader) (*Accounts, error) {
+func GetAccounts(q *model.Account, d MultipleReader) (*Accounts, error) {
 	accounts := &model.Accounts{}
-	accounts, err := d.GetAccounts()
+	accounts, err := d.GetAccounts(q)
 	if err != nil {
 		return nil, err
 	}

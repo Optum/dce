@@ -2,14 +2,14 @@ package model
 
 // Account - Handles importing and exporting Accounts and non-exported Properties
 type Account struct {
-	ID                  *string                `json:"id,omitempty" dynamodbav:"Id"`                                             // AWS Account ID
-	Status              *AccountStatus         `json:"accountStatus,omitempty" dynamodbav:"AccountStatus,omitempty"`             // Status of the AWS Account
-	LastModifiedOn      *int64                 `json:"lastModifiedOn,omitempty" dynamodbav:"LastModifiedOn"`                     // Last Modified Epoch Timestamp
-	CreatedOn           *int64                 `json:"createdOn,omitempty"  dynamodbav:"CreatedOn,omitempty"`                    // Account CreatedOn
-	AdminRoleArn        *string                `json:"adminRoleArn,omitempty"  dynamodbav:"AdminRoleArn"`                        // Assumed by the master account, to manage this user account
-	PrincipalRoleArn    *string                `json:"principalRoleArn,omitempty"  dynamodbav:"PrincipalRoleArn,omitempty"`      // Assumed by principal users
-	PrincipalPolicyHash *string                `json:"principalPolicyHash,omitempty" dynamodbav:"PrincipalPolicyHash,omitempty"` // The the hash of the policy version deployed
-	Metadata            map[string]interface{} `json:"metadata,omitempty"  dynamodbav:"Metadata,omitempty"`                      // Any org specific metadata pertaining to the account
+	ID                  *string                `json:"id,omitempty" dynamodbav:"Id" schema:"id"`                                                                // AWS Account ID
+	Status              *AccountStatus         `json:"accountStatus,omitempty" dynamodbav:"AccountStatus,omitempty"  schema:"accountStatus"`                    // Status of the AWS Account
+	LastModifiedOn      *int64                 `json:"lastModifiedOn,omitempty" dynamodbav:"LastModifiedOn"   schema:"lastModifiedOn"`                          // Last Modified Epoch Timestamp
+	CreatedOn           *int64                 `json:"createdOn,omitempty"  dynamodbav:"CreatedOn,omitempty"   schema:"createdOn"`                              // Account CreatedOn
+	AdminRoleArn        *string                `json:"adminRoleArn,omitempty"  dynamodbav:"AdminRoleArn"   schema:"adminRoleArn"`                               // Assumed by the master account, to manage this user account
+	PrincipalRoleArn    *string                `json:"principalRoleArn,omitempty"  dynamodbav:"PrincipalRoleArn,omitempty"   schema:"principalRoleArn"`         // Assumed by principal users
+	PrincipalPolicyHash *string                `json:"principalPolicyHash,omitempty" dynamodbav:"PrincipalPolicyHash,omitempty"   schema:"principalPolicyHash"` // The the hash of the policy version deployed
+	Metadata            map[string]interface{} `json:"metadata,omitempty"  dynamodbav:"Metadata,omitempty"   schema:"metadata"`                                 // Any org specific metadata pertaining to the account
 }
 
 // Accounts is multiple of Account

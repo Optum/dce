@@ -113,15 +113,16 @@ func (a *Account) GetAccountByID(accountID string, account *model.Account) error
 
 // GetAccountsByStatus - Returns the accounts by status
 func (a *Account) GetAccountsByStatus(status string) (*model.Accounts, error) {
+
 	res, err := a.AwsDynamoDB.Query(&dynamodb.QueryInput{
 		TableName: aws.String(a.TableName),
-		IndexName: aws.String("Status"),
+		IndexName: aws.String("AccountStatus"),
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
 			":status": {
 				S: aws.String(string(status)),
 			},
 		},
-		KeyConditionExpression: aws.String("Status = :status"),
+		KeyConditionExpression: aws.String("AccountStatus = :status"),
 		ConsistentRead:         aws.Bool(a.ConsistentRead),
 	})
 	if err != nil {
@@ -133,32 +134,25 @@ func (a *Account) GetAccountsByStatus(status string) (*model.Accounts, error) {
 	return accounts, err
 }
 
-// GetAccountsByPrincipalID Get a list of accounts based on Principal ID
-func (a *Account) GetAccountsByPrincipalID(principalID string) (*model.Accounts, error) {
-	res, err := a.AwsDynamoDB.Query(&dynamodb.QueryInput{
-		TableName: aws.String(a.TableName),
-		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-			":pid": {
-				S: aws.String(string(principalID)),
-			},
-		},
-		KeyConditionExpression: aws.String("PrincipalId = :pid"),
-		ConsistentRead:         aws.Bool(a.ConsistentRead),
-	})
-	if err != nil {
-		return nil, fmt.Errorf("error gettings accounts by principal ID %s: %s: %w", principalID, err, errors.ErrInternalServer)
-	}
-
-	accounts := &model.Accounts{}
-	err = dynamodbattribute.UnmarshalListOfMaps(res.Items, accounts)
-	return accounts, err
-}
-
 // GetAccounts Get a list of accounts based on Principal ID
-func (a *Account) GetAccounts() (*model.Accounts, error) {
-	res, err := a.AwsDynamoDB.Scan(&dynamodb.ScanInput{
-		TableName:      aws.String(a.TableName),
-		ConsistentRead: aws.Bool(a.ConsistentRead),
+func (a *Account) GetAccounts(q *model.Account) (*model.Accounts, error) {
+	var expr expression.Expression
+	var err error
+	var res *dynamodb.ScanOutput
+
+	filters := getFiltersFromStruct(q)
+	if filters != nil {
+		expr, err = expression.NewBuilder().WithFilter(*filters).Build()
+		if err != nil {
+			return nil, fmt.Errorf("Unable to build query: %s, %w", err, errors.ErrInternalServer)
+		}
+	}
+	res, err = a.AwsDynamoDB.Scan(&dynamodb.ScanInput{
+		TableName:                 aws.String(a.TableName),
+		ConsistentRead:            aws.Bool(a.ConsistentRead),
+		FilterExpression:          expr.Filter(),
+		ExpressionAttributeNames:  expr.Names(),
+		ExpressionAttributeValues: expr.Values(),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("error gettings accounts: %s: %w", err, errors.ErrInternalServer)

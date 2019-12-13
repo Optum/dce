@@ -12,18 +12,6 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-// account - Handles importing and exporting Accounts and non-exported Properties
-type account struct {
-	ID                  string                 `json:"id" dynamodbav:"Id"`                                   // AWS Account ID
-	Status              string                 `json:"Status" dynamodbav:"Status"`                           // Status of the AWS Account
-	LastModifiedOn      int64                  `json:"lastModifiedOn" dynamodbav:"LastModifiedOn"`           // Last Modified Epoch Timestamp
-	CreatedOn           int64                  `json:"createdOn"  dynamodbav:"CreatedOn"`                    // Account CreatedOn
-	AdminRoleArn        string                 `json:"adminRoleArn"  dynamodbav:"AdminRoleArn"`              // Assumed by the master account, to manage this user account
-	PrincipalRoleArn    string                 `json:"principalRoleArn"  dynamodbav:"PrincipalRoleArn"`      // Assumed by principal users
-	PrincipalPolicyHash string                 `json:"principalPolicyHash" dynamodbav:"PrincipalPolicyHash"` // The the hash of the policy version deployed
-	Metadata            map[string]interface{} `json:"metadata"  dynamodbav:"Metadata"`                      // Any org specific metadata pertaining to the account
-}
-
 func TestGet(t *testing.T) {
 
 	t.Run("should return an account object", func(t *testing.T) {
