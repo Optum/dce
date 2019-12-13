@@ -2,7 +2,7 @@
 
 A practical guide to common operations and customizations for DCE.
 
-## Using the DCE CLI
+## Use the DCE CLI
 
 The DCE CLI is the easiest way to quickly deploy and use DCE. For more advanced usage, refer to the [DCE API](#use-the-dce-api).
 
@@ -234,7 +234,7 @@ There are three ways to "log in" to a leased account.
     dce accounts remove 555555555555
     ```
 
-## Using the DCE API
+## Use the DCE API
 
 DCE provides a set of endpoints for managing account pools and leases, and for monitoring account usage.
 
