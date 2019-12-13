@@ -7,13 +7,15 @@ There are two ways to authenticate against the DCE APIs:
 
 ## Using Cognito
 
-Cognito is used to allow an admin to add users to DCE.  This can be done by using the Cognito User Pool.  Additionally any IdP supported by Cognito User Pools can also be used.
+Cognito is used to allow an admin to add users to DCE.  This can be done by using the Cognito User Pool.  This section will walk through setting this 
+up in the AWS web console, but note that all of these operations can be automated using the AWS CLI or SDKs. While
+this example uses Cognito User Pools to create and manage users, you may also [integrate Cognito with your own IdP](https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-pools-identity-provider.html).
 
 ### Roles
 
 #### Admins
 
-Admins have full control to all APIs and will not get back filtered results when querying APIs. 
+Admins have full access to all APIs and will not get back filtered results when querying APIs.
 
 There are three different ways a user is considered an admin:
 
@@ -25,12 +27,94 @@ There are three different ways a user is considered an admin:
 
 Users (by default) are given access to the leasing and usage APIs.  This is done so they can request their own lease and look at the usage of their leases.  Any appropriately authenticated user in Cognito will automatically fall into the `Users` role.
 
+### Configuring Cognito for Usage with the DCE CLI
+
+1. Open the AWS Console in your DCE Master Account and Navigate to AWS Cognito by typing `Cognito` in the search bar
+
+    ![Cognito](./img/cognito.png)
+
+1. Select `Manage User Pools` and click on the dce user pool.
+
+    ![Manage user pools](./img/manageuserpools.png)
+
+1. Select `Users and groups`
+
+    ![Users and Groups](./img/usersandgroups.png)
+
+1. Create a user
+
+    ![Create User](./img/createuser.png)
+
+1. Name the user and provide a temporary password. You may uncheck all of the boxes and leave the other fields blank. This user will not have admin priviliges.
+
+    ![Quick start user](./img/quickstartuser.png)
+
+1. Create a second user to serve as a system admin. Follow the same steps as you did for creating the first user, but name this one something appropriate for their role as an administrator.
+
+    ![Quick start admin](./img/quickstartadmin.png)
+
+1. Create a group
+
+    ![Create group](./img/creategroup.png)
+
+1. Users in this group will be granted admin access to DCE. The group name must contain the term `Admin`. Choose a name and click on the `Create group` button.
+
+    ![Group name](./img/groupname.png)
+
+1. Add your admin user to the admin group to grant them admin privileges.
+    ![Quick start admin detail](./img/quickstartadmindetail.png)
+    ![Add to group](./img/addtogroup.png)
+
+1. Type `dce auth` in your command terminal. This will open a browser with a log in screen. Enter the username and password for the non-admin user that you created. Reset the password as prompted.
+
+    ![Quick start user login](./img/quickstartuserlogin.png)
+
+1. Upon successfully logging in, you will be redirected to a credentials page containing a temporary authentication code. Click the button to copy the auth code to your clipboard.
+
+    ![Credentials Page](./img/credspage.png)
+
+1. Return to your command terminal and paste the auth code into the prompt.
+
+    ```
+    dce auth
+    ✔ Enter API Token: : █
+    ```
+
+1. You are now authenticated as a DCE User. Test that you have proper authorization by typing `dce leases list`.
+This will return an empty list indicating that there are currently no leases which you can view.
+If you are not properly authenticated as a user, you will see a permissions error.
+
+    ```
+    dce leases list
+    []
+    ```
+
+1. Users are not authorized to list child accounts in the accounts pool. Type `dce accounts list` to verify that you get a permissions error when trying to
+view information you do not have access to.
+
+    ```
+    dce accounts list
+    err:  [GET /accounts][403] getAccountsForbidden
+    ```
+
+1. You will need to be authenticated as an admin before continuing to the next section. Type `dce auth` to log in as a different user. Sign out, then enter the username
+and password for the admin that you created. As before, copy the auth code and paste it in the prompt in your command terminal.
+
+    ![Admin login](./quickstartadminlogin.png)
+
+1. Test that you have admin authorization by typing `dce accounts list`. You should see an empty list now instead of a permissions error.
+
+    ```
+    dce accounts list
+    []
+    ```
+
 ## Using IAM Credentials
 
 
 The DCE API accepts authentication via IAM credentials using [SigV4 signed requests](https://docs.aws.amazon.com/general/latest/gr/sigv4_signing.html).
 
-Any requests made via IAM Credentials will be treated as an [admin role](#admins). 
+Any requests made via sufficiently permissioned IAM Credentials will be treated as an [admin role](#admins).
 
 The process for signing requests with SigV4 is somewhat involved, but luckily there are a number of tools to make this easier. For example:
 
@@ -40,7 +124,9 @@ The process for signing requests with SigV4 is somewhat involved, but luckily th
 
 AWS also provides [examples for a number of languages in their docs](https://docs.aws.amazon.com/general/latest/gr/signature-v4-examples.html).
 
+### Using IAM Credentials with the DCE CLI
 
+If there is no api auth token present in the DCE configuration file, the CLI will look for AWS credentials in `$HOME/.aws/credentials` (Linux/OSX) or `%USERPROFILE%\.aws\credentials` (Windows).
 
 ### IAM Policy for DCE API requests
 

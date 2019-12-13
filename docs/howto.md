@@ -2,9 +2,241 @@
 
 A practical guide to common operations and customizations for DCE.
 
-## Use the DCE API
+## Using the DCE CLI
 
-DCE provides a set of endpoints for managing account pools and leases, and for monitoring account usage. 
+The DCE CLI is the easiest way to quickly deploy and use DCE. For more advanced usage, refer to the [DCE API](#use-the-dce-api).
+
+### Installing the DCE CLI
+
+1. Download the appropriate executable for your OS from the [latest release](https://github.com/Optum/dce-cli/releases/latest). e.g. for mac, you should download dce_darwin_amd64.zip
+
+1. Unzip the artifact and move the executable to a directory on your PATH, e.g.
+
+    ```
+    # Download the zip file
+    wget https://github.com/Optum/dce-cli/releases/download/<VERSION>/dce_darwin_amd64.zip
+
+    # Unzip to a directory on your path
+    unzip dce_darwin_amd64.zip -d /usr/local/bin
+    ```
+
+1. Test the dce command by typing `dce`
+    ```
+    $ dce
+    Disposable Cloud Environment (DCE)
+
+      The DCE cli allows:
+
+      - Admins to provision DCE to a master account and administer said account
+      - Users to lease accounts and execute commands against them
+
+    Usage:
+      dce [command]
+
+    Available Commands:
+      accounts    Manage dce accounts
+      auth        Login to dce
+      help        Help about any command
+      init        First time DCE cli setup. Creates config file at ~/.dce.yaml
+      leases      Manage dce leases
+      system      Deploy and configure the DCE system
+
+    Flags:
+          --config string   config file (default is $HOME/.dce.yaml)
+      -h, --help            help for dce
+
+    Use "dce [command] --help" for more information about a command.
+    ```
+
+1. Type `dce init` to generate a new config file at ~/.dce.yaml. Leave everything blank for now.
+
+### Configuring AWS Credentials
+
+The DCE CLI needs AWS IAM credentials any time it interacts with an AWS account. Below is a list of places where the DCE CLI
+will look for credentials, ordered by precedence.
+
+1. An API Token in the `api.token` field of the `.dce.yaml` config file. You may obtain an API Token by:
+    - Running the `dce auth` command
+    - Base64 encoding the following JSON string. Note that `expireTime` is a Unix epoch timestamp and the string should
+    not contain spaces or newline characters.
+        ```json
+        {
+           "accessKeyId":"xxx",
+           "secretAccessKey":"xxx",
+           "sessionToken":"xxx",
+           "expireTime":"xxx"
+        }
+        ```
+1. The Environment Variables: `AWS_ACCESS_KEY_ID`, `AWS_ACCESS_KEY`, and `AWS_SESSION_TOKEN`
+1. Stored in the AWS CLI credentials file under the `default` profile. This is located at `$HOME/.aws/credentials`
+    on Linux/OSX and `%USERPROFILE%\.aws\credentials` on Windows.
+
+The simplest way to use DCE is by storing credentials in your AWS CLI credentials file. For more advanced usage,
+refer to the [authentication page](./api-auth/configuring-cognito-for-usage-with-the-dce-cli).
+
+### Deploying DCE
+
+This section uses the AWS CLI to configure credentials in the `.aws\credentials` file. See [Configuring AWS Credentials](#configuring-aws-credentials)
+for alternatives to using the AWS CLI.
+
+1. [Download and install the AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html)
+
+1. Choose an AWS account to be your new "DCE Master Account" and configure the AWS CLI with user credentials that have AdministratorAccess in that account.
+
+    ```
+    aws configure set aws_access_key_id default_access_key
+    aws configure set aws_secret_access_key default_secret_key
+    ```
+
+1. Type `dce system deploy` to deploy dce to the AWS account specified in the previous step.
+
+1. Edit your dce config file with the host and base url from the api gateway that was just deployed to your master account. This can be found in the master account under `API Gateway > (The API with "dce" in the title) > Stages > "Invoke URL: https://<host>/<baseurl>"`. Your config file should look something like this:
+
+    ```
+    api:
+      host: abcdefghij.execute-api.us-east-1.amazonaws.com
+      basepath: /api
+    region: us-east-1
+    ```
+
+### Authenticating with the DCE System
+
+There are two ways to authenticate with DCE.
+
+1. [Use IAM credentials for quick access to your individual DCE deployment](./api-auth#using-iam-credentials)
+1. [Use Cognito to set up admin and user profiles](./api-auth#using-cognito)
+
+### Adding a child account
+
+1. Prepare a second AWS account to be your first "DCE Child Account".
+    - Create an IAM role with `AdministratorAccess` and a trust relationship to your DCE Master Accounts
+    - Create an account alias by clicking the 'customize' link in the IAM dashboard of the child account. This must not include the terms "prod" or "production".
+
+1. Use the `dce accounts add` command to add your child account to the "DCE Accounts Pool".
+
+    *WARNING: This will delete any resources in the account.*
+
+    ```
+    dce accounts add --account-id 555555555555 --admin-role-arn arn:aws:iam::555555555555:role/DCEMasterAccess
+    ```
+
+1. Type `dce accounts list` to verify that your account has been added.
+
+    ```
+    dce accounts list
+    [
+        {
+            "accountStatus": "NotReady",
+            "adminRoleArn": "arn:aws:iam::555555555555:role/DCEMasterAccess",
+            "createdOn": 1575485630,
+            "id": "775788068104",
+            "lastModifiedOn": 1575485630,
+            "principalPolicyHash": "\"bc5872b50475b186afea67ff47516a8f\"",
+            "principalRoleArn": "arn:aws:iam::775788768154:role/DCEPrincipal-quickstart"
+        }
+    ]
+    ```
+    The account status will initially say `NotReady`. It may take up to 5 minutes for the new account to be processed. Once the account status is `Ready`, you may proceed with creating a lease.
+
+### Leasing a DCE Account
+
+1. Use the `dce auth` command to authenticate as a non-admin user.
+
+1. Now that your accounts pool isn't empty, you can create your first lease using the `dce leases create` command.
+
+    ```
+    dce leases create --budget-amount 100.0 --budget-currency USD --email jane.doe@email.com --principal-id quickstartuser
+   Lease created: {
+   	"accountId": "948334904178",
+   	"budgetAmount": 100,
+   	"budgetCurrency": "USD",
+   	"budgetNotificationEmails": [
+   		"jane.doe@email.com"
+   	],
+   	"createdOn": 1575509206,
+   	"expiresOn": 1576114006,
+   	"id": "19a742a0-149f-41e5-813a-6d3be101058b",
+   	"lastModifiedOn": 1575509206,
+   	"leaseStatus": "Active",
+   	"leaseStatusModifiedOn": 1575509206,
+   	"leaseStatusReason": "Active",
+   	"principalId": "quickstartuser"
+   }
+   ```
+
+1. Type `dce leases list` to verify that a lease has been created
+
+    ```
+    dce leases list
+   [
+   	{
+   		"accountId": "555555555555",
+   		"budgetAmount": 100,
+   		"budgetCurrency": "USD",
+   		"budgetNotificationEmails": [
+   			"jane.doe@email.com"
+   		],
+   		"createdOn": 1575490207,
+   		"expiresOn": 1576095007,
+   		"id": "e501cb86-8317-458b-bdce-d47ab92f86a8",
+   		"lastModifiedOn": 1575490207,
+   		"leaseStatus": "Active",
+   		"leaseStatusModifiedOn": 1575490207,
+   		"leaseStatusReason": "Active",
+   		"principalId": "jdoe99"
+   	}
+   ]
+    ```
+
+### Logging into a leased account
+
+There are three ways to "log in" to a leased account.
+
+1. To use the *AWS CLI* with your leased account, type `dce leases login <lease-id>`. The `default` profile will be used unless you specify a different one with the `--profile` flag. 
+
+    ```
+    dce leases login --profile quickstart 19a742a0-149f-41e5-813a-6d3be101058b
+    Adding credentials to .aws/credentials using AWS CLI
+    cat ~/.aws/credentials
+    [default]
+    aws_access_key_id = xxxxxxxxxxxxxxxxxxxx
+    aws_secret_access_key = xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+    [quickstart]
+    aws_access_key_id = xxxxxMAJKITANQZPFFXY
+    aws_secret_access_key = xxxxxDEiaAvZ0OeqO5qxNBcJVrFGzNLxz6tgKWTF
+    aws_session_token = xxxxxXIvYXdzEC0aDFEgMqpsBg4dtUS1qSKyAa3ktoh0SBPbwJv3S5B5NXdG8OdOVCQsya5b943mFfJnxX2reFw1a/r+LKa7G6CKj2NnWbkVWXdzWEVtsjy5Y32po2kVDp1lt74C7V6H8xbOk4HjgiXLOQl5faXpjmi80yaFI/yBrvnBbQVOq9QkbpeHcSyEkoouSkagCtkPicjLjq6omrAGR2xDXrrFYvYRIMevj2mZoBkk/5jGB3FpNycuWz6weqF4Z6qlCZLSalfetEAow7ml7wUyLf4OrtDvPgTPBjg6PClxC6BZgUMZaQM9ePQR0ZgMynNvm7JHbQz38jLCBqzneQ==
+    ```
+
+1. Access your leased account in a *web browser* via the `dce leases login` command with the `--open-browser` flag
+
+    ```
+    dce leases login --open-browser 19a742a0-149f-41e5-813a-6d3be101058b
+    Opening AWS Console in Web Browser
+    ```
+
+1. To *print your credentials*, type `dce leases login` command with the `--print-creds` flag
+
+    ```
+    dce leases login --print-creds 19a742a0-149f-41e5-813a-6d3be101058b
+    export AWS_ACCESS_KEY_ID=xxxxxMAJKITANQZPFFXY
+    export AWS_SECRET_ACCESS_KEY=xxxxxDEiaAvZ0OeqO5qxNBcJVrFGzNLxz6tgKWTF
+    export AWS_SESSION_TOKEN=xxxxxXIvYXdzEC0aDFEgMqpsBg4dtUS1qSKyAa3ktoh0SBPbwJv3S5B5NXdG8OdOVCQsya5b943mFfJnxX2reFw1a/r+LKa7G6CKj2NnWbkVWXdzWEVtsjy5Y32po2kVDp1lt74C7V6H8xbOk4HjgiXLOQl5faXpjmi80yaFI/yBrvnBbQVOq9QkbpeHcSyEkoouSkagCtkPicjLjq6omrAGR2xDXrrFYvYRIMevj2mZoBkk/5jGB3FpNycuWz6weqF4Z6qlCZLSalfetEAow7ml7wUyLf4OrtDvPgTPBjg6PClxC6BZgUMZaQM9ePQR0ZgMynNvm7JHbQz38jLCBqzneQ==
+    ```
+
+### Removing a Child Account
+
+1. Use the `dce auth` command to authenticate as an admin
+
+1. You can remove an account from the accounts pool using the `dce accounts remove` command
+
+    ```
+    dce accounts remove 555555555555
+    ```
+
+## Using the DCE API
+
+DCE provides a set of endpoints for managing account pools and leases, and for monitoring account usage.
 
 See [API Reference Documentation](./api-documentation.md) for details.
 
@@ -22,43 +254,7 @@ All endpoints use this value as the base url. For example, to view accounts:
 
 ```
 GET https://asdfghjkl.execute-api.us-east-1.amazonaws.com/api/accounts
-``` 
-
-## Use the DCE CLI
-
-DCE provides a CLI tool to deploy DCE, interact with DCE APIs, and login to DCE child accounts. For example:
-
-```bash
-# Deploy DCE
-dce system deploy
-
-# Add an account to the pool
-dce accounts add \
-    --account-id 123456789012 \
-    --admin-role-arn arn:aws:iam::123456789012:role/OrganizationAccountAccessRole
-
-# Lease an account
-dce leases create \
-    --principal-id jdoe@example.com \
-    --budget-amount 100 --budget-currency USD
-
-# Login to your account
-dce leases login <lease-id>
 ```
-
-See the [github.com/Optum/dce-cli](https://github.com/Optum/dce-cli) repo for details.
-
-## Login to your DCE Account
-
-The easiest way for users to login to their DCE child account is via the [DCE CLI](https://github.com/Optum/dce-cli):
-
-```
-dce leases login <lease-id>
-```
-
-This command generates temporary CLI credentials for the AWS child account, and saves them to the user's AWS CLI configuration.
-
-See the [DCE CLI reference docs](https://github.com/Optum/dce-cli/blob/master/docs/dce_leases_login.md) for details.
 
 ## Add Accounts to the DCE Account Pool
 
