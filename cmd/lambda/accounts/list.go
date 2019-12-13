@@ -24,7 +24,7 @@ func (controller listController) Call(ctx context.Context, req *events.APIGatewa
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed to query database: %s", err)
 		log.Print(errorMessage)
-		return response.CreateAPIErrorResponse(http.StatusInternalServerError,
+		return response.CreateAPIGatewayErrorResponse(http.StatusInternalServerError,
 			response.CreateErrorResponse(
 				"ServerError", errorMessage)), nil
 	}
@@ -42,12 +42,12 @@ func (controller listController) Call(ctx context.Context, req *events.APIGatewa
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed to serialize data: %s", err)
 		log.Print(errorMessage)
-		return response.CreateAPIErrorResponse(http.StatusInternalServerError,
+		return response.CreateAPIGatewayErrorResponse(http.StatusInternalServerError,
 			response.CreateErrorResponse(
 				"ServerError", errorMessage)), nil
 	}
 
 	body := string(messageBytes)
 
-	return response.CreateAPIResponse(http.StatusOK, body), nil
+	return response.CreateAPIGatewayResponse(http.StatusOK, body), nil
 }

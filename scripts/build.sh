@@ -26,8 +26,17 @@ if [ -e $i/main.go ];then
     GOARCH=amd64 GOOS=linux go build -v -o ../../../bin/lambda/$mod_name
     cd ../../..
     zip -j --must-match \
-        bin/lambda/$mod_name.zip \
-        bin/lambda/$mod_name
+      bin/lambda/$mod_name.zip \
+      bin/lambda/$mod_name
+    # Include static web assets if they exist
+    if [ -d "./cmd/lambda/$mod_name/public" ] && [ -d "./cmd/lambda/$mod_name/views" ];then
+      cd ./cmd/lambda/$mod_name
+      zip -u --must-match \
+          ../../../bin/lambda/$mod_name.zip \
+          public/* \
+          views/*
+      cd ../../..
+    fi
 fi
 done
 

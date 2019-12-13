@@ -18,7 +18,7 @@ func GetUsageByStartDateAndEndDate(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		errorMsg := fmt.Sprintf("Failed to parse usage start date: %s", err)
 		log.Println(errorMsg)
-		WriteRequestValidationError(w, errorMsg)
+		response.WriteRequestValidationError(w, errorMsg)
 		return
 	}
 	startDate := time.Unix(i, 0)
@@ -27,7 +27,7 @@ func GetUsageByStartDateAndEndDate(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		errorMsg := fmt.Sprintf("Failed to parse usage end date: %s", err)
 		log.Println(errorMsg)
-		WriteRequestValidationError(w, errorMsg)
+		response.WriteRequestValidationError(w, errorMsg)
 		return
 	}
 	endDate := time.Unix(j, 0)
@@ -63,7 +63,7 @@ func GetUsageByStartDateAndPrincipalID(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		errorMsg := fmt.Sprintf("Failed to parse usage start date: %s", err)
 		log.Println(errorMsg)
-		WriteRequestValidationError(w, errorMsg)
+		response.WriteRequestValidationError(w, errorMsg)
 		return
 	}
 	startDate := time.Unix(i, 0)
@@ -74,7 +74,7 @@ func GetUsageByStartDateAndPrincipalID(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		errMsg := fmt.Sprintf("Error getting usage for given start date %s and principalID %s: %s", r.FormValue(StartDateParam), principalID, err.Error())
 		log.Println(errMsg)
-		WriteServerErrorWithResponse(w, errMsg)
+		response.WriteServerErrorWithResponse(w, errMsg)
 		return
 	}
 
@@ -100,7 +100,7 @@ func GetAllUsage(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		errMsg := fmt.Sprintf("Error getting all usage : %s", err.Error())
 		log.Println(errMsg)
-		WriteServerErrorWithResponse(w, errMsg)
+		response.WriteServerErrorWithResponse(w, errMsg)
 		return
 	}
 

@@ -98,7 +98,7 @@ to _Rollback_ and returns the child account to the child pool.
 
 ## Account Pool
 
-The _account pool_ is the collection of _[child accounts](#child-account)_ that
+The _account pool_ is the collection of [_child accounts_](#child-account) that
 are available for leasing.
 
 ## Master Account

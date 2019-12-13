@@ -3,6 +3,9 @@ bin
 bin/*
 local_terraform.tfvars
 
+# Sphinx build
+_build/
+
 ## Documentation
 docs/CHANGELOG.md
 docs/CONTRIBUTING.md
@@ -83,3 +86,4 @@ venv.bak/
 # mkdocs documentation
 /site
 
+.vscode/
