@@ -44,7 +44,7 @@ var (
 	// Services handles the configuration of the AWS services
 	Services *config.ServiceBuilder
 	// Settings - the configuration settings for the controller
-	Settings *controllerConfiguration
+	Settings *usageControllerConfiguration
 )
 
 // messageBody is the structured object of the JSON Message to send
@@ -90,7 +90,7 @@ func init() {
 // loaded from env vars.
 func initConfig() {
 	cfgBldr := &config.ConfigurationBuilder{}
-	Settings = &controllerConfiguration{}
+	Settings = &usageControllerConfiguration{}
 	if err := cfgBldr.Unmarshal(Settings); err != nil {
 		log.Fatalf("Could not load configuration: %s", err.Error())
 	}

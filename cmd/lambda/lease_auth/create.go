@@ -37,7 +37,7 @@ func (controller CreateController) Call(ctx context.Context, req *events.APIGate
 	lease, err := controller.Dao.GetLeaseByID(leaseID)
 	if err != nil {
 		log.Printf("Error Getting Lease (%s) by Id: %s", leaseID, err)
-		return response.CreateAPIGatewayErrorResponse(http.StatusInternalServerError,
+		return response.CreateAPIErrorResponse(http.StatusInternalServerError,
 			response.CreateErrorResponse("ServerError",
 				fmt.Sprintf("Failed Get on Lease %s",
 					leaseID))), nil
@@ -66,13 +66,13 @@ func (controller CreateController) Call(ctx context.Context, req *events.APIGate
 	account, err := controller.Dao.GetAccount(accountID)
 	if err != nil {
 		log.Printf("Error Getting Account (%s) by Id: %s", accountID, err)
-		return response.CreateAPIGatewayErrorResponse(http.StatusInternalServerError,
+		return response.CreateAPIErrorResponse(http.StatusInternalServerError,
 			response.CreateErrorResponse("ServerError",
 				fmt.Sprintf("Failed List on Account %s", accountID))), nil
 	}
 	if account == nil {
 		log.Printf("Account (%s) doesn't exist", accountID)
-		return response.CreateAPIGatewayErrorResponse(http.StatusInternalServerError,
+		return response.CreateAPIErrorResponse(http.StatusInternalServerError,
 			response.CreateErrorResponse("ServerError",
 				fmt.Sprintf("Account %s could not be found", accountID))), nil
 	}
@@ -105,7 +105,7 @@ func (controller CreateController) Call(ctx context.Context, req *events.APIGate
 		SessionToken:    *assumeRoleOutput.Credentials.SessionToken,
 		ConsoleURL:      consoleURL,
 	}
-	return response.CreateAPIGatewayJSONResponse(http.StatusCreated, result), nil
+	return response.CreateJSONResponse(http.StatusCreated, result), nil
 }
 
 func (controller CreateController) buildConsoleURL(creds sts.Credentials) (string, error) {

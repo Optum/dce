@@ -22,6 +22,19 @@ func CreateAPIGatewayResponse(status int, body string) events.APIGatewayProxyRes
 	}
 }
 
+// CreateJSONResponse - Create a JSON response
+func CreateJSONResponse(status int, response interface{}) events.APIGatewayProxyResponse {
+	body, err := json.Marshal(response)
+
+	// Create an error response, to handle the marshalling error
+	if err != nil {
+		log.Printf("Failed to marshal JSON response: %v; %v", response, err)
+		return ServerError()
+	}
+
+	return CreateAPIGatewayResponse(status, string(body))
+}
+
 // CreateMultiValueHeaderAPIResponse - creates a response with multi-value headers
 func CreateMultiValueHeaderAPIResponse(status int, body string) events.APIGatewayProxyResponse {
 	return events.APIGatewayProxyResponse{
@@ -77,7 +90,7 @@ func CreateMultiValueHeaderJSONResponse(status int, response interface{}) events
 
 // CreateAPIGatewayErrorResponse is a helper function to create and return a valid error
 // response message for the API
-func CreateAPIGatewayErrorResponse(responseCode int,
+func CreateAPIErrorResponse(responseCode int,
 	errResp ErrorResponse) events.APIGatewayProxyResponse {
 	// Create the Error Response
 	apiResponse, err := json.Marshal(errResp)
