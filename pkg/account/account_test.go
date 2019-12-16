@@ -10,6 +10,44 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+func ptrString(s string) *string {
+	ptrS := s
+	return &ptrS
+}
+
+func ptrInt64(i int64) *int64 {
+	ptrI := i
+	return &ptrI
+}
+
+func TestProperties(t *testing.T) {
+	accountStatusReady := model.Ready
+	tests := []struct {
+		name    string
+		account model.Account
+	}{
+		{
+			name: "standard",
+			account: model.Account{
+				ID:           ptrString("abc123"),
+				Status:       &accountStatusReady,
+				AdminRoleArn: ptrString("test:arn"),
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			account := New(tt.account)
+			assert.Equal(t, tt.account.ID, account.ID())
+			assert.Equal(t, tt.account.AdminRoleArn, account.AdminRoleArn())
+			assert.Equal(t, tt.account.Metadata, account.Metadata())
+			assert.Equal(t, tt.account.PrincipalRoleArn, account.PrincipalRoleArn())
+			assert.Equal(t, tt.account.PrincipalPolicyHash, account.PrincipalPolicyHash())
+		})
+	}
+}
+
 func TestGet(t *testing.T) {
 
 	t.Run("should return an account object", func(t *testing.T) {
@@ -27,24 +65,46 @@ func TestGet(t *testing.T) {
 }
 
 func TestDelete(t *testing.T) {
-
-	t.Run("should delete an account", func(t *testing.T) {
-		accountID := "abc123"
-		mocksDeleter := &dataMocks.Deleter{}
-		accountStatus := model.AccountStatus("Ready")
-		mocksDeleter.On("Delete", mock.Anything).
-			Return(nil)
-
-		account := Account{
-			data: model.Account{
-				ID:     &accountID,
-				Status: &accountStatus,
+	accountStatusReady := model.Ready
+	accountStatusLeased := model.Leased
+	tests := []struct {
+		name    string
+		account model.Account
+		errMsg  string
+	}{
+		{
+			name: "should delete an account",
+			account: model.Account{
+				ID:     ptrString("abc123"),
+				Status: &accountStatusReady,
 			},
-		}
-		err := account.Delete(mocksDeleter)
-		assert.NoError(t, err)
-	})
+		},
+		{
+			name: "should error when account leased",
+			account: model.Account{
+				ID:     ptrString("abc123"),
+				Status: &accountStatusLeased,
+			},
+			errMsg: "unable to delete account \"abc123\": the account is currently leased",
+		},
+	}
 
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mocksDeleter := &dataMocks.Deleter{}
+			mocksDeleter.On("Delete", mock.Anything).
+				Return(nil)
+			account := New(tt.account)
+
+			err := account.Delete(mocksDeleter)
+			if tt.errMsg != "" {
+				assert.EqualError(t, err, tt.errMsg)
+			} else {
+				assert.Nil(t, err)
+			}
+
+		})
+	}
 }
 
 func TestMarshallJSON(t *testing.T) {
@@ -84,6 +144,8 @@ func TestUpdatStatus(t *testing.T) {
 				ID:             &accountID,
 				Status:         &accountStatus,
 				LastModifiedOn: &lastModifiedOn,
+				CreatedOn:      &lastModifiedOn,
+				AdminRoleArn:   ptrString("test:arn"),
 			},
 		}
 
@@ -101,8 +163,6 @@ func TestUpdate(t *testing.T) {
 	t.Run("should Update", func(t *testing.T) {
 		accountID := "123456789012"
 		accountStatusReady := model.Ready
-		accountStatusNotReady := model.NotReady
-		lastModifiedOn := int64(1573592058)
 		mocksWriter := &dataMocks.Writer{}
 		mocksManager := &dataMocks.Manager{}
 		metadata := map[string]interface{}{
@@ -111,27 +171,23 @@ func TestUpdate(t *testing.T) {
 
 		mocksWriter.On("Update", mock.MatchedBy(func(input *model.Account) bool {
 			return (*input.ID == accountID &&
-				*input.Status == "NotReady" &&
+				*input.Status == "Ready" &&
 				input.Metadata["key"] == "value")
 		}), mock.AnythingOfType("*int64")).Return().
 			Return(nil)
 
 		mocksManager.On("Setup", mock.AnythingOfType("string")).Return(nil)
 
-		account := Account{
-			data: model.Account{
-				ID:             &accountID,
-				Status:         &accountStatusReady,
-				LastModifiedOn: &lastModifiedOn,
-			},
-		}
+		account := New(model.Account{
+			ID:           &accountID,
+			Status:       &accountStatusReady,
+			AdminRoleArn: ptrString("test:arn"),
+		})
 
 		newData := model.Account{
-			ID:     &accountID,
-			Status: &accountStatusNotReady,
+			Metadata: metadata,
 		}
 
-		account.data.Metadata = metadata
 		err := account.Update(newData, mocksWriter, mocksManager)
 
 		assert.NoError(t, err)

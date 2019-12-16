@@ -1,12 +1,13 @@
 package data
 
 import (
+	gErrors "errors"
 	"fmt"
-
 	"github.com/Optum/dce/pkg/errors"
 	"github.com/Optum/dce/pkg/model"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
@@ -52,7 +53,15 @@ func (a *Account) Update(account *model.Account, lastModifiedOn *int64) error {
 			ReturnValues: aws.String(returnValue),
 		},
 	)
-
+	var awsErr awserr.Error
+	if gErrors.As(err, &awsErr) {
+		if awsErr.Code() == "ConditionalCheckFailedException" {
+			return fmt.Errorf(
+				"unable to update account %v no account exists with "+
+					"LastModifiedOn=\"%v\": %w",
+				account.ID, *account.LastModifiedOn, errors.ErrConflict)
+		}
+	}
 	if err != nil {
 		return fmt.Errorf("update failed for account %s: %s: %w", *account.ID, err, errors.ErrInternalServer)
 	}

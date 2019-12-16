@@ -16,6 +16,9 @@ func (e *ErrValidation) Error() string { return e.Message }
 // Unwrap provides the underlying error
 func (e *ErrValidation) Unwrap() error { return e.Err }
 
+// Cause provides the underlying error
+func (e *ErrValidation) Cause() error { return e.Err }
+
 // Is helps with new errors validation
 func (e *ErrValidation) Is(target error) bool {
 	t, ok := target.(*ErrValidation)

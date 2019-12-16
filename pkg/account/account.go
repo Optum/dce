@@ -9,7 +9,6 @@ import (
 
 	"github.com/Optum/dce/pkg/errors"
 	"github.com/Optum/dce/pkg/model"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	validation "github.com/go-ozzo/ozzo-validation"
 )
 
@@ -68,28 +67,28 @@ type Account struct {
 }
 
 // ID Returns the Account ID
-func (a *Account) ID() string {
-	return *a.data.ID
+func (a *Account) ID() *string {
+	return a.data.ID
 }
 
 // Status Returns the Account ID
-func (a *Account) Status() model.AccountStatus {
-	return *a.data.Status
+func (a *Account) Status() *model.AccountStatus {
+	return a.data.Status
 }
 
 // AdminRoleArn Returns the Admin Role Arn
-func (a *Account) AdminRoleArn() string {
-	return *a.data.AdminRoleArn
+func (a *Account) AdminRoleArn() *string {
+	return a.data.AdminRoleArn
 }
 
 // PrincipalRoleArn Returns the Principal Role Arn
-func (a *Account) PrincipalRoleArn() string {
-	return *a.data.PrincipalRoleArn
+func (a *Account) PrincipalRoleArn() *string {
+	return a.data.PrincipalRoleArn
 }
 
 // PrincipalPolicyHash Returns the Principal Role Hash
-func (a *Account) PrincipalPolicyHash() string {
-	return *a.data.PrincipalPolicyHash
+func (a *Account) PrincipalPolicyHash() *string {
+	return a.data.PrincipalPolicyHash
 }
 
 // Metadata Returns the Principal Role Hash
@@ -110,7 +109,7 @@ func (a *Account) UpdateStatus(nextStatus model.AccountStatus, u Updater) error 
 	if err != nil {
 		return fmt.Errorf(
 			"unable to update account status from \"%v\" to \"%v\" on account %s: %w",
-			a.data.Status,
+			*a.data.Status,
 			nextStatus,
 			*a.data.ID,
 			err,
@@ -132,17 +131,33 @@ func (a *Account) save(u Updater) error {
 		a.data.LastModifiedOn = &now
 	}
 
-	err := u.Update(&a.data, lastModifiedOn)
+	err := a.Validate()
 	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			if aerr.Code() == "ConditionalCheckFailedException" {
-				return fmt.Errorf(
-					"unable to update account %v no account exists with "+
-						"LastModifiedOn=\"%v\": %w",
-					a.data.ID, a.data.LastModifiedOn, errors.ErrConflict)
-			}
-		}
 		return err
+	}
+	err = u.Update(&a.data, lastModifiedOn)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Validate the account data
+func (a *Account) Validate() error {
+	err := validation.ValidateStruct(&a.data,
+		validation.Field(&a.data.AdminRoleArn, validation.NotNil),
+		validation.Field(&a.data.ID, validation.NotNil),
+		validation.Field(&a.data.LastModifiedOn, validation.NotNil),
+		validation.Field(&a.data.Status, validation.NotNil),
+		validation.Field(&a.data.CreatedOn, validation.NotNil),
+		validation.Field(&a.data.PrincipalRoleArn, validation.NilOrNotEmpty),
+		validation.Field(&a.data.PrincipalPolicyHash, validation.NilOrNotEmpty),
+	)
+	if err != nil {
+		return &errors.ErrValidation{
+			Message: fmt.Sprintf("update validation error: %v", err),
+			Err:     err,
+		}
 	}
 	return nil
 }
@@ -185,11 +200,14 @@ func (a *Account) Update(d model.Account, u Updater, am Manager) error {
 // Delete finds a given account and deletes it if it is not of status `Leased`. Returns the account.
 func (a *Account) Delete(d Deleter) error {
 
-	if a.Status() == model.Leased {
+	err := validation.ValidateStruct(&a.data,
+		validation.Field(&a.data.Status, validation.NotNil, validation.By(isAccountLeased)),
+	)
+	if err != nil {
 		return fmt.Errorf("unable to delete account \"%s\": %w", *a.data.ID, errors.ErrAccountIsLeased)
 	}
 
-	err := d.Delete(&a.data)
+	err = d.Delete(&a.data)
 	if err != nil {
 		return fmt.Errorf("unable to delete account \"%s\": %w", *a.data.ID, err)
 	}
@@ -213,9 +231,13 @@ func GetAccountByID(ID string, d SingleReader) (*Account, error) {
 
 // New returns an account from ID
 func New(data model.Account) *Account {
-	return &Account{
+	now := time.Now().Unix()
+	account := &Account{
 		data: data,
 	}
+	account.data.CreatedOn = &now
+	account.data.LastModifiedOn = &now
+	return account
 }
 
 // MarshalJSON Marshals the data inside the account
@@ -227,8 +249,11 @@ func (a *Account) MarshalJSON() ([]byte, error) {
 // corresponding status of 'Ready'
 func GetReadyAccount(d Reader) (*Account, error) {
 	accounts, err := GetAccountsByStatus(model.AccountStatus("Ready"), d)
-	if len(*accounts) < 1 {
+	if err != nil {
 		return nil, err
+	}
+	if len(*accounts) < 1 {
+		return nil, errors.ErrNotFound
 	}
 
 	return &(*accounts)[0], err

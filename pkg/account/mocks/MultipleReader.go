@@ -10,13 +10,13 @@ type MultipleReader struct {
 	mock.Mock
 }
 
-// GetAccounts provides a mock function with given fields:
-func (_m *MultipleReader) GetAccounts() (*model.Accounts, error) {
-	ret := _m.Called()
+// GetAccounts provides a mock function with given fields: _a0
+func (_m *MultipleReader) GetAccounts(_a0 *model.Account) (*model.Accounts, error) {
+	ret := _m.Called(_a0)
 
 	var r0 *model.Accounts
-	if rf, ok := ret.Get(0).(func() *model.Accounts); ok {
-		r0 = rf()
+	if rf, ok := ret.Get(0).(func(*model.Account) *model.Accounts); ok {
+		r0 = rf(_a0)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*model.Accounts)
@@ -24,31 +24,8 @@ func (_m *MultipleReader) GetAccounts() (*model.Accounts, error) {
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func() error); ok {
-		r1 = rf()
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// GetAccountsByPrincipalID provides a mock function with given fields: principalID
-func (_m *MultipleReader) GetAccountsByPrincipalID(principalID string) (*model.Accounts, error) {
-	ret := _m.Called(principalID)
-
-	var r0 *model.Accounts
-	if rf, ok := ret.Get(0).(func(string) *model.Accounts); ok {
-		r0 = rf(principalID)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*model.Accounts)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(string) error); ok {
-		r1 = rf(principalID)
+	if rf, ok := ret.Get(1).(func(*model.Account) error); ok {
+		r1 = rf(_a0)
 	} else {
 		r1 = ret.Error(1)
 	}

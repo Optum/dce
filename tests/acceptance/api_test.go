@@ -1793,7 +1793,6 @@ func apiRequest(t *testing.T, input *apiRequestInput) *apiResponse {
 			apiResp.json = data
 		}
 
-		fmt.Printf("%+v\n", apiResp)
 		if input.f != nil {
 			input.f(r, apiResp)
 		}

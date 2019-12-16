@@ -13,6 +13,11 @@ func ptrString(s string) *string {
 	return &ptrS
 }
 
+func ptrInt64(i int64) *int64 {
+	ptrI := i
+	return &ptrI
+}
+
 func TestHelpersBuildFilter(t *testing.T) {
 
 	tests := []struct {

@@ -257,7 +257,6 @@ func ErrorHandler(w http.ResponseWriter, err error) {
 	var status int
 	var code string
 	var message string
-	// Print the Error Message
 	log.Printf("Error: %+v\n", err)
 
 	// Determine status code

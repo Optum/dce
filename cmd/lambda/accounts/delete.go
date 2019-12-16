@@ -24,10 +24,10 @@ func DeleteAccount(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch err.(type) {
 		case *db.AccountNotFoundError:
-			WriteNotFoundError(w)
+			response.WriteNotFoundError(w)
 			return
 		case *db.AccountLeasedError:
-			WriteAPIErrorResponse(
+			response.WriteAPIErrorResponse(
 				w,
 				http.StatusConflict,
 				"Conflict",
@@ -35,7 +35,7 @@ func DeleteAccount(w http.ResponseWriter, r *http.Request) {
 			)
 			return
 		default:
-			WriteServerErrorWithResponse(w, "Internal Server Error")
+			response.WriteServerErrorWithResponse(w, "Internal Server Error")
 			return
 		}
 	}
@@ -50,7 +50,7 @@ func DeleteAccount(w http.ResponseWriter, r *http.Request) {
 	sendToResetQueue(deletedAccount.ID)
 
 	// json.NewEncoder(w).Encode(response.CreateAPIResponse(http.StatusNoContent, ""))
-	WriteAPIResponse(w, http.StatusNoContent, "")
+	response.WriteAPIResponse(w, http.StatusNoContent, "")
 }
 
 // sendSNS sends notification to SNS that the delete has occurred.

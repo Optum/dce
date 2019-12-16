@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 	"testing"
@@ -79,7 +78,7 @@ func TestCreate(t *testing.T) {
 
 		// Unmarshal the response JSON into an account object
 		resJSON := unmarshal(t, res.Body)
-		fmt.Printf("%s\n", resJSON)
+
 		assert.Equal(t, "1234567890", resJSON["id"])
 		assert.Equal(t, "arn:*:*:*", resJSON["adminRoleArn"])
 		assert.Equal(t, "NotReady", resJSON["accountStatus"])

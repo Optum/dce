@@ -1,7 +1,6 @@
 package tests
 
 import (
-	"log"
 	"net/http"
 	"testing"
 	"time"
@@ -14,7 +13,6 @@ import (
 
 	"encoding/json"
 	"fmt"
-
 	"github.com/stretchr/testify/assert"
 
 	"github.com/Optum/dce/pkg/db"
@@ -533,7 +531,6 @@ func createUsageForInputAmount(t *testing.T, apiURL string, accountID string, us
 		assert.Equal(r, http.StatusOK, resp.StatusCode)
 
 		// Parse response json
-		log.Printf("%+v\n", resp)
 		data := parseResponseArrayJSON(t, resp)
 
 		//Verify response json

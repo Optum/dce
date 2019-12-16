@@ -30,3 +30,14 @@ const (
 	// Orphaned status
 	Orphaned AccountStatus = "Orphaned"
 )
+
+// String returns the string value of AccountStatus
+func (c AccountStatus) String() string {
+	return string(c)
+}
+
+// StringPtr returns a pointer to the string value of AccountStatus
+func (c AccountStatus) StringPtr() *string {
+	v := string(c)
+	return &v
+}

@@ -153,6 +153,11 @@ func (bldr *ServiceBuilder) Build() (*ConfigurationBuilder, error) {
 		}
 	}
 
+	// Setting config values from parameter store requires services to be configured first
+	if err := bldr.Config.RetrieveParameterStoreVals(); err != nil {
+		return bldr.Config, ConfigurationError(err)
+	}
+
 	// make certain build is called before returning.
 	return bldr.Config, nil
 }

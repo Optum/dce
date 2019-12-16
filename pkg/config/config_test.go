@@ -65,7 +65,7 @@ func TestConfigBuilder_Unmarshal(t *testing.T) {
 	assert.Equal(t, ExpectedIntVal, actualIntVal)
 
 	var config exampleConfig
-	configurater := &DefaultConfigurationBuilder{}
+	configurater := &ConfigurationBuilder{}
 
 	err = configurater.Unmarshal(&config)
 
@@ -78,70 +78,8 @@ func TestConfigBuilder_Unmarshal(t *testing.T) {
 	assert.Equal(t, expectedArrayOfStrings, config.ArrayOfStringValue)
 }
 
-func TestConfigBuilder_Dump(t *testing.T) {
-	configurater := &DefaultConfigurationBuilder{}
-	configurater.WithVal("SOME_STRING_VALUE", ExpectedEnvStrVal)
-	expectedArrayOfStrings := []string{"one", "two", "three", "four", "five"}
-	configurater.WithVal("SOME_ARRAY_OF_STRING_VALUE", expectedArrayOfStrings)
-	configurater.WithVal("SOME_INT_VALUE", ExpectedIntVal)
-
-	var config exampleConfig
-
-	err := configurater.Dump(&config)
-
-	assert.Nil(t, err)
-	assert.Equal(t, ExpectedEnvStrVal, config.StringValue)
-	assert.Equal(t, ExpectedIntVal, config.IntValue)
-
-	// Parsing an array
-	assert.Equal(t, expectedArrayOfStrings, config.ArrayOfStringValue)
-}
-
-func TestConfigBuilder_DumpIntoSuperset(t *testing.T) {
-	configurater := &DefaultConfigurationBuilder{}
-	configurater.WithVal("SOME_STRING_VALUE", ExpectedEnvStrVal)
-	expectedArrayOfStrings := []string{"one", "two", "three", "four", "five"}
-	configurater.WithVal("SOME_ARRAY_OF_STRING_VALUE", expectedArrayOfStrings)
-	configurater.WithVal("SOME_INT_VALUE", ExpectedIntVal)
-
-	var configSuperset struct {
-		StringValue        string   `env:"SOME_STRING_VALUE"`
-		ArrayOfStringValue []string `env:"SOME_ARRAY_OF_STRING_VALUE"`
-		IntValue           int      `env:"SOME_INT_VALUE"`
-		extraVal           string
-	}
-
-	err := configurater.Dump(&configSuperset)
-	assert.Nil(t, err)
-	assert.Equal(t, ExpectedEnvStrVal, configSuperset.StringValue)
-	assert.Equal(t, ExpectedIntVal, configSuperset.IntValue)
-
-	// Parsing an array
-	assert.Equal(t, expectedArrayOfStrings, configSuperset.ArrayOfStringValue)
-}
-
-func TestConfigBuilder_DumpIntoSubset(t *testing.T) {
-	configurater := &DefaultConfigurationBuilder{}
-	configurater.WithVal("SOME_STRING_VALUE", ExpectedEnvStrVal)
-	expectedArrayOfStrings := []string{"one", "two", "three", "four", "five"}
-	configurater.WithVal("SOME_ARRAY_OF_STRING_VALUE", expectedArrayOfStrings)
-	configurater.WithVal("SOME_INT_VALUE", ExpectedIntVal)
-
-	var configSubset struct {
-		StringValue        string   `env:"SOME_STRING_VALUE"`
-		ArrayOfStringValue []string `env:"SOME_ARRAY_OF_STRING_VALUE"`
-	}
-
-	err := configurater.Dump(&configSubset)
-	assert.Nil(t, err)
-	assert.Equal(t, ExpectedEnvStrVal, configSubset.StringValue)
-
-	// Parsing an array
-	assert.Equal(t, expectedArrayOfStrings, configSubset.ArrayOfStringValue)
-}
-
 func TestConfigBuilder_TryToGetWithoutBuilding(t *testing.T) {
-	cfg := &DefaultConfigurationBuilder{}
+	cfg := &ConfigurationBuilder{}
 	cfg.WithVal("foo", "bar")
 
 	actualVal, err := cfg.GetStringVal("foo")
@@ -152,7 +90,7 @@ func TestConfigBuilder_TryToGetWithoutBuilding(t *testing.T) {
 }
 
 func TestConfigBuilder_BuildWithValue(t *testing.T) {
-	cfg := &DefaultConfigurationBuilder{}
+	cfg := &ConfigurationBuilder{}
 	err := cfg.WithVal("bar", ExpectedEnvStrVal).Build()
 	assert.Nil(t, err)
 
@@ -162,7 +100,7 @@ func TestConfigBuilder_BuildWithValue(t *testing.T) {
 }
 
 func TestConfigBuilder_BuildWithValueButGetWithError(t *testing.T) {
-	cfg := &DefaultConfigurationBuilder{}
+	cfg := &ConfigurationBuilder{}
 	err := cfg.WithVal("bar", ExpectedEnvStrVal).Build()
 	// should have built just fine; error is in getting the key
 	assert.Nil(t, err)
@@ -175,7 +113,7 @@ func TestConfigBuilder_BuildWithValueButGetWithError(t *testing.T) {
 }
 
 func TestConfigBuilder_BuildWithEnvVar(t *testing.T) {
-	cfg := &DefaultConfigurationBuilder{}
+	cfg := &ConfigurationBuilder{}
 	err := cfg.WithEnv("bar", "SOME_STRING_VALUE", ExpectedEnvStrVal).Build()
 	assert.Nil(t, err)
 
@@ -185,7 +123,7 @@ func TestConfigBuilder_BuildWithEnvVar(t *testing.T) {
 }
 
 func TestConfigBuilder_BuildWithEnvVarWithDefault(t *testing.T) {
-	cfg := &DefaultConfigurationBuilder{}
+	cfg := &ConfigurationBuilder{}
 	err := cfg.WithEnv("bar", "SOME_STRING_VALUE_THAT_DOES_NOT_EXIST", ExpectedStrDefaultedVal).Build()
 	assert.Nil(t, err)
 
@@ -196,7 +134,7 @@ func TestConfigBuilder_BuildWithEnvVarWithDefault(t *testing.T) {
 
 func TestConfigBuilder_BuildWithParameterStoreEnvVar(t *testing.T) {
 	// Arrange
-	cfg := &DefaultConfigurationBuilder{}
+	cfg := &ConfigurationBuilder{}
 	var mockSSMClient = &mocks.SSMAPI{}
 	cfg.WithService(mockSSMClient)
 	expectedSSMVal := "valueStoredInSSM"
@@ -215,7 +153,7 @@ func TestConfigBuilder_BuildWithParameterStoreEnvVar(t *testing.T) {
 
 	// Act
 	cfg.WithParameterStoreEnv("bar", "SOME_STRING_VALUE", "defaultVal")
-	svcBuilder := &DefaultAWSServiceBuilder{Config: cfg}
+	svcBuilder := &ServiceBuilder{Config: cfg}
 	_, err := svcBuilder.Build()
 
 	// Assert
@@ -228,7 +166,7 @@ func TestConfigBuilder_BuildWithParameterStoreEnvVar(t *testing.T) {
 
 func TestConfigBuilder_BuildWithParameterStoreEnvVar_UsesDefaultWhenInvalidParameter(t *testing.T) {
 	// Arrange
-	cfg := &DefaultConfigurationBuilder{}
+	cfg := &ConfigurationBuilder{}
 	var mockSSMClient = &mocks.SSMAPI{}
 	cfg.WithService(mockSSMClient)
 	paramName := ExpectedEnvStrVal
@@ -242,7 +180,7 @@ func TestConfigBuilder_BuildWithParameterStoreEnvVar_UsesDefaultWhenInvalidParam
 
 	// Act
 	cfg.WithParameterStoreEnv("bar", "SOME_STRING_VALUE", defaultValue)
-	svcBuilder := &DefaultAWSServiceBuilder{Config: cfg}
+	svcBuilder := &ServiceBuilder{Config: cfg}
 	_, err := svcBuilder.Build()
 
 	// Assert
@@ -255,7 +193,7 @@ func TestConfigBuilder_BuildWithParameterStoreEnvVar_UsesDefaultWhenInvalidParam
 
 func TestConfigBuilder_BuildWithParameterStoreEnvVar_UsesDefaultWhenNoEnvVar(t *testing.T) {
 	// Arrange
-	cfg := &DefaultConfigurationBuilder{}
+	cfg := &ConfigurationBuilder{}
 	var mockSSMClient = &mocks.SSMAPI{}
 	cfg.WithService(mockSSMClient)
 	defaultValue := "defaultValue"
@@ -273,7 +211,7 @@ func TestConfigBuilder_BuildWithParameterStoreEnvVar_UsesDefaultWhenNoEnvVar(t *
 }
 
 func TestConfigBuilder_BuildWithService(t *testing.T) {
-	cfg := &DefaultConfigurationBuilder{}
+	cfg := &ConfigurationBuilder{}
 	baz := &MessageSvc{Message: "Baz is the jazz!"}
 	var iface Messager
 	err := cfg.WithService(baz).Build()
@@ -285,7 +223,7 @@ func TestConfigBuilder_BuildWithService(t *testing.T) {
 }
 
 func TestConfigBuilder_BuildWithMulitpleServices(t *testing.T) {
-	cfg := &DefaultConfigurationBuilder{}
+	cfg := &ConfigurationBuilder{}
 	var iface Messager
 	var otherIface Namer
 
@@ -308,7 +246,7 @@ func TestConfigBuilder_BuildWithMulitpleServices(t *testing.T) {
 }
 
 func TestConfigBuilder_BuildWithServiceWithError(t *testing.T) {
-	cfg := &DefaultConfigurationBuilder{}
+	cfg := &ConfigurationBuilder{}
 	baz := &MessageSvc{Message: "Baz is the jazz!"}
 	var otherIface Namer
 

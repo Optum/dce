@@ -2,9 +2,11 @@ package account
 
 import (
 	"errors"
-	validation "github.com/go-ozzo/ozzo-validation"
 	"reflect"
 	"regexp"
+
+	"github.com/Optum/dce/pkg/model"
+	validation "github.com/go-ozzo/ozzo-validation"
 )
 
 // We don't use the internal errors package here because validation will rewrite it anyways
@@ -44,4 +46,12 @@ func isNilOrUsableAdminRole(am Manager) validation.RuleFunc {
 		}
 		return nil
 	}
+}
+
+func isAccountLeased(value interface{}) error {
+	s, _ := value.(*model.AccountStatus)
+	if *s == model.Leased {
+		return errors.New("must be abc")
+	}
+	return nil
 }

@@ -3,10 +3,13 @@ package config
 import (
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"reflect"
 	"strings"
 
+	"github.com/aws/aws-sdk-go/service/ssm"
+	"github.com/aws/aws-sdk-go/service/ssm/ssmiface"
 	"github.com/caarlos0/env"
 )
 
@@ -186,4 +189,61 @@ func (config *ConfigurationBuilder) initialize() {
 func (config *ConfigurationBuilder) createCustomParsers() env.CustomParsers {
 	funcMap := env.CustomParsers{}
 	return funcMap
+}
+
+// RetrieveParameterStoreVals retreives values from the SSM Parameter Store
+func (config *ConfigurationBuilder) RetrieveParameterStoreVals() error {
+
+	// Detect values that need to be retrieved from SSM
+	valsToRetrieve := map[string]ParameterStoreVal{}
+	for _, val := range config.values.vals {
+		if _, ok := val.(ParameterStoreVal); ok {
+			paramName := string(val.(ParameterStoreVal).ParameterName)
+			valsToRetrieve[paramName] = val.(ParameterStoreVal)
+		}
+	}
+
+	if len(valsToRetrieve) != 0 {
+		// config must contain an SSM service to retrieve vals from SSM
+		var ssmClient ssmiface.SSMAPI
+		if err := config.GetService(&ssmClient); err != nil {
+			return err
+		}
+
+		// Using bulk api to reduce number of SSM requests
+		withDecryption := false
+		getParametersOutput, err := ssmClient.GetParameters(&ssm.GetParametersInput{
+			Names:          getKeyPtrs(valsToRetrieve),
+			WithDecryption: &withDecryption,
+		})
+		if err != nil {
+			return err
+		}
+
+		// Overwrite config.values.vals {Config Key: Param Name} -> {Config Key: Param Value}
+		params := getParametersOutput.Parameters
+		for _, param := range params {
+			log.Print("Retrieved SSM Parameter: ", param.GoString())
+			key := valsToRetrieve[*param.Name].Key
+			config.WithVal(key, *param.Value)
+		}
+
+		invalidParams := getParametersOutput.InvalidParameters
+		for _, invalidParam := range invalidParams {
+			log.Print("Invalid SSM Parameter: ", invalidParam)
+			key := valsToRetrieve[*invalidParam].Key
+			defaultVal := valsToRetrieve[*invalidParam].DefaultValue
+			config.WithVal(key, defaultVal)
+		}
+	}
+	return nil
+}
+
+func getKeyPtrs(aMap map[string]ParameterStoreVal) []*string {
+	keys := []*string{}
+	for k := range aMap {
+		newK := k
+		keys = append(keys, &newK)
+	}
+	return keys
 }

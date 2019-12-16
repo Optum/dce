@@ -2,8 +2,10 @@ package event
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/aws/aws-sdk-go/service/sns/snsiface"
 	"github.com/pkg/errors"
@@ -33,9 +35,9 @@ func (a *Event) PublishJSON(i PublishInput) error {
 	topicArn := a.pickTopicArn(i.source, i.name)
 
 	_, err := a.publish(&sns.PublishInput{
-			TopicArn:         topicArn,
-			Message:          serializedMessage,
-			MessageStructure: aws.String("json"),
+		TopicArn:         topicArn,
+		Message:          serializedMessage,
+		MessageStructure: aws.String("json"),
 	})
 
 	return err
@@ -50,13 +52,14 @@ func (a *Event) pickTopicArn(source string, name string) (*string, error) {
 		case "deleted":
 			return aws.String(a.DeletedTopicArn), nil
 		}
-	return nil, fmt.errorf("No SNS Topic ARN found for source %s and name %s", source, name)
+		return nil, fmt.Errorf("No SNS Topic ARN found for source %s and name %s", source, name)
+	}
 }
 
 func (a *Event) publish(m *sns.PublishInput) (*string, error) {
-	
+
 	// Publish the Message to the Topic
-	publishOutput, err := a.AwsSns.Publish(publishInput)
+	publishOutput, err := a.AwsSns.Publish(m)
 	if err != nil {
 		return nil, err
 	}
