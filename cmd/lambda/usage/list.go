@@ -36,7 +36,6 @@ func GetUsage(w http.ResponseWriter, r *http.Request) {
 		usageResponseItems = append(usageResponseItems, response.UsageResponse(*usage))
 	}
 
-
 	// If the DB result has next keys, then the URL to retrieve the next page is put into the Link header.
 	if len(result.NextKeys) > 0 {
 		nextURL := buildNextURL(r, result.NextKeys)
