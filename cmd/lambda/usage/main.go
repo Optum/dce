@@ -19,10 +19,12 @@ import (
 )
 
 const (
-	StartDateParam   = "startDate"
-	EndDateParam     = "endDate"
-	PrincipalIDParam = "principalId"
-	AccountIDParam   = "accountId"
+	StartDateParam       = "startDate"
+	EndDateParam         = "endDate"
+	PrincipalIDParam     = "principalId"
+	AccountIDParam       = "accountId"
+	NextPrincipalIDParam = "nextPrincipalId"
+	NextStartDateParam   = "nextStartDate"
 )
 
 var muxLambda *gorillamux.GorillaMuxAdapter
@@ -68,7 +70,7 @@ func init() {
 			"GET",
 			"/usage",
 			api.EmptyQueryString,
-			GetAllUsage,
+			GetUsage,
 		},
 	}
 	r := api.NewRouter(usageRoutes)
