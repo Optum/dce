@@ -58,7 +58,6 @@ func parseGetUsageInput(r *http.Request) (usage.GetUsageInput, error) {
 		limInt, err := strconv.ParseInt(limit, 10, 64)
 		query.Limit = limInt
 		if err != nil {
-			log.Println("limit error")
 			return query, err
 		}
 	}
@@ -67,7 +66,6 @@ func parseGetUsageInput(r *http.Request) (usage.GetUsageInput, error) {
 	if len(inputStartDate) > 0 {
 		i, err := strconv.ParseInt(inputStartDate, 10, 64)
 		if err != nil {
-			log.Println("start date error")
 			return query, err
 		}
 		startDate := time.Unix(i, 0)
