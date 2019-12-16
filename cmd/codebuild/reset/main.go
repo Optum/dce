@@ -76,7 +76,7 @@ func main() {
 	err := nukeAccount(
 		svc,
 		// Execute nuke as a dry run, if isNukeEnabled is off
-		config.isNukeEnabled == false,
+		!config.isNukeEnabled,
 	)
 	if err != nil {
 		log.Fatalf("Failed to execute aws-nuke on account %s: %s\n", config.accountID, err)

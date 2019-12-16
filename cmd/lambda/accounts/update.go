@@ -3,13 +3,14 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
+	"net/http"
+
 	"github.com/Optum/dce/pkg/api/response"
 	"github.com/Optum/dce/pkg/db"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/gorilla/mux"
-	"log"
-	"net/http"
 )
 
 // updateAccountRequest mirrors the db.Account object,

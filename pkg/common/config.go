@@ -1,13 +1,18 @@
 package common
 
-import "strings"
+import (
+	"os"
+	"strconv"
+	"strings"
+)
 
 // EnvConfig - Configuration pulled from the environment.
 type EnvConfig interface {
 	RequireEnvVar(varName string) string
-	RequireEnvVarInt(varName string) int
+	RequireEnvIntVar(varName string) int
 	GetEnvVar(varName string, defaultValue string) string
 	GetEnvIntVar(varName string, defaultValue int) int
+	GetEnvFloatVar(varName string, defaultValue float64) float64
 }
 
 // DefaultEnvConfig - Default configuration
@@ -42,4 +47,22 @@ func (cfg DefaultEnvConfig) GetEnvIntVar(varName string, defaultValue int) int {
 func (cfg DefaultEnvConfig) GetEnvBoolVar(varName string, defaultValue bool) bool {
 	strValue := GetEnv(varName, "false")
 	return strings.ToLower(strValue) == "true"
+}
+
+// GetEnvFloatVar - Requires the environment variable with the provided varName
+//     and panics if the variable is not present
+func (cfg DefaultEnvConfig) GetEnvFloatVar(varName string, defaultValue float64) float64 {
+	val, ok := os.LookupEnv(varName)
+
+	if !ok {
+		return defaultValue
+	}
+
+	floatVal, err := strconv.ParseFloat(val, 64)
+
+	if err != nil {
+		return defaultValue
+	}
+
+	return floatVal
 }
