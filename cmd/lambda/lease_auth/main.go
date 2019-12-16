@@ -12,7 +12,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
 	"github.com/aws/aws-sdk-go/service/sts"
 
-	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 )
 
@@ -20,11 +19,6 @@ const (
 	consoleURL    = "https://console.aws.amazon.com/"
 	federationURL = "https://signin.aws.amazon.com/federation"
 )
-
-// buildBaseURL returns a base API url from the request properties.
-func buildBaseURL(req *events.APIGatewayProxyRequest) string {
-	return fmt.Sprintf("https://%s/%s", req.Headers["Host"], req.RequestContext.Stage)
-}
 
 func main() {
 

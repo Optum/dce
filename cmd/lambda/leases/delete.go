@@ -1,16 +1,13 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 
 	"github.com/Optum/dce/pkg/api/response"
-	"github.com/aws/aws-lambda-go/events"
 
-	"github.com/Optum/dce/pkg/common"
 	"github.com/Optum/dce/pkg/db"
 )
 
@@ -20,22 +17,18 @@ type deleteLeaseRequest struct {
 	AccountID   string `json:"accountId"`
 }
 
-type DeleteController struct {
-	Dao                    db.DBer
-	Queue                  common.Queue
-	ResetQueueURL          string
-	SNS                    common.Notificationer
-	AccountDeletedTopicArn string
-}
-
-func (c DeleteController) Call(ctx context.Context, req *events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+// DeleteLease - Deletes the given lease
+func DeleteLease(w http.ResponseWriter, r *http.Request) {
 
 	requestBody := &deleteLeaseRequest{}
 
-	err := json.Unmarshal([]byte(req.Body), requestBody)
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&requestBody)
+
 	if err != nil || requestBody.PrincipalID == "" {
-		log.Printf("Failed to Parse Request Body: %s", req.Body)
-		return response.ClientBadRequestError(fmt.Sprintf("Failed to Parse Request Body: %s", req.Body)), nil
+		log.Printf("Failed to Parse Request Body: %s", r.Body)
+		response.WriteBadRequestError(w, fmt.Sprintf("Failed to Parse Request Body: %s", r.Body))
+		return
 	}
 
 	principalID := requestBody.PrincipalID
@@ -43,15 +36,17 @@ func (c DeleteController) Call(ctx context.Context, req *events.APIGatewayProxyR
 	log.Printf("Destroying lease %s for Principal %s", accountID, principalID)
 
 	// Move the account to decommissioned
-	accts, err := c.Dao.FindLeasesByPrincipal(principalID)
+	accts, err := dao.FindLeasesByPrincipal(principalID)
 	if err != nil {
 		log.Printf("Error finding leases for Principal %s: %s", principalID, err)
-		return response.ServerErrorWithResponse(fmt.Sprintf("Cannot verify if Principal %s has a lease", principalID)), nil
+		response.WriteServerErrorWithResponse(w, fmt.Sprintf("Cannot verify if Principal %s has a lease", principalID))
+		return
 	}
 	if accts == nil {
 		errStr := fmt.Sprintf("No leases found for %s", principalID)
 		log.Printf("Error: %s", errStr)
-		return response.ClientBadRequestError(errStr), nil
+		response.WriteBadRequestError(w, errStr)
+		return
 	}
 
 	// Get the Lease
@@ -63,28 +58,32 @@ func (c DeleteController) Call(ctx context.Context, req *events.APIGatewayProxyR
 		}
 	}
 	if acct == nil {
-		return response.ClientBadRequestError(fmt.Sprintf("No active leases found for %s", principalID)), nil
+		response.WriteBadRequestError(w, fmt.Sprintf("No active account leases found for %s", principalID))
+		return
 	} else if acct.LeaseStatus != db.Active {
 		errStr := fmt.Sprintf("Lease is not active for %s - %s",
 			principalID, accountID)
-		return response.ClientBadRequestError(errStr), nil
+		response.WriteBadRequestError(w, errStr)
+		return
 	}
 
 	// Transition the Lease Status
-	updatedLease, err := c.Dao.TransitionLeaseStatus(acct.AccountID, principalID,
+	updatedLease, err := dao.TransitionLeaseStatus(acct.AccountID, principalID,
 		db.Active, db.Inactive, db.LeaseDestroyed)
 	if err != nil {
 		log.Printf("Error transitioning lease status: %s", err)
-		return response.ServerErrorWithResponse(fmt.Sprintf("Failed to destroy lease %s - %s", principalID, accountID)), nil
+		response.WriteServerErrorWithResponse(w, fmt.Sprintf("Failed Decommission on Account Lease %s - %s", principalID, accountID))
+		return
 	}
 
 	// Transition the Account Status
-	_, err = c.Dao.TransitionAccountStatus(acct.AccountID, db.Leased,
+	_, err = dao.TransitionAccountStatus(acct.AccountID, db.Leased,
 		db.NotReady)
 	if err != nil {
-		return response.ServerErrorWithResponse(fmt.Sprintf("Failed to destroy lease %s - %s", principalID, accountID)), nil
+		response.WriteServerErrorWithResponse(w, fmt.Sprintf("Failed Decommission on Account Lease %s - %s", principalID, accountID))
+		return
 	}
 
 	leaseResponse := response.LeaseResponse(*updatedLease)
-	return response.CreateAPIGatewayJSONResponse(http.StatusOK, leaseResponse), nil
+	json.NewEncoder(w).Encode(leaseResponse)
 }

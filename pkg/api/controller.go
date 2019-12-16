@@ -9,7 +9,6 @@ import (
 
 	"github.com/Optum/dce/pkg/api/response"
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/aws/aws-sdk-go/aws/session"
 )
 
 // Controller is the base controller interface for API Gateway Lambda handlers.
@@ -51,7 +50,7 @@ func (router *Router) Route(ctx context.Context, req *events.APIGatewayProxyRequ
 		res, err = router.CreateController.Call(ctxWithUser, req)
 	default:
 		errMsg := fmt.Sprintf("Resource %s not found for method %s", req.Path, req.HTTPMethod)
-		log.Printf(errMsg)
+		log.Println(errMsg)
 		return response.BadRequestError(errMsg), nil
 	}
 
@@ -62,13 +61,4 @@ func (router *Router) Route(ctx context.Context, req *events.APIGatewayProxyRequ
 	}
 
 	return res, nil
-}
-
-func newAWSSession() *session.Session {
-	awsSession, err := session.NewSession()
-	if err != nil {
-		errorMessage := fmt.Sprintf("Failed to create AWS session: %s", err)
-		log.Fatal(errorMessage)
-	}
-	return awsSession
 }
