@@ -6,7 +6,9 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/Optum/dce/pkg/usage"
 	"github.com/Optum/dce/pkg/api/response"
 )
 
@@ -32,8 +34,8 @@ func GetUsage(w http.ResponseWriter, r *http.Request) {
 
 	// Serialize them for the JSON response.
 	usageResponseItems := []response.UsageResponse{}
-	for _, usage := range usageRecords {
-		usageResponseItems = append(usageResponseItems, response.UsageResponse(*usage))
+	for _, usageItem := range result.Results {
+		usageResponseItems = append(usageResponseItems, response.UsageResponse(*usageItem))
 	}
 
 	// If the DB result has next keys, then the URL to retrieve the next page is put into the Link header.
@@ -65,7 +67,7 @@ func parseGetUsageInput(r *http.Request) (usage.GetUsageInput, error) {
 		return query, err
 	}
 	startDate := time.Unix(i, 0)
-	if len(startDate) > 0 {
+	if startDate != *new(time.Time) {
 		query.StartDate = startDate
 	}
 

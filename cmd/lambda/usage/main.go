@@ -25,6 +25,7 @@ const (
 	AccountIDParam       = "accountId"
 	NextPrincipalIDParam = "nextPrincipalId"
 	NextStartDateParam   = "nextStartDate"
+	LimitParam           = "limit"
 )
 
 var muxLambda *gorillamux.GorillaMuxAdapter

@@ -36,7 +36,7 @@ func TestUsageDb(t *testing.T) {
 	)
 
 	// For testing purposes support consistent reads
-	dbSvc.ConsistendRead = true
+	dbSvc.ConsistentRead = true
 
 	// ttl is set to 3-days
 	const ttl int = 3
@@ -130,7 +130,7 @@ func TestUsageDb(t *testing.T) {
 		})
 		assert.Nil(t, err)
 		assert.Equal(t, len(output.Results), 10, "should only return 10 usage records")
-		assert.Equal(t, output.Results[0].PrincipalID, principalIDOne, "should return the usage with the given principal ID")
+		assert.Equal(t, output.Results[0].PrincipalID, "user", "should return the usage with the given principal ID")
 	})
 
 	t.Run("GetUsage - When there is an account ID filter only", func(t *testing.T) {
