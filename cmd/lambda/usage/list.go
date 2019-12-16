@@ -58,17 +58,22 @@ func parseGetUsageInput(r *http.Request) (usage.GetUsageInput, error) {
 		limInt, err := strconv.ParseInt(limit, 10, 64)
 		query.Limit = limInt
 		if err != nil {
+			log.Println("limit error")
 			return query, err
 		}
 	}
 
-	i, err := strconv.ParseInt(r.FormValue(StartDateParam), 10, 64)
-	if err != nil {
-		return query, err
-	}
-	startDate := time.Unix(i, 0)
-	if startDate != *new(time.Time) {
-		query.StartDate = startDate
+	inputStartDate := r.FormValue(StartDateParam)
+	if len(inputStartDate) > 0 {
+		i, err := strconv.ParseInt(inputStartDate, 10, 64)
+		if err != nil {
+			log.Println("start date error")
+			return query, err
+		}
+		startDate := time.Unix(i, 0)
+		if startDate != *new(time.Time) {
+			query.StartDate = startDate
+		}
 	}
 
 	principalID := r.FormValue(PrincipalIDParam)
