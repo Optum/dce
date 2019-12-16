@@ -13,6 +13,7 @@ import (
 	"github.com/Optum/dce/pkg/usage"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
 	"github.com/aws/aws-sdk-go/service/sns"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -50,6 +51,7 @@ var (
 	snsService               common.Notificationer
 	accountDeletedTopicArn   string
 	defaultLeaseLengthInDays *int
+	userDetails              api.UserDetailer
 )
 
 // messageBody is the structured object of the JSON Message to send
@@ -136,6 +138,9 @@ func init() {
 // Handler - Handle the lambda function
 func Handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	// If no name is provided in the HTTP request body, throw an error
+	// requestUser := userDetails.GetUser(&req)
+	// ctxWithUser := context.WithValue(ctx, api.DceCtxKey, *requestUser)
+	// return muxLambda.ProxyWithContext(ctxWithUser, req)
 	return muxLambda.ProxyWithContext(ctx, req)
 }
 
@@ -158,6 +163,13 @@ func main() {
 	}
 
 	usageSvc = usageService
+
+	userDetails =
+		&api.UserDetails{
+			CognitoUserPoolID:        common.RequireEnv("COGNITO_USER_POOL_ID"),
+			RolesAttributesAdminName: common.RequireEnv("COGNITO_ROLES_ATTRIBUTE_ADMIN_NAME"),
+			CognitoClient:            cognitoidentityprovider.New(awsSession),
+		}
 
 	lambda.Start(Handler)
 }
