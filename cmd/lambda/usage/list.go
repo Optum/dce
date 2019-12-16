@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Optum/dce/pkg/usage"
 	"github.com/Optum/dce/pkg/api/response"
+	"github.com/Optum/dce/pkg/usage"
 )
 
 // GetUsage - Gets all of the usage
