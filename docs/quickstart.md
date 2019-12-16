@@ -1,4 +1,4 @@
-# DCE Quickstart
+# Quickstart
 
 The purpose of this quickstart is to show how to deploy DCE into
 a _master account_ and to show you how to add other AWS accounts

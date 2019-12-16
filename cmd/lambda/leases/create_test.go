@@ -80,7 +80,7 @@ func TestCreateController_Call(t *testing.T) {
 
 		// Should publish SNS message
 		snsMock.On("PublishMessage", &leaseTopicARN, mock.Anything, true).Return(&messageID, nil)
-		usageMock.On("GetUsageByDateRange", mock.Anything, mock.Anything).Return(nil, nil)
+		usageMock.On("GetUsageByPrincipal", mock.Anything, mock.Anything).Return(nil, nil)
 
 		testFields := &fields{
 			Dao:                   dbMock,
@@ -662,7 +662,7 @@ func stubCreateController() CreateController {
 
 func stubUsageService() *mockUsage.Service {
 	svc := &mockUsage.Service{}
-	svc.On("GetUsageByDateRange", mock.Anything, mock.Anything).
+	svc.On("GetUsageByPrincipal", mock.Anything, mock.Anything).
 		Return([]*usage.Usage{}, nil)
 
 	return svc

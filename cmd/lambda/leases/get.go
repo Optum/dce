@@ -24,7 +24,7 @@ func (controller GetController) Call(ctx context.Context, req *events.APIGateway
 	lease, err := controller.Dao.GetLeaseByID(leaseID)
 	if err != nil {
 		log.Printf("Error Getting Lease for Id: %s", leaseID)
-		return response.CreateAPIErrorResponse(http.StatusInternalServerError,
+		return response.CreateAPIGatewayErrorResponse(http.StatusInternalServerError,
 			response.CreateErrorResponse("ServerError",
 				fmt.Sprintf("Failed Get on Lease %s",
 					leaseID))), nil
@@ -35,5 +35,5 @@ func (controller GetController) Call(ctx context.Context, req *events.APIGateway
 	}
 
 	leaseResponse := response.LeaseResponse(*lease)
-	return response.CreateJSONResponse(http.StatusOK, leaseResponse), nil
+	return response.CreateAPIGatewayJSONResponse(http.StatusOK, leaseResponse), nil
 }

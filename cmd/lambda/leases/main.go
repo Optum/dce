@@ -94,7 +94,7 @@ func main() {
 			MaxLeasePeriod:           &maxLeasePeriod,
 			DefaultLeaseLengthInDays: common.GetEnvInt("DEFAULT_LEASE_LENGTH_IN_DAYS", 7),
 		},
-		UserDetails: api.UserDetails{
+		UserDetails: &api.UserDetails{
 			CognitoUserPoolID:        common.RequireEnv("COGNITO_USER_POOL_ID"),
 			RolesAttributesAdminName: common.RequireEnv("COGNITO_ROLES_ATTRIBUTE_ADMIN_NAME"),
 			CognitoClient:            cognitoidentityprovider.New(awsSession),

@@ -57,9 +57,8 @@ func validateLeaseRequest(controller CreateController, req *events.APIGatewayPro
 
 	// Validate requested lease budget amount is less than PRINCIPAL_BUDGET_AMOUNT for current principal billing period
 	usageStartTime := getBeginningOfCurrentBillingPeriod(*controller.PrincipalBudgetPeriod)
-	usageEndTime := time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 23, 59, 59, 0, time.UTC)
 
-	usageRecords, err := controller.UsageSvc.GetUsageByDateRange(usageStartTime, usageEndTime)
+	usageRecords, err := controller.UsageSvc.GetUsageByPrincipal(usageStartTime, requestBody.PrincipalID)
 	if err != nil {
 		errStr := fmt.Sprintf("Failed to retrieve usage: %s", err)
 		return requestBody, true, "", errors.New(errStr)
@@ -68,9 +67,7 @@ func validateLeaseRequest(controller CreateController, req *events.APIGatewayPro
 	// Group by PrincipalID to get sum of total spent for current billing period
 	spent := 0.0
 	for _, usageItem := range usageRecords {
-		if usageItem.PrincipalID == requestBody.PrincipalID {
-			spent = spent + usageItem.CostAmount
-		}
+		spent = spent + usageItem.CostAmount
 	}
 
 	if spent > *controller.PrincipalBudgetAmount {
