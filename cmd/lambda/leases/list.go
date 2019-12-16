@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -45,7 +46,9 @@ func GetLeases(w http.ResponseWriter, r *http.Request) {
 
 	// If the DB result has next keys, then the URL to retrieve the next page is put into the Link header.
 	if len(result.NextKeys) > 0 {
+		fmt.Printf("PreBuildNextUrl:\n%+v\n", r)
 		nextURL := buildNextURL(r, result.NextKeys)
+		fmt.Printf("NextUrl:\n%v\n", nextURL)
 		w.Header().Add("Link", fmt.Sprintf("<%s>; rel=\"next\"", nextURL))
 	}
 
@@ -115,5 +118,11 @@ func buildNextURL(r *http.Request, nextParams map[string]string) string {
 	}
 
 	queryString := strings.Join(responseQueryStrings, "&")
-	return fmt.Sprintf("%s?%s", r.URL.EscapedPath(), queryString)
+	req := url.URL{
+		Scheme:   baseRequest.Scheme,
+		Host:     baseRequest.Host,
+		Path:     fmt.Sprintf("%s%s", baseRequest.Path, r.URL.EscapedPath()),
+		RawQuery: queryString,
+	}
+	return req.String()
 }

@@ -77,6 +77,12 @@ stages:
             artifact: deploy_scripts
           - publish: $(System.DefaultWorkingDirectory)/tests
             artifact: tests
+          - publish: $(System.DefaultWorkingDirectory)/pkg
+            artifact: pkg
+          - publish: $(System.DefaultWorkingDirectory)/go.mod
+            artifact: gomod
+          - publish: $(System.DefaultWorkingDirectory)/go.sum
+            artifact: gosum
 
   - stage: Deploy
     dependsOn: TestAndBuild
@@ -160,6 +166,23 @@ stages:
                     scriptType: "filePath"
                     filePath: "$(Pipeline.Workspace)/deploy_scripts/deploy.sh"
 
+                # Install GO
+                - task: GoTool@0
+                  inputs:
+                    version: "1.13.4"
+                    goPath: "$(System.DefaultWorkingDirectory)/gopath"
+                    goBin: "$(System.DefaultWorkingDirectory)/gopath/bin"
+                  displayName: "Set up the Go workspace"
+
+                - bash: |
+                    cp gomod/go.mod .
+                    cp gosum/go.sum .
+                    echo '##vso[task.prependpath]$(GOBIN)'
+                    echo '##vso[task.prependpath]$(GOROOT)/bin'
+                    go get github.com/jstemmer/go-junit-report
+                  displayName: "Setup Go"
+                  workingDirectory: "$(Pipeline.Workspace)"
+
                 # Functional Tests
                 - task: AWSShellScript@1
                   displayName: "Functional Tests"
@@ -168,8 +191,11 @@ stages:
                     regionName: "us-east-1"
                     scriptType: "inline"
                     inlineScript: |
+                      set -euxo pipefail
                       cd $(Pipeline.Workspace)
                       mkdir -p junit-report
+                      env
+                      go env
                       # Run functional tests
                       go test -v ./tests/... 2>&1 | tee >(go-junit-report > junit-report/functional.xml)
 
