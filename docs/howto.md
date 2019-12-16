@@ -242,7 +242,7 @@ See [API Reference Documentation](./api-documentation.md) for details.
 
 See [API Auth Documentation](./api-auth.md) for details on authenticating and authorizing requests. 
 
-### API Location
+### Finding the DCE API URL
 
 The API is hosted by AWS API Gateway. The base URL is exposed as a Terraform output. API Gateway generates a unique ID as part of the API URL. To retrieve the base url of the API, run the following command from [the Terraform modules directory](https://github.com/Optum/dce/tree/master/modules):
 
@@ -256,7 +256,7 @@ All endpoints use this value as the base url. For example, to view accounts:
 GET https://asdfghjkl.execute-api.us-east-1.amazonaws.com/api/accounts
 ```
 
-## Add Accounts to the DCE Account Pool
+### Adding Accounts to the DCE Account Pool
 
 DCE manages its collection of AWS accounts in an [account pool](concepts.md#account-pool). Each account in the pool is made available for [leasing](concepts.md#lease) by DCE users.
 
@@ -297,9 +297,9 @@ dce accounts add \
     --admin-role-arn <ARN of the admin IAM role in the child account>
 ```
 
+## Configure Deployment Options
 
-
-## Configure Budgets and Lease Periods
+### Budgets and Lease Periods
 
 Every [lease](concepts.md#lease) comes with a configured **per-lease budget**, which limits AWS account spend during the course of the lease. Additionally there are **per-principal budgets**, which limit spend by a single user across multiple lease during a budget period. This prevents a single user from creating multiple leases to as a way of circumventing lease budgets.
 
@@ -313,7 +313,7 @@ DCE budget may be configured as [Terraform variables](terraform.md#configuring-t
 | `principal_budget_period` | "WEEKLY" | The period across which the `principal_budget_amount` is measured. Currently only supports "WEEKLY" |
 
 
-## Configure Account Resets
+### Account Resets
 
 To [reset](concepts.md#reset) AWS accounts between leases, DCE uses the [open source `aws-nuke` tool](https://github.com/rebuy-de/aws-nuke). This tool attempts to delete every single resource in th AWS account, and will make several attempts to ensure everything is wiped clean.
 
@@ -335,7 +335,7 @@ Then configure reset using [Terraform variables](terraform.md#configuring-terraf
 | `allowed_regions` | _all AWS regions_ | AWS regions which will be nuked. Allowing fewer regions will drastically reduce the run time of aws-nuke | 
 
 
-## Customize Budget Notifications
+### Budget Notifications
 
 When a lease owner approaches or exceeds their budget, they will receive an email notification. These notifications are [configurable as Terraform variables](terraform.md#configuring-terraform-variables):
 
@@ -350,7 +350,7 @@ When a lease owner approaches or exceeds their budget, they will receive an emai
 | `budget_notification_template_html` | See [variables.tf](https://github.com/Optum/dce/blob/master/modules/variables.tf) | Template for budget notification HTML emails |
 
 
-### Email Templates
+#### Email Templates
 
 Budget notification email templates are rendered using [golang templates](https://golang.org/pkg/text/template/), and accept the following arguments:
 
