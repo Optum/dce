@@ -28,23 +28,11 @@ type createLeaseRequest struct {
 // CreateLease - Creates the lease
 func CreateLease(w http.ResponseWriter, r *http.Request) {
 
-	currentTime := time.Now()
-	usageStartTime := getBeginningOfCurrentBillingPeriod(aws.StringValue(principalBudgetPeriod))
-	usageEndTime := time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 23, 59, 59, 0, time.UTC)
-
-	usages, err := usageSvc.GetUsageByDateRange(usageStartTime, usageEndTime)
-
-	if err != nil {
-		response.WriteServerErrorWithResponse(w, err.Error())
-		return
-	}
-
 	c := leaseValidationContext{
 		maxLeaseBudgetAmount:     aws.Float64Value(maxLeaseBudgetAmount),
 		maxLeasePeriod:           aws.Int64Value(maxLeasePeriod),
 		defaultLeaseLengthInDays: aws.IntValue(defaultLeaseLengthInDays),
 		principalBudgetPeriod:    aws.StringValue(principalBudgetPeriod),
-		usageRecords:             usages,
 	}
 
 	// Extract the Body from the Request
@@ -202,4 +190,19 @@ func publishLease(snsSvc common.Notificationer,
 	}
 	log.Printf("Success Message Sent to SNS Topic %s: %s\n", *topic, *messageID)
 	return &message, nil
+}
+
+// getBeginningOfCurrentBillingPeriod returns starts of the billing period based on budget period
+func getBeginningOfCurrentBillingPeriod(input string) time.Time {
+	currentTime := time.Now()
+	if input == Weekly {
+
+		for currentTime.Weekday() != time.Sunday { // iterate back to Sunday
+			currentTime = currentTime.AddDate(0, 0, -1)
+		}
+
+		return time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 0, 0, 0, 0, time.UTC)
+	}
+
+	return time.Date(currentTime.Year(), currentTime.Month(), 1, 0, 0, 0, 0, time.UTC)
 }

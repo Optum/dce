@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 	"net/http"
@@ -64,12 +65,19 @@ func validateLeaseFromRequest(context *leaseValidationContext, req *http.Request
 		return requestBody, false, validationErrStr, nil
 	}
 
+	// Validate requested lease budget amount is less than PRINCIPAL_BUDGET_AMOUNT for current principal billing period
+	usageStartTime := getBeginningOfCurrentBillingPeriod(context.principalBudgetPeriod)
+
+	usageRecords, err := usageSvc.GetUsageByPrincipal(usageStartTime, requestBody.PrincipalID)
+	if err != nil {
+		errStr := fmt.Sprintf("Failed to retrieve usage: %s", err)
+		return requestBody, true, "", errors.New(errStr)
+	}
+
 	// Group by PrincipalID to get sum of total spent for current billing period
 	spent := 0.0
-	for _, usageItem := range context.usageRecords {
-		if usageItem.PrincipalID == requestBody.PrincipalID {
-			spent = spent + usageItem.CostAmount
-		}
+	for _, usageItem := range usageRecords {
+		spent = spent + usageItem.CostAmount
 	}
 
 	if spent > context.principalBudgetAmount {
@@ -78,19 +86,4 @@ func validateLeaseFromRequest(context *leaseValidationContext, req *http.Request
 	}
 
 	return requestBody, true, "", nil
-}
-
-// getBeginningOfCurrentBillingPeriod returns starts of the billing period based on budget period
-func getBeginningOfCurrentBillingPeriod(input string) time.Time {
-	currentTime := time.Now()
-	if input == Weekly {
-
-		for currentTime.Weekday() != time.Sunday { // iterate back to Sunday
-			currentTime = currentTime.AddDate(0, 0, -1)
-		}
-
-		return time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 0, 0, 0, 0, time.UTC)
-	}
-
-	return time.Date(currentTime.Year(), currentTime.Month(), 1, 0, 0, 0, 0, time.UTC)
 }
