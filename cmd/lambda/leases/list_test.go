@@ -31,10 +31,16 @@ func TestListLeases(t *testing.T) {
 
 		nextURL := buildNextURL(request, nextParams)
 
-		assert.Equal(t,
+		expectedURLs := []string{
 			"/api/leases?limit=2&nextAccountId=1&nextPrincipalId=b",
-			nextURL,
-		)
+			"/api/leases?limit=2&nextPrincipalId=b&nextAccountId=1",
+			"/api/leases?nextAccountId=1&nextPrincipalId=b&limit=2",
+			"/api/leases?nextPrincipalId=b&nextAccountId=1&limit=2",
+			"/api/leases?nextPrincipalId=b&limit=2&nextAccountId=1",
+			"/api/leases?nextAccountId=1&limit=2&nextPrincipalId=b",
+		}
+
+		assert.Contains(t, expectedURLs, nextURL)
 
 	})
 
