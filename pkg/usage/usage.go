@@ -249,17 +249,22 @@ func (db *DB) GetUsage(input GetUsageInput) (GetUsageOutput, error) {
 	results := make([]*Usage, 0)
 
 	for _, o := range output.Items {
-		lease, err := unmarshalUsageRecord(o)
+		usageItem, err := unmarshalUsageRecord(o)
 		if err != nil {
 			return GetUsageOutput{}, err
 		}
-		results = append(results, lease)
+		results = append(results, usageItem)
 	}
 
 	nextKey := make(map[string]string)
 
 	for k, v := range output.LastEvaluatedKey {
-		nextKey[k] = *v.S
+		if v.S != nil {
+			nextKey[k] = *v.S
+		}
+		if v.N != nil {
+			nextKey[k] = *v.N
+		}
 	}
 
 	return GetUsageOutput{
