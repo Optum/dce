@@ -235,7 +235,12 @@ func (db *DB) GetUsage(input GetUsageInput) (GetUsageOutput, error) {
 	if input.StartKeys != nil && len(input.StartKeys) > 0 {
 		scanInput.ExclusiveStartKey = make(map[string]*dynamodb.AttributeValue)
 		for k, v := range input.StartKeys {
-			scanInput.ExclusiveStartKey[k] = &dynamodb.AttributeValue{S: aws.String(v)}
+			if k == "StartDate" {
+				scanInput.ExclusiveStartKey[k] = &dynamodb.AttributeValue{N: aws.String(v)}
+			}
+			if k == "PrincipalId" {
+				scanInput.ExclusiveStartKey[k] = &dynamodb.AttributeValue{S: aws.String(v)}
+			}
 		}
 	}
 
