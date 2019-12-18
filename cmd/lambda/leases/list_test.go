@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -31,10 +32,17 @@ func TestListLeases(t *testing.T) {
 
 		nextURL := buildNextURL(request, nextParams)
 
-		assert.Equal(t,
-			"/api/leases?limit=2&nextAccountId=1&nextPrincipalId=b",
-			nextURL,
-		)
+		assert.Equal(t, url.Values{
+			"limit": {
+				"2",
+			},
+			"nextAccountId": {
+				"1",
+			},
+			"nextPrincipalId": {
+				"b",
+			},
+		}, nextURL.Query())
 
 	})
 

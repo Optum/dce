@@ -194,8 +194,6 @@ stages:
                       set -euxo pipefail
                       cd $(Pipeline.Workspace)
                       mkdir -p junit-report
-                      env
-                      go env
                       # Run functional tests
                       go test -v ./tests/... 2>&1 | tee >(go-junit-report > junit-report/functional.xml)
 

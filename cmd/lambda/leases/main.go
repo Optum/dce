@@ -66,7 +66,7 @@ type messageBody struct {
 func init() {
 	log.Println("Cold start; creating router for /leases")
 
-	leaseAddedTopicARN = aws.String(config.GetEnvVar("PROVISION_TOPIC", "DCEDefaultProvisionTopic"))
+	leaseAddedTopicARN = aws.String(config.GetEnvVar("LEASE_ADDED_TOPIC", "DCEDefaultProvisionTopic"))
 	accountDeletedTopicArn = config.GetEnvVar("DECOMMISSION_TOPIC", "DefaultDecomissionTopic")
 	resetQueueURL = config.GetEnvVar("RESET_SQS_URL", "DefaultResetSQSURL")
 	principalBudgetAmount = aws.Float64(config.GetEnvFloatVar("PRINCIPAL_BUDGET_AMOUNT", 1000.00))
