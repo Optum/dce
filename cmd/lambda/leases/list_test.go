@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -31,16 +32,17 @@ func TestListLeases(t *testing.T) {
 
 		nextURL := buildNextURL(request, nextParams)
 
-		expectedURLs := []string{
-			"/api/leases?limit=2&nextAccountId=1&nextPrincipalId=b",
-			"/api/leases?limit=2&nextPrincipalId=b&nextAccountId=1",
-			"/api/leases?nextAccountId=1&nextPrincipalId=b&limit=2",
-			"/api/leases?nextPrincipalId=b&nextAccountId=1&limit=2",
-			"/api/leases?nextPrincipalId=b&limit=2&nextAccountId=1",
-			"/api/leases?nextAccountId=1&limit=2&nextPrincipalId=b",
-		}
-
-		assert.Contains(t, expectedURLs, nextURL)
+		assert.Equal(t, url.Values{
+			"limit": {
+				"2",
+			},
+			"nextAccountId": {
+				"1",
+			},
+			"nextPrincipalId": {
+				"b",
+			},
+		}, nextURL.Query())
 
 	})
 
