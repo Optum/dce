@@ -121,7 +121,7 @@ func TestUsageDb(t *testing.T) {
 			Limit: 2,
 		})
 		assert.Nil(t, err)
-		assert.Equal(t, 20, len(output.Results), "only two usage records should be returned")
+		assert.Equal(t, 200, len(output.Results), "only two usage records should be returned")
 	})
 
 	t.Run("GetUsage - When there is a principal ID filter only", func(t *testing.T) {
