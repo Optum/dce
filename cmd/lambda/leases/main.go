@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 
 	"log"
 
@@ -52,6 +53,7 @@ var (
 	accountDeletedTopicArn   string
 	defaultLeaseLengthInDays *int
 	userDetails              api.UserDetailer
+	baseRequest              url.URL
 )
 
 // messageBody is the structured object of the JSON Message to send
@@ -64,7 +66,7 @@ type messageBody struct {
 func init() {
 	log.Println("Cold start; creating router for /leases")
 
-	leaseAddedTopicARN = aws.String(config.GetEnvVar("PROVISION_TOPIC", "DCEDefaultProvisionTopic"))
+	leaseAddedTopicARN = aws.String(config.GetEnvVar("LEASE_ADDED_TOPIC", "DCEDefaultProvisionTopic"))
 	accountDeletedTopicArn = config.GetEnvVar("DECOMMISSION_TOPIC", "DefaultDecomissionTopic")
 	resetQueueURL = config.GetEnvVar("RESET_SQS_URL", "DefaultResetSQSURL")
 	principalBudgetAmount = aws.Float64(config.GetEnvFloatVar("PRINCIPAL_BUDGET_AMOUNT", 1000.00))
@@ -141,6 +143,13 @@ func Handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 	// requestUser := userDetails.GetUser(&req)
 	// ctxWithUser := context.WithValue(ctx, api.DceCtxKey, *requestUser)
 	// return muxLambda.ProxyWithContext(ctxWithUser, req)
+
+	// Set baseRequest information lost by integration with gorilla mux
+	baseRequest = url.URL{}
+	baseRequest.Scheme = req.Headers["X-Forwarded-Proto"]
+	baseRequest.Host = req.Headers["Host"]
+	baseRequest.Path = req.RequestContext.Stage
+
 	return muxLambda.ProxyWithContext(ctx, req)
 }
 

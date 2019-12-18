@@ -453,7 +453,7 @@ func TestApi(t *testing.T) {
 					// Verify error response json
 					// Get nested json in response json
 					err := data["error"].(map[string]interface{})
-					assert.Equal(r, "ServerError", err["code"].(string))
+					assert.Equal(r, "StatusServiceUnavailable", err["code"].(string))
 					assert.Equal(r, "No Available accounts at this moment",
 						err["message"].(string))
 				},
@@ -532,7 +532,7 @@ func TestApi(t *testing.T) {
 					// Get nested json in response json
 					err := data["error"].(map[string]interface{})
 					assert.Equal(r, "ClientError", err["code"].(string))
-					assert.Equal(r, "Failed to Parse Request Body: ",
+					assert.Equal(r, "Failed to Parse Request Body: {}",
 						err["message"].(string))
 				},
 			})
@@ -618,7 +618,7 @@ func TestApi(t *testing.T) {
 					// Get nested json in response json
 					errResp := data["error"].(map[string]interface{})
 					assert.Equal(r, "ClientError", errResp["code"].(string))
-					assert.Equal(r, "No active leases found for user",
+					assert.Equal(r, "No active account leases found for user",
 						errResp["message"].(string))
 				},
 			})
@@ -1643,7 +1643,7 @@ func TestApi(t *testing.T) {
 			// Verify error response json
 			// Get nested json in response json
 			err := data["error"].(map[string]interface{})
-			errStr := fmt.Sprintf("Unable to create lease: User principal %s has already spent 1000.000000 of their principal budget", principalID)
+			errStr := fmt.Sprintf("Unable to create lease: User principal %s has already spent 0.000000 of their principal budget", principalID)
 			require.Equal(t, "RequestValidationError", err["code"].(string))
 			require.Equal(t, errStr, err["message"].(string))
 		})
