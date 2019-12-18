@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
-	"strings"
 
 	"github.com/Optum/dce/pkg/db"
 
@@ -46,7 +46,7 @@ func GetLeases(w http.ResponseWriter, r *http.Request) {
 	// If the DB result has next keys, then the URL to retrieve the next page is put into the Link header.
 	if len(result.NextKeys) > 0 {
 		nextURL := buildNextURL(r, result.NextKeys)
-		w.Header().Add("Link", fmt.Sprintf("<%s>; rel=\"next\"", nextURL))
+		w.Header().Add("Link", fmt.Sprintf("<%s>; rel=\"next\"", nextURL.String()))
 	}
 
 	json.NewEncoder(w).Encode(leaseResponseItems)
@@ -98,22 +98,19 @@ func parseGetLeasesInput(r *http.Request) (db.GetLeasesInput, error) {
 }
 
 // buildNextURL merges the next parameters into the request parameters and returns an API URL.
-func buildNextURL(r *http.Request, nextParams map[string]string) string {
-	responseParams := make(map[string]string)
-	responseQueryStrings := make([]string, 0)
-
-	for k, v := range r.URL.Query() {
-		responseParams[k] = v[0]
+func buildNextURL(r *http.Request, nextParams map[string]string) url.URL {
+	req := url.URL{
+		Scheme: baseRequest.Scheme,
+		Host:   baseRequest.Host,
+		Path:   fmt.Sprintf("%s%s", baseRequest.Path, r.URL.EscapedPath()),
 	}
+
+	query := r.URL.Query()
 
 	for k, v := range nextParams {
-		responseParams[fmt.Sprintf("next%s", k)] = v
+		query.Set(fmt.Sprintf("next%s", k), v)
 	}
 
-	for k, v := range responseParams {
-		responseQueryStrings = append(responseQueryStrings, fmt.Sprintf("%s=%s", k, v))
-	}
-
-	queryString := strings.Join(responseQueryStrings, "&")
-	return fmt.Sprintf("%s?%s", r.URL.EscapedPath(), queryString)
+	req.RawQuery = query.Encode()
+	return req
 }
