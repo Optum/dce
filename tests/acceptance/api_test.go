@@ -1398,7 +1398,7 @@ func TestApi(t *testing.T) {
 
 				respTwo := apiRequest(t, &apiRequestInput{
 					method: "GET",
-					url:    apiURL + nextPage,
+					url:    nextPage,
 					json:   nil,
 				})
 
@@ -1415,7 +1415,7 @@ func TestApi(t *testing.T) {
 
 				respThree := apiRequest(t, &apiRequestInput{
 					method: "GET",
-					url:    apiURL + nextPage,
+					url:    nextPage,
 					json:   nil,
 				})
 
