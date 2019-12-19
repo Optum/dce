@@ -93,3 +93,24 @@ func CreateAPIGatewayErrorResponse(responseCode int,
 	// Return an error
 	return CreateAPIGatewayResponse(responseCode, string(apiResponse))
 }
+
+// BuildNextURL merges the next parameters of pagination into the request parameters and returns an API URL.
+func BuildNextURL(r *http.Request, nextParams map[string]string) string {
+	responseParams := make(map[string]string)
+	responseQueryStrings := make([]string, 0)
+
+	for k, v := range r.URL.Query() {
+		responseParams[k] = v[0]
+	}
+
+	for k, v := range nextParams {
+		responseParams[fmt.Sprintf("next%s", k)] = v
+	}
+
+	for k, v := range responseParams {
+		responseQueryStrings = append(responseQueryStrings, fmt.Sprintf("%s=%s", k, v))
+	}
+
+	queryString := strings.Join(responseQueryStrings, "&")
+	return fmt.Sprintf("%s?%s", r.URL.EscapedPath(), queryString)
+}

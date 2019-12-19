@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strconv"
 
 	"github.com/Optum/dce/pkg/db"
@@ -45,7 +44,7 @@ func GetLeases(w http.ResponseWriter, r *http.Request) {
 
 	// If the DB result has next keys, then the URL to retrieve the next page is put into the Link header.
 	if len(result.NextKeys) > 0 {
-		nextURL := buildNextURL(r, result.NextKeys)
+		nextURL := response.BuildNextURL(r, result.NextKeys)
 		w.Header().Add("Link", fmt.Sprintf("<%s>; rel=\"next\"", nextURL.String()))
 	}
 
@@ -95,22 +94,4 @@ func parseGetLeasesInput(r *http.Request) (db.GetLeasesInput, error) {
 	}
 
 	return query, nil
-}
-
-// buildNextURL merges the next parameters into the request parameters and returns an API URL.
-func buildNextURL(r *http.Request, nextParams map[string]string) url.URL {
-	req := url.URL{
-		Scheme: baseRequest.Scheme,
-		Host:   baseRequest.Host,
-		Path:   fmt.Sprintf("%s%s", baseRequest.Path, r.URL.EscapedPath()),
-	}
-
-	query := r.URL.Query()
-
-	for k, v := range nextParams {
-		query.Set(fmt.Sprintf("next%s", k), v)
-	}
-
-	req.RawQuery = query.Encode()
-	return req
 }
