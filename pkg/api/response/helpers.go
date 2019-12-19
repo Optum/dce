@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strings"
+	"net/url"
 
 	"github.com/aws/aws-lambda-go/events"
 )
@@ -96,22 +96,19 @@ func CreateAPIGatewayErrorResponse(responseCode int,
 }
 
 // BuildNextURL merges the next parameters of pagination into the request parameters and returns an API URL.
-func BuildNextURL(r *http.Request, nextParams map[string]string) string {
-	responseParams := make(map[string]string)
-	responseQueryStrings := make([]string, 0)
-
-	for k, v := range r.URL.Query() {
-		responseParams[k] = v[0]
+func BuildNextURL(r *http.Request, nextParams map[string]string, baseRequest url.URL) url.URL {
+	req := url.URL{
+		Scheme: baseRequest.Scheme,
+		Host:   baseRequest.Host,
+		Path:   fmt.Sprintf("%s%s", baseRequest.Path, r.URL.EscapedPath()),
 	}
+
+	query := r.URL.Query()
 
 	for k, v := range nextParams {
-		responseParams[fmt.Sprintf("next%s", k)] = v
+		query.Set(fmt.Sprintf("next%s", k), v)
 	}
 
-	for k, v := range responseParams {
-		responseQueryStrings = append(responseQueryStrings, fmt.Sprintf("%s=%s", k, v))
-	}
-
-	queryString := strings.Join(responseQueryStrings, "&")
-	return fmt.Sprintf("%s?%s", r.URL.EscapedPath(), queryString)
+	req.RawQuery = query.Encode()
+	return req
 }

@@ -39,7 +39,7 @@ func GetUsage(w http.ResponseWriter, r *http.Request) {
 
 	// If the DB result has next keys, then the URL to retrieve the next page is put into the Link header.
 	if len(result.NextKeys) > 0 {
-		nextURL := response.BuildNextURL(r, result.NextKeys)
+		nextURL := response.BuildNextURL(r, result.NextKeys, baseRequest)
 		w.Header().Add("Link", fmt.Sprintf("<%s>; rel=\"next\"", nextURL))
 	}
 
