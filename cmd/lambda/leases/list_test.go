@@ -30,7 +30,7 @@ func TestListLeases(t *testing.T) {
 		nextParams["AccountId"] = "1"
 		nextParams["PrincipalId"] = "b"
 
-		nextURL := buildNextURL(request, nextParams)
+		nextURL := response.BuildNextURL(request, nextParams, url.URL{})
 
 		assert.Equal(t, url.Values{
 			"limit": {

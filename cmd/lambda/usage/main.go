@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 
 	"log"
 
@@ -19,10 +20,13 @@ import (
 )
 
 const (
-	StartDateParam   = "startDate"
-	EndDateParam     = "endDate"
-	PrincipalIDParam = "principalId"
-	AccountIDParam   = "accountId"
+	StartDateParam       = "startDate"
+	EndDateParam         = "endDate"
+	PrincipalIDParam     = "principalId"
+	AccountIDParam       = "accountId"
+	NextPrincipalIDParam = "nextPrincipalId"
+	NextStartDateParam   = "nextStartDate"
+	LimitParam           = "limit"
 )
 
 var muxLambda *gorillamux.GorillaMuxAdapter
@@ -34,7 +38,8 @@ var (
 	AWSSession *session.Session
 
 	// UsageSvc - Service for getting usage
-	UsageSvc *usage.DB
+	UsageSvc    *usage.DB
+	baseRequest url.URL
 )
 
 // messageBody is the structured object of the JSON Message to send
@@ -68,7 +73,7 @@ func init() {
 			"GET",
 			"/usage",
 			api.EmptyQueryString,
-			GetAllUsage,
+			GetUsage,
 		},
 	}
 	r := api.NewRouter(usageRoutes)
@@ -78,6 +83,13 @@ func init() {
 // Handler - Handle the lambda function
 func Handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	// If no name is provided in the HTTP request body, throw an error
+
+	// Set baseRequest information lost by integration with gorilla mux
+	baseRequest = url.URL{}
+	baseRequest.Scheme = req.Headers["X-Forwarded-Proto"]
+	baseRequest.Host = req.Headers["Host"]
+	baseRequest.Path = req.RequestContext.Stage
+
 	return muxLambda.ProxyWithContext(ctx, req)
 }
 
