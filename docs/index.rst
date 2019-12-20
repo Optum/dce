@@ -6,19 +6,6 @@
 Welcome to Disposable Cloud Environment (DCE)'s documentation!
 ==============================================================
 
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
-
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
-
 Home
 ----
 .. toctree::
