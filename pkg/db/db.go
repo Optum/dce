@@ -47,6 +47,7 @@ type DBer interface {
 	GetAccount(accountID string) (*Account, error)
 	GetReadyAccount() (*Account, error)
 	GetAccounts() ([]*Account, error)
+	GetLease(accountID string, principalID string) (*Lease, error)
 	GetLeases(input GetLeasesInput) (GetLeasesOutput, error)
 	GetLeaseByID(leaseID string) (*Lease, error)
 	FindAccountsByStatus(status AccountStatus) ([]*Account, error)
@@ -275,6 +276,39 @@ func (db *DB) FindLeasesByAccount(accountID string) ([]*Lease, error) {
 
 // FindLeasesByPrincipal finds leased accounts for a given principalID
 func (db *DB) FindLeasesByPrincipal(principalID string) ([]*Lease, error) {
+	input := &dynamodb.QueryInput{
+		IndexName: aws.String("PrincipalId"),
+		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+			":u1": {
+				S: aws.String(principalID),
+			},
+		},
+		KeyConditionExpression: aws.String("PrincipalId = :u1"),
+		TableName:              aws.String(db.LeaseTableName),
+	}
+
+	resp, err := db.Client.Query(input)
+	if err != nil {
+		return nil, err
+	}
+	if len(resp.Items) == 0 {
+		return nil, nil
+	}
+
+	var leases []*Lease
+	for _, r := range resp.Items {
+		n, err := unmarshalLease(r)
+		if err != nil {
+			return nil, err
+		}
+		leases = append(leases, n)
+	}
+
+	return leases, nil
+}
+
+// FindLeasesByPrincipalAndAccount finds leased accounts for a given principalID
+func (db *DB) FindLeasesByPrincipalAndAccount(principalID string, accountID string) ([]*Lease, error) {
 	input := &dynamodb.QueryInput{
 		IndexName: aws.String("PrincipalId"),
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{

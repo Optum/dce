@@ -1,7 +1,10 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"net/http"
+	"net/url"
 
 	"log"
 
@@ -9,13 +12,15 @@ import (
 	"github.com/Optum/dce/pkg/common"
 	"github.com/Optum/dce/pkg/db"
 	"github.com/Optum/dce/pkg/usage"
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
 	"github.com/aws/aws-sdk-go/service/sns"
-	"github.com/aws/aws-sdk-go/service/sqs"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+
+	"github.com/awslabs/aws-lambda-go-api-proxy/gorillamux"
 )
 
 const (
@@ -25,6 +30,30 @@ const (
 	NextAccountIDParam   = "nextAccountId"
 	StatusParam          = "status"
 	LimitParam           = "limit"
+	Weekly               = "WEEKLY"
+	Monthly              = "MONTHLY"
+)
+
+var muxLambda *gorillamux.GorillaMuxAdapter
+
+var (
+	config                   common.DefaultEnvConfig
+	awsSession               *session.Session
+	dao                      db.DBer
+	snsSvc                   common.Notificationer
+	usageSvc                 usage.Service
+	leaseAddedTopicARN       *string
+	principalBudgetAmount    *float64
+	principalBudgetPeriod    *string
+	maxLeaseBudgetAmount     *float64
+	maxLeasePeriod           *int64
+	queue                    common.Queue
+	resetQueueURL            string
+	snsService               common.Notificationer
+	accountDeletedTopicArn   string
+	defaultLeaseLengthInDays *int
+	userDetails              api.UserDetailer
+	baseRequest              url.URL
 )
 
 // messageBody is the structured object of the JSON Message to send
@@ -34,74 +63,124 @@ type messageBody struct {
 	Body    string `json:"Body"`
 }
 
+func init() {
+	log.Println("Cold start; creating router for /leases")
+
+	leaseAddedTopicARN = aws.String(config.GetEnvVar("LEASE_ADDED_TOPIC", "DCEDefaultProvisionTopic"))
+	accountDeletedTopicArn = config.GetEnvVar("DECOMMISSION_TOPIC", "DefaultDecomissionTopic")
+	resetQueueURL = config.GetEnvVar("RESET_SQS_URL", "DefaultResetSQSURL")
+	principalBudgetAmount = aws.Float64(config.GetEnvFloatVar("PRINCIPAL_BUDGET_AMOUNT", 1000.00))
+	principalBudgetPeriod = aws.String(config.GetEnvVar("PRINCIPAL_BUDGET_PERIOD", Weekly))
+	maxLeaseBudgetAmount = aws.Float64(config.GetEnvFloatVar("MAX_LEASE_BUDGET_AMOUNT", 1000.00))
+	maxLeasePeriod = aws.Int64(int64(config.GetEnvIntVar("MAX_LEASE_PERIOD", 704800)))
+	defaultLeaseLengthInDays = aws.Int(config.GetEnvIntVar("DEFAULT_LEASE_LENGTH_IN_DAYS", 7))
+
+	leasesRoutes := api.Routes{
+		api.Route{
+			"GetLeasesByPrincipalIdAndAccountId",
+			"GET",
+			"/leases",
+			[]string{PrincipalIDParam, AccountIDParam},
+			GetLeasesByPrincipcalIDAndAccountID,
+		},
+		api.Route{
+			"GetLeasesByPrincipalID",
+			"GET",
+			"/leases",
+			[]string{PrincipalIDParam},
+			GetLeasesByPrincipalID,
+		},
+		api.Route{
+			"GetLeasesByAccountID",
+			"GET",
+			"/leases",
+			[]string{AccountIDParam},
+			GetLeasesByAccountID,
+		},
+		api.Route{
+			"GetLeasesByStatus",
+			"GET",
+			"/leases",
+			[]string{StatusParam},
+			GetLeasesByStatus,
+		},
+		api.Route{
+			"GetLeaseByID",
+			"GET",
+			"/leases/{leaseID}",
+			api.EmptyQueryString,
+			GetLeaseByID,
+		},
+		api.Route{
+			"GetLeases",
+			"GET",
+			"/leases",
+			api.EmptyQueryString,
+			GetLeases,
+		},
+		api.Route{
+			"DeleteLease",
+			"DELETE",
+			"/leases",
+			api.EmptyQueryString,
+			DeleteLease,
+		},
+		api.Route{
+			"CreateLease",
+			"POST",
+			"/leases",
+			api.EmptyQueryString,
+			CreateLease,
+		},
+	}
+	r := api.NewRouter(leasesRoutes)
+	muxLambda = gorillamux.New(r)
+}
+
+// Handler - Handle the lambda function
+func Handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	// If no name is provided in the HTTP request body, throw an error
+	// requestUser := userDetails.GetUser(&req)
+	// ctxWithUser := context.WithValue(ctx, api.DceCtxKey, *requestUser)
+	// return muxLambda.ProxyWithContext(ctxWithUser, req)
+
+	// Set baseRequest information lost by integration with gorilla mux
+	baseRequest = url.URL{}
+	baseRequest.Scheme = req.Headers["X-Forwarded-Proto"]
+	baseRequest.Host = req.Headers["Host"]
+	baseRequest.Path = req.RequestContext.Stage
+
+	return muxLambda.ProxyWithContext(ctx, req)
+}
+
 // buildBaseURL returns a base API url from the request properties.
-func buildBaseURL(req *events.APIGatewayProxyRequest) string {
-	return fmt.Sprintf("https://%s/%s", req.Headers["Host"], req.RequestContext.Stage)
+func buildBaseURL(r *http.Request) string {
+	return fmt.Sprintf("%s://%s", r.URL.Scheme, r.URL.Hostname())
 }
 
 func main() {
 
+	awsSession = newAWSSession()
 	// Create the Database Service from the environment
-	dao := newDBer()
+	dao = newDBer()
+	snsSvc = &common.SNS{Client: sns.New(awsSession)}
 
-	// Create the SNS Service
-	awsSession := newAWSSession()
-	snsSvc := &common.SNS{Client: sns.New(awsSession)}
-
-	sqsClient := sqs.New(awsSession)
-	queue := common.SQSQueue{
-		Client: sqsClient,
-	}
-
-	usageSvc, err := usage.NewFromEnv()
+	usageService, err := usage.NewFromEnv()
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed to initialize usage service: %s", err)
 		log.Fatal(errorMessage)
 	}
 
-	leaseAddedTopicArn := common.RequireEnv("LEASE_ADDED_TOPIC")
-	accountDeletedTopicArn := common.RequireEnv("DECOMMISSION_TOPIC")
-	resetQueueURL := common.RequireEnv("RESET_SQS_URL")
+	usageSvc = usageService
 
-	principalBudgetAmount := common.RequireEnvFloat("PRINCIPAL_BUDGET_AMOUNT")
-	principalBudgetPeriod := common.RequireEnv("PRINCIPAL_BUDGET_PERIOD")
-	maxLeaseBudgetAmount := common.RequireEnvFloat("MAX_LEASE_BUDGET_AMOUNT")
-	maxLeasePeriod := common.RequireEnvInt("MAX_LEASE_PERIOD")
-
-	router := &api.Router{
-		ResourceName: "/leases",
-		GetController: GetController{
-			Dao: dao,
-		},
-		ListController: ListController{
-			Dao: dao,
-		},
-		DeleteController: DeleteController{
-			Dao:                    dao,
-			SNS:                    snsSvc,
-			AccountDeletedTopicArn: accountDeletedTopicArn,
-			ResetQueueURL:          resetQueueURL,
-			Queue:                  queue,
-		},
-		CreateController: CreateController{
-			Dao:                      dao,
-			SNS:                      snsSvc,
-			LeaseAddedTopicARN:       &leaseAddedTopicArn,
-			UsageSvc:                 usageSvc,
-			PrincipalBudgetAmount:    &principalBudgetAmount,
-			PrincipalBudgetPeriod:    &principalBudgetPeriod,
-			MaxLeaseBudgetAmount:     &maxLeaseBudgetAmount,
-			MaxLeasePeriod:           &maxLeasePeriod,
-			DefaultLeaseLengthInDays: common.GetEnvInt("DEFAULT_LEASE_LENGTH_IN_DAYS", 7),
-		},
-		UserDetails: api.UserDetails{
+	userDetails =
+		&api.UserDetails{
 			CognitoUserPoolID:        common.RequireEnv("COGNITO_USER_POOL_ID"),
 			RolesAttributesAdminName: common.RequireEnv("COGNITO_ROLES_ATTRIBUTE_ADMIN_NAME"),
 			CognitoClient:            cognitoidentityprovider.New(awsSession),
-		},
-	}
+		}
 
-	lambda.Start(router.Route)
+	lambda.Start(Handler)
 }
 
 func newDBer() db.DBer {

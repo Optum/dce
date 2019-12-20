@@ -1,6 +1,6 @@
 module github.com/Optum/dce
 
-go 1.12x
+go 1.13x
 
 require (
 	github.com/avast/retry-go v2.3.0+incompatible
@@ -14,6 +14,7 @@ require (
 	github.com/gorilla/mux v1.7.3
 	github.com/gruntwork-io/terratest v0.15.13
 	github.com/mattn/go-isatty v0.0.7 // indirect
+	github.com/mitchellh/mapstructure v1.1.2
 	github.com/oleiade/reflections v1.0.0 // indirect
 	github.com/pkg/errors v0.8.1
 	github.com/pquerna/otp v1.2.0 // indirect
