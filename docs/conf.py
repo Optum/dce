@@ -44,6 +44,10 @@ extensions = [
     'm2r',
 ]
 
+# This directive here converts the .md links to .html links, which
+# oddly enough doesn't seem to be default behavior
+m2r_parse_relative_links = True
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
@@ -51,7 +55,7 @@ templates_path = ['_templates']
 # You can specify multiple suffix as a list of string:
 #
 # source_suffix = ['.rst', '.md']
-source_suffix = '.rst'
+source_suffix = ['.rst', '.md' ]
 
 # The master toctree document.
 master_doc = 'index'
