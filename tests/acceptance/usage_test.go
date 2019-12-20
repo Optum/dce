@@ -162,7 +162,7 @@ func TestUsageDb(t *testing.T) {
 			StartDate:   testStartDate,
 		})
 		assert.Nil(t, err)
-		assert.Equal(t, 1, len(output.Results), "should only return 10 usage records")
+		assert.Equal(t, 1, len(output.Results), "should only return one usage record")
 		assert.Equal(t, "user", output.Results[0].PrincipalID, "should return the usage with the given principal ID")
 	})
 
