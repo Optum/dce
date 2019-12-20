@@ -5,27 +5,33 @@ import (
 	"fmt"
 	"github.com/Optum/dce/pkg/api"
 	"github.com/Optum/dce/pkg/config"
+	"github.com/Optum/dce/pkg/config/configiface"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/awslabs/aws-lambda-go-api-proxy/gorillamux"
 	"log"
 )
 
-var muxLambda *gorillamux.GorillaMuxAdapter
-
-type CredentialsWebPageConfig struct {
-	AwsCurrentRegion     string `env:"AWS_CURRENT_REGION"`
-	SitePathPrefix       string `env:"SITE_PATH_PREFIX"`
-	ApigwDeploymentName  string `env:"APIGW_DEPLOYMENT_NAME"`
-	IdentityPoolID       string `env:"PS_IDENTITY_POOL_ID"`
-	UserPoolProviderName string `env:"PS_USER_POOL_PROVIDER_NAME"`
-	UserPoolClientID     string `env:"PS_USER_POOL_CLIENT_ID"`
-	UserPoolAppWebDomain string `env:"PS_USER_POOL_APP_WEB_DOMAIN"`
-	UserPoolID           string `env:"PS_USER_POOL_ID"`
+type credentialsWebPageConfig struct {
+	AwsCurrentRegion     string `env:"AWS_CURRENT_REGION" defaultEnv:"us-east-1"`
+	SitePathPrefix       string `env:"SITE_PATH_PREFIX" defaultEnv:"sitePathPrefix"`
+	ApigwDeploymentName  string `env:"APIGW_DEPLOYMENT_NAME" defaultEnv:"apigwDeploymentName"`
+	IdentityPoolID       string
+	UserPoolProviderName string
+	UserPoolClientID     string
+	UserPoolAppWebDomain string
+	UserPoolID           string
 }
 
-var Config *CredentialsWebPageConfig
-var CfgBldr config.ConfigurationBuilder
+var (
+	muxLambda *gorillamux.GorillaMuxAdapter
+	// CurrentAccountID - The ID of the AWS Account this is running in
+	CurrentAccountID *string
+	// Services handles the configuration of the AWS services
+	Services configiface.ServiceBuilder
+	// Settings - the configuration settings for the controller
+	Settings *credentialsWebPageConfig
+)
 
 func init() {
 	initConfig()
@@ -50,17 +56,23 @@ func init() {
 	r := api.NewRouter(authRoutes)
 	muxLambda = gorillamux.New(r)
 }
+
 func initConfig() {
-	CfgBldr = &config.DefaultConfigurationBuilder{}
-	CfgBldr.WithEnv("AWS_CURRENT_REGION", "AWS_CURRENT_REGION", "us-east-1")
-	CfgBldr.WithEnv("SITE_PATH_PREFIX", "SITE_PATH_PREFIX", "sitePathPrefix")
-	CfgBldr.WithEnv("APIGW_DEPLOYMENT_NAME", "APIGW_DEPLOYMENT_NAME", "apigwDeploymentName")
-	CfgBldr.WithParameterStoreEnv("PS_IDENTITY_POOL_ID", "PS_IDENTITY_POOL_ID", "identityPoolID")
-	CfgBldr.WithParameterStoreEnv("PS_USER_POOL_PROVIDER_NAME", "PS_USER_POOL_PROVIDER_NAME", "userPoolProviderName")
-	CfgBldr.WithParameterStoreEnv("PS_USER_POOL_CLIENT_ID", "PS_USER_POOL_CLIENT_ID", "userPoolClientID")
-	CfgBldr.WithParameterStoreEnv("PS_USER_POOL_APP_WEB_DOMAIN", "PS_USER_POOL_APP_WEB_DOMAIN", "userPoolAppWebDomain")
-	CfgBldr.WithParameterStoreEnv("PS_USER_POOL_ID", "PS_USER_POOL_ID", "userPoolID")
-	svcBldr := &config.DefaultAWSServiceBuilder{Config: CfgBldr}
+	cfgBldr := &config.ConfigurationBuilder{}
+	Settings = &credentialsWebPageConfig{}
+	if err := cfgBldr.Unmarshal(Settings); err != nil {
+		log.Fatalf("Could not load configuration: %s", err.Error())
+	}
+
+	// load up the values into the various settings...
+	cfgBldr.WithEnv("AWS_CURRENT_REGION", "AWS_CURRENT_REGION", "us-east-1").Build()
+	cfgBldr.WithParameterStoreEnv("PS_IDENTITY_POOL_ID", "PS_IDENTITY_POOL_ID", "identityPoolID")
+	cfgBldr.WithParameterStoreEnv("PS_USER_POOL_PROVIDER_NAME", "PS_USER_POOL_PROVIDER_NAME", "userPoolProviderName")
+	cfgBldr.WithParameterStoreEnv("PS_USER_POOL_CLIENT_ID", "PS_USER_POOL_CLIENT_ID", "userPoolClientID")
+	cfgBldr.WithParameterStoreEnv("PS_USER_POOL_APP_WEB_DOMAIN", "PS_USER_POOL_APP_WEB_DOMAIN", "userPoolAppWebDomain")
+	cfgBldr.WithParameterStoreEnv("PS_USER_POOL_ID", "PS_USER_POOL_ID", "userPoolID")
+	svcBldr := &config.ServiceBuilder{Config: cfgBldr}
+
 	_, err := svcBldr.
 		WithSSM().
 		Build()
@@ -69,8 +81,11 @@ func initConfig() {
 		log.Fatal(errorMessage)
 	}
 
-	Config = &CredentialsWebPageConfig{}
-	if err := CfgBldr.Dump(Config); err != nil {
+	if err != nil {
+		Services = svcBldr
+	}
+
+	if err := cfgBldr.Dump(Settings); err != nil {
 		errorMessage := fmt.Sprintf("Failed to initialize parameter store: %s", err)
 		log.Fatal(errorMessage)
 	}
