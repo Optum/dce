@@ -56,7 +56,7 @@ func TestGetAccountByID(t *testing.T) {
 		require.Nil(t, err)
 
 		require.Equal(t, actualResponse.StatusCode, 500, "Returns a 500.")
-		require.Equal(t, actualResponse.Body, "{\"error\":{\"code\":\"ServerError\",\"message\":\"Failed List on Account Lease 123456789\"}}", "Returns an error response.")
+		require.Equal(t, actualResponse.Body, "{\"error\":{\"message\":\"Failed List on Account Lease 123456789\",\"code\":\"ServerError\"}}\n", "Returns an error response.")
 	})
 
 }
