@@ -8,8 +8,10 @@ import (
 
 	"github.com/gorilla/mux"
 
+	"github.com/Optum/dce/pkg/api"
 	"github.com/Optum/dce/pkg/api/response"
 	"github.com/Optum/dce/pkg/db"
+	"github.com/Optum/dce/pkg/dceerr"
 )
 
 // GetAllAccounts - Returns all the accounts.
@@ -20,7 +22,8 @@ func GetAllAccounts(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed to query database: %s", err)
 		log.Print(errorMessage)
-		response.WriteServerErrorWithResponse(w, errorMessage)
+		api.WriteAPIErrorResponse(w, dceerr.NewInternalServer(errorMessage, nil))
+		return
 	}
 
 	// Serialize them for the JSON response.
@@ -43,12 +46,12 @@ func GetAccountByID(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed List on Account Lease %s", accountID)
 		log.Print(errorMessage)
-		response.WriteServerErrorWithResponse(w, errorMessage)
+		api.WriteAPIErrorResponse(w, dceerr.NewInternalServer(errorMessage, nil))
 		return
 	}
 
 	if account == nil {
-		response.WriteNotFoundError(w)
+		api.WriteAPIErrorResponse(w, dceerr.NewNotFound("account", accountID))
 		return
 	}
 
@@ -68,11 +71,12 @@ func GetAccountByStatus(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed to query database: %s", err)
 		log.Print(errorMessage)
-		response.WriteServerErrorWithResponse(w, errorMessage)
+		api.WriteAPIErrorResponse(w, dceerr.NewInternalServer(errorMessage, nil))
+		return
 	}
 
 	if len(accounts) == 0 {
-		response.WriteNotFoundError(w)
+		api.WriteAPIErrorResponse(w, dceerr.NewNotFound("account", accountStatus))
 		return
 	}
 
