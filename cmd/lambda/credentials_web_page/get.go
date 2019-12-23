@@ -19,7 +19,7 @@ func GetAuthPage(w http.ResponseWriter, r *http.Request) {
 		log.Print(errorMessage)
 		response.WriteServerErrorWithResponse(w, errorMessage)
 	}
-	if err := tmpl.Execute(w, Config); err != nil {
+	if err := tmpl.Execute(w, Settings); err != nil {
 		errorMessage := fmt.Sprintf("Failed to load web page: %s", err)
 		log.Print(errorMessage)
 		response.WriteServerErrorWithResponse(w, errorMessage)
