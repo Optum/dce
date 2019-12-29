@@ -4,7 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"testing"
+
 	commonMocks "github.com/Optum/dce/pkg/common/mocks"
+	"github.com/Optum/dce/pkg/config"
 	"github.com/Optum/dce/pkg/db"
 	util "github.com/Optum/dce/tests/testutils"
 	"github.com/aws/aws-lambda-go/events"
@@ -12,7 +15,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestUpdateAccountByID(t *testing.T) {
@@ -20,7 +22,9 @@ func TestUpdateAccountByID(t *testing.T) {
 	t.Run("should update the account adminRole and metadata", func(t *testing.T) {
 		stubAllServices()
 		dbMock := dbStub()
-		Dao = dbMock
+		cfgBldr := services.Config
+		services = &config.ServiceBuilder{Config: cfgBldr}
+		services.Config.WithService(&dbMock)
 
 		// Should update the account
 		util.ReplaceMock(&dbMock.Mock,
@@ -75,7 +79,9 @@ func TestUpdateAccountByID(t *testing.T) {
 	t.Run("should update just adminRoleArn", func(t *testing.T) {
 		stubAllServices()
 		dbMock := dbStub()
-		Dao = dbMock
+		cfgBldr := services.Config
+		services = &config.ServiceBuilder{Config: cfgBldr}
+		services.Config.WithService(&dbMock)
 
 		// Should update the AdminRoleArn only
 		util.ReplaceMock(&dbMock.Mock,
@@ -103,7 +109,9 @@ func TestUpdateAccountByID(t *testing.T) {
 	t.Run("should update just metadata", func(t *testing.T) {
 		stubAllServices()
 		dbMock := dbStub()
-		Dao = dbMock
+		cfgBldr := services.Config
+		services = &config.ServiceBuilder{Config: cfgBldr}
+		services.Config.WithService(&dbMock)
 
 		// Should update the metadata only
 		util.ReplaceMock(&dbMock.Mock,
@@ -131,7 +139,9 @@ func TestUpdateAccountByID(t *testing.T) {
 	t.Run("should allow you to pass in a full account object, without updating non-updatable fields", func(t *testing.T) {
 		stubAllServices()
 		dbMock := dbStub()
-		Dao = dbMock
+		cfgBldr := services.Config
+		services = &config.ServiceBuilder{Config: cfgBldr}
+		services.Config.WithService(&dbMock)
 
 		// Should update the metadata only (not other account fields)
 		util.ReplaceMock(&dbMock.Mock,
@@ -192,7 +202,9 @@ func TestUpdateAccountByID(t *testing.T) {
 		// Mock the DB to return an NotFound error
 		stubAllServices()
 		dbMock := dbStub()
-		Dao = dbMock
+		cfgBldr := services.Config
+		services = &config.ServiceBuilder{Config: cfgBldr}
+		services.Config.WithService(&dbMock)
 
 		// Should update the metadata only
 		util.ReplaceMock(&dbMock.Mock,
@@ -247,7 +259,9 @@ func TestUpdateAccountByID(t *testing.T) {
 	t.Run("should fail if the admin role can't be assumed", func(t *testing.T) {
 		stubAllServices()
 		tokenSvc := &commonMocks.TokenService{}
-		TokenSvc = tokenSvc
+		cfgBldr := services.Config
+		services = &config.ServiceBuilder{Config: cfgBldr}
+		services.Config.WithService(&tokenSvc)
 
 		// Mock the TokenSvc, to fail on assume role
 		util.ReplaceMock(&tokenSvc.Mock,
@@ -282,7 +296,9 @@ func TestUpdateAccountByID(t *testing.T) {
 	t.Run("should not attempt to assume the adminRole, if none is provided", func(t *testing.T) {
 		stubAllServices()
 		tokenSvc := &commonMocks.TokenService{}
-		TokenSvc = tokenSvc
+		cfgBldr := services.Config
+		services = &config.ServiceBuilder{Config: cfgBldr}
+		services.Config.WithService(&tokenSvc)
 
 		// Call the controller with metadata update only
 		_, err := Handler(context.TODO(),

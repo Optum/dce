@@ -48,3 +48,22 @@ func (service STS) NewSession(baseSession awsiface.AwsSession, roleArn string) (
 	sess := client.ConfigProvider(newSession)
 	return sess, nil
 }
+
+// NewCredentials returns a set of credentials for an Assume Role
+func NewCredentials(inputClient client.ConfigProvider,
+	inputRole string) *credentials.Credentials {
+	return stscreds.NewCredentials(inputClient, inputRole)
+}
+
+// NewSession creates a new session based on the one passed in.
+func NewSession(baseSession awsiface.AwsSession, roleArn string) (awsiface.AwsSession, error) {
+	creds := NewCredentials(baseSession, roleArn)
+	newSession, err := session.NewSession(&aws.Config{
+		Credentials: creds,
+	})
+	if err != nil {
+		return nil, err
+	}
+	sess := client.ConfigProvider(newSession)
+	return sess, nil
+}

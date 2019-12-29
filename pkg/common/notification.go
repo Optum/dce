@@ -70,3 +70,15 @@ func PrepareSNSMessageJSON(body interface{}) (string, error) {
 
 	return string(messageJSON), nil
 }
+
+// CreateJSONPublishInput creates a `sns.PublishInput`
+func CreateJSONPublishInput(topicArn *string, message *string) *sns.PublishInput {
+	var publishInput *sns.PublishInput
+	messageStructure := "json"
+	publishInput = &sns.PublishInput{
+		TopicArn:         topicArn,
+		Message:          message,
+		MessageStructure: &messageStructure,
+	}
+	return publishInput
+}

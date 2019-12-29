@@ -6,7 +6,10 @@ import (
 	"net/http"
 
 	"github.com/Optum/dce/pkg/rolemanager"
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iam"
+	"github.com/aws/aws-sdk-go/service/sns/snsiface"
+	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
 
 	"github.com/Optum/dce/pkg/api/response"
 	"github.com/Optum/dce/pkg/common"
@@ -18,7 +21,14 @@ import (
 func DeleteAccount(w http.ResponseWriter, r *http.Request) {
 
 	accountID := mux.Vars(r)["accountId"]
-	deletedAccount, err := Dao.DeleteAccount(accountID)
+
+	var dao db.DBer
+	if err := services.Config.GetService(&dao); err != nil {
+		response.WriteServerErrorWithResponse(w, "Could not create data service")
+		return
+	}
+
+	deletedAccount, err := dao.DeleteAccount(accountID)
 
 	// Handle DB errors
 	if err != nil {
@@ -54,54 +64,70 @@ func DeleteAccount(w http.ResponseWriter, r *http.Request) {
 }
 
 // sendSNS sends notification to SNS that the delete has occurred.
-func sendSNS(account *db.Account) {
+func sendSNS(account *db.Account) error {
 	serializedAccount := response.AccountResponse(*account)
 	serializedMessage, err := common.PrepareSNSMessageJSON(serializedAccount)
 
 	if err != nil {
 		log.Printf("Failed to serialized SNS message for account %s: %s", account.ID, err)
-		return
+		return err
 	}
 
-	// TODO: Probably initialize this one time at the beginning
-	accountDeletedTopicArn := Config.RequireEnvVar("ACCOUNT_DELETED_TOPIC_ARN")
+	var snsSvc snsiface.SNSAPI
+	if err := services.Config.GetService(&snsSvc); err != nil {
+		return err
+	}
 
-	_, err = SnsSvc.PublishMessage(&accountDeletedTopicArn, &serializedMessage, true)
+	_, err = snsSvc.Publish(common.CreateJSONPublishInput(&settings.AccountDeletedTopicArn, &serializedMessage))
 	if err != nil {
 		log.Printf("Failed to publish SNS message for account %s: %s", account.ID, err)
+		return err
 	}
+	return nil
 }
 
 // sendToResetQueue sends the account to the reset queue
-func sendToResetQueue(accountID string) {
-	resetQueueURL := Config.RequireEnvVar("RESET_SQS_URL")
-	err := Queue.SendMessage(&resetQueueURL, &accountID)
+func sendToResetQueue(accountID string) error {
+	var queue sqsiface.SQSAPI
+	if err := services.Config.GetService(&queue); err != nil {
+		return err
+	}
+
+	msgInput := common.BuildSendMessageInput(aws.String(settings.ResetQueueURL), &accountID)
+	_, err := queue.SendMessage(&msgInput)
 	if err != nil {
 		log.Printf("Failed to add account %s to reset Queue: %s", accountID, err)
+		return err
 	}
+	return nil
 }
 
-func destroyIAMPrincipal(account *db.Account) {
+func destroyIAMPrincipal(account *db.Account) error {
 	// Assume role into the new account
-	accountSession, err := TokenSvc.NewSession(AWSSession, account.AdminRoleArn)
+	accountSession, err := common.NewSession(services.AWSSession, account.AdminRoleArn)
 	if err != nil {
 		log.Printf("Failed to assume role into account %s: %s", account.ID, err)
-		return
+		return err
 	}
 	iamClient := iam.New(accountSession)
 
-	// TODO: Clean this up to initialize the following one time.
-	principalRoleName := Config.RequireEnvVar("PRINCIPAL_ROLE_NAME")
-	principalPolicyName := Config.RequireEnvVar("PRINCIPAL_POLICY_NAME")
+	var roleMgr rolemanager.RoleManager
+
+	if err := services.Config.GetService(&roleMgr); err != nil {
+		log.Fatalf("Could not get role manager service")
+		return err
+	}
 
 	// Destroy the role and policy
-	RoleManager.SetIAMClient(iamClient)
-	_, err = RoleManager.DestroyRoleWithPolicy(&rolemanager.DestroyRoleWithPolicyInput{
-		RoleName:  principalRoleName,
-		PolicyArn: fmt.Sprintf("arn:aws:iam::%s:policy/%s", account.ID, principalPolicyName),
+	roleMgr.SetIAMClient(iamClient)
+	_, err = roleMgr.DestroyRoleWithPolicy(&rolemanager.DestroyRoleWithPolicyInput{
+		RoleName:  settings.PrincipalRoleName,
+		PolicyArn: fmt.Sprintf("arn:aws:iam::%s:policy/%s", account.ID, settings.PrincipalPolicyName),
 	})
 	// Log error, and continue
 	if err != nil {
 		log.Printf("Failed to destroy Principal IAM Role and Policy: %s", err)
+		return err
 	}
+	return nil
 }

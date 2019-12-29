@@ -3,11 +3,14 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/aws/aws-lambda-go/events"
-	"github.com/stretchr/testify/require"
+	"log"
 	"testing"
 
+	"github.com/aws/aws-lambda-go/events"
+	"github.com/stretchr/testify/require"
+
 	awsMocks "github.com/Optum/dce/pkg/awsiface/mocks"
+	"github.com/Optum/dce/pkg/config"
 	"github.com/Optum/dce/pkg/rolemanager"
 	roleManagerMocks "github.com/Optum/dce/pkg/rolemanager/mocks"
 	"github.com/aws/aws-sdk-go/aws/client"
@@ -91,13 +94,31 @@ func storageStub() common.Storager {
 	return storagerMock
 }
 
+func cleanServices() {
+	cfgBldr := &config.ConfigurationBuilder{}
+	settings = &accountControllerConfiguration{}
+	if err := cfgBldr.Unmarshal(settings); err != nil {
+		log.Fatalf("Could not load configuration: %s", err.Error())
+	}
+
+	// load up the values into the various settings...
+	cfgBldr.WithEnv("AWS_CURRENT_REGION", "AWS_CURRENT_REGION", "us-east-1").Build()
+	svcBldr := &config.ServiceBuilder{Config: cfgBldr}
+
+	svcBldr.Build()
+
+	services = svcBldr
+}
+
 func stubAllServices() {
-	TokenSvc = tokenServiceStub()
-	RoleManager = roleManagerStub()
-	StorageSvc = storageStub()
-	Queue = queueStub()
-	Dao = dbStub()
-	SnsSvc = snsStub()
+	cfgBldr := services.Config
+	services = &config.ServiceBuilder{Config: cfgBldr}
+	services.Config.WithService(tokenServiceStub())
+	services.Config.WithService(roleManagerStub())
+	services.Config.WithService(storageStub())
+	services.Config.WithService(queueStub())
+	services.Config.WithService(dbStub())
+	services.Config.WithService(snsStub())
 }
 
 func roleManagerStub() *roleManagerMocks.RoleManager {

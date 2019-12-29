@@ -63,3 +63,12 @@ func (queue SQSQueue) NewFromEnv() error {
 	}
 	return nil
 }
+
+// BuildSendMessageInput creates a `sqs.SendMessageInput`
+func BuildSendMessageInput(queueURL *string, message *string) sqs.SendMessageInput {
+	input := sqs.SendMessageInput{
+		QueueUrl:    queueURL,
+		MessageBody: message,
+	}
+	return input
+}

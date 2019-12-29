@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/Optum/dce/pkg/config"
 	errors2 "github.com/Optum/dce/pkg/errors"
 	"github.com/Optum/dce/pkg/rolemanager"
 	mocks2 "github.com/Optum/dce/pkg/rolemanager/mocks"
@@ -54,11 +55,12 @@ func TestDeleteController_Call(t *testing.T) {
 		mockQueue.On("SendMessage", mock.Anything, mock.Anything).Return(nil)
 
 		// AWSSession = &session
-		Dao = &mockDb
-		TokenSvc = &mockTokenService
-		RoleManager = &roleManager
-		SnsSvc = &mockSns
-		Queue = &mockQueue
+		cfgBldr := services.Config
+		services = &config.ServiceBuilder{Config: cfgBldr}
+		services.Config.WithService(&mockDb)
+		services.Config.WithService(&mockTokenService)
+		services.Config.WithService(&mockQueue)
+		services.Config.WithService(&mockSns)
 
 		response, err := Handler(context.TODO(), mockRequest)
 		assert.Nil(t, err)
@@ -70,7 +72,9 @@ func TestDeleteController_Call(t *testing.T) {
 		mockDb.On("DeleteAccount", "123456789012").Return(nil, &db.AccountNotFoundError{})
 		mockRequest := events.APIGatewayProxyRequest{HTTPMethod: http.MethodDelete, Path: "/accounts/123456789012"}
 
-		Dao = &mockDb
+		cfgBldr := services.Config
+		services = &config.ServiceBuilder{Config: cfgBldr}
+		services.Config.WithService(&mockDb)
 
 		response, err := Handler(context.TODO(), mockRequest)
 		assert.Nil(t, err)
@@ -90,12 +94,14 @@ func TestDeleteController_Call(t *testing.T) {
 		mockTokenService := commonMocks.TokenService{}
 		mockTokenService.On("NewSession", mock.Anything, "arn:admin-role").Return(mockAwsSession, nil)
 
-		Dao = &mockDb
-		TokenSvc = &mockTokenService
-		Queue = queueStub()
-		SnsSvc = snsStub()
+		cfgBldr := services.Config
+		services = &config.ServiceBuilder{Config: cfgBldr}
+		services.Config.WithService(&mockDb)
+		services.Config.WithService(&mockTokenService)
+		services.Config.WithService(queueStub())
+		services.Config.WithService(snsStub())
+		services.Config.WithService(roleManagerStub())
 
-		RoleManager = roleManagerStub()
 		response, err := Handler(context.TODO(), mockRequest)
 		assert.Nil(t, err)
 		assert.Equal(t, http.StatusConflict, response.StatusCode)
@@ -105,7 +111,10 @@ func TestDeleteController_Call(t *testing.T) {
 		mockDb := mocks.DBer{}
 		mockDb.On("DeleteAccount", "123456789012").Return(&expectedAccount, errors.New("Test"))
 		mockRequest := events.APIGatewayProxyRequest{HTTPMethod: http.MethodDelete, Path: "/accounts/123456789012"}
-		Dao = &mockDb
+
+		cfgBldr := services.Config
+		services = &config.ServiceBuilder{Config: cfgBldr}
+		services.Config.WithService(&mockDb)
 		response, err := Handler(context.TODO(), mockRequest)
 		assert.Nil(t, err)
 		assert.Equal(t, http.StatusInternalServerError, response.StatusCode)
@@ -116,11 +125,13 @@ func TestDeleteController_Call(t *testing.T) {
 		mockDb := mocks.DBer{}
 		mockDb.On("DeleteAccount", "123456789012").Return(&expectedAccount, nil)
 
-		Dao = &mockDb
+		cfgBldr := services.Config
+		services = &config.ServiceBuilder{Config: cfgBldr}
+		services.Config.WithService(&mockDb)
 
 		// Mock the role manager
 		roleManager := &mocks2.RoleManager{}
-		RoleManager = roleManager
+		services.Config.WithService(&roleManager)
 
 		// Mock RoleManager.DestroyRoleWithPolicy()
 		roleManager.On("DestroyRoleWithPolicy", &rolemanager.DestroyRoleWithPolicyInput{
@@ -143,7 +154,9 @@ func TestDeleteController_Call(t *testing.T) {
 
 		// Mock the role manager
 		roleManager := &mocks2.RoleManager{}
-		RoleManager = roleManager
+		cfgBldr := services.Config
+		services = &config.ServiceBuilder{Config: cfgBldr}
+		services.Config.WithService(&roleManager)
 
 		// Mock RoleManager.DestroyRoleWithPolicy() to return an error
 		roleManager.On("DestroyRoleWithPolicy", &rolemanager.DestroyRoleWithPolicyInput{
@@ -168,7 +181,9 @@ func TestDeleteController_Call(t *testing.T) {
 		stub := &commonMocks.Queue{}
 		stub.On("SendMessage", &expectedResetQueueURL, &expectedAccountID).Return(nil)
 
-		Queue = stub
+		cfgBldr := services.Config
+		services = &config.ServiceBuilder{Config: cfgBldr}
+		services.Config.WithService(&stub)
 
 		sendToResetQueue(expectedAccountID)
 		stub.AssertCalled(t, "SendMessage", &expectedResetQueueURL, &expectedAccountID)
@@ -184,7 +199,9 @@ func TestDeleteController_Call(t *testing.T) {
 		stub := &commonMocks.Notificationer{}
 		stub.On("PublishMessage", &expectedArn, &serializedMessage, true).Return(&expectedReturned, nil)
 
-		SnsSvc = stub
+		cfgBldr := services.Config
+		services = &config.ServiceBuilder{Config: cfgBldr}
+		services.Config.WithService(&stub)
 
 		sendSNS(&expectedAccount)
 		stub.AssertCalled(t, "PublishMessage", &expectedArn, &serializedMessage, true)

@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/Optum/dce/pkg/api/response"
+	"github.com/Optum/dce/pkg/config"
 	"github.com/Optum/dce/pkg/db"
 	"github.com/Optum/dce/pkg/db/mocks"
 	"github.com/aws/aws-lambda-go/events"
@@ -31,7 +32,9 @@ func TestGetAccountByID(t *testing.T) {
 		mockDb.On("GetAccount", "123456789").Return(expectedAccount, nil)
 		mockRequest := events.APIGatewayProxyRequest{HTTPMethod: http.MethodGet, Path: "/accounts/123456789"}
 
-		Dao = &mockDb
+		cfgBldr := services.Config
+		services = &config.ServiceBuilder{Config: cfgBldr}
+		services.Config.WithService(&mockDb)
 
 		actualResponse, err := Handler(context.TODO(), mockRequest)
 		require.Nil(t, err)
@@ -50,7 +53,9 @@ func TestGetAccountByID(t *testing.T) {
 		mockDb.On("GetAccount", "123456789").Return(nil, expectedError)
 		mockRequest := events.APIGatewayProxyRequest{HTTPMethod: http.MethodGet, Path: "/accounts/123456789"}
 
-		Dao = &mockDb
+		cfgBldr := services.Config
+		services = &config.ServiceBuilder{Config: cfgBldr}
+		services.Config.WithService(&mockDb)
 
 		actualResponse, err := Handler(context.TODO(), mockRequest)
 		require.Nil(t, err)

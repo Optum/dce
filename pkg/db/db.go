@@ -31,13 +31,13 @@ type DB struct {
 	// Name of the Account table
 	Client dynamodbiface.DynamoDBAPI
 	// Name of the RedboxAccount table
-	AccountTableName string
+	AccountTableName string `env:"ACCOUNT_DB" envDefault:"Account"`
 	// Name of the Lease table
-	LeaseTableName string
+	LeaseTableName string `env:"LEASE_DB" envDefault:"Lease"`
 	// Default expiry time, in days, of the lease
-	DefaultLeaseLengthInDays int
+	DefaultLeaseLengthInDays int `env:"DEFAULT_LEASE_LENGTH_IN_DAYS" envDefault:"7"`
 	// Use Consistent Reads when scanning or querying when possible.
-	ConsistentRead bool
+	ConsistentRead bool `env:"USE_CONSISTENT_READS" envDefault:"false"`
 }
 
 // The DBer interface includes all methods used by the DB struct to interact with

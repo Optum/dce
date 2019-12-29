@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/Optum/dce/pkg/api/response"
+	"github.com/Optum/dce/pkg/config"
 	"github.com/Optum/dce/pkg/db"
 	"github.com/Optum/dce/pkg/db/mocks"
 	"github.com/aws/aws-lambda-go/events"
@@ -39,7 +40,9 @@ func TestListController_Call(t *testing.T) {
 		mockDb.On("GetAccounts").Return(expectedAccounts, nil)
 		mockRequest := events.APIGatewayProxyRequest{HTTPMethod: http.MethodGet, Path: "/accounts"}
 
-		Dao = &mockDb
+		cfgBldr := services.Config
+		services = &config.ServiceBuilder{Config: cfgBldr}
+		services.Config.WithService(&mockDb)
 
 		actualResponse, err := Handler(context.TODO(), mockRequest)
 		require.Nil(t, err)
@@ -58,7 +61,9 @@ func TestListController_Call(t *testing.T) {
 		mockDb.On("GetAccounts").Return(nil, expectedError)
 		mockRequest := events.APIGatewayProxyRequest{HTTPMethod: http.MethodGet, Path: "/accounts"}
 
-		Dao = &mockDb
+		cfgBldr := services.Config
+		services = &config.ServiceBuilder{Config: cfgBldr}
+		services.Config.WithService(&mockDb)
 
 		actualResponse, err := Handler(context.TODO(), mockRequest)
 		require.Nil(t, err)

@@ -10,6 +10,7 @@ import (
 	"github.com/Optum/dce/pkg/db"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/aws/aws-sdk-go/service/sts/stsiface"
 	"github.com/gorilla/mux"
 )
 
@@ -42,10 +43,16 @@ func UpdateAccountByID(w http.ResponseWriter, r *http.Request) {
 	}
 	request.ID = &accountID
 
+	var tokenSvc stsiface.STSAPI
+	if err := services.Config.GetService(&tokenSvc); err != nil {
+		response.WriteServerErrorWithResponse(w, "Could not create token service")
+		return
+	}
+
 	// If the request includes a new adminRoleArn,
 	// validate that we can assume the ARN
 	if request.AdminRoleArn != nil {
-		_, err = TokenSvc.AssumeRole(&sts.AssumeRoleInput{
+		_, err = tokenSvc.AssumeRole(&sts.AssumeRoleInput{
 			RoleArn:         request.AdminRoleArn,
 			RoleSessionName: aws.String("MasterAssumeRoleVerification"),
 		})
@@ -88,8 +95,14 @@ func UpdateAccountByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var dao db.DBer
+	if err := services.Config.GetService(&dao); err != nil {
+		response.WriteServerErrorWithResponse(w, "Could not create data service")
+		return
+	}
+
 	// Update the DB record
-	acct, err := Dao.UpdateAccount(accountPartial, fieldsToUpdate)
+	acct, err := dao.UpdateAccount(accountPartial, fieldsToUpdate)
 	if err != nil {
 		// If the account doesn't exist, return a 404
 		if _, ok := err.(*db.NotFoundError); ok {

@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	awsMocks "github.com/Optum/dce/pkg/awsiface/mocks"
+	"github.com/Optum/dce/pkg/config"
 	"github.com/Optum/dce/pkg/rolemanager"
 	roleManagerMocks "github.com/Optum/dce/pkg/rolemanager/mocks"
 	"github.com/aws/aws-sdk-go/aws/client"
@@ -30,6 +31,7 @@ import (
 func TestCreate(t *testing.T) {
 
 	t.Run("should return an account object", func(t *testing.T) {
+		cleanServices()
 		// Send request
 		req := createAccountAPIRequest(t, CreateRequest{
 			ID:           "1234567890",
@@ -66,12 +68,12 @@ func TestCreate(t *testing.T) {
 		mockSns := commonMocks.Notificationer{}
 		mockSns.On("PublishMessage", mock.Anything, mock.Anything, true).Return(nil, nil)
 
-		Dao = &mockDb
-		TokenSvc = &mockTokenService
-		StorageSvc = &mockStorageSvc
-		RoleManager = &mockRoleManager
-		Queue = &mockQueue
-		SnsSvc = &mockSns
+		services.Config.WithService(&mockDb)
+		services.Config.WithService(&mockTokenService)
+		services.Config.WithService(&mockStorageSvc)
+		services.Config.WithService(&mockRoleManager)
+		services.Config.WithService(&mockQueue)
+		services.Config.WithService(&mockSns)
 
 		res, err := Handler(context.TODO(), req)
 		assert.Nil(t, err)
@@ -92,7 +94,9 @@ func TestCreate(t *testing.T) {
 		mockDb.On("GetAccount", "1234567890").Return(nil, nil)
 		mockDb.On("PutAccount", mock.Anything).Return(nil)
 
-		Dao = &mockDb
+		cfgBldr := services.Config
+		services = &config.ServiceBuilder{Config: cfgBldr}
+		services.Config.WithService(&mockDb)
 
 		// Send request, missing AdminRoleArn
 		req := createAccountAPIRequest(t, CreateRequest{
@@ -146,8 +150,10 @@ func TestCreate(t *testing.T) {
 
 		defer tokenService.AssertExpectations(t)
 
-		Dao = &mockDb
-		TokenSvc = &tokenService
+		cfgBldr := services.Config
+		services = &config.ServiceBuilder{Config: cfgBldr}
+		services.Config.WithService(&mockDb)
+		services.Config.WithService(&tokenService)
 
 		// Call the controller
 		res, err := Handler(
@@ -207,9 +213,11 @@ func TestCreate(t *testing.T) {
 		}
 		mockRoleManager.On("CreateRoleWithPolicy", mock.Anything).Return(createRoleOutput, nil)
 
-		Dao = mockDb
-		TokenSvc = mockTokenService
-		RoleManager = mockRoleManager
+		cfgBldr := services.Config
+		services = &config.ServiceBuilder{Config: cfgBldr}
+		services.Config.WithService(&mockDb)
+		services.Config.WithService(&mockTokenService)
+		services.Config.WithService(mockRoleManager)
 
 		// Send an API request
 		req := createAccountAPIRequest(t, CreateRequest{
@@ -223,7 +231,10 @@ func TestCreate(t *testing.T) {
 
 	t.Run("should return a 409 if the account already exists", func(t *testing.T) {
 		mockDb := &dbMocks.DBer{}
-		Dao = mockDb
+
+		cfgBldr := services.Config
+		services = &config.ServiceBuilder{Config: cfgBldr}
+		services.Config.WithService(&mockDb)
 
 		// Mock the DB, so that the account already exist
 		mockDb.On("GetAccount", "1234567890").
@@ -245,7 +256,10 @@ func TestCreate(t *testing.T) {
 
 	t.Run("should handle DB.GetAccount response errors as 500s", func(t *testing.T) {
 		mockDb := &dbMocks.DBer{}
-		Dao = mockDb
+
+		cfgBldr := services.Config
+		services = &config.ServiceBuilder{Config: cfgBldr}
+		services.Config.WithService(&mockDb)
 
 		// Mock the DB to return an error
 		mockDb.On("GetAccount", "1234567890").
@@ -267,7 +281,10 @@ func TestCreate(t *testing.T) {
 
 	t.Run("should handle DB.PutAccount response errors as 500s", func(t *testing.T) {
 		mockDb := &dbMocks.DBer{}
-		Dao = mockDb
+
+		cfgBldr := services.Config
+		services = &config.ServiceBuilder{Config: cfgBldr}
+		services.Config.WithService(&mockDb)
 
 		// Account doesn't already exist
 		mockDb.On("GetAccount", "1234567890").
@@ -292,14 +309,16 @@ func TestCreate(t *testing.T) {
 	})
 
 	t.Run("should add the account to the reset Queue", func(t *testing.T) {
-
-		Dao = dbStub()
-		TokenSvc = tokenServiceStub()
-		RoleManager = roleManagerStub()
+		cfgBldr := services.Config
+		services = &config.ServiceBuilder{Config: cfgBldr}
+		services.Config.WithService(dbStub())
+		services.Config.WithService(tokenServiceStub())
+		services.Config.WithService(roleManagerStub())
 
 		// Configure the controller, with a mock SQS
 		mockQueue := &commonMocks.Queue{}
-		Queue = mockQueue
+
+		services.Config.WithService(&mockQueue)
 
 		queueName := "DefaultResetSQSUrl"
 		accountID := "1234567890"
@@ -333,8 +352,10 @@ func TestCreate(t *testing.T) {
 		).Return(errors.New("mock error"))
 		defer mockQueue.AssertExpectations(t)
 
-		Dao = mockDB
-		Queue = mockQueue
+		cfgBldr := services.Config
+		services = &config.ServiceBuilder{Config: cfgBldr}
+		services.Config.WithService(mockDB)
+		services.Config.WithService(mockQueue)
 
 		// Send request
 		req := createAccountAPIRequest(t, CreateRequest{
@@ -356,14 +377,16 @@ func TestCreate(t *testing.T) {
 
 	t.Run("should publish an SNS message, with the account info", func(t *testing.T) {
 
-		Dao = dbStub()
-		TokenSvc = tokenServiceStub()
-		RoleManager = roleManagerStub()
-		Queue = queueStub()
+		cfgBldr := services.Config
+		services = &config.ServiceBuilder{Config: cfgBldr}
+		services.Config.WithService(dbStub())
+		services.Config.WithService(tokenServiceStub())
+		services.Config.WithService(roleManagerStub())
+		services.Config.WithService(queueStub())
 
 		// Configure the controller with mock SNS
 		mockSNS := &commonMocks.Notificationer{}
-		SnsSvc = mockSNS
+		services.Config.WithService(&mockSNS)
 
 		// Expect to publish the account to the SNS topic
 		mockSNS.On("PublishMessage",
@@ -407,7 +430,9 @@ func TestCreate(t *testing.T) {
 	t.Run("should return a 500, if the SNS publish fails", func(t *testing.T) {
 		// Configure the controller with mock SNS
 		mockSNS := &commonMocks.Notificationer{}
-		SnsSvc = mockSNS
+		cfgBldr := services.Config
+		services = &config.ServiceBuilder{Config: cfgBldr}
+		services.Config.WithService(&mockSNS)
 
 		// Mock SNS publish to fail
 		mockSNS.On("PublishMessage", mock.Anything, mock.Anything, mock.Anything).
@@ -434,7 +459,9 @@ func TestCreate(t *testing.T) {
 
 		// Mock the TokenService (assumes role into the user account)
 		tokenServiceMock := &commonMocks.TokenService{}
-		TokenSvc = tokenServiceMock
+		cfgBldr := services.Config
+		services = &config.ServiceBuilder{Config: cfgBldr}
+		services.Config.WithService(&tokenServiceMock)
 
 		// Mock Token Service, to assume adminRoleArn
 		mockAdminRoleSession := &awsMocks.AwsSession{}
@@ -447,7 +474,7 @@ func TestCreate(t *testing.T) {
 
 		// Mock the RoleManager (creates the IAM Role)
 		roleManager := roleManagerMocks.RoleManager{}
-		RoleManager = &roleManager
+		services.Config.WithService(&roleManager)
 
 		// RoleManager should use an IAM client,with the assumed role session
 		roleManager.On("SetIAMClient", mock.Anything)
@@ -513,7 +540,9 @@ func TestCreate(t *testing.T) {
 		// Create the controller
 		// Mock the RoleManager, to return an error on IAM Role Creation
 		roleManager := roleManagerMocks.RoleManager{}
-		RoleManager = &roleManager
+		cfgBldr := services.Config
+		services = &config.ServiceBuilder{Config: cfgBldr}
+		services.Config.WithService(&roleManager)
 		roleManager.On("SetIAMClient", mock.Anything)
 		roleManager.On("CreateRoleWithPolicy", mock.Anything).
 			Return(nil, errors.New("mock error"))
@@ -539,7 +568,9 @@ func TestCreate(t *testing.T) {
 
 		// Mock the DB
 		mockDB := &dbMocks.DBer{}
-		Dao = mockDB
+		cfgBldr := services.Config
+		services = &config.ServiceBuilder{Config: cfgBldr}
+		services.Config.WithService(&mockDB)
 
 		// Should write account w/metadata to DB
 		mockDB.On("PutAccount",

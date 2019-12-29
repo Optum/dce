@@ -15,7 +15,10 @@ import (
 	"github.com/Optum/dce/pkg/rolemanager"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iam"
+	"github.com/aws/aws-sdk-go/service/sns/snsiface"
+	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
 	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/aws/aws-sdk-go/service/sts/stsiface"
 )
 
 // CreateAccount - Function to validate the account request to add into the pool and
@@ -33,6 +36,18 @@ func CreateAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var tokenSvc stsiface.STSAPI
+	if err := services.Config.GetService(&tokenSvc); err != nil {
+		response.WriteServerErrorWithResponse(w, "Could not create token service")
+		return
+	}
+
+	var dao db.DBer
+	if err := services.Config.GetService(&dao); err != nil {
+		response.WriteServerErrorWithResponse(w, "Could not create data service")
+		return
+	}
+
 	// Set default metadata={}
 	if request.Metadata == nil {
 		request.Metadata = map[string]interface{}{}
@@ -45,8 +60,10 @@ func CreateAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	testServices := services
+
 	// Check if the account already exists
-	existingAccount, err := Dao.GetAccount(request.ID)
+	existingAccount, err := dao.GetAccount(request.ID)
 	if err != nil {
 		log.Printf("Failed to add account %s to pool: %s",
 			request.ID, err.Error())
@@ -60,7 +77,7 @@ func CreateAccount(w http.ResponseWriter, r *http.Request) {
 
 	// Verify that we can assume role in the account,
 	// using the `adminRoleArn`
-	_, err = TokenSvc.AssumeRole(&sts.AssumeRoleInput{
+	_, err = tokenSvc.AssumeRole(&sts.AssumeRoleInput{
 		RoleArn:         aws.String(request.AdminRoleArn),
 		RoleSessionName: aws.String("MasterAssumeRoleVerification"),
 	})
@@ -85,7 +102,7 @@ func CreateAccount(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create an IAM Role for the principal (end-user) to login to
-	masterAccountID := *CurrentAccountID
+	masterAccountID := *currentAccountID
 	createRolRes, policyHash, err := createPrincipalRole(account, masterAccountID)
 	if err != nil {
 		log.Printf("failed to create principal role for %s: %s", request.ID, err)
@@ -96,7 +113,7 @@ func CreateAccount(w http.ResponseWriter, r *http.Request) {
 	account.PrincipalPolicyHash = policyHash
 
 	// Write the Account to the DB
-	err = Dao.PutAccount(account)
+	err = dao.PutAccount(account)
 	if err != nil {
 		log.Printf("Failed to add account %s to pool: %s",
 			request.ID, err.Error())
@@ -104,8 +121,14 @@ func CreateAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var queue sqsiface.SQSAPI
+	if err := testServices.Config.GetService(&queue); err != nil {
+		response.WriteServerErrorWithResponse(w, "Internal server error")
+		return
+	}
 	// Add Account to Reset Queue
-	err = Queue.SendMessage(&resetQueueURL, &account.ID)
+	msgInput := common.BuildSendMessageInput(aws.String(settings.ResetQueueURL), &account.ID)
+	_, err = queue.SendMessage(&msgInput)
 	if err != nil {
 		log.Printf("Failed to add account %s to reset Queue: %s", account.ID, err)
 		response.WriteServerErrorWithResponse(w, "Internal server error")
@@ -121,9 +144,13 @@ func CreateAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: Initialize these in a better spot.
+	var snsSvc snsiface.SNSAPI
+	if err := services.Config.GetService(&snsSvc); err != nil {
+		response.WriteServerErrorWithResponse(w, "Internal server error")
+		return
+	}
 
-	_, err = SnsSvc.PublishMessage(&accountCreatedTopicArn, &snsMessage, true)
+	_, err = snsSvc.Publish(common.CreateJSONPublishInput(&settings.AccountCreatedTopicArn, &snsMessage))
 	if err != nil {
 		log.Printf("Failed to publish SNS account-created message for %s: %s", account.ID, err)
 		response.WriteServerErrorWithResponse(w, "Internal server error")
@@ -200,38 +227,51 @@ func createPrincipalRole(childAccount db.Account, masterAccountID string) (*role
 	`, masterAccountID))
 
 	// Render the default policy for the principal
+	var storageSvc common.Storager
+	if err := services.Config.GetService(&storageSvc); err != nil {
+		return nil, "", err
+	}
 
-	policy, policyHash, err := StorageSvc.GetTemplateObject(artifactsBucket, principalPolicyS3Key,
+	policy, policyHash, err := storageSvc.GetTemplateObject(settings.ArtifactsBucket, settings.PrincipalPolicyS3Key,
 		principalPolicyInput{
-			PrincipalPolicyArn:   fmt.Sprintf("arn:aws:iam::%s:policy/%s", childAccount.ID, policyName),
-			PrincipalRoleArn:     fmt.Sprintf("arn:aws:iam::%s:role/%s", childAccount.ID, principalRoleName),
-			PrincipalIAMDenyTags: principalIAMDenyTags,
+			PrincipalPolicyArn:   fmt.Sprintf("arn:aws:iam::%s:policy/%s", childAccount.ID, settings.PolicyName),
+			PrincipalRoleArn:     fmt.Sprintf("arn:aws:iam::%s:role/%s", childAccount.ID, settings.PrincipalRoleName),
+			PrincipalIAMDenyTags: settings.PrincipalIAMDenyTags,
 			AdminRoleArn:         childAccount.AdminRoleArn,
-			Regions:              allowedRegions,
+			Regions:              settings.AllowedRegions,
 		})
 	if err != nil {
 		return nil, "", err
 	}
 
 	// Assume role into the new account
-	accountSession, err := TokenSvc.NewSession(AWSSession, childAccount.AdminRoleArn)
+	var tokenSvc stsiface.STSAPI
+	if err := services.Config.GetService(&tokenSvc); err != nil {
+		return nil, "", err
+	}
+
+	accountSession, err := common.NewSession(services.AWSSession, childAccount.AdminRoleArn)
 	if err != nil {
 		return nil, "", err
 	}
 	iamClient := iam.New(accountSession)
 
+	var roleMgr rolemanager.RoleManager
+	if err := services.Config.GetService(&roleMgr); err != nil {
+		return nil, "", err
+	}
 	// Create the Role + Policy
-	RoleManager.SetIAMClient(iamClient)
+	roleMgr.SetIAMClient(iamClient)
 	createRoleOutput := &rolemanager.CreateRoleWithPolicyOutput{}
-	createRoleOutput, err = RoleManager.CreateRoleWithPolicy(&rolemanager.CreateRoleWithPolicyInput{
-		RoleName:                 principalRoleName,
+	createRoleOutput, err = roleMgr.CreateRoleWithPolicy(&rolemanager.CreateRoleWithPolicyInput{
+		RoleName:                 settings.PrincipalRoleName,
 		RoleDescription:          "Role to be assumed by principal users of DCE",
 		AssumeRolePolicyDocument: assumeRolePolicy,
-		MaxSessionDuration:       principalMaxSessionDuration,
-		PolicyName:               policyName,
+		MaxSessionDuration:       settings.PrincipalMaxSessionDuration,
+		PolicyName:               settings.PolicyName,
 		PolicyDocument:           policy,
 		PolicyDescription:        "Policy for principal users of DCE",
-		Tags: append(tags,
+		Tags: append(settings.Tags,
 			&iam.Tag{Key: aws.String("Name"), Value: aws.String("DCEPrincipal")},
 		),
 		IgnoreAlreadyExistsErrors: true,
