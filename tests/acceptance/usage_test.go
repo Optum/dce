@@ -156,27 +156,27 @@ func TestUsageDb(t *testing.T) {
 	t.Run("GetUsage - When there are limit, start date and principal ID filters", func(t *testing.T) {
 		currentDate := time.Now()
 		testStartDate := time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), 0, 0, 0, 0, time.UTC)
-		output, err := dbSvc.GetUsage(usage.GetUsageInput{
+		output, err := getAllUsage(dbSvc, usage.GetUsageInput{
 			Limit:       3,
 			PrincipalID: "user",
 			StartDate:   testStartDate,
 		})
 		assert.Nil(t, err)
-		assert.Equal(t, 1, len(output.Results), "should only return one usage record")
-		assert.Equal(t, "user", output.Results[0].PrincipalID, "should return the usage with the given principal ID")
+		assert.Equal(t, 1, len(output), "should only return one usage record")
+		assert.Equal(t, "user", output[0].PrincipalID, "should return the usage with the given principal ID")
 	})
 
 	t.Run("GetUsage - When there are no records matching filter", func(t *testing.T) {
 		currentDate := time.Now()
 		testStartDate := time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), 0, 0, 0, 0, time.UTC)
-		output, err := dbSvc.GetUsage(usage.GetUsageInput{
+		output, err := getAllUsage(dbSvc, usage.GetUsageInput{
 			Limit:       3,
 			PrincipalID: "user",
 			StartDate:   testStartDate,
 			AccountID:   "456",
 		})
 		assert.Nil(t, err)
-		assert.Equal(t, 0, len(output.Results), "should return no usage records")
+		assert.Equal(t, 0, len(output), "should return no usage records")
 	})
 }
 
@@ -223,4 +223,24 @@ func truncateUsageTable(t *testing.T, dbSvc *usage.DB) {
 		},
 	)
 	require.Nil(t, err)
+}
+
+func getAllUsage(dbSvc *usage.DB, input usage.GetUsageInput) ([]*usage.Usage, error) {
+	var results []*usage.Usage
+	var output usage.GetUsageOutput
+	var err error
+
+	for {
+		output, err = dbSvc.GetUsage(input)
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, output.Results...)
+		if len(output.NextKeys) == 0 {
+			break
+		} else {
+			input.StartKeys = output.NextKeys
+		}
+	}
+	return results, nil
 }
