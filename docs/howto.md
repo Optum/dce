@@ -377,7 +377,7 @@ Add the account to the pool using the DCE API
 
 **Request**
 
-`  POST ${api_url}/accounts`
+`POST ${api_url}/accounts`
 ```json
 {
     "adminRoleArn": "arn:aws:iam::123456789012:role/DCEAdmin",
@@ -471,7 +471,7 @@ again to see that the account status has been changed to
 
 **Request**
 
-`GET {api_url}/accounts`
+`GET ${api_url}/accounts`
 
 **Response**
 
@@ -550,7 +550,7 @@ with the following request body:
 
 **Request**
 
-`DELETE {api_url}/leases`
+`DELETE ${api_url}/leases`
 ```json
 {
     "principalId": "DCEPrincipal",
