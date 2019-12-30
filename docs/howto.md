@@ -527,7 +527,7 @@ You may list leases using the `/leases` endpoint
 
 The easiest way to log into a leased account is by using the [DCE CLI](#logging-into-a-leased-account). The following steps cover how to log in without using the CLI:
 
-1. Configure [DCE Authentication](#authenticating-with-the-dce-system) if you have not already done so
+1. Configure [DCE Authentication](#authenticating-with-dce) if you have not already done so
 1. Open a web browser ([Google Chrome is recommended](https://github.com/Optum/dce/issues/166))
 1. Navigate to `${api_url}/auth` and authenticate as prompted. You will be redirected to a page displaying an authentication code. 
 1. Base64 decode the authentication code to view plaintext credentials of the form:
