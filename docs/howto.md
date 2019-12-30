@@ -102,7 +102,7 @@ for alternatives to using the AWS CLI.
     region: us-east-1
     ```
 
-### Authenticating with the DCE System
+### Authenticating with DCE
 
 There are two ways to authenticate with DCE.
 
@@ -284,12 +284,10 @@ Before you can deploy and use DCE, you will need the following:
 
 1. An AWS account to use as the master account, and **sufficient credentials**
 for deploying DCE into the account.
-1. One or more AWS accounts to add as _child accounts_ in the account pool. As 
-of the time of this writing, DCE does not _create_ any AWS accounts for you. 
-You will need to bring your own AWS accounts for adding to the account pool.
+1. One or more AWS accounts to add as _child accounts_ in the account pool. 
+DCE does not _create_ any AWS accounts for you. You will need to bring your own AWS accounts for adding to the account pool.
 1. In each account you add to the account pool, you will create an IAM role
-that allows DCE to control the child account. This is detailed later 
-in this quickstart.
+that allows DCE to control the child account.
 
 ### Deploying DCE from Source
 
@@ -346,9 +344,12 @@ All endpoints use this value as the base url. For example, to view accounts:
 GET https://asdfghjkl.execute-api.us-east-1.amazonaws.com/api/accounts
 ```
 
-### Authenticating with the DCE System
+### Authenticating with DCE
 
-See [Authenticating with the DCE System](#authenticating-with-the-dce-system)
+There are two ways to authenticate with DCE.
+
+1. [Use IAM credentials for quick access to your individual DCE deployment](./api-auth#using-iam-credentials)
+1. [Use Cognito to set up admin and user profiles](./api-auth#using-cognito)
 
 ### Adding Accounts to the DCE Account Pool
 
