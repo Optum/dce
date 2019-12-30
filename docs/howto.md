@@ -523,7 +523,7 @@ You may list leases using the `/leases` endpoint
 ]
 ```
 
-### Logging in to a leased account
+### Logging into a leased account
 
 The easiest way to log in to a leased account is by using the (DCE CLI](logging-into-a-leased-account). The following steps cover how to log in without using the CLI:
 
