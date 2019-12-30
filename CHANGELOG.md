@@ -10,6 +10,7 @@
 - Replace GetUsageByDateRange with GetUsageByPrincipal method in POST lease validation
 - Add GetUsage with filter options: accountId, principalId, startDate, limit
 - Add `GET /auth` and `GET /auth/{file+}` endpoints for retrieving credentials web page
+- Merged quickstarts into how-to guide
 
 ## v0.23.0
 
