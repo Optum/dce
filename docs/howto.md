@@ -74,7 +74,7 @@ will look for credentials, ordered by precedence.
 The simplest way to use DCE is by storing credentials in your AWS CLI credentials file. For more advanced usage,
 refer to the [authentication page](./api-auth/configuring-cognito-for-usage-with-the-dce-cli).
 
-### Deploying DCE Using the CLI
+### Deploying DCE from the CLI
 
 You can build and deploy DCE from [source](#deploying-dce-from-source) or by using the CLI.
 This section will cover deployment using the CLI.
