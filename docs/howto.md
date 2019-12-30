@@ -294,7 +294,6 @@ that allows DCE to control the child account.
 You can build and deploy DCE from source or by using [the CLI](#deploying-dce).
 This section will cover deployment from source.
 
-1. Clone the DCE [Github Repo](https://github.com/Optum/dce) 
 1. [GNU Make](https://www.gnu.org/software/make/) 3.81+
 1. [Go](https://golang.org/) 1.12.x+
 1. Hashicorp [Terraform](https://www.terraform.io/) 0.12+
@@ -386,7 +385,7 @@ Add the account to the pool using the DCE API
 }
 ```
 
-**Respons**
+**Response**
 
 ```json
 {
