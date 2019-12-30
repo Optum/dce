@@ -543,10 +543,9 @@ The easiest way to log into a leased account is by using the [DCE CLI](#logging-
 
 ### Ending a lease
 
-Leases can automatically expire based on a date or a budget amount, but
+Leases automatically expire based on their expiration date or budget amount, but
 leases may also be administratively destroyed at any time. To destroy
-a lease with the API, send a DELETE request to *${api_url}/leases
-with the following request body:
+a lease with the API, send a DELETE request to `/leases` endpoint.
 
 **Request**
 
