@@ -20,13 +20,6 @@ Concepts
 
    concepts
 
-Quickstart
-----------
-.. toctree::
-   :maxdepth: 2
-
-   quickstart
-
 How To
 ------
 .. toctree::
