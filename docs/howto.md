@@ -74,7 +74,10 @@ will look for credentials, ordered by precedence.
 The simplest way to use DCE is by storing credentials in your AWS CLI credentials file. For more advanced usage,
 refer to the [authentication page](./api-auth/configuring-cognito-for-usage-with-the-dce-cli).
 
-### Deploying DCE
+### Deploying DCE Using the CLI
+
+You can build and deploy DCE from [source](#deploying-dce-from-source) or by using the CLI.
+This section will cover deployment using the CLI.
 
 This section uses the AWS CLI to configure credentials in the `.aws\credentials` file. See [Configuring AWS Credentials](#configuring-aws-credentials)
 for alternatives to using the AWS CLI.
@@ -240,7 +243,61 @@ DCE provides a set of endpoints for managing account pools and leases, and for m
 
 See [API Reference Documentation](./api-documentation.md) for details.
 
-See [API Auth Documentation](./api-auth.md) for details on authenticating and authorizing requests. 
+See [API Auth Documentation](./api-auth.md) for details on authenticating and authorizing requests.
+
+## Prerequisites
+
+Before you can deploy and use DCE, you will need the following:
+
+1. An AWS account to use as the master account, and **sufficient credentials**
+for deploying DCE into the account.
+1. One or more AWS accounts to add as _child accounts_ in the account pool. As 
+of the time of this writing, DCE does not _create_ any AWS accounts for you. 
+You will need to bring your own AWS accounts for adding to the account pool.
+1. In each account you add to the account pool, you will create an IAM role
+that allows DCE to control the child account. This is detailed later 
+in this quickstart.
+
+### Deploying DCE from Source
+
+You can build and deploy DCE from source or by using [the CLI](#deploying-dce).
+This section will cover deployment from source.
+
+1. Clone the DCE [Github Repo](https://github.com/Optum/dce) 
+1. [GNU Make](https://www.gnu.org/software/make/) 3.81+
+1. [Go](https://golang.org/) 1.12.x+
+1. Hashicorp [Terraform](https://www.terraform.io/) 0.12+
+1. The [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html) 1.16+
+
+Once you have the requirements installed, you can deploy DCE into your account 
+by following these steps:
+
+1. Clone the [Github repository](https://github.com/Optum/dce) by using the 
+command as shown here:
+
+        $ git clone https://github.com/Optum/dce.git dce
+
+1. Verify that the AWS CLI is [configured](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html).
+with an IAM user that has admin-level permissions in your AWS 
+[master account](concepts.md#master-account).
+1. Make sure that the AWS region is set to *us-east-1* by using the command
+as shown:
+
+        $ aws configure list
+            Name                    Value             Type    Location
+            ----                    -----             ----    --------
+        profile                <not set>             None    None
+        access_key     ****************NXAW shared-credentials-file    
+        secret_key     ****************ymwP shared-credentials-file    
+        region                us-east-1      config-file    ~/.aws/config
+
+1. Change into the base directory and use `make` to deploy the code as shown here:
+
+        $ cd dce
+        $ make deploy_local
+
+When the last command is complete, you will have DCE deployed into your master
+account.
 
 ### Finding the DCE API URL
 
@@ -255,6 +312,10 @@ All endpoints use this value as the base url. For example, to view accounts:
 ```
 GET https://asdfghjkl.execute-api.us-east-1.amazonaws.com/api/accounts
 ```
+
+### Authenticating with the DCE System
+
+See [Authenticating with the DCE System](#authenticating-with-the-dce-system)
 
 ### Adding Accounts to the DCE Account Pool
 
@@ -279,22 +340,210 @@ The child account must have an administrative IAM Role with a trust relationship
 }
 ```
 
-Add the account to the pool using the DCE API:
+Add the account to the pool using the DCE API
 
-`POST /accounts`
+**Request**
+
+`  POST ${api_url}/accounts`
 ```json
 {
-  "id": "<child_account_id>",
-  "adminRoleArn": "<ARN of the admin IAM role in the child account>"
+    "adminRoleArn": "arn:aws:iam::123456789012:role/DCEAdmin",
+    "id": "123456789012"
 }
 ```
 
-Or use the [DCE CLI](#use-the-dce-cli):
+**Respons**
 
+```json
+{
+    "accountStatus": "NotReady",
+    "adminRoleArn": "arn:aws:iam::123456789012:role/DCEAdmin",
+    "createdOn": 1572379783,
+    "id": "123456789012",
+    "lastModifiedOn": 1572379783,
+    "metadata": null,
+    "principalPolicyHash": "\"852ee9abbf1220a111c435a8c0e65490\"",
+    "principalRoleArn": "arn:aws:iam::123456789012:role/DCEPrincipal"
+}
 ```
-dce accounts add \
-    --account-id <child_account_id> \
-    --admin-role-arn <ARN of the admin IAM role in the child account>
+
+You can verify the account has been added with the following:
+
+**Request**
+
+`GET ${api_url}/accounts`
+
+**Response**
+
+```json
+[
+    {
+        "accountStatus": "Ready",
+        "adminRoleArn": "arn:aws:iam::123456789012:role/DCEAdmin",
+        "createdOn": 1572379783,
+        "id": "123456789012",
+        "lastModifiedOn": 1572379888,
+        "metadata": null,
+        "principalPolicyHash": "\"852ee9abbf1220a111c435a8c0e65490\"",
+        "principalRoleArn": "arn:aws:iam::123456789012:role/DCEPrincipal"
+    }
+]
+```
+
+### Leasing a child account
+
+Now that the child account has been added to the account pool, you
+can create a lease on the account.
+
+**Request**
+
+`POST ${api_url}/leases`
+```json
+{
+    "principalId": "DCEPrincipal",
+    "accountId": "123456789012",
+    "budgetAmount": 20,
+    "budgetCurrency": "USD",
+    "budgetNotificationEmails": [
+        "myuser@example.com"
+    ],
+    "expiresOn": 1572382800
+}
+```
+
+**Response**
+
+```json
+{
+    "accountId": "123456789012",
+    "budgetAmount": 20,
+    "budgetCurrency": "USD",
+    "budgetNotificationEmails": [
+        "myuser@example.com"
+    ],
+    "createdOn": 1572381585,
+    "expiresOn": 1572382800,
+    "id": "94503268-426b-4892-9b53-3c73ab38aeff",
+    "lastModifiedOn": 1572381585,
+    "leaseStatus": "Active",
+    "leaseStatusModifiedOn": 1572381585,
+    "leaseStatusReason": "",
+    "principalId": "DCEPrincipal"
+}
+```
+
+After getting the response, call the `/accounts` endpoint
+again to see that the account status has been changed to
+`Leased`:
+
+**Request**
+
+`GET {api_url}/accounts`
+
+**Response**
+
+```json
+[
+    {
+        "accountStatus": "Leased",
+        "adminRoleArn": "arn:aws:iam::123456789012:role/DCEAdmin",
+        "createdOn": 1572379783,
+        "id": "123456789012",
+        "lastModifiedOn": 1572381585,
+        "metadata": null,
+        "principalPolicyHash": "\"852ee9abbf1220a111c435a8c0e65490\"",
+        "principalRoleArn": "arn:aws:iam::123456789012:role/DCEPrincipal"
+    }
+]
+```
+
+You may begin using your leased account once it's status has changed to `Leased`.
+
+### Listing leases
+
+You may list leases using the `/leases` endpoint
+
+**Request**
+
+`GET ${api_url}/leases`
+
+**Response**
+
+```json
+[
+    {
+        "accountId": "123456789012",
+        "budgetAmount": 20,
+        "budgetCurrency": "USD",
+        "budgetNotificationEmails": [
+            "myuser@example.com"
+        ],
+        "createdOn": 1572381585,
+        "expiresOn": 1572382800,
+        "id": "94503268-426b-4892-9b53-3c73ab38aeff",
+        "lastModifiedOn": 1572381585,
+        "leaseStatus": "Active",
+        "leaseStatusModifiedOn": 1572381585,
+        "leaseStatusReason": "Active",
+        "principalId": "DCEPrincipal"
+    }
+]
+```
+
+### Logging in to a leased account
+
+The easiest way to log in to a leased account is by using the (DCE CLI](logging-into-a-leased-account). The following steps cover how to log in without using the CLI:
+
+1. Configure [DCE Authentication](#authenticating-with-the-dce-system) if you have not already done so
+1. Open a web browser ([Google Chrome is recommended](https://github.com/Optum/dce/issues/166))
+1. Navigate to `${api_url}/auth` and authenticate as prompted. You will be redirected to a page displaying an authentication code. 
+1. Base64 decode the authentication code to view plaintext credentials of the form:
+
+```json
+{
+   "accessKeyId":"xxx",
+   "secretAccessKey":"xxx",
+   "sessionToken":"xxx",
+   "expireTime":"Wed Nov 20 2019 13:30:13 GMT-0600 (Central Standard Time)"
+}
+```
+
+### Ending a lease
+
+Leases can automatically expire based on a date or a budget amount, but
+leases may also be administratively destroyed at any time. To destroy
+a lease with the API, send a DELETE request to *${api_url}/leases
+with the following request body:
+
+**Request**
+
+`DELETE {api_url}/leases`
+```json
+{
+    "principalId": "DCEPrincipal",
+    "accountId": "123456789012"
+}
+```
+
+**Response**
+
+```json
+{
+    "accountId": "519777115644",
+    "budgetAmount": 20,
+    "budgetCurrency": "USD",
+    "budgetNotificationEmails": [
+        "john.doe@example.com"
+    ],
+    "createdOn": 1572381585,
+    "expiresOn": 1572382800,
+    "id": "94503268-426b-4892-9b53-3c73ab38aeff",
+    "lastModifiedOn": 1572442028,
+    "leaseStatus": "Inactive",
+    "leaseStatusModifiedOn": 1572442028,
+    "leaseStatusReason": "Destroyed",
+    "principalId": "jdoe123"
+}
 ```
 
 ## Configure Deployment Options
