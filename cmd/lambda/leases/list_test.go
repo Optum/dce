@@ -5,16 +5,46 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/Optum/dce/pkg/api/response"
 	"github.com/Optum/dce/pkg/db"
 	"github.com/Optum/dce/pkg/db/mocks"
 	"github.com/aws/aws-lambda-go/events"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestListLeases(t *testing.T) {
+
+	t.Run("Building next URL", func(t *testing.T) {
+		body := strings.NewReader("")
+		request, err := http.NewRequest("GET", "http://example.com/api/leases?limit=2", body)
+
+		assert.Nil(t, err)
+
+		nextParams := make(map[string]string)
+
+		nextParams["AccountId"] = "1"
+		nextParams["PrincipalId"] = "b"
+
+		nextURL := response.BuildNextURL(request, nextParams, url.URL{})
+
+		assert.Equal(t, url.Values{
+			"limit": {
+				"2",
+			},
+			"nextAccountId": {
+				"1",
+			},
+			"nextPrincipalId": {
+				"b",
+			},
+		}, nextURL.Query())
+
+	})
 
 	t.Run("Empty leases", func(t *testing.T) {
 
@@ -25,11 +55,9 @@ func TestListLeases(t *testing.T) {
 		mockDb.On("GetLeases", *mockLeaseInput).Return(*leasesResult, nil)
 		mockRequest := createGetEmptyLeasesRequest()
 
-		controller := ListController{
-			Dao: &mockDb,
-		}
+		dao = &mockDb
 
-		actualResponse, err := controller.Call(context.Background(), mockRequest)
+		actualResponse, err := Handler(context.Background(), mockRequest)
 		require.Nil(t, err)
 
 		parsedResponse := []response.LeaseResponse{}
@@ -42,31 +70,26 @@ func TestListLeases(t *testing.T) {
 
 	t.Run("When the invoking Call and there are no errors", func(t *testing.T) {
 
-		expectedLeaseResponses := []response.LeaseResponse{
-			{
-				ID:             "unique-id",
-				AccountID:      "987654321",
-				PrincipalID:    "12345",
-				LeaseStatus:    db.Active,
-				LastModifiedOn: 1561149393,
-			},
+		expectedLeaseResponses := response.LeaseResponse{
+			ID:             "unique-id",
+			AccountID:      "987654321",
+			PrincipalID:    "12345",
+			LeaseStatus:    db.Active,
+			LastModifiedOn: 1561149393,
 		}
 
-		leasesResult := createLeasesOutput()
+		leasesResult := createSingleLeaseOutput()
 
-		mockLeaseInput := createGetLeasesInput()
 		mockDb := mocks.DBer{}
-		mockDb.On("GetLeases", *mockLeaseInput).Return(*leasesResult, nil)
-		mockRequest := createGetLeasesRequest()
+		mockDb.On("GetLease", "987654321", "12345").Return(leasesResult, nil)
+		mockRequest := createGetSingleLeaseRequest()
 
-		controller := ListController{
-			Dao: &mockDb,
-		}
+		dao = &mockDb
 
-		actualResponse, err := controller.Call(context.Background(), mockRequest)
+		actualResponse, err := Handler(context.Background(), mockRequest)
 		require.Nil(t, err)
 
-		parsedResponse := []response.LeaseResponse{}
+		parsedResponse := response.LeaseResponse{}
 		err = json.Unmarshal([]byte(actualResponse.Body), &parsedResponse)
 		require.Nil(t, err)
 
@@ -76,32 +99,21 @@ func TestListLeases(t *testing.T) {
 
 	t.Run("When the query fails", func(t *testing.T) {
 		expectedError := errors.New("Error")
-		mockLeaseInput := createGetLeasesInput()
+		mockLeaseInput := createGetEmptyLeasesInput()
 		leasesResult := createLeasesOutput()
 		mockDb := mocks.DBer{}
 		mockDb.On("GetLeases", *mockLeaseInput).Return(*leasesResult, expectedError)
 		mockRequest := createGetLeasesRequest()
 
-		controller := ListController{
-			Dao: &mockDb,
-		}
+		dao = &mockDb
 
-		actualResponse, err := controller.Call(context.Background(), mockRequest)
+		actualResponse, err := Handler(context.Background(), mockRequest)
 		require.Nil(t, err)
 
 		require.Equal(t, actualResponse.StatusCode, 500, "Returns a 500.")
 		require.Equal(t, actualResponse.Body, "{\"error\":{\"code\":\"ServerError\",\"message\":\"Error querying leases: Error\"}}")
 	})
 
-}
-
-func createGetLeasesInput() *db.GetLeasesInput {
-	keys := make(map[string]string)
-	return &db.GetLeasesInput{
-		PrincipalID: "12345",
-		AccountID:   "987654321",
-		StartKeys:   keys,
-	}
 }
 
 func createGetEmptyLeasesInput() *db.GetLeasesInput {
@@ -111,20 +123,29 @@ func createGetEmptyLeasesInput() *db.GetLeasesInput {
 	}
 }
 
-func createGetLeasesRequest() *events.APIGatewayProxyRequest {
+func createGetSingleLeaseRequest() events.APIGatewayProxyRequest {
 	q := make(map[string]string)
 	q[PrincipalIDParam] = "12345"
 	q[AccountIDParam] = "987654321"
-	return &events.APIGatewayProxyRequest{
+	return events.APIGatewayProxyRequest{
 		HTTPMethod:            http.MethodGet,
 		QueryStringParameters: q,
 		Path:                  "/leases",
 	}
 }
 
-func createGetEmptyLeasesRequest() *events.APIGatewayProxyRequest {
+func createGetLeasesRequest() events.APIGatewayProxyRequest {
 	q := make(map[string]string)
-	return &events.APIGatewayProxyRequest{
+	return events.APIGatewayProxyRequest{
+		HTTPMethod:            http.MethodGet,
+		QueryStringParameters: q,
+		Path:                  "/leases",
+	}
+}
+
+func createGetEmptyLeasesRequest() events.APIGatewayProxyRequest {
+	q := make(map[string]string)
+	return events.APIGatewayProxyRequest{
 		HTTPMethod:            http.MethodGet,
 		QueryStringParameters: q,
 		Path:                  "/leases",
@@ -146,6 +167,16 @@ func createLeasesOutput() *db.GetLeasesOutput {
 	return &db.GetLeasesOutput{
 		NextKeys: nextKeys,
 		Results:  leases,
+	}
+}
+
+func createSingleLeaseOutput() *db.Lease {
+	return &db.Lease{
+		ID:             "unique-id",
+		AccountID:      "987654321",
+		PrincipalID:    "12345",
+		LeaseStatus:    db.Active,
+		LastModifiedOn: 1561149393,
 	}
 }
 

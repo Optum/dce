@@ -1,6 +1,6 @@
 module github.com/Optum/dce
 
-go 1.12x
+go 1.13x
 
 require (
 	github.com/avast/retry-go v2.3.0+incompatible

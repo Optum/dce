@@ -453,7 +453,7 @@ func TestApi(t *testing.T) {
 					// Verify error response json
 					// Get nested json in response json
 					err := data["error"].(map[string]interface{})
-					assert.Equal(r, "ServerError", err["code"].(string))
+					assert.Equal(r, "StatusServiceUnavailable", err["code"].(string))
 					assert.Equal(r, "No Available accounts at this moment",
 						err["message"].(string))
 				},
@@ -532,7 +532,7 @@ func TestApi(t *testing.T) {
 					// Get nested json in response json
 					err := data["error"].(map[string]interface{})
 					assert.Equal(r, "ClientError", err["code"].(string))
-					assert.Equal(r, "Failed to Parse Request Body: ",
+					assert.Equal(r, "Failed to Parse Request Body: {}",
 						err["message"].(string))
 				},
 			})
@@ -618,7 +618,7 @@ func TestApi(t *testing.T) {
 					// Get nested json in response json
 					errResp := data["error"].(map[string]interface{})
 					assert.Equal(r, "ClientError", errResp["code"].(string))
-					assert.Equal(r, "No active leases found for user",
+					assert.Equal(r, "No active account leases found for user",
 						errResp["message"].(string))
 				},
 			})
@@ -1223,6 +1223,7 @@ func TestApi(t *testing.T) {
 			testStartDate := time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), 0, 0, 0, 0, time.UTC)
 			testEndDate := time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), 23, 59, 59, 59, time.UTC)
 			var testPrincipalID = "TestUser1"
+			var testAccount = "TestAccount1"
 
 			t.Run("Should be able to get usage by start date and end date", func(t *testing.T) {
 				queryString := fmt.Sprintf("/usage?startDate=%d&endDate=%d", testStartDate.Unix(), testEndDate.Unix())
@@ -1303,9 +1304,131 @@ func TestApi(t *testing.T) {
 						usageJSON := data[0]
 						assert.Equal(r, "TestUser1", usageJSON["principalId"].(string))
 						assert.Equal(r, "TestAccount1", usageJSON["accountId"].(string))
-						assert.Equal(r, 10000.00, usageJSON["costAmount"].(float64))
+						assert.Equal(r, 2000.00, usageJSON["costAmount"].(float64))
 					}
 				})
+			})
+
+			t.Run("Get usage when there are no query parameters", func(t *testing.T) {
+				resp := apiRequest(t, &apiRequestInput{
+					method: "GET",
+					url:    apiURL + "/usage",
+					json:   nil,
+				})
+
+				results := parseResponseArrayJSON(t, resp)
+				assert.Equal(t, 5, len(results), "all usage records should be returned")
+
+				// Check one of the result objects, to make sure it looks right
+				_, hasAccountID := results[0]["accountId"]
+				_, hasPrincipalID := results[0]["principalId"]
+				_, hasStartDate := results[0]["startDate"]
+
+				assert.True(t, hasAccountID, "response should be serialized with the accountId property")
+				assert.True(t, hasPrincipalID, "response should be serialized with the principalId property")
+				assert.True(t, hasStartDate, "response should be serialized with the startDate property")
+			})
+
+			t.Run("Get usage when there is an account ID parameter", func(t *testing.T) {
+				resp := apiRequest(t, &apiRequestInput{
+					method: "GET",
+					url:    apiURL + "/usage?accountId=" + testAccount,
+					json:   nil,
+				})
+
+				results := parseResponseArrayJSON(t, resp)
+				assert.Equal(t, 5, len(results), "only five usage records should be returned")
+			})
+
+			t.Run("Get usage when there is an principal ID parameter", func(t *testing.T) {
+				resp := apiRequest(t, &apiRequestInput{
+					method: "GET",
+					url:    apiURL + "/usage?principalId=" + testPrincipalID,
+					json:   nil,
+				})
+
+				results := parseResponseArrayJSON(t, resp)
+				assert.Equal(t, 5, len(results), "only five usage records should be returned")
+			})
+
+			t.Run("Get usage when there is a limit parameter", func(t *testing.T) {
+				resp := apiRequest(t, &apiRequestInput{
+					method: "GET",
+					url:    apiURL + "/usage?limit=1",
+					json:   nil,
+				})
+
+				results := parseResponseArrayJSON(t, resp)
+				assert.Equal(t, 1, len(results), "only one usage record should be returned")
+			})
+
+			t.Run("Get usage when there is a start date parameter", func(t *testing.T) {
+				currentDate := time.Now()
+				testStartDate := time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), 0, 0, 0, 0, time.UTC)
+				testDate := fmt.Sprint(testStartDate.Unix())
+				resp := apiRequest(t, &apiRequestInput{
+					method: "GET",
+					url:    apiURL + "/usage?startDate=" + testDate,
+					json:   nil,
+				})
+
+				results := parseResponseArrayJSON(t, resp)
+				assert.Equal(t, 1, len(results), "only one usage record should be returned")
+			})
+
+			t.Run("Get usage when there is a Link header", func(t *testing.T) {
+				nextPageRegex := regexp.MustCompile(`<(.+)>`)
+
+				respOne := apiRequest(t, &apiRequestInput{
+					method: "GET",
+					url:    apiURL + "/usage?limit=2",
+					json:   nil,
+				})
+
+				linkHeader, ok := respOne.Header["Link"]
+				assert.True(t, ok, "Link header should exist")
+
+				resultsOne := parseResponseArrayJSON(t, respOne)
+				assert.Equal(t, 2, len(resultsOne), "only two usage records should be returned")
+
+				nextPage := nextPageRegex.FindStringSubmatch(linkHeader[0])[1]
+
+				_, err := url.ParseRequestURI(nextPage)
+				assert.Nil(t, err, "Link header should contain a valid URL")
+
+				respTwo := apiRequest(t, &apiRequestInput{
+					method: "GET",
+					url:    nextPage,
+					json:   nil,
+				})
+
+				linkHeader, ok = respTwo.Header["Link"]
+				assert.True(t, ok, "Link header should exist")
+
+				resultsTwo := parseResponseArrayJSON(t, respTwo)
+				assert.Equal(t, 2, len(resultsTwo), "only two usage records should be returned")
+
+				nextPage = nextPageRegex.FindStringSubmatch(linkHeader[0])[1]
+
+				_, err = url.ParseRequestURI(nextPage)
+				assert.Nil(t, err, "Link header should contain a valid URL")
+
+				respThree := apiRequest(t, &apiRequestInput{
+					method: "GET",
+					url:    nextPage,
+					json:   nil,
+				})
+
+				linkHeader, ok = respThree.Header["Link"]
+				assert.False(t, ok, "Link header should not exist in last page")
+
+				resultsThree := parseResponseArrayJSON(t, respThree)
+				assert.Equal(t, 1, len(resultsThree), "only one usage record should be returned")
+
+				results := append(resultsOne, resultsTwo...)
+				results = append(results, resultsThree...)
+
+				assert.Equal(t, 5, len(results), "All five usage records should be returned")
 			})
 		})
 	})
@@ -1643,7 +1766,7 @@ func TestApi(t *testing.T) {
 			// Verify error response json
 			// Get nested json in response json
 			err := data["error"].(map[string]interface{})
-			errStr := fmt.Sprintf("Unable to create lease: User principal %s has already spent 1000.000000 of their principal budget", principalID)
+			errStr := fmt.Sprintf("Unable to create lease: User principal %s has already spent 0.000000 of their principal budget", principalID)
 			require.Equal(t, "RequestValidationError", err["code"].(string))
 			require.Equal(t, errStr, err["message"].(string))
 		})

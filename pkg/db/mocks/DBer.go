@@ -194,6 +194,29 @@ func (_m *DBer) GetAccounts() ([]*db.Account, error) {
 	return r0, r1
 }
 
+// GetLease provides a mock function with given fields: accountID, principalID
+func (_m *DBer) GetLease(accountID string, principalID string) (*db.Lease, error) {
+	ret := _m.Called(accountID, principalID)
+
+	var r0 *db.Lease
+	if rf, ok := ret.Get(0).(func(string, string) *db.Lease); ok {
+		r0 = rf(accountID, principalID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*db.Lease)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string, string) error); ok {
+		r1 = rf(accountID, principalID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetLeaseByID provides a mock function with given fields: leaseID
 func (_m *DBer) GetLeaseByID(leaseID string) (*db.Lease, error) {
 	ret := _m.Called(leaseID)
