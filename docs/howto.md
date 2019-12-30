@@ -150,7 +150,7 @@ There are two ways to authenticate with DCE.
     ```
     dce leases create --budget-amount 100.0 --budget-currency USD --email jane.doe@email.com --principal-id quickstartuser
    Lease created: {
-   	"accountId": "948334904178",
+   	"accountId": "555555555555",
    	"budgetAmount": 100,
    	"budgetCurrency": "USD",
    	"budgetNotificationEmails": [
@@ -186,7 +186,7 @@ There are two ways to authenticate with DCE.
    		"leaseStatus": "Active",
    		"leaseStatusModifiedOn": 1575490207,
    		"leaseStatusReason": "Active",
-   		"principalId": "jdoe99"
+   		"principalId": "quickstartuser"
    	}
    ]
     ```
@@ -225,6 +225,39 @@ There are three ways to "log in" to a leased account.
     export AWS_ACCESS_KEY_ID=xxxxxMAJKITANQZPFFXY
     export AWS_SECRET_ACCESS_KEY=xxxxxDEiaAvZ0OeqO5qxNBcJVrFGzNLxz6tgKWTF
     export AWS_SESSION_TOKEN=xxxxxXIvYXdzEC0aDFEgMqpsBg4dtUS1qSKyAa3ktoh0SBPbwJv3S5B5NXdG8OdOVCQsya5b943mFfJnxX2reFw1a/r+LKa7G6CKj2NnWbkVWXdzWEVtsjy5Y32po2kVDp1lt74C7V6H8xbOk4HjgiXLOQl5faXpjmi80yaFI/yBrvnBbQVOq9QkbpeHcSyEkoouSkagCtkPicjLjq6omrAGR2xDXrrFYvYRIMevj2mZoBkk/5jGB3FpNycuWz6weqF4Z6qlCZLSalfetEAow7ml7wUyLf4OrtDvPgTPBjg6PClxC6BZgUMZaQM9ePQR0ZgMynNvm7JHbQz38jLCBqzneQ==
+    ```
+
+### Ending a Lease
+
+1. End a lease using the `dce leases end` command with the `--account-id` and `--principal-id` flags
+
+    ```
+    dce leases end --account-id 555555555555 --principal-id jdoe99
+    Lease ended
+    ```
+
+1. Type `dce leases list` to verify that the lease has been ended
+
+    ```
+    dce leases list
+   [
+   	{
+   		"accountId": "555555555555",
+   		"budgetAmount": 100,
+   		"budgetCurrency": "USD",
+   		"budgetNotificationEmails": [
+   			"jane.doe@email.com"
+   		],
+   		"createdOn": 1575490207,
+   		"expiresOn": 1576095007,
+   		"id": "e501cb86-8317-458b-bdce-d47ab92f86a8",
+   		"lastModifiedOn": 1575490207,
+   		"leaseStatus": "Inactive",
+   		"leaseStatusModifiedOn": 1575490207,
+   		"leaseStatusReason": "Destroyed",
+   		"principalId": "quickstartuser"
+   	}
+   ]
     ```
 
 ### Removing a Child Account
