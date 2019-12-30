@@ -16,7 +16,7 @@ Deploy your own Disposable Cloud Environment by following the [how-to guide](./d
 
 ## DCE CLI
 
-The easiest way to get started with DCE is with the DCE CLI tool:
+The easiest way to get started with DCE is with the DCE CLI:
 
 [github.com/Optum/dce-cli](https://github.com/Optum/dce-cli)
 
