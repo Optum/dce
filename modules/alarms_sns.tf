@@ -25,7 +25,7 @@ resource "aws_sns_topic_policy" "alarms_policy" {
           "SNS:DeleteTopic",
           "SNS:AddPermission"
         ],
-        "Resource": "aws_sns_topic.alarms_topic.arn",
+        "Resource": "${aws_sns_topic.alarms_topic.arn}",
         "Condition": {
           "StringEquals": {
             "AWS:SourceOwner": ["${data.aws_caller_identity.current.account_id}"]
