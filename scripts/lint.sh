@@ -31,4 +31,4 @@ trap moveBackBackend EXIT
 mv -f ./backend.tf{,.bak} || true
 terraform init
 # TODO: test to see if tflint is installed first.
-tflint --deep ./
+tflint ./
