@@ -111,8 +111,8 @@ resource "aws_lambda_permission" "allow_api_gateway_credentials_web_page_lambda"
 
 resource "aws_api_gateway_stage" "api" {
   stage_name    = local.stage_name
-  rest_api_id   = "${aws_api_gateway_rest_api.gateway_api.id}"
-  deployment_id = "${aws_api_gateway_deployment.gateway_deployment.id}"
+  rest_api_id   = aws_api_gateway_rest_api.gateway_api.id
+  deployment_id = aws_api_gateway_deployment.gateway_deployment.id
 }
 
 resource "aws_api_gateway_deployment" "gateway_deployment" {
