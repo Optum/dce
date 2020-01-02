@@ -212,7 +212,7 @@ func (db *DB) GetUsage(input GetUsageInput) (GetUsageOutput, error) {
 
 	// Build the filter clauses.
 	if input.StartDate != *new(time.Time) {
-		filters = append(filters, "StartDate = :startDate")
+		filters = append(filters, "StartDate >= :startDate")
 		filterValues[":startDate"] = &dynamodb.AttributeValue{N: aws.String(strconv.FormatInt(input.StartDate.Unix(), 10))}
 	}
 
