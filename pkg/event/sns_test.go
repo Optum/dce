@@ -1,14 +1,15 @@
 package event
 
 import (
-	"errors"
+	gErrors "errors"
 	"math"
 	"testing"
 
 	"github.com/Optum/dce/pkg/awsiface/mocks"
+	"github.com/Optum/dce/pkg/errors"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sns"
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestSns(t *testing.T) {
@@ -30,23 +31,23 @@ func TestSns(t *testing.T) {
 			event: data{
 				Key: "value",
 			},
-			expectedMessage: "{\"default\":\"{\\\"key\\\":\\\"value\\\"}\",\"Body\":\"{\\\"key\\\":\\\"value\\\"}\"}",
+			expectedMessage: "{\"Body\":\"{\\\"key\\\":\\\"value\\\"}\",\"default\":\"{\\\"key\\\":\\\"value\\\"}\"}",
 			expectedErr:     nil,
 		},
 		{
 			name:   "publish sns error",
-			snsErr: errors.New("error"),
+			snsErr: gErrors.New("error"),
 			event: data{
 				Key: "value",
 			},
-			expectedMessage: "{\"default\":\"{\\\"key\\\":\\\"value\\\"}\",\"Body\":\"{\\\"key\\\":\\\"value\\\"}\"}",
-			expectedErr:     errors.New("error"),
+			expectedMessage: "{\"Body\":\"{\\\"key\\\":\\\"value\\\"}\",\"default\":\"{\\\"key\\\":\\\"value\\\"}\"}",
+			expectedErr:     errors.NewInternalServer("failed to publish message to SNS topic", nil),
 		},
 		{
 			name:        "unmarshal error",
 			snsErr:      nil,
 			event:       math.Inf(1),
-			expectedErr: errors.New("Unable to marshal response"),
+			expectedErr: errors.NewInternalServer("unable to marshal response", nil),
 		},
 	}
 
@@ -68,7 +69,12 @@ func TestSns(t *testing.T) {
 			if tt.expectedErr == tt.snsErr {
 				mockSns.AssertExpectations(t)
 			}
-			require.Equal(t, tt.expectedErr, err)
+
+			if err != nil {
+				assert.Equal(t, tt.expectedErr.Error(), err.Error())
+			} else {
+				assert.Nil(t, tt.expectedErr)
+			}
 
 		})
 	}

@@ -21,7 +21,7 @@ func TestNewEvent(t *testing.T) {
 		leaseAddedTopicArn, _ := arn.Parse("arn:aws:sns:us-east-1:123456789012:createLease")
 		accountResetQueueURL := "http://sqs.com/queue"
 
-		eventer, err := NewEventer(NewEventerInput{
+		eventer, err := NewEventer(NewHubInput{
 			SnsClient:              mockSns,
 			SqsClient:              mockSqs,
 			AccountCreatedTopicArn: accountCreatedTopicArn.String(),
@@ -36,19 +36,11 @@ func TestNewEvent(t *testing.T) {
 				sns:      mockSns,
 				topicArn: accountCreatedTopicArn,
 			},
-			&SqsEvent{
-				sqs: mockSqs,
-				url: accountResetQueueURL,
-			},
 		}, eventer.accountCreate)
 		assert.Equal(t, []Publisher{
 			&SnsEvent{
 				sns:      mockSns,
 				topicArn: accountDeletedTopicArn,
-			},
-			&SqsEvent{
-				sqs: mockSqs,
-				url: accountResetQueueURL,
 			},
 		}, eventer.accountDelete)
 
@@ -60,12 +52,7 @@ func TestNewEvent(t *testing.T) {
 			},
 		}, eventer.leaseCreate)
 		assert.Equal(t, []Publisher{}, eventer.leaseUpdate)
-		assert.Equal(t, []Publisher{
-			&SqsEvent{
-				sqs: mockSqs,
-				url: accountResetQueueURL,
-			},
-		}, eventer.leaseEnd)
+		assert.Equal(t, []Publisher{}, eventer.leaseEnd)
 	})
 
 }
@@ -132,7 +119,7 @@ func TestEventPublishers(t *testing.T) {
 			mockResetAccountPublisher := mocks.Publisher{}
 			mockResetAccountPublisher.On("Publish", tt.event).Return(tt.expectedAccountResetPublishErr)
 
-			eventSvc := Eventer{
+			eventSvc := Hub{
 				accountCreate: []Publisher{&mockCreateAccountPublisher},
 				accountDelete: []Publisher{&mockDeleteAccountPublisher},
 				accountUpdate: []Publisher{&mockUpdateAccountPublisher},
@@ -230,7 +217,7 @@ func TestPublishingWithRange(t *testing.T) {
 			mockPublisher3 := mocks.Publisher{}
 			mockPublisher3.On("Publish", tt.event).Return(tt.returnErr3)
 
-			eventSvc := Eventer{}
+			eventSvc := Hub{}
 
 			publishers := []Publisher{
 				&mockPublisher1,

@@ -2,8 +2,8 @@ package event
 
 import (
 	"encoding/json"
-	"errors"
 
+	"github.com/Optum/dce/pkg/errors"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
@@ -19,7 +19,7 @@ type SqsEvent struct {
 func (s *SqsEvent) Publish(i interface{}) error {
 	bodyJSON, err := json.Marshal(i)
 	if err != nil {
-		return errors.New("Unable to marshal response")
+		return errors.NewInternalServer("unable to marshal response", err)
 	}
 
 	// Create the input
@@ -30,7 +30,10 @@ func (s *SqsEvent) Publish(i interface{}) error {
 
 	// Send the message
 	_, err = s.sqs.SendMessage(&input)
-	return err
+	if err != nil {
+		return errors.NewInternalServer("unable to send message to sqs", err)
+	}
+	return nil
 }
 
 // NewSqsEvent creates a new SQS eventing struct

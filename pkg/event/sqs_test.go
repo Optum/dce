@@ -1,14 +1,15 @@
 package event
 
 import (
-	"errors"
+	gErrors "errors"
 	"math"
 	"testing"
 
 	"github.com/Optum/dce/pkg/awsiface/mocks"
+	"github.com/Optum/dce/pkg/errors"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sqs"
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestSqs(t *testing.T) {
@@ -35,18 +36,18 @@ func TestSqs(t *testing.T) {
 		},
 		{
 			name:   "publish sqs error",
-			sqsErr: errors.New("error"),
+			sqsErr: gErrors.New("error"),
 			event: data{
 				Key: "value",
 			},
 			expectedMessageBody: "{\"key\":\"value\"}",
-			expectedErr:         errors.New("error"),
+			expectedErr:         errors.NewInternalServer("unable to send message to sqs", nil),
 		},
 		{
 			name:        "unmarshal error",
 			sqsErr:      nil,
 			event:       math.Inf(1),
-			expectedErr: errors.New("Unable to marshal response"),
+			expectedErr: errors.NewInternalServer("unable to marshal response", nil),
 		},
 	}
 
@@ -67,7 +68,12 @@ func TestSqs(t *testing.T) {
 			if tt.expectedErr == tt.sqsErr {
 				mockSqs.AssertExpectations(t)
 			}
-			require.Equal(t, tt.expectedErr, err)
+
+			if err != nil {
+				assert.Equal(t, tt.expectedErr.Error(), err.Error())
+			} else {
+				assert.Nil(t, tt.expectedErr)
+			}
 
 		})
 	}

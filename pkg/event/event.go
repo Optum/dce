@@ -10,8 +10,8 @@ type Publisher interface {
 	Publish(i interface{}) error
 }
 
-// NewEventerInput are the items required to create a new Eventer service
-type NewEventerInput struct {
+// NewHubInput are the items required to create a new Eventer service
+type NewHubInput struct {
 	SnsClient              snsiface.SNSAPI
 	SqsClient              sqsiface.SQSAPI
 	AccountCreatedTopicArn string `env:"ACCOUNT_CREATED_TOPIC_ARN" defaultEnv:"DefaultAccountCreatedTopicArn"`
@@ -20,8 +20,8 @@ type NewEventerInput struct {
 	LeaseAddedTopicArn     string `env:"LEASE_ADDED_TOPIC" defaultEnv:"DefaultLeaseAddedTopicArn"`
 }
 
-// Eventer is the public interface for publishing events
-type Eventer struct {
+// Hub is the public interface for publishing events
+type Hub struct {
 	accountCreate []Publisher
 	accountDelete []Publisher
 	accountUpdate []Publisher
@@ -31,7 +31,7 @@ type Eventer struct {
 	leaseUpdate   []Publisher
 }
 
-func (e *Eventer) publish(i interface{}, p ...Publisher) error {
+func (e *Hub) publish(i interface{}, p ...Publisher) error {
 	for _, n := range p {
 		err := n.Publish(i)
 		if err != nil {
@@ -42,43 +42,43 @@ func (e *Eventer) publish(i interface{}, p ...Publisher) error {
 }
 
 // AccountCreate publish events
-func (e *Eventer) AccountCreate(i interface{}) error {
+func (e *Hub) AccountCreate(i interface{}) error {
 	return e.publish(i, e.accountCreate...)
 }
 
 // AccountDelete publish events
-func (e *Eventer) AccountDelete(i interface{}) error {
+func (e *Hub) AccountDelete(i interface{}) error {
 	return e.publish(i, e.accountDelete...)
 }
 
 // AccountUpdate publish events
-func (e *Eventer) AccountUpdate(i interface{}) error {
+func (e *Hub) AccountUpdate(i interface{}) error {
 	return e.publish(i, e.accountUpdate...)
 }
 
 // AccountReset publish events
-func (e *Eventer) AccountReset(i interface{}) error {
+func (e *Hub) AccountReset(i interface{}) error {
 	return e.publish(i, e.accountReset...)
 }
 
 // LeaseCreate publish events
-func (e *Eventer) LeaseCreate(i interface{}) error {
+func (e *Hub) LeaseCreate(i interface{}) error {
 	return e.publish(i, e.leaseCreate...)
 }
 
 // LeaseEnd publish events
-func (e *Eventer) LeaseEnd(i interface{}) error {
+func (e *Hub) LeaseEnd(i interface{}) error {
 	return e.publish(i, e.leaseEnd...)
 }
 
 // LeaseUpdate publish events
-func (e *Eventer) LeaseUpdate(i interface{}) error {
+func (e *Hub) LeaseUpdate(i interface{}) error {
 	return e.publish(i, e.leaseUpdate...)
 }
 
 // NewEventer creates a new instance of Eventer
-func NewEventer(input NewEventerInput) (*Eventer, error) {
-	newEventer := &Eventer{}
+func NewEventer(input NewHubInput) (*Hub, error) {
+	newEventer := &Hub{}
 
 	//////////////////////////////////////////////////////////////////////
 	// Account Eventing
@@ -99,14 +99,12 @@ func NewEventer(input NewEventerInput) (*Eventer, error) {
 	}
 	newEventer.accountCreate = []Publisher{
 		createAccount,
-		resetAccount,
 	}
 	newEventer.accountReset = []Publisher{
 		resetAccount,
 	}
 	newEventer.accountDelete = []Publisher{
 		deleteAccount,
-		resetAccount,
 	}
 	newEventer.accountUpdate = []Publisher{}
 
@@ -121,9 +119,7 @@ func NewEventer(input NewEventerInput) (*Eventer, error) {
 	newEventer.leaseCreate = []Publisher{
 		createLease,
 	}
-	newEventer.leaseEnd = []Publisher{
-		resetAccount,
-	}
+	newEventer.leaseEnd = []Publisher{}
 	newEventer.leaseUpdate = []Publisher{}
 
 	return newEventer, nil
