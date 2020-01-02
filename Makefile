@@ -46,36 +46,29 @@ deploy: clean build
 
 # `make documentation`
 #
-# Generates DCE docs
+# Generates DCE docs as HTML
+# in the /docs/_build/html directory
 #
-# This repo uses [MkDocs](https://www.mkdocs.org/) to generate and serve documentation.
+# This repo uses [Sphinx](http://www.sphinx-doc.org/en/master/) to generate documentation from markdown files
 #
 # Before running this make command, you must first:
 #
-# - Install [Python](https://www.python.org/downloads/)
-# - Install [npm v5.2+](https://www.npmjs.com/get-npm)
-# - Run `pip install -r ./requirements.txt` to install MkDocs
-#
-# To generate and serve docs, run:
-#
-# ```.env
-# make documentation
-# mkdocs serve
-# ```
-#
-# This will serve the documentation at http://127.0.0.1:8000/
+# - Install [Python v3+](https://www.python.org/downloads/)
+# - Run `pip install -r ./docs/requirements.txt` to install Sphinx
 #
 # Public-facing docs are served by readthedocs.io
 documentation:
-	cp -f CONTRIBUTING.md ./docs/CONTRIBUTING.md > /dev/null
-	cp -f CHANGELOG.md ./docs/CHANGELOG.md > /dev/null
-	cp -f CODE_OF_CONDUCT.md ./docs/CODE_OF_CONDUCT.md > /dev/null
-	cp -f INDIVIDUAL_CONTRIBUTOR_LICENSE.md ./docs/INDIVIDUAL_CONTRIBUTOR_LICENSE.md > /dev/null
-	./scripts/generate-docs.sh
+	cd docs && make html
 
 # Serve the documentation locally
-serve_docs:
-	mkdocs serve
+# Uses https://pypi.org/project/sphinx-autobuild/
+#
+# Before running this make command, you must first:
+#
+# - Install [Python v3+](https://www.python.org/downloads/)
+# - Run `pip install -r ./docs/requirements.txt` to install Sphinx
+serve_docs: documentation
+	cd docs && make livehtml
 
 
 install:
