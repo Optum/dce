@@ -29,7 +29,7 @@ stages:
           # Install Terraform
           - task: TerraformInstaller@0
             inputs:
-              terraformVersion: "0.12.7"
+              terraformVersion: "0.12.18"
             displayName: "Install Terraform"
 
           # Install GO
@@ -44,9 +44,15 @@ stages:
             displayName: "Set up Golang CI Tools"
 
           # Unit Tests
-          - script: |
-              make test
+          - task: AWSShellScript@1
             displayName: "Unit Tests"
+            inputs:
+              awsCredentials: "AWS_Login"
+              regionName: "us-east-1"
+              scriptType: "inline"
+              inlineScript: |
+                set -euxo pipefail
+                make test
 
           # Publish code coverage results
           - task: PublishCodeCoverageResults@1
@@ -120,7 +126,7 @@ stages:
                 # Install Terraform
                 - task: TerraformInstaller@0
                   inputs:
-                    terraformVersion: "0.12.7"
+                    terraformVersion: "0.12.18"
                   displayName: "Install Terraform"
 
                 - bash: |
@@ -255,7 +261,7 @@ stages:
                 # Install Terraform
                 - task: TerraformInstaller@0
                   inputs:
-                    terraformVersion: "0.12.7"
+                    terraformVersion: "0.12.18"
                   displayName: "Install Terraform"
 
                 # terraform init
