@@ -8,6 +8,7 @@ require (
 	github.com/aws/aws-sdk-go v1.25.36
 	github.com/awslabs/aws-lambda-go-api-proxy v0.5.0
 	github.com/caarlos0/env v3.5.0+incompatible
+	github.com/go-ozzo/ozzo-validation v3.6.0+incompatible
 	github.com/go-sql-driver/mysql v1.4.1 // indirect
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/handlers v1.4.2
