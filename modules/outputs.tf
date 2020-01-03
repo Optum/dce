@@ -104,7 +104,7 @@ output "api_url" {
 
 output "alarm_sns_topic_arn" {
   description = "The ARN of the SNS Alarms topic"
-  value       = "${aws_sns_topic.alarms_topic.arn}"
+  value       = aws_sns_topic.alarms_topic.arn
 }
 
 output "api_access_policy_name" {

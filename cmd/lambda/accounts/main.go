@@ -6,7 +6,6 @@ import (
 	gErrors "errors"
 	"fmt"
 	"log"
-	"net/http"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"

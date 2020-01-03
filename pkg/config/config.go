@@ -3,11 +3,15 @@ package config
 import (
 	"errors"
 	"fmt"
+	"github.com/aws/aws-sdk-go/service/ssm"
+	"github.com/aws/aws-sdk-go/service/ssm/ssmiface"
+	"log"
 	"os"
 	"reflect"
 	"strings"
 
 	"github.com/caarlos0/env"
+	"github.com/mitchellh/mapstructure"
 )
 
 // ConfigurationError is an error that is returned by configuration
@@ -33,10 +37,26 @@ type ConfigurationBuilder struct {
 	isBuilt bool
 }
 
-// Unmarshal loads the configuration into the provided structure.
+// Unmarshal loads configuration into the provided structure from environment variables.
+// Use the "env" tag on cfgStruct fields to indicate the corresponding environment variable to load from.
 func (config *ConfigurationBuilder) Unmarshal(cfgStruct interface{}) error {
 	config.parsers = config.createCustomParsers()
 	err := env.ParseWithFuncs(cfgStruct, config.parsers)
+	return err
+}
+
+// Dump dumps the current config into the provided structure. Config keys are matched to
+// cfgStruct fields using the "env" tag.
+func (config *ConfigurationBuilder) Dump(cfgStruct interface{}) error {
+	decoder, err := mapstructure.NewDecoder(
+		&mapstructure.DecoderConfig{
+			TagName: "env",
+			Result:  cfgStruct,
+		})
+	if err != nil {
+		panic(err)
+	}
+	err = decoder.Decode(config.values.vals)
 	return err
 }
 
@@ -61,6 +81,35 @@ func (config *ConfigurationBuilder) WithEnv(key string, envVar string, defaultVa
 		config.values.vals[key] = defaultValue
 	} else {
 		config.values.vals[key] = envVal
+	}
+
+	return config
+}
+
+// ParameterStoreVal stores the parameters for a SSM Value
+type ParameterStoreVal struct {
+	Key           string
+	ParameterName string
+	DefaultValue  string
+}
+
+// WithParameterStoreEnv sets a config value from SSM Parameter store. The Parameter name is taken
+// from the provided environment variable. If the environment variable or SSM parameter can't be retrieved,
+// then the default value is used.
+// Requires that an SSM service of type ssmiface.SSMAPI is contained within config
+func (config *ConfigurationBuilder) WithParameterStoreEnv(key string, envVar string, defaultValue string) *ConfigurationBuilder {
+	config.initialize()
+
+	envVal, ok := os.LookupEnv(envVar)
+
+	if !ok {
+		config.values.vals[key] = defaultValue
+	} else {
+		config.values.vals[key] = ParameterStoreVal{
+			Key:           key,
+			ParameterName: envVal,
+			DefaultValue:  defaultValue,
+		}
 	}
 
 	return config
@@ -138,6 +187,7 @@ func (config *ConfigurationBuilder) GetVal(key string) (interface{}, error) {
 func (config *ConfigurationBuilder) Build() error {
 	// Add any "expensive" operations here. Validations, type conversions, etc.
 	// We already have basic maps.
+
 	config.isBuilt = true
 	return nil
 }
@@ -157,4 +207,61 @@ func (config *ConfigurationBuilder) initialize() {
 func (config *ConfigurationBuilder) createCustomParsers() env.CustomParsers {
 	funcMap := env.CustomParsers{}
 	return funcMap
+}
+
+// RetrieveParameterStoreVals - Get the values from the AWS Parameter Store
+func (config *ConfigurationBuilder) RetrieveParameterStoreVals() error {
+
+	// Detect values that need to be retrieved from SSM
+	valsToRetrieve := map[string]ParameterStoreVal{}
+	for _, val := range config.values.vals {
+		if _, ok := val.(ParameterStoreVal); ok {
+			paramName := string(val.(ParameterStoreVal).ParameterName)
+			valsToRetrieve[paramName] = val.(ParameterStoreVal)
+		}
+	}
+
+	if len(valsToRetrieve) != 0 {
+		// config must contain an SSM service to retrieve vals from SSM
+		var ssmClient ssmiface.SSMAPI
+		if err := config.GetService(&ssmClient); err != nil {
+			return err
+		}
+
+		// Using bulk api to reduce number of SSM requests
+		withDecryption := false
+		getParametersOutput, err := ssmClient.GetParameters(&ssm.GetParametersInput{
+			Names:          getKeyPtrs(valsToRetrieve),
+			WithDecryption: &withDecryption,
+		})
+		if err != nil {
+			return err
+		}
+
+		// Overwrite config.values.vals {Config Key: Param Name} -> {Config Key: Param Value}
+		params := getParametersOutput.Parameters
+		for _, param := range params {
+			log.Print("Retrieved SSM Parameter: ", param.GoString())
+			key := valsToRetrieve[*param.Name].Key
+			config.WithVal(key, *param.Value)
+		}
+
+		invalidParams := getParametersOutput.InvalidParameters
+		for _, invalidParam := range invalidParams {
+			log.Print("Invalid SSM Parameter: ", invalidParam)
+			key := valsToRetrieve[*invalidParam].Key
+			defaultVal := valsToRetrieve[*invalidParam].DefaultValue
+			config.WithVal(key, defaultVal)
+		}
+	}
+	return nil
+}
+
+func getKeyPtrs(aMap map[string]ParameterStoreVal) []*string {
+	keys := []*string{}
+	for k := range aMap {
+		newK := k
+		keys = append(keys, &newK)
+	}
+	return keys
 }
