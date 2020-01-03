@@ -4,7 +4,7 @@ A practical guide to common operations and customizations for DCE.
 
 ## Use the DCE CLI
 
-The DCE CLI is the easiest way to quickly deploy and use DCE. For more advanced usage, refer to the [DCE API](#use-the-dce-api).
+The DCE CLI is the easiest way to quickly deploy and use DCE. For more advanced usage, refer to the [DCE Auth 1](./howto.html#use-the-dce-api) [DCE Auth 2](#use-the-dce-api) `DCE API 3 <#use-the-dce-api>`_.
 
 ### Installing the DCE CLI
 
@@ -59,6 +59,7 @@ will look for credentials, ordered by precedence.
     - Running the `dce auth` command
     - Base64 encoding the following JSON string. Note that `expireTime` is a Unix epoch timestamp and the string should
     not contain spaces or newline characters.
+
         ```json
         {
            "accessKeyId":"xxx",
@@ -68,11 +69,10 @@ will look for credentials, ordered by precedence.
         }
         ```
 1. The Environment Variables: `AWS_ACCESS_KEY_ID`, `AWS_ACCESS_KEY`, and `AWS_SESSION_TOKEN`
-1. Stored in the AWS CLI credentials file under the `default` profile. This is located at `$HOME/.aws/credentials`
-    on Linux/OSX and `%USERPROFILE%\.aws\credentials` on Windows.
+1. Stored in the AWS CLI credentials file under the `default` profile. This is located at `$HOME/.aws/credentials` on Linux/OSX and `%USERPROFILE%\.aws\credentials` on Windows.
 
 The simplest way to use DCE is by storing credentials in your AWS CLI credentials file. For more advanced usage,
-refer to the [authentication page](./api-auth/configuring-cognito-for-usage-with-the-dce-cli).
+refer to the [authentication page](./api-auth.md/configuring-cognito-for-usage-with-the-dce-cli).
 
 ### Deploying DCE from the CLI
 
@@ -278,7 +278,7 @@ See [API Reference Documentation](./api-documentation.md) for details.
 
 See [API Auth Documentation](./api-auth.md) for details on authenticating and authorizing requests.
 
-## Prerequisites
+### Prerequisites
 
 Before you can deploy and use DCE, you will need the following:
 

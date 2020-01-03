@@ -27,7 +27,7 @@ There are three different ways a user is considered an admin:
 
 Users (by default) are given access to the leasing and usage APIs.  This is done so they can request their own lease and look at the usage of their leases.  Any appropriately authenticated user in Cognito will automatically fall into the `Users` role.
 
-### Configuring Cognito for Usage with the DCE CLI
+### Configuring Cognito
 
 1. Open the AWS Console in your DCE Master Account and Navigate to AWS Cognito by typing `Cognito` in the search bar
 
@@ -126,7 +126,23 @@ AWS also provides [examples for a number of languages in their docs](https://doc
 
 ### Using IAM Credentials with the DCE CLI
 
-If there is no api auth token present in the DCE configuration file, the CLI will look for AWS credentials in `$HOME/.aws/credentials` (Linux/OSX) or `%USERPROFILE%\.aws\credentials` (Windows).
+The DCE CLI will search for credentials in the following order:
+
+1. An API Token in the `api.token` field of the `.dce.yaml` config file. You may obtain an API Token by:
+    - Running the `dce auth` command
+    - Base64 encoding the following JSON string. Note that `expireTime` is a Unix epoch timestamp and the string should
+    not contain spaces or newline characters.
+
+        ```json
+        {
+           "accessKeyId":"xxx",
+           "secretAccessKey":"xxx",
+           "sessionToken":"xxx",
+           "expireTime":"xxx"
+        }
+        ```
+1. The Environment Variables: `AWS_ACCESS_KEY_ID`, `AWS_ACCESS_KEY`, and `AWS_SESSION_TOKEN`
+1. Stored in the AWS CLI credentials file under the `default` profile. This is located at `$HOME/.aws/credentials` on Linux/OSX and `%USERPROFILE%\.aws\credentials` on Windows.
 
 ### IAM Policy for DCE API requests
 
