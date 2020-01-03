@@ -39,9 +39,8 @@ release = ''
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-#    'recommonmark',
+   'recommonmark',
     'sphinxcontrib.swaggerdoc',
-    'm2r',
 ]
 
 # This directive here converts the .md links to .html links, which

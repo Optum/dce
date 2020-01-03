@@ -75,18 +75,3 @@ Local Development
    :maxdepth: 2
 
    develop
-
-Contribution Guidelines
------------------------
-.. toctree::
-   :maxdepth: 2
-
-   contributing_link
-
-
-Changes
--------
-.. toctree::
-   :maxdepth: 2
-
-   changelog_link

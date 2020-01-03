@@ -4,7 +4,7 @@ A practical guide to common operations and customizations for DCE.
 
 ## Use the DCE CLI
 
-The DCE CLI is the easiest way to quickly deploy and use DCE. For more advanced usage, refer to the [DCE Auth 1](./howto.html#use-the-dce-api) [DCE Auth 2](#use-the-dce-api) `DCE API 3 <#use-the-dce-api>`_.
+The DCE CLI is the easiest way to quickly deploy and use DCE. For more advanced usage, refer to the [DCE Auth](#use-the-dce-api) section.
 
 ### Installing the DCE CLI
 
