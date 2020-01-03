@@ -84,5 +84,5 @@ resource "aws_s3_bucket_object" "principal_policy" {
   bucket = aws_s3_bucket.artifacts.id
   key    = "fixtures/policies/principal_policy.tmpl"
   source = local.principal_policy
-  etag   = "${filemd5(local.principal_policy)}"
+  etag   = filemd5(local.principal_policy)
 }

@@ -61,9 +61,7 @@ var (
 	maxLeaseBudgetAmount     *float64
 	maxLeasePeriod           *int64
 	queue                    common.Queue
-	resetQueueURL            string
 	snsService               common.Notificationer
-	accountDeletedTopicArn   string
 	defaultLeaseLengthInDays *int
 	userDetails              api.UserDetailer
 	baseRequest              url.URL
@@ -84,8 +82,6 @@ func init() {
 	log.Println("Cold start; creating router for /leases")
 
 	leaseAddedTopicARN = aws.String(config.GetEnvVar("LEASE_ADDED_TOPIC", "DCEDefaultProvisionTopic"))
-	accountDeletedTopicArn = config.GetEnvVar("DECOMMISSION_TOPIC", "DefaultDecomissionTopic")
-	resetQueueURL = config.GetEnvVar("RESET_SQS_URL", "DefaultResetSQSURL")
 	principalBudgetAmount = aws.Float64(config.GetEnvFloatVar("PRINCIPAL_BUDGET_AMOUNT", 1000.00))
 	principalBudgetPeriod = aws.String(config.GetEnvVar("PRINCIPAL_BUDGET_PERIOD", Weekly))
 	maxLeaseBudgetAmount = aws.Float64(config.GetEnvFloatVar("MAX_LEASE_BUDGET_AMOUNT", 1000.00))

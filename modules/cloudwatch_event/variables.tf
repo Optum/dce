@@ -1,14 +1,14 @@
 variable "lambda_function_arn" {
-  type = "string"
+  type = string
 }
 variable schedule_expression {
-  type = "string"
+  type = string
 }
 variable name {
-  type = "string"
+  type = string
 }
 variable description {
-  type = "string"
+  type = string
 }
 
 variable "enabled" {

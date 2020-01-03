@@ -2,12 +2,13 @@ package config
 
 import (
 	"errors"
-	"github.com/Optum/dce/pkg/awsiface/mocks"
-	"github.com/aws/aws-sdk-go/service/ssm"
-	"github.com/stretchr/testify/mock"
 	"os"
 	"strconv"
 	"testing"
+
+	"github.com/Optum/dce/pkg/awsiface/mocks"
+	"github.com/aws/aws-sdk-go/service/ssm"
+	"github.com/stretchr/testify/mock"
 
 	"github.com/stretchr/testify/assert"
 )

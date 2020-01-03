@@ -5,41 +5,36 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-
-	"github.com/Optum/dce/pkg/db"
+	"time"
 
 	"github.com/Optum/dce/pkg/api/response"
+	"github.com/Optum/dce/pkg/usage"
 )
 
-// GetLeases - Gets all of the leases
-func GetLeases(w http.ResponseWriter, r *http.Request) {
+// GetUsage - Gets all of the usage
+func GetUsage(w http.ResponseWriter, r *http.Request) {
 
 	// This has become a "fall-through" method for any of the URL combinations that
 	// don't match the explicit routes, so we parse input here to get all of the
 	// query string values that are supplied on the URL
-	getLeasesInput, err := parseGetLeasesInput(r)
+	getUsageInput, err := parseGetUsageInput(r)
 
 	if err != nil {
 		response.WriteRequestValidationError(w, fmt.Sprintf("Error parsing query params"))
 		return
 	}
 
-	result, err := dao.GetLeases(getLeasesInput)
+	result, err := UsageSvc.GetUsage(getUsageInput)
 
 	if err != nil {
-		response.WriteServerErrorWithResponse(w, fmt.Sprintf("Error querying leases: %s", err))
+		response.WriteServerErrorWithResponse(w, fmt.Sprintf("Error querying usage: %s", err))
 		return
 	}
 
-	// Convert DB Lease model to API Response model
-	leaseResponseItems := []response.LeaseResponse{}
-	for _, lease := range result.Results {
-		leaseResponseItems = append(leaseResponseItems, response.LeaseResponse(*lease))
-	}
-
-	if err != nil {
-		response.WriteServerErrorWithResponse(w, fmt.Sprintf("Error serializing response: %s", err))
-		return
+	// Serialize them for the JSON response.
+	usageResponseItems := []response.UsageResponse{}
+	for _, usageItem := range result.Results {
+		usageResponseItems = append(usageResponseItems, response.UsageResponse(*usageItem))
 	}
 
 	// If the DB result has next keys, then the URL to retrieve the next page is put into the Link header.
@@ -48,20 +43,13 @@ func GetLeases(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Link", fmt.Sprintf("<%s>; rel=\"next\"", nextURL.String()))
 	}
 
-	json.NewEncoder(w).Encode(leaseResponseItems)
+	json.NewEncoder(w).Encode(usageResponseItems)
 }
 
-// parseGetLeasesInput creates a GetLeasesInput from the query parameters
-func parseGetLeasesInput(r *http.Request) (db.GetLeasesInput, error) {
-	query := db.GetLeasesInput{
+// parseGetUsageInput creates a GetUsageInput from the query parameters
+func parseGetUsageInput(r *http.Request) (usage.GetUsageInput, error) {
+	query := usage.GetUsageInput{
 		StartKeys: make(map[string]string),
-	}
-
-	statusValue := r.FormValue(StatusParam)
-	status, err := db.ParseLeaseStatus(statusValue)
-
-	if err != nil && len(status) > 0 {
-		query.Status = status
 	}
 
 	limit := r.FormValue(LimitParam)
@@ -70,6 +58,18 @@ func parseGetLeasesInput(r *http.Request) (db.GetLeasesInput, error) {
 		query.Limit = limInt
 		if err != nil {
 			return query, err
+		}
+	}
+
+	inputStartDate := r.FormValue(StartDateParam)
+	if len(inputStartDate) > 0 {
+		i, err := strconv.ParseInt(inputStartDate, 10, 64)
+		if err != nil {
+			return query, err
+		}
+		startDate := time.Unix(i, 0)
+		if startDate != *new(time.Time) {
+			query.StartDate = startDate
 		}
 	}
 
@@ -83,9 +83,9 @@ func parseGetLeasesInput(r *http.Request) (db.GetLeasesInput, error) {
 		query.AccountID = accountID
 	}
 
-	nextAccountID := r.FormValue(NextAccountIDParam)
-	if len(nextAccountID) > 0 {
-		query.StartKeys["AccountId"] = nextAccountID
+	nextStartDate := r.FormValue(NextStartDateParam)
+	if len(nextStartDate) > 0 {
+		query.StartKeys["StartDate"] = nextStartDate
 	}
 
 	nextPrincipalID := r.FormValue(NextPrincipalIDParam)

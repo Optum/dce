@@ -2,8 +2,6 @@ package main
 
 import (
 	"context"
-	"github.com/Optum/dce/pkg/config/mocks"
-	"github.com/stretchr/testify/mock"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -19,12 +17,8 @@ func TestGetAuth(t *testing.T) {
 
 	t.Run("When invoke /auth and there are no errors then respond with html", func(t *testing.T) {
 		// Arrange
-		mockConfig := mocks.ConfigurationBuilder{}
-		mockConfig.On("WithEnv", mock.Anything, mock.Anything, mock.Anything)
-		mockConfig.On("WithParameterStoreEnv", mock.Anything, mock.Anything, mock.Anything)
-		CfgBldr = &mockConfig
 		expectedCurrentRegion := "expectedCurrentRegion"
-		Config = &CredentialsWebPageConfig{
+		Settings = &credentialsWebPageConfig{
 			AwsCurrentRegion:     expectedCurrentRegion,
 			SitePathPrefix:       "",
 			ApigwDeploymentName:  "",

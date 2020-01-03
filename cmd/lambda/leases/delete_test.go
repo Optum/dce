@@ -21,16 +21,14 @@ import (
 
 func TestDeleteController_Call(t *testing.T) {
 	type fields struct {
-		Dao                    db.DBer
-		Queue                  common.Queue
-		ResetQueueURL          string
-		SNS                    common.Notificationer
-		AccountDeletedTopicArn string
-		AWSSession             session.Session
-		TokenService           common.TokenService
-		RoleManager            rolemanager.RoleManager
-		PrincipalRoleName      string
-		PrincipalPolicyName    string
+		Dao                 db.DBer
+		Queue               common.Queue
+		SNS                 common.Notificationer
+		AWSSession          session.Session
+		TokenService        common.TokenService
+		RoleManager         rolemanager.RoleManager
+		PrincipalRoleName   string
+		PrincipalPolicyName string
 	}
 	type args struct {
 		ctx context.Context

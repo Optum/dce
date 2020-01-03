@@ -55,6 +55,7 @@ func init() {
 	r := api.NewRouter(Services.Config, authRoutes)
 	muxLambda = gorillamux.New(r)
 }
+
 func initConfig() {
 	cfgBldr := &config.ConfigurationBuilder{}
 	Settings = &credentialsWebPageConfig{}

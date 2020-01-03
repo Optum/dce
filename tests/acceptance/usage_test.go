@@ -36,7 +36,7 @@ func TestUsageDb(t *testing.T) {
 	)
 
 	// For testing purposes support consistent reads
-	dbSvc.ConsistendRead = true
+	dbSvc.ConsistentRead = true
 
 	// ttl is set to 3-days
 	const ttl int = 3
@@ -116,6 +116,68 @@ func TestUsageDb(t *testing.T) {
 		})
 	})
 
+	t.Run("GetUsage - When there is a limit filter only", func(t *testing.T) {
+		output, err := dbSvc.GetUsage(usage.GetUsageInput{
+			Limit: 2,
+		})
+		assert.Nil(t, err)
+		assert.Equal(t, 2, len(output.Results), "only two usage records should be returned")
+	})
+
+	t.Run("GetUsage - When there is a principal ID filter only", func(t *testing.T) {
+		output, err := dbSvc.GetUsage(usage.GetUsageInput{
+			PrincipalID: "user",
+		})
+		assert.Nil(t, err)
+		assert.Equal(t, len(output.Results), 10, "should only return 10 usage records")
+		assert.Equal(t, output.Results[0].PrincipalID, "user", "should return the usage with the given principal ID")
+	})
+
+	t.Run("GetUsage - When there is an account ID filter only", func(t *testing.T) {
+		output, err := dbSvc.GetUsage(usage.GetUsageInput{
+			AccountID: "123",
+		})
+		assert.Nil(t, err)
+		assert.Equal(t, 10, len(output.Results), "should return the usage with the given account ID")
+	})
+
+	t.Run("GetUsage - When there is an start date filter only", func(t *testing.T) {
+
+		currentDate := time.Now()
+		testStartDate := time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), 0, 0, 0, 0, time.UTC)
+
+		output, err := dbSvc.GetUsage(usage.GetUsageInput{
+			StartDate: testStartDate,
+		})
+		assert.Nil(t, err)
+		assert.Equal(t, 1, len(output.Results), "should return the usage with the given start date")
+	})
+
+	t.Run("GetUsage - When there are limit, start date and principal ID filters", func(t *testing.T) {
+		currentDate := time.Now()
+		testStartDate := time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), 0, 0, 0, 0, time.UTC)
+		output, err := getAllUsage(dbSvc, usage.GetUsageInput{
+			Limit:       3,
+			PrincipalID: "user",
+			StartDate:   testStartDate,
+		})
+		assert.Nil(t, err)
+		assert.Equal(t, 1, len(output), "should only return one usage record")
+		assert.Equal(t, "user", output[0].PrincipalID, "should return the usage with the given principal ID")
+	})
+
+	t.Run("GetUsage - When there are no records matching filter", func(t *testing.T) {
+		currentDate := time.Now()
+		testStartDate := time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), 0, 0, 0, 0, time.UTC)
+		output, err := getAllUsage(dbSvc, usage.GetUsageInput{
+			Limit:       3,
+			PrincipalID: "user",
+			StartDate:   testStartDate,
+			AccountID:   "456",
+		})
+		assert.Nil(t, err)
+		assert.Equal(t, 0, len(output), "should return no usage records")
+	})
 }
 
 // Remove all records from the Usage table
@@ -161,4 +223,24 @@ func truncateUsageTable(t *testing.T, dbSvc *usage.DB) {
 		},
 	)
 	require.Nil(t, err)
+}
+
+func getAllUsage(dbSvc *usage.DB, input usage.GetUsageInput) ([]*usage.Usage, error) {
+	var results []*usage.Usage
+	var output usage.GetUsageOutput
+	var err error
+
+	for {
+		output, err = dbSvc.GetUsage(input)
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, output.Results...)
+		if len(output.NextKeys) == 0 {
+			break
+		} else {
+			input.StartKeys = output.NextKeys
+		}
+	}
+	return results, nil
 }
