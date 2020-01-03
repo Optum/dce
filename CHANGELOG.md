@@ -1,15 +1,12 @@
 
-## vNext
+## v0.24.0
 
 - Update Status Lambda - budget_check: Terminate lease if spend > Principal budget amount
 - Support `metadata` parameter in `/accounts` API endpoints
 - Add `PUT /accounts/:id` endpoint
 - Fixed bug where child account's DCEPrincipal role trusted itself rather than the master account
-- Add GetUsageByPrincipal
-- Fix default `budget_notification_from_email` TF var (See #143)
-- Replace GetUsageByDateRange with GetUsageByPrincipal method in POST lease validation
-- Add GetUsage with filter options: accountId, principalId, startDate, limit
 - Add `GET /auth` and `GET /auth/{file+}` endpoints for retrieving credentials web page
+- Support query params for `GET /usage` endpoints
 
 ## v0.23.0
 
