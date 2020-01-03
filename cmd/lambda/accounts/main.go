@@ -72,7 +72,7 @@ var (
 )
 
 var (
-	// Soon to be deprecated - Legacy support
+	// AWSSession - Soon to be deprecated - Legacy support
 	AWSSession  *session.Session
 	Dao         db.DBer
 	SnsSvc      common.Notificationer
