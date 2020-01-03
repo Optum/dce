@@ -67,7 +67,7 @@ func (e *StatusError) Is(err error) bool {
 
 	s, ok := err.(HTTPCode)
 	if ok {
-		if s.HTTPCode() == e.httpCode {
+		if s.HTTPCode() == e.httpCode && e.Error() == err.Error() {
 			return true
 		}
 	}

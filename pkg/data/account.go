@@ -3,6 +3,8 @@ package data
 import (
 	gErrors "errors"
 	"fmt"
+	"strconv"
+
 	"github.com/Optum/dce/pkg/errors"
 	"github.com/Optum/dce/pkg/model"
 
@@ -16,7 +18,7 @@ import (
 
 // Account - Data Layer Struct
 type Account struct {
-	AwsDynamoDB    dynamodbiface.DynamoDBAPI
+	DynamoDB       dynamodbiface.DynamoDBAPI
 	TableName      string `env:"ACCOUNT_DB"`
 	ConsistentRead bool   `env:"USE_CONSISTENT_READS" envDefault:"false"`
 }
@@ -27,7 +29,7 @@ func (a *Account) WriteAccount(account *model.Account, lastModifiedOn *int64) er
 	var expr expression.Expression
 	var err error
 	var returnValue string
-	// lastModifiedOn is 0 on a create
+	// lastModifiedOn is nil on a create
 	if lastModifiedOn != nil {
 		modExpr := expression.Name("LastModifiedOn").Equal(expression.Value(lastModifiedOn))
 		expr, err = expression.NewBuilder().WithCondition(modExpr).Build()
@@ -39,7 +41,7 @@ func (a *Account) WriteAccount(account *model.Account, lastModifiedOn *int64) er
 	}
 
 	putMap, _ := dynamodbattribute.Marshal(account)
-	_, err = a.AwsDynamoDB.PutItem(
+	_, err = a.DynamoDB.PutItem(
 		&dynamodb.PutItemInput{
 			// Query in Lease Table
 			TableName: aws.String(a.TableName),
@@ -59,7 +61,7 @@ func (a *Account) WriteAccount(account *model.Account, lastModifiedOn *int64) er
 			return errors.NewConflict(
 				"account",
 				*account.ID,
-				fmt.Errorf("unable to update account with LastModifiedOn=%q", *account.LastModifiedOn))
+				fmt.Errorf("unable to update account with LastModifiedOn=%q", strconv.FormatInt(*account.LastModifiedOn, 10)))
 		}
 	}
 	if err != nil {
@@ -75,7 +77,7 @@ func (a *Account) WriteAccount(account *model.Account, lastModifiedOn *int64) er
 // DeleteAccount the Account record in DynamoDB
 func (a *Account) DeleteAccount(account *model.Account) error {
 
-	_, err := a.AwsDynamoDB.DeleteItem(
+	_, err := a.DynamoDB.DeleteItem(
 		&dynamodb.DeleteItemInput{
 			// Query in Lease Table
 			TableName: aws.String(a.TableName),
@@ -102,7 +104,7 @@ func (a *Account) DeleteAccount(account *model.Account) error {
 // GetAccountByID the Account record by ID
 func (a *Account) GetAccountByID(accountID string, account *model.Account) error {
 
-	res, err := a.AwsDynamoDB.GetItem(
+	res, err := a.DynamoDB.GetItem(
 		&dynamodb.GetItemInput{
 			// Query in Lease Table
 			TableName: aws.String(a.TableName),

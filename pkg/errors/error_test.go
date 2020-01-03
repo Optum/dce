@@ -151,6 +151,50 @@ func TestNew(t *testing.T) {
 	}
 }
 
+func TestNewGeneric(t *testing.T) {
+
+	tests := []struct {
+		name                string
+		err                 *StatusError
+		expectedJSON        string
+		expectedStatusError StatusError
+	}{
+		{
+			name: "new generic validation error",
+			err:  NewGenericStatusError(http.StatusConflict, nil),
+			expectedStatusError: StatusError{
+				httpCode: http.StatusConflict,
+				Details: detailError{
+					Message: "the server reported a conflict",
+					Code:    conflictError,
+				},
+				cause: nil,
+			},
+			expectedJSON: "{\"error\":{\"message\":\"the server reported a conflict\",\"code\":\"ConflictError\"}}\n",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expectedStatusError.Details.Message, tt.err.Error())
+			assert.Equal(t, tt.expectedStatusError.httpCode, HTTPCodeForError(tt.err))
+			assert.Equal(t, tt.err.OriginalError(), tt.expectedStatusError.cause)
+
+			var b bytes.Buffer
+			json.NewEncoder(&b).Encode(tt.err)
+			assert.Equal(
+				t,
+				tt.expectedJSON,
+				b.String(),
+			)
+			assert.NotNil(
+				t,
+				GetStackTraceForError(tt.err),
+			)
+		})
+	}
+}
+
 func TestFrameFormat(t *testing.T) {
 	var tests = []struct {
 		err    error
