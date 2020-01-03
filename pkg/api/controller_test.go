@@ -2,6 +2,7 @@ package api_test
 
 import (
 	"context"
+	"github.com/stretchr/testify/mock"
 	"testing"
 
 	"github.com/Optum/dce/pkg/api"
@@ -14,6 +15,7 @@ func TestRouter_Route(t *testing.T) {
 	mockGetController := &mockController.Controller{}
 	mockDeleteController := &mockController.Controller{}
 	mockCreateController := &mockController.Controller{}
+	mockUserDetails := &mockController.UserDetailer{}
 
 	ctx := context.Background()
 
@@ -43,6 +45,7 @@ func TestRouter_Route(t *testing.T) {
 		ListController:   mockListController,
 		GetController:    mockGetController,
 		DeleteController: mockDeleteController,
+		UserDetails:      mockUserDetails,
 	}
 
 	tests := []struct {
@@ -96,6 +99,7 @@ func TestRouter_Route(t *testing.T) {
 			res := &events.APIGatewayProxyResponse{}
 			ctxWIthUser := context.WithValue(tt.ctx, api.DceCtxKey, tt.user)
 			tt.expectedController.On("Call", ctxWIthUser, &tt.request).Return(*res, nil)
+			mockUserDetails.On("GetUser", mock.Anything).Return(&tt.user)
 			_, _ = router.Route(tt.ctx, &tt.request)
 			tt.expectedController.AssertExpectations(t)
 		})

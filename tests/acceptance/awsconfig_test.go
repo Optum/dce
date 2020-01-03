@@ -108,6 +108,7 @@ func TestAllClients_FromConfig(t *testing.T) {
 		WithSNS().
 		WithSQS().
 		WithSTS().
+		WithSSM().
 		Build()
 	assert.Nil(t, err)
 

@@ -10,7 +10,7 @@ resource "aws_ses_configuration_set" "ses" {
 
 resource "aws_ses_event_destination" "ses_to_cloudwatch" {
   name                   = "event-destination-cloudwatch-${var.namespace}"
-  configuration_set_name = "${aws_ses_configuration_set.ses.name}"
+  configuration_set_name = aws_ses_configuration_set.ses.name
   enabled                = true
 
   matching_types = [

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/Optum/dce/pkg/common"
@@ -26,8 +27,8 @@ type DB struct {
 	UsageTableName   string
 	PartitionKeyName string
 	SortKeyName      string
-	// Use Consistend Reads when scanning or querying.  When possbile.
-	ConsistendRead bool
+	// Use Consistent Reads when scanning or querying.  When possbile.
+	ConsistentRead bool
 }
 
 // Usage item
@@ -85,7 +86,7 @@ func (db *DB) GetUsageByDateRange(startDate time.Time, endDate time.Time) ([]*Us
 
 	for {
 
-		var resp, err = db.Client.Query(getQueryInput(db.UsageTableName, usageStartDate, nil, db.ConsistendRead))
+		var resp, err = db.Client.Query(getQueryInput(db.UsageTableName, usageStartDate, nil, db.ConsistentRead))
 		if err != nil {
 			errorMessage := fmt.Sprintf("Failed to query usage record for start date \"%s\": %s.", startDate, err)
 			log.Print(errorMessage)
@@ -95,7 +96,7 @@ func (db *DB) GetUsageByDateRange(startDate time.Time, endDate time.Time) ([]*Us
 
 		// pagination
 		for len(resp.LastEvaluatedKey) > 0 {
-			var resp, err = db.Client.Query(getQueryInput(db.UsageTableName, usageStartDate, resp.LastEvaluatedKey, db.ConsistendRead))
+			var resp, err = db.Client.Query(getQueryInput(db.UsageTableName, usageStartDate, resp.LastEvaluatedKey, db.ConsistentRead))
 			if err != nil {
 				errorMessage := fmt.Sprintf("Failed to query usage record for start date \"%s\": %s.", startDate, err)
 				log.Print(errorMessage)
@@ -148,7 +149,7 @@ func (db *DB) GetUsageByPrincipal(startDate time.Time, principalID string) ([]*U
 
 	for {
 
-		var resp, err = db.Client.GetItem(getInputForGetUsageByPrincipalID(db, usageStartDate, principalID, db.ConsistendRead))
+		var resp, err = db.Client.GetItem(getInputForGetUsageByPrincipalID(db, usageStartDate, principalID, db.ConsistentRead))
 		if err != nil {
 			errorMessage := fmt.Sprintf("Failed to query usage record for start date \"%s\": %s.", startDate, err)
 			log.Print(errorMessage)
@@ -178,6 +179,105 @@ func (db *DB) GetUsageByPrincipal(startDate time.Time, principalID string) ([]*U
 	return output, nil
 }
 
+// GetUsageInput contains the filtering criteria for the GetUsage scan.
+type GetUsageInput struct {
+	StartKeys   map[string]string
+	PrincipalID string
+	AccountID   string
+	StartDate   time.Time
+	Limit       int64
+}
+
+// GetUsageOutput contains the scan results as well as the keys for retrieve the next page of the result set.
+type GetUsageOutput struct {
+	Results  []*Usage
+	NextKeys map[string]string
+}
+
+// GetUsage takes a set of filtering criteria and scans the Usage table for the matching records.
+func (db *DB) GetUsage(input GetUsageInput) (GetUsageOutput, error) {
+	limit := int64(25)
+	filters := make([]string, 0)
+	filterValues := make(map[string]*dynamodb.AttributeValue)
+
+	if input.Limit > 0 {
+		limit = input.Limit
+	}
+
+	scanInput := &dynamodb.ScanInput{
+		TableName:      aws.String(db.UsageTableName),
+		Limit:          &limit,
+		ConsistentRead: aws.Bool(db.ConsistentRead),
+	}
+
+	// Build the filter clauses.
+	if input.StartDate != *new(time.Time) {
+		filters = append(filters, "StartDate >= :startDate")
+		filterValues[":startDate"] = &dynamodb.AttributeValue{N: aws.String(strconv.FormatInt(input.StartDate.Unix(), 10))}
+	}
+
+	if input.PrincipalID != "" {
+		filters = append(filters, "PrincipalId = :principalId")
+		filterValues[":principalId"] = &dynamodb.AttributeValue{S: aws.String(input.PrincipalID)}
+	}
+
+	if input.AccountID != "" {
+		filters = append(filters, "AccountId = :accountId")
+		filterValues[":accountId"] = &dynamodb.AttributeValue{S: aws.String(input.AccountID)}
+	}
+
+	if len(filters) > 0 {
+		filterStatement := strings.Join(filters, " and ")
+		scanInput.FilterExpression = &filterStatement
+		scanInput.ExpressionAttributeValues = filterValues
+	}
+
+	if input.StartKeys != nil && len(input.StartKeys) > 0 {
+		scanInput.ExclusiveStartKey = make(map[string]*dynamodb.AttributeValue)
+		for k, v := range input.StartKeys {
+			if k == "StartDate" {
+				scanInput.ExclusiveStartKey[k] = &dynamodb.AttributeValue{N: aws.String(v)}
+			}
+			if k == "PrincipalId" {
+				scanInput.ExclusiveStartKey[k] = &dynamodb.AttributeValue{S: aws.String(v)}
+			}
+		}
+	}
+
+	output, err := db.Client.Scan(scanInput)
+
+	// Parse the results and build the next keys if necessary.
+	if err != nil {
+		return GetUsageOutput{}, err
+	}
+
+	results := make([]*Usage, 0)
+
+	for _, o := range output.Items {
+		usageItem, err := unmarshalUsageRecord(o)
+		if err != nil {
+			return GetUsageOutput{}, err
+		}
+		results = append(results, usageItem)
+	}
+
+	nextKey := make(map[string]string)
+
+	for k, v := range output.LastEvaluatedKey {
+		if v.S != nil {
+			nextKey[k] = *v.S
+		}
+		if v.N != nil {
+			nextKey[k] = *v.N
+		}
+	}
+
+	return GetUsageOutput{
+		Results:  results,
+		NextKeys: nextKey,
+	}, nil
+}
+
 // New creates a new usage DB Service struct,
 // with all the necessary fields configured.
 func New(client *dynamodb.DynamoDB, usageTableName string, partitionKeyName string, sortKeyName string) *DB {
@@ -186,7 +286,7 @@ func New(client *dynamodb.DynamoDB, usageTableName string, partitionKeyName stri
 		UsageTableName:   usageTableName,
 		PartitionKeyName: partitionKeyName,
 		SortKeyName:      sortKeyName,
-		ConsistendRead:   false,
+		ConsistentRead:   false,
 	}
 }
 

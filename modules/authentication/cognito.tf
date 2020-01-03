@@ -1,5 +1,5 @@
 resource "aws_cognito_user_pool" "_" {
-  name = "${var.name}${var.namespace}"
+  name = "${var.name}-${var.namespace}"
 
   admin_create_user_config {
     allow_admin_create_user_only = true
@@ -19,12 +19,12 @@ resource "aws_cognito_user_pool" "_" {
 }
 
 resource "aws_cognito_user_pool_client" "_" {
-  name = "${var.name}${var.namespace}"
+  name = "${var.name}-${var.namespace}"
 
   user_pool_id                         = aws_cognito_user_pool._.id
   generate_secret                      = false
   allowed_oauth_flows                  = ["implicit", "code"]
-  allowed_oauth_scopes                 = ["profile", "openid", "email"]
+  allowed_oauth_scopes                 = ["openid", "email"]
   supported_identity_providers         = var.identity_providers
   allowed_oauth_flows_user_pool_client = true
   callback_urls                        = var.callback_urls
@@ -58,19 +58,19 @@ resource "aws_cognito_identity_pool_roles_attachment" "_" {
     mapping_rule {
       claim      = "cognito:groups"
       match_type = "Contains"
-      role_arn   = "${aws_iam_role.user.arn}"
+      role_arn   = aws_iam_role.admin.arn
       value      = "Admin"
     }
 
     mapping_rule {
       claim      = "custom:roles"
       match_type = "Contains"
-      role_arn   = "${aws_iam_role.user.arn}"
+      role_arn   = aws_iam_role.admin.arn
       value      = "Admin"
     }
   }
 
   roles = {
-    "authenticated" = "${aws_iam_role.user.arn}"
+    "authenticated" = aws_iam_role.user.arn
   }
 }
