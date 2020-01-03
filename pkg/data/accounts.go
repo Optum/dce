@@ -11,47 +11,63 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
 )
 
-// GetAccountsByStatus - Returns the accounts by status
-func (a *Account) GetAccountsByStatus(status string) (*model.Accounts, error) {
+// queryAccounts for doing a query against dynamodb
+func (a *Account) queryAccounts(q *model.Account, keyName string, index string) (*model.Accounts, error) {
+	var expr expression.Expression
+	var bldr expression.Builder
+	var err error
+	var res *dynamodb.QueryOutput
 
-	res, err := a.AwsDynamoDB.Query(&dynamodb.QueryInput{
-		TableName: aws.String(a.TableName),
-		IndexName: aws.String("AccountStatus"),
-		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-			":status": {
-				S: aws.String(string(status)),
-			},
-		},
-		KeyConditionExpression: aws.String("AccountStatus = :status"),
-		ConsistentRead:         aws.Bool(a.ConsistentRead),
+	keyCondition, filters := getFiltersFromStruct(q, &keyName)
+	bldr = expression.NewBuilder().WithKeyCondition(*keyCondition)
+	if filters != nil {
+		bldr = bldr.WithFilter(*filters)
+	}
+
+	expr, err = bldr.Build()
+	if err != nil {
+		return nil, errors.NewInternalServer("unabled to build query", err)
+	}
+
+	res, err = a.DynamoDB.Query(&dynamodb.QueryInput{
+		TableName:                 aws.String(a.TableName),
+		IndexName:                 aws.String(index),
+		KeyConditionExpression:    expr.KeyCondition(),
+		ConsistentRead:            aws.Bool(a.ConsistentRead),
+		FilterExpression:          expr.Filter(),
+		ExpressionAttributeNames:  expr.Names(),
+		ExpressionAttributeValues: expr.Values(),
 	})
 
 	if err != nil {
 		return nil, errors.NewInternalServer(
-			fmt.Sprintf("failed to get accounts by status %q", status),
+			fmt.Sprintf("failed to get accounts by status %q", *q.Status),
 			err,
 		)
 	}
 
 	accounts := &model.Accounts{}
 	err = dynamodbattribute.UnmarshalListOfMaps(res.Items, accounts)
-	return accounts, err
+	if err != nil {
+		return nil, errors.NewInternalServer("failed unmarshaling of accounts", err)
+	}
+	return accounts, nil
 }
 
-// GetAccounts Get a list of accounts based on Principal ID
-func (a *Account) GetAccounts(q *model.Account) (*model.Accounts, error) {
+// scanAccounts for doing a scan against dynamodb
+func (a *Account) scanAccounts(q *model.Account) (*model.Accounts, error) {
 	var expr expression.Expression
 	var err error
 	var res *dynamodb.ScanOutput
 
-	filters := getFiltersFromStruct(q)
+	_, filters := getFiltersFromStruct(q, nil)
 	if filters != nil {
 		expr, err = expression.NewBuilder().WithFilter(*filters).Build()
 		if err != nil {
 			return nil, errors.NewInternalServer("unabled to build query", err)
 		}
 	}
-	res, err = a.AwsDynamoDB.Scan(&dynamodb.ScanInput{
+	res, err = a.DynamoDB.Scan(&dynamodb.ScanInput{
 		TableName:                 aws.String(a.TableName),
 		ConsistentRead:            aws.Bool(a.ConsistentRead),
 		FilterExpression:          expr.Filter(),
@@ -68,4 +84,21 @@ func (a *Account) GetAccounts(q *model.Account) (*model.Accounts, error) {
 		return nil, errors.NewInternalServer("failed unmarshaling of accounts", err)
 	}
 	return accounts, err
+}
+
+// GetAccounts Get a list of accounts
+func (a *Account) GetAccounts(q *model.Account) (*model.Accounts, error) {
+
+	if q.ID != nil {
+		account := model.Account{}
+		err := a.GetAccountByID(*q.ID, &account)
+		if err != nil {
+			return nil, err
+		}
+		return &model.Accounts{account}, nil
+	}
+	if q.Status != nil {
+		return a.queryAccounts(q, "AccountStatus", "AccountStatus")
+	}
+	return a.scanAccounts(q)
 }

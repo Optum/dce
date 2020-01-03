@@ -210,7 +210,9 @@ func TestGetReadyAccount(t *testing.T) {
 		mocksWriter := &dataMocks.WriterDeleter{}
 		accountStatus := model.Ready
 
-		mocksReader.On("GetAccountsByStatus", "Ready").
+		mocksReader.On("GetAccounts", &model.Account{
+			Status: model.Ready.AccountStatusPtr(),
+		}).
 			Return(
 				&model.Accounts{
 					model.Account{

@@ -1,7 +1,7 @@
 package account
 
 import (
-	"net/http"
+	"fmt"
 	"testing"
 
 	dataMocks "github.com/Optum/dce/pkg/account/mocks"
@@ -12,26 +12,29 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func TestGetAccountsByStatus(t *testing.T) {
+func TestGetAccounts(t *testing.T) {
 
 	t.Run("should return a list of accounts by Status", func(t *testing.T) {
 		mocksReader := &dataMocks.MultipleReader{}
-		accountStatus := model.Ready
-		mocksReader.On("GetAccountsByStatus", "Ready").
+		mocksReader.On("GetAccounts", &model.Account{
+			Status: model.Ready.AccountStatusPtr(),
+		}).
 			Return(
 				&model.Accounts{
 					model.Account{
 						ID:     aws.String("1"),
-						Status: &accountStatus,
+						Status: model.Ready.AccountStatusPtr(),
 					},
 					model.Account{
 						ID:     aws.String("2"),
-						Status: &accountStatus,
+						Status: model.Ready.AccountStatusPtr(),
 					},
 				}, nil,
 			)
 
-		accounts, err := GetAccountsByStatus(model.Ready, mocksReader)
+		accounts, err := GetAccounts(&model.Account{
+			Status: model.Ready.AccountStatusPtr(),
+		}, mocksReader)
 		assert.NoError(t, err)
 		assert.Len(t, *accounts, 2)
 		assert.Equal(t, *(*accounts)[0].data.ID, "1")
@@ -64,7 +67,8 @@ func TestUpdateAccount(t *testing.T) {
 			Status: &accountNotReadyStatus,
 		}
 		err := account.Update(data, mocksManager)
-		assert.True(t, errors.Is(err, errors.NewGenericStatusError(int(http.StatusBadRequest), nil)))
+		fmt.Printf("%+v", err)
+		assert.True(t, errors.Is(err, errors.NewValidation("account", fmt.Errorf("accountStatus: should be nil.")))) //nolint:golint
 		assert.Equal(t, *account.data.ID, accountID)
 		assert.Equal(t, *account.data.Status, accountReadyStatus)
 	})

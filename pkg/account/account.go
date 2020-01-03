@@ -244,7 +244,10 @@ func (a *Account) MarshalJSON() ([]byte, error) {
 // GetReadyAccount returns an available account record with a
 // corresponding status of 'Ready'
 func GetReadyAccount(d Reader, wd WriterDeleter) (*Account, error) {
-	accounts, err := GetAccountsByStatus(model.AccountStatus("Ready"), d)
+	accounts, err := GetAccounts(
+		&model.Account{
+			Status: model.Ready.AccountStatusPtr(),
+		}, d)
 	if err != nil {
 		return nil, err
 	}
