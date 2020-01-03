@@ -3,6 +3,7 @@ package data
 import (
 	gErrors "errors"
 	"fmt"
+	"log"
 	"strconv"
 	"testing"
 
@@ -68,14 +69,14 @@ func TestGet(t *testing.T) {
 			expectedErr: errors.NewNotFound("account", "abc123"),
 		},
 		{
-			name:            "should return nil object when not found",
+			name:            "should return nil when dynamodb err",
 			accountID:       "abc123",
 			expectedAccount: model.Account{},
 			dynamoErr:       gErrors.New("failure"),
 			dynamoOutput: &dynamodb.GetItemOutput{
 				Item: map[string]*dynamodb.AttributeValue{},
 			},
-			expectedErr: errors.NewInternalServer("failure", gErrors.New("failure")),
+			expectedErr: errors.NewInternalServer("get failed for account \"abc123\"", gErrors.New("failure")),
 		},
 	}
 
@@ -90,14 +91,14 @@ func TestGet(t *testing.T) {
 				tt.dynamoOutput, tt.dynamoErr,
 			)
 			accountData := &Account{
-				AwsDynamoDB: &mockDynamo,
-				TableName:   "Accounts",
+				DynamoDB:  &mockDynamo,
+				TableName: "Accounts",
 			}
 
 			item := &model.Account{}
 			err := accountData.GetAccountByID(tt.accountID, item)
 			assert.Equal(t, tt.expectedAccount, *item)
-			assert.True(t, gErrors.Is(err, tt.expectedErr))
+			assert.True(t, errors.Is(err, tt.expectedErr))
 		})
 	}
 
@@ -141,7 +142,7 @@ func TestDelete(t *testing.T) {
 			dynamoOutput: &dynamodb.DeleteItemOutput{
 				Attributes: map[string]*dynamodb.AttributeValue{},
 			},
-			expectedErr: errors.NewInternalServer("failure", gErrors.New("failure")),
+			expectedErr: errors.NewInternalServer("delete failed for account \"abc123\"", gErrors.New("failure")),
 		},
 	}
 
@@ -156,12 +157,12 @@ func TestDelete(t *testing.T) {
 				tt.dynamoOutput, tt.dynamoErr,
 			)
 			accountData := &Account{
-				AwsDynamoDB: &mockDynamo,
-				TableName:   "Accounts",
+				DynamoDB:  &mockDynamo,
+				TableName: "Accounts",
 			}
 
 			err := accountData.DeleteAccount(&tt.account)
-			assert.True(t, gErrors.Is(err, tt.expectedErr))
+			assert.True(t, errors.Is(err, tt.expectedErr))
 		})
 	}
 
@@ -179,7 +180,7 @@ func TestUpdate(t *testing.T) {
 		oldLastModifiedOn *int64
 	}{
 		{
-			name: "normal",
+			name: "update",
 			account: model.Account{
 				ID:             ptrString("abc123"),
 				Status:         &accountStatusReady,
@@ -191,7 +192,7 @@ func TestUpdate(t *testing.T) {
 			expectedErr:       nil,
 		},
 		{
-			name: "nil",
+			name: "create",
 			account: model.Account{
 				ID:             ptrString("abc123"),
 				Status:         &accountStatusReady,
@@ -202,7 +203,7 @@ func TestUpdate(t *testing.T) {
 			expectedErr: nil,
 		},
 		{
-			name: "normal",
+			name: "conditional failure",
 			account: model.Account{
 				ID:             ptrString("abc123"),
 				Status:         &accountStatusReady,
@@ -211,10 +212,10 @@ func TestUpdate(t *testing.T) {
 			},
 			oldLastModifiedOn: ptrInt64(1573592057),
 			dynamoErr:         awserr.New("ConditionalCheckFailedException", "Message", fmt.Errorf("Bad")),
-			expectedErr:       errors.NewConflict("account", "1573592058", nil),
+			expectedErr:       errors.NewConflict("account", "abc123", fmt.Errorf("unable to update account with LastModifiedOn=\"1573592058\"")),
 		},
 		{
-			name: "normal",
+			name: "other dynamo error",
 			account: model.Account{
 				ID:             ptrString("abc123"),
 				Status:         &accountStatusReady,
@@ -223,7 +224,7 @@ func TestUpdate(t *testing.T) {
 			},
 			oldLastModifiedOn: ptrInt64(1573592057),
 			dynamoErr:         gErrors.New("failure"),
-			expectedErr:       errors.NewInternalServer("failure", gErrors.New("failure")),
+			expectedErr:       errors.NewInternalServer("update failed for account \"abc123\"", gErrors.New("failure")),
 		},
 	}
 
@@ -250,12 +251,16 @@ func TestUpdate(t *testing.T) {
 				&dynamodb.PutItemOutput{}, tt.dynamoErr,
 			)
 			accountData := &Account{
-				AwsDynamoDB: &mockDynamo,
-				TableName:   "Accounts",
+				DynamoDB:  &mockDynamo,
+				TableName: "Accounts",
 			}
 
 			err := accountData.WriteAccount(&tt.account, tt.oldLastModifiedOn)
-			assert.True(t, gErrors.Is(err, tt.expectedErr))
+			if err != nil {
+				log.Printf(err.Error())
+				log.Printf(tt.expectedErr.Error())
+			}
+			assert.True(t, errors.Is(err, tt.expectedErr))
 		})
 	}
 

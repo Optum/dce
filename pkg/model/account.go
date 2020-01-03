@@ -41,3 +41,9 @@ func (c AccountStatus) StringPtr() *string {
 	v := string(c)
 	return &v
 }
+
+// AccountStatusPtr returns a pointer to the string value of AccountStatus
+func (c AccountStatus) AccountStatusPtr() *AccountStatus {
+	v := c
+	return &v
+}
