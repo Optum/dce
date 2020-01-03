@@ -108,7 +108,7 @@ func TestConfigBuilder_DumpIntoSuperset(t *testing.T) {
 		StringValue        string   `env:"SOME_STRING_VALUE"`
 		ArrayOfStringValue []string `env:"SOME_ARRAY_OF_STRING_VALUE"`
 		IntValue           int      `env:"SOME_INT_VALUE"`
-		extraVal           string
+		extraVal           string   //nolint
 	}
 
 	err := configurater.Dump(&configSuperset)

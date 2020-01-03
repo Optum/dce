@@ -13,9 +13,10 @@ import (
 
 func TestArtifactsBucket(t *testing.T) {
 	// Create an S3 client
-	awsSession := session.New(&aws.Config{
+	awsSession, err := session.NewSession(&aws.Config{
 		Region: aws.String(endpoints.UsEast1RegionID),
 	})
+	require.Nil(t, err)
 	s3Client := s3.New(awsSession)
 
 	// Grab the bucket name from Terraform output

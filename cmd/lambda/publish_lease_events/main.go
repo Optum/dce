@@ -212,12 +212,19 @@ func UnmarshalStreamImage(attribute map[string]events.DynamoDBAttributeValue) (*
 			return nil, marshalErr
 		}
 
-		json.Unmarshal(bytes, &dbAttr)
+		err := json.Unmarshal(bytes, &dbAttr)
+		if err != nil {
+			log.Printf("unmarshal error %v: %v", v, marshalErr)
+			return nil, marshalErr
+		}
 		dbAttrMap[k] = &dbAttr
 	}
 
 	out := db.Lease{}
-	dynamodbattribute.UnmarshalMap(dbAttrMap, &out)
+	err := dynamodbattribute.UnmarshalMap(dbAttrMap, &out)
+	if err != nil {
+		return nil, err
+	}
 	return &out, nil
 
 }

@@ -31,5 +31,8 @@ func WriteAPIErrorResponse(w http.ResponseWriter, err error) {
 // WriteAPIResponse writes the response out to the provided ResponseWriter
 func WriteAPIResponse(w http.ResponseWriter, status int, body interface{}) {
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(body)
+	err := json.NewEncoder(w).Encode(body)
+	if err != nil {
+		WriteAPIErrorResponse(w, errors.NewInternalServer("Internal server error", err))
+	}
 }

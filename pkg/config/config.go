@@ -20,13 +20,11 @@ type ConfigurationError error
 
 // GenericConfiguration is a generic structure that contains configuration
 type configurationValues struct {
-	services  []interface{}
-	types     []reflect.Type
-	impls     []reflect.Value
-	vals      map[string]interface{}
-	errs      []error
-	envKeys   map[string]string
-	cfgStruct interface{}
+	services []interface{}
+	types    []reflect.Type
+	impls    []reflect.Value
+	vals     map[string]interface{}
+	envKeys  map[string]string
 }
 
 // ConfigurationBuilder is the default implementation of a configuration loader.

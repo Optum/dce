@@ -176,6 +176,6 @@ func (controller CreateController) getSigninToken(creds sts.Credentials) (string
 	}
 
 	var signinToken SigninToken
-	json.Unmarshal(bodySigninToken, &signinToken)
-	return signinToken.SigninToken, nil
+	err = json.Unmarshal(bodySigninToken, &signinToken)
+	return signinToken.SigninToken, err
 }

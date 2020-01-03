@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -43,7 +44,11 @@ func GetUsage(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Link", fmt.Sprintf("<%s>; rel=\"next\"", nextURL.String()))
 	}
 
-	json.NewEncoder(w).Encode(usageResponseItems)
+	err = json.NewEncoder(w).Encode(usageResponseItems)
+	if err != nil {
+		log.Print(err)
+		response.WriteServerError(w)
+	}
 }
 
 // parseGetUsageInput creates a GetUsageInput from the query parameters

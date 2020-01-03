@@ -85,5 +85,9 @@ func DeleteLease(w http.ResponseWriter, r *http.Request) {
 	}
 
 	leaseResponse := response.LeaseResponse(*updatedLease)
-	json.NewEncoder(w).Encode(leaseResponse)
+	err = json.NewEncoder(w).Encode(leaseResponse)
+	if err != nil {
+		response.WriteServerErrorWithResponse(w, fmt.Sprintf("Failed Decommission on Account Lease %s - %s", principalID, accountID))
+		return
+	}
 }

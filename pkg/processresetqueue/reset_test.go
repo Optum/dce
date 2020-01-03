@@ -470,6 +470,23 @@ func TestReset(t *testing.T) {
 	})
 }
 
+func TestExtractRoleNameFromARN(t *testing.T) {
+
+	t.Run("should extract name from valid ARN", func(t *testing.T) {
+		roleName, err := extractRoleNameFromARN(
+			"arn:aws:iam::123456789012:role/myRole",
+		)
+		require.Nil(t, err)
+		require.Equal(t, "myRole", roleName)
+	})
+
+	t.Run("should fail for invalid ARN", func(t *testing.T) {
+		_, err := extractRoleNameFromARN("invalid_arn")
+		require.NotNil(t, err)
+		require.Equal(t, "Invalid Role ARN: invalid_arn", err.Error())
+	})
+}
+
 func mockAccount() *db.Account {
 	return &db.Account{
 		ID:               "123456789012",

@@ -2,7 +2,6 @@ package config
 
 import (
 	"github.com/aws/aws-sdk-go/service/ssm"
-	"github.com/aws/aws-sdk-go/service/ssm/ssmiface"
 	"log"
 	"reflect"
 	"runtime"
@@ -10,19 +9,12 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/codebuild"
-	"github.com/aws/aws-sdk-go/service/codebuild/codebuildiface"
 	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
-	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider/cognitoidentityprovideriface"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3iface"
 	"github.com/aws/aws-sdk-go/service/sns"
-	"github.com/aws/aws-sdk-go/service/sns/snsiface"
 	"github.com/aws/aws-sdk-go/service/sqs"
-	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
 	"github.com/aws/aws-sdk-go/service/sts"
-	"github.com/aws/aws-sdk-go/service/sts/stsiface"
 )
 
 // AWSSessionKey is the key for the configuration for the AWS session
@@ -153,57 +145,49 @@ func (bldr *ServiceBuilder) createSession(config ConfigurationServiceBuilder) er
 }
 
 func (bldr *ServiceBuilder) createSTS(config ConfigurationServiceBuilder) error {
-	var stsSvc stsiface.STSAPI
-	stsSvc = sts.New(bldr.awsSession)
+	stsSvc := sts.New(bldr.awsSession)
 	config.WithService(stsSvc)
 	return nil
 }
 
 func (bldr *ServiceBuilder) createSNS(config ConfigurationServiceBuilder) error {
-	var snsSvc snsiface.SNSAPI
-	snsSvc = sns.New(bldr.awsSession)
+	snsSvc := sns.New(bldr.awsSession)
 	config.WithService(snsSvc)
 	return nil
 }
 
 func (bldr *ServiceBuilder) createSQS(config ConfigurationServiceBuilder) error {
-	var sqsSvc sqsiface.SQSAPI
-	sqsSvc = sqs.New(bldr.awsSession)
+	sqsSvc := sqs.New(bldr.awsSession)
 	config.WithService(sqsSvc)
 	return nil
 }
 
 func (bldr *ServiceBuilder) createDynamoDB(config ConfigurationServiceBuilder) error {
-	var dynamodbSvc dynamodbiface.DynamoDBAPI
-	dynamodbSvc = dynamodb.New(bldr.awsSession)
+	dynamodbSvc := dynamodb.New(bldr.awsSession)
 	config.WithService(dynamodbSvc)
 	return nil
 }
 
 func (bldr *ServiceBuilder) createS3(config ConfigurationServiceBuilder) error {
-	var s3Svc s3iface.S3API
-	s3Svc = s3.New(bldr.awsSession)
+	s3Svc := s3.New(bldr.awsSession)
 	config.WithService(s3Svc)
 	return nil
 }
 
 func (bldr *ServiceBuilder) createCognito(config ConfigurationServiceBuilder) error {
-	var cognitoSvc cognitoidentityprovideriface.CognitoIdentityProviderAPI
-	cognitoSvc = cognitoidentityprovider.New(bldr.awsSession)
+	cognitoSvc := cognitoidentityprovider.New(bldr.awsSession)
 	config.WithService(cognitoSvc)
 	return nil
 }
 
 func (bldr *ServiceBuilder) createCodeBuild(config ConfigurationServiceBuilder) error {
-	var codeBuildSvc codebuildiface.CodeBuildAPI
-	codeBuildSvc = codebuild.New(bldr.awsSession)
+	codeBuildSvc := codebuild.New(bldr.awsSession)
 	config.WithService(codeBuildSvc)
 	return nil
 }
 
 func (bldr *ServiceBuilder) createSSM(config ConfigurationServiceBuilder) error {
-	var SSMSvc ssmiface.SSMAPI
-	SSMSvc = ssm.New(bldr.awsSession)
+	SSMSvc := ssm.New(bldr.awsSession)
 	config.WithService(SSMSvc)
 	return nil
 }

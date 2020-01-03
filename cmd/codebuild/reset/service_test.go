@@ -56,7 +56,9 @@ func TestService(t *testing.T) {
 		t.Run("should be a singleton", func(t *testing.T) {
 			svc := &service{}
 
-			require.True(t, svc.config() == svc.config())
+			firstRes := svc.config()
+			secondRes := svc.config()
+			require.True(t, firstRes == secondRes)
 		})
 
 	})

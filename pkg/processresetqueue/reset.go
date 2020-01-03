@@ -169,7 +169,7 @@ func Reset(input *ResetInput) (*ResetOutput, error) {
 
 // extractRoleNameFromARN returns the name of the role from its arn
 func extractRoleNameFromARN(arn string) (string, error) {
-	reg := regexp.MustCompile("arn:aws:iam::\\d{12}:role/(.+)")
+	reg := regexp.MustCompile(`arn:aws:iam::\d{12}:role/(.+)`)
 	result := reg.FindStringSubmatch(arn)
 	if len(result) != 2 {
 		return "", fmt.Errorf("Invalid Role ARN: %s", arn)

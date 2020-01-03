@@ -53,7 +53,13 @@ func GetUsageByStartDateAndEndDate(w http.ResponseWriter, r *http.Request) {
 
 	outputResponseItems := SumCostAmountByPrincipalID(usageResponseItems)
 
-	json.NewEncoder(w).Encode(outputResponseItems)
+	err = json.NewEncoder(w).Encode(outputResponseItems)
+	if err != nil {
+		errMsg := fmt.Sprintf("Error getting usage for given start date %s and end date %s: %s", r.FormValue(StartDateParam), r.FormValue(EndDateParam), err.Error())
+		log.Println(errMsg)
+		response.ServerErrorWithResponse(errMsg)
+		return
+	}
 }
 
 // GetUsageByStartDateAndPrincipalID - Returns a list of usage by principalID and starting from start date to current date
@@ -86,38 +92,13 @@ func GetUsageByStartDateAndPrincipalID(w http.ResponseWriter, r *http.Request) {
 		usageResponseItems = append(usageResponseItems, &usageRes)
 	}
 
-	json.NewEncoder(w).Encode(usageResponseItems)
-}
-
-// GetAllUsage - Returns a list of entire usage
-func GetAllUsage(w http.ResponseWriter, r *http.Request) {
-
-	log.Printf("Get all usage request: %v", r)
-	startDate := time.Now().AddDate(-1, 0, 0)
-	endDate := time.Now()
-
-	usageRecords, err := UsageSvc.GetUsageByDateRange(startDate, endDate)
+	err = json.NewEncoder(w).Encode(usageResponseItems)
 	if err != nil {
-		errMsg := fmt.Sprintf("Error getting all usage : %s", err.Error())
+		errMsg := fmt.Sprintf("Error getting usage for given start date %s and principalID %s: %s", r.FormValue(StartDateParam), principalID, err.Error())
 		log.Println(errMsg)
 		response.WriteServerErrorWithResponse(w, errMsg)
 		return
 	}
-
-	// Serialize them for the JSON response.
-	usageResponseItems := []*response.UsageResponse{}
-
-	for _, a := range usageRecords {
-		usageRes := response.UsageResponse(*a)
-		usageRes.StartDate = startDate.Unix()
-		usageRes.EndDate = endDate.Unix()
-		log.Printf("usage: %v", usageRes)
-		usageResponseItems = append(usageResponseItems, &usageRes)
-	}
-
-	outputResponseItems := SumCostAmountByPrincipalID(usageResponseItems)
-
-	json.NewEncoder(w).Encode(outputResponseItems)
 }
 
 // SumCostAmountByPrincipalID returns a unique subset of the input slice by finding unique PrincipalIds and adding cost amount for it.

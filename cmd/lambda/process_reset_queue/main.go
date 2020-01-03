@@ -16,7 +16,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sqs"
 )
 
-// Handler will processess the available entries within the available Reset
+// Handler will processes the available entries within the available Reset
 // Queue and trigger the respective Code Pipeline builds
 func handler(ctx context.Context) (bool, error) {
 	// Extract the build project name
@@ -26,7 +26,10 @@ func handler(ctx context.Context) (bool, error) {
 	queueURL := common.RequireEnv("RESET_SQS_URL")
 
 	// Set up the AWS Session
-	awsSession := session.New()
+	awsSession, err := session.NewSession()
+	if err != nil {
+		return false, err
+	}
 
 	// Construct a Queue
 	sqsClient := sqs.New(awsSession)

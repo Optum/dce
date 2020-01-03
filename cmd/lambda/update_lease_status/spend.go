@@ -61,7 +61,10 @@ func calculateLeaseSpend(input *calculateSpendInput) (float64, error) {
 		TimeToLive:   usageStartTime.AddDate(0, 1, 0).Unix(),
 	}
 
-	input.usageSvc.PutUsage(usageItem)
+	err = input.usageSvc.PutUsage(usageItem)
+	if err != nil {
+		return 0, nil
+	}
 
 	// Budget period starts last time the lease was reset.
 	// We can look at the `leaseStatusModifiedOn` to know

@@ -163,7 +163,7 @@ func WriteAPIErrorResponse(w http.ResponseWriter, responseCode int,
 // WriteAPIResponse - Writes the response out to the provided ResponseWriter
 func WriteAPIResponse(w http.ResponseWriter, status int, body string) {
 	w.WriteHeader(status)
-	w.Write([]byte(body))
+	_, _ = w.Write([]byte(body))
 }
 
 // WriteAlreadyExistsError - Writes the already exists error.

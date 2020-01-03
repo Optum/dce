@@ -70,9 +70,7 @@ has exceeded its budget of $100. Actual spend is $150
 		shouldTransitionLeaseStatus   bool
 		transitionLeaseError          error
 		shouldSNS                     bool
-		snsError                      error
 		shouldSQSReset                bool
-		sqsError                      error
 		shouldSendEmail               bool
 		expectedEmailSubject          string
 		expectedEmailBodyHTML         string

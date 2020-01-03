@@ -101,7 +101,7 @@ func destroyIAMPrincipal(account *db.Account) {
 		PolicyArn: fmt.Sprintf("arn:aws:iam::%s:policy/%s", account.ID, principalPolicyName),
 	})
 	// Log error, and continue
-	if err != nil {
+	if err != nil { //nolint
 		log.Printf("Failed to destroy Principal IAM Role and Policy: %s", err)
 	}
 }
