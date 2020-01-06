@@ -8,10 +8,10 @@ The DCE codebase is comprised of [Go](https://golang.org/) application code, alo
 
 The Go code is primarily located within:
 
-- [`/cmd`](https://github.com/Optum/dce/tree/master/cmd): entrypoint for applications targeting AWS Lambdas and CodeBuild
-- [`/pkg`](https://github.com/Optum/dce/tree/master/pkg): common services used by entrypoint code.
+- [/cmd](https://github.com/Optum/dce/tree/master/cmd): entrypoint for applications targeting AWS Lambdas and CodeBuild
+- [/pkg](https://github.com/Optum/dce/tree/master/pkg): common services used by entrypoint code.
 
-Each subdirectory within the [`/cmd/lambda`](https://github.com/Optum/dce/tree/master/cmd/lambda) directory targets an individual Lambda function of the same name.
+Each subdirectory within the [/cmd/lambda](https://github.com/Optum/dce/tree/master/cmd/lambda) directory targets an individual Lambda function of the same name.
 
 ## Building application code
 

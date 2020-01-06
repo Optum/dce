@@ -140,7 +140,7 @@ Any requests made with IAM credentials that have sufficient permissions to invok
 
 The process for signing requests with SigV4 is somewhat involved, but luckily there are a number of tools to make this easier. For example:
 
-- [AWS Golang SDK `signer/v4` package](https://docs.aws.amazon.com/sdk-for-go/api/aws/signer/v4/)
+- [AWS Golang SDK signer/v4 package](https://docs.aws.amazon.com/sdk-for-go/api/aws/signer/v4/)
 - [aws-requests-auth](https://github.com/DavidMuller/aws-requests-auth) for Python
 - [Postman _AWS Signature_ authentication](https://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-use-postman-to-call-api.html)
 

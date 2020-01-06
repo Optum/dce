@@ -591,11 +591,11 @@ DCE budget may be configured as `Terraform variables <terraform.html#configuring
 
 To `reset <concepts.html#reset>`_ AWS accounts between leases, DCE uses the [open source aws-nuke tool](https://github.com/rebuy-de/aws-nuke). This tool attempts to delete every single resource in th AWS account, and will make several attempts to ensure everything is wiped clean.
 
-To prevent `aws-nuke` from deleting certain resources, provide a YAML configuration with a list of resource _filters_. (see [`aws-nuke` docs for the YAML filter configuration syntax](https://github.com/rebuy-de/aws-nuke#filtering-resources)). By default, DCE filters out resources which are critical to running DCE -- for example, the IAM roles for your account's `adminRoleArn` / `principalRoleArn`.
+To prevent `aws-nuke` from deleting certain resources, provide a YAML configuration with a list of resource _filters_. (see [aws-nuke docs for the YAML filter configuration syntax](https://github.com/rebuy-de/aws-nuke#filtering-resources)). By default, DCE filters out resources which are critical to running DCE -- for example, the IAM roles for your account's `adminRoleArn` / `principalRoleArn`.
 
 As a DCE implementor, you may have additional resources you wish protect from `aws-nuke`. If this is the case, you may specify your own custom `aws-nuke` YAML configuration:
 
-- Copy the contents of [`default-nuke-config-template.yml`](https://github.com/Optum/dce/blob/master/cmd/codebuild/reset/default-nuke-config-template.yml) into a new file
+- Copy the contents of [default-nuke-config-template.yml](https://github.com/Optum/dce/blob/master/cmd/codebuild/reset/default-nuke-config-template.yml) into a new file
 - Modify as needed.
 - Upload the YAML configuration file to an S3 bucket in the DCE master account
 
@@ -603,8 +603,8 @@ Then configure reset using `Terraform variables <terraform.html#configuring-terr
 
 | Variable | Default | Description |
 | --- | --- | --- |
-| `reset_nuke_template_bucket` | See [`default-nuke-config-template.yml`](https://github.com/Optum/dce/blob/master/cmd/codebuild/reset/default-nuke-config-template.yml) | S3 bucket where a custom [aws-nuke](https://github.com/rebuy-de/aws-nuke) configuration is located |
-| `reset_nuke_template_key` | See [`default-nuke-config-template.yml`](https://github.com/Optum/dce/blob/master/cmd/codebuild/reset/default-nuke-config-template.yml) | S3 key within the `reset_nuke_template_bucket` where a custom [aws-nuke](https://github.com/rebuy-de/aws-nuke) configuration is located |
+| `reset_nuke_template_bucket` | See [default-nuke-config-template.yml](https://github.com/Optum/dce/blob/master/cmd/codebuild/reset/default-nuke-config-template.yml) | S3 bucket where a custom [aws-nuke](https://github.com/rebuy-de/aws-nuke) configuration is located |
+| `reset_nuke_template_key` | See [default-nuke-config-template.yml](https://github.com/Optum/dce/blob/master/cmd/codebuild/reset/default-nuke-config-template.yml) | S3 key within the `reset_nuke_template_bucket` where a custom [aws-nuke](https://github.com/rebuy-de/aws-nuke) configuration is located |
 | `reset_nuke_toggle` | `true` | Set to false to run `aws-nuke` in dry run mode |
 | `allowed_regions` | _all AWS regions_ | AWS regions which will be nuked. Allowing fewer regions will drastically reduce the run time of aws-nuke | 
 
