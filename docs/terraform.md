@@ -47,7 +47,7 @@ See [/modules/variables.tf](https://github.com/Optum/dce/blob/master/modules/var
 
 The DCE Terraform module outputs a number of parameters, which may be useful for interacting with the configured resources. For example, the `api_url` output provides the base url for your DCE API Gateway endpoint.
 
-Use the [`terraform output`](https://www.terraform.io/docs/commands/output.html) CLI command to access outputs.
+Use the [terraform output](https://www.terraform.io/docs/commands/output.html) CLI command to access outputs.
 
 ```bash
 cd modules
