@@ -13,12 +13,12 @@ Home
    
    home
 
-Concepts
---------
+Quickstart
+------
 .. toctree::
    :maxdepth: 2
 
-   concepts
+   quickstart
 
 How To
 ------
@@ -26,6 +26,13 @@ How To
    :maxdepth: 2
 
    howto
+
+Concepts
+--------
+.. toctree::
+   :maxdepth: 2
+
+   concepts
 
 DCE IAM Policies
 ----------------
