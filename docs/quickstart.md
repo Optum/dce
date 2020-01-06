@@ -14,6 +14,8 @@ Deploy DCE and lease an account quickly using the DCE CLI.
     unzip dce_darwin_amd64.zip -d /usr/local/bin
     ```
 
+1. Type `dce init`. Leave all fields blank for now.
+
 1. Deploy DCE using IAM Credentials that have AdministratorAccess
     ```
     export AWS_ACCESS_KEY_ID=XXXXXXXXXX
