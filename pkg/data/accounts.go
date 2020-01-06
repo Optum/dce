@@ -89,14 +89,6 @@ func (a *Account) scanAccounts(q *model.Account) (*model.Accounts, error) {
 // GetAccounts Get a list of accounts
 func (a *Account) GetAccounts(q *model.Account) (*model.Accounts, error) {
 
-	if q.ID != nil {
-		account := model.Account{}
-		err := a.GetAccountByID(*q.ID, &account)
-		if err != nil {
-			return nil, err
-		}
-		return &model.Accounts{account}, nil
-	}
 	if q.Status != nil {
 		return a.queryAccounts(q, "AccountStatus", "AccountStatus")
 	}

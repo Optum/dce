@@ -3,7 +3,6 @@ package data
 import (
 	gErrors "errors"
 	"fmt"
-	"log"
 	"strconv"
 	"testing"
 
@@ -17,25 +16,21 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func TestGet(t *testing.T) {
-
-	accountStatusReady := model.Ready
-	// accountStatusNotReady := model.NotReady
-
+func TestGetAccountByID(t *testing.T) {
 	tests := []struct {
 		name            string
 		accountID       string
 		dynamoErr       error
 		dynamoOutput    *dynamodb.GetItemOutput
 		expectedErr     error
-		expectedAccount model.Account
+		expectedAccount *model.Account
 	}{
 		{
 			name:      "should return an account object",
 			accountID: "abc123",
-			expectedAccount: model.Account{
+			expectedAccount: &model.Account{
 				ID:             ptrString("abc123"),
-				Status:         &accountStatusReady,
+				Status:         model.AccountStatusReady.AccountStatusPtr(),
 				LastModifiedOn: ptrInt64(1573592058),
 				AdminRoleArn:   ptrString("test:arn"),
 			},
@@ -61,7 +56,7 @@ func TestGet(t *testing.T) {
 		{
 			name:            "should return nil object when not found",
 			accountID:       "abc123",
-			expectedAccount: model.Account{},
+			expectedAccount: nil,
 			dynamoErr:       nil,
 			dynamoOutput: &dynamodb.GetItemOutput{
 				Item: map[string]*dynamodb.AttributeValue{},
@@ -71,7 +66,7 @@ func TestGet(t *testing.T) {
 		{
 			name:            "should return nil when dynamodb err",
 			accountID:       "abc123",
-			expectedAccount: model.Account{},
+			expectedAccount: nil,
 			dynamoErr:       gErrors.New("failure"),
 			dynamoOutput: &dynamodb.GetItemOutput{
 				Item: map[string]*dynamodb.AttributeValue{},
@@ -95,9 +90,8 @@ func TestGet(t *testing.T) {
 				TableName: "Accounts",
 			}
 
-			item := &model.Account{}
-			err := accountData.GetAccountByID(tt.accountID, item)
-			assert.Equal(t, tt.expectedAccount, *item)
+			account, err := accountData.GetAccountByID(tt.accountID)
+			assert.Equal(t, tt.expectedAccount, account)
 			assert.True(t, errors.Is(err, tt.expectedErr))
 		})
 	}
@@ -105,9 +99,6 @@ func TestGet(t *testing.T) {
 }
 
 func TestDelete(t *testing.T) {
-
-	accountStatusReady := model.Ready
-	// accountStatusNotReady := model.NotReady
 
 	tests := []struct {
 		name         string
@@ -120,7 +111,7 @@ func TestDelete(t *testing.T) {
 			name: "should delete an account",
 			account: model.Account{
 				ID:             ptrString("abc123"),
-				Status:         &accountStatusReady,
+				Status:         model.AccountStatusReady.AccountStatusPtr(),
 				LastModifiedOn: ptrInt64(1573592058),
 				AdminRoleArn:   ptrString("test:Arn"),
 			},
@@ -134,7 +125,7 @@ func TestDelete(t *testing.T) {
 			name: "should delete an account",
 			account: model.Account{
 				ID:             ptrString("abc123"),
-				Status:         &accountStatusReady,
+				Status:         model.AccountStatusReady.AccountStatusPtr(),
 				LastModifiedOn: ptrInt64(1573592058),
 				AdminRoleArn:   ptrString("test:Arn"),
 			},
@@ -169,9 +160,6 @@ func TestDelete(t *testing.T) {
 }
 
 func TestUpdate(t *testing.T) {
-	accountStatusReady := model.Ready
-	// accountStatusNotReady := model.NotReady
-
 	tests := []struct {
 		name              string
 		account           model.Account
@@ -183,7 +171,7 @@ func TestUpdate(t *testing.T) {
 			name: "update",
 			account: model.Account{
 				ID:             ptrString("abc123"),
-				Status:         &accountStatusReady,
+				Status:         model.AccountStatusReady.AccountStatusPtr(),
 				LastModifiedOn: ptrInt64(1573592058),
 				AdminRoleArn:   ptrString("test:Arn"),
 			},
@@ -195,7 +183,7 @@ func TestUpdate(t *testing.T) {
 			name: "create",
 			account: model.Account{
 				ID:             ptrString("abc123"),
-				Status:         &accountStatusReady,
+				Status:         model.AccountStatusReady.AccountStatusPtr(),
 				LastModifiedOn: ptrInt64(1573592058),
 				AdminRoleArn:   ptrString("test:Arn"),
 			},
@@ -206,7 +194,7 @@ func TestUpdate(t *testing.T) {
 			name: "conditional failure",
 			account: model.Account{
 				ID:             ptrString("abc123"),
-				Status:         &accountStatusReady,
+				Status:         model.AccountStatusReady.AccountStatusPtr(),
 				LastModifiedOn: ptrInt64(1573592058),
 				AdminRoleArn:   ptrString("test:Arn"),
 			},
@@ -218,7 +206,7 @@ func TestUpdate(t *testing.T) {
 			name: "other dynamo error",
 			account: model.Account{
 				ID:             ptrString("abc123"),
-				Status:         &accountStatusReady,
+				Status:         model.AccountStatusReady.AccountStatusPtr(),
 				LastModifiedOn: ptrInt64(1573592058),
 				AdminRoleArn:   ptrString("test:Arn"),
 			},
@@ -256,10 +244,6 @@ func TestUpdate(t *testing.T) {
 			}
 
 			err := accountData.WriteAccount(&tt.account, tt.oldLastModifiedOn)
-			if err != nil {
-				log.Printf(err.Error())
-				log.Printf(tt.expectedErr.Error())
-			}
 			assert.True(t, errors.Is(err, tt.expectedErr))
 		})
 	}

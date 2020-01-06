@@ -17,18 +17,17 @@ type Writer interface {
 
 // Deleter Deletes an Account from the data store
 type Deleter interface {
-	DeleteAccount(inptut *model.Account) error
+	DeleteAccount(input *model.Account) error
 }
 
 // SingleReader Reads Account information from the data store
 type SingleReader interface {
-	GetAccountByID(accountID string, account *model.Account) error
+	GetAccountByID(accountID string) (*model.Account, error)
 }
 
 // MultipleReader reads multiple accounts from the data store
 type MultipleReader interface {
 	GetAccounts(*model.Account) (*model.Accounts, error)
-	GetAccountsByStatus(status string) (*model.Accounts, error)
 }
 
 // Reader data Layer
@@ -95,29 +94,6 @@ func (a *Account) Metadata() map[string]interface{} {
 	return a.data.Metadata
 }
 
-func (a *Account) updateStatus(nextStatus model.AccountStatus) {
-	*a.data.Status = nextStatus
-}
-
-// UpdateStatus updates account status for a given accountID and
-// returns the updated record on success
-func (a *Account) UpdateStatus(nextStatus model.AccountStatus) error {
-
-	a.updateStatus(nextStatus)
-	err := a.save()
-	if err != nil {
-		return fmt.Errorf(
-			"unable to update account status from \"%v\" to \"%v\" on account %s: %w",
-			*a.data.Status,
-			nextStatus,
-			*a.data.ID,
-			err,
-		)
-	}
-
-	return nil
-}
-
 func (a *Account) save() error {
 	var lastModifiedOn *int64
 	now := time.Now().Unix()
@@ -145,7 +121,7 @@ func (a *Account) save() error {
 func (a *Account) Validate() error {
 	err := validation.ValidateStruct(&a.data,
 		validation.Field(&a.data.AdminRoleArn, validation.NotNil),
-		validation.Field(&a.data.ID, validation.NotNil),
+		validation.Field(&a.data.ID, accountIDRules...),
 		validation.Field(&a.data.LastModifiedOn, validation.NotNil),
 		validation.Field(&a.data.Status, validation.NotNil),
 		validation.Field(&a.data.CreatedOn, validation.NotNil),
@@ -185,7 +161,7 @@ func (a *Account) Update(d model.Account, am Manager) error {
 
 	err = a.save()
 	if err != nil {
-		return fmt.Errorf("unable to update account %s: %w", *a.data.ID, err)
+		return err
 	}
 	return nil
 }
@@ -202,14 +178,9 @@ func (a *Account) Delete() error {
 
 	err = a.writer.DeleteAccount(&a.data)
 	if err != nil {
-		return fmt.Errorf("unable to delete account \"%s\": %w", *a.data.ID, err)
+		return err
 	}
 
-	return nil
-}
-
-// OrphanAccount - Orpahn an account
-func (a *Account) OrphanAccount() error {
 	return nil
 }
 
@@ -219,7 +190,11 @@ func GetAccountByID(ID string, d SingleReader, wd WriterDeleter) (*Account, erro
 	newAccount := Account{
 		writer: wd,
 	}
-	err := d.GetAccountByID(ID, &newAccount.data)
+	data, err := d.GetAccountByID(ID)
+	if err != nil {
+		return nil, err
+	}
+	newAccount.data = *data
 
 	return &newAccount, err
 }
@@ -246,19 +221,21 @@ func (a *Account) MarshalJSON() ([]byte, error) {
 func GetReadyAccount(d Reader, wd WriterDeleter) (*Account, error) {
 	accounts, err := GetAccounts(
 		&model.Account{
-			Status: model.Ready.AccountStatusPtr(),
+			Status: model.AccountStatusReady.AccountStatusPtr(),
 		}, d)
 	if err != nil {
 		return nil, err
 	}
-	if len(*accounts) < 1 {
+	if len(accounts.data) < 1 {
 		return nil, errors.NewNotFound("account", "ready")
 	}
 
-	account := &(*accounts)[0]
-	account.writer = wd
+	newAccount := Account{
+		writer: wd,
+	}
+	newAccount.data = accounts.data[0]
 
-	return account, err
+	return &newAccount, err
 }
 
 // CreateAccount creates a new account
@@ -286,11 +263,10 @@ func CreateAccount(ID string, AdminRoleArn string, Metadata map[string]interface
 	//}
 
 	// Prepare the account record
-	accountStatus := model.NotReady
 	account := &Account{
 		data: model.Account{
 			ID:           &ID,
-			Status:       &accountStatus,
+			Status:       model.AccountStatusReady.AccountStatusPtr(),
 			AdminRoleArn: &AdminRoleArn,
 			Metadata:     Metadata,
 		},

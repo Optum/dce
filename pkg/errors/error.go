@@ -2,9 +2,11 @@ package errors
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
 	"io"
+	"log"
 	"net/http"
+
+	"github.com/pkg/errors"
 )
 
 // These are the Codes used in the error messages returned to customers
@@ -47,6 +49,7 @@ func (e *StatusError) StackTrace() errors.StackTrace {
 
 // Format for the standard format library
 func (e *StatusError) Format(s fmt.State, verb rune) {
+	var err error
 	switch verb {
 	case 'v':
 		if s.Flag('+') {
@@ -56,9 +59,15 @@ func (e *StatusError) Format(s fmt.State, verb rune) {
 		}
 		fallthrough
 	case 's':
-		io.WriteString(s, e.Error())
+		_, err = io.WriteString(s, e.Error())
+		if err != nil {
+			log.Printf("error printing error: %s", err)
+		}
 	case 'q':
-		fmt.Fprintf(s, "%q", e.Error())
+		_, err = fmt.Fprintf(s, "%q", e.Error())
+		if err != nil {
+			log.Printf("error printing error: %s", err)
+		}
 	}
 }
 
