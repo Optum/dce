@@ -15,10 +15,12 @@ import (
 	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider/cognitoidentityprovideriface"
 	"github.com/aws/aws-sdk-go/service/costexplorer/costexploreriface"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
+	"github.com/aws/aws-sdk-go/service/eventbridge/eventbridgeiface"
 	"github.com/aws/aws-sdk-go/service/iam/iamiface"
 	"github.com/aws/aws-sdk-go/service/lambda/lambdaiface"
 	"github.com/aws/aws-sdk-go/service/s3/s3iface"
 	"github.com/aws/aws-sdk-go/service/ses/sesiface"
+	"github.com/aws/aws-sdk-go/service/sns/snsiface"
 	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
 )
 
@@ -36,6 +38,14 @@ type SESAPI interface {
 
 type SQSAPI interface {
 	sqsiface.SQSAPI
+}
+
+type SNSAPI interface {
+	snsiface.SNSAPI
+}
+
+type EventBridgeAPI interface {
+	eventbridgeiface.EventBridgeAPI
 }
 
 type S3API interface {
