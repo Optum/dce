@@ -2,8 +2,8 @@
 
 There are two ways to authenticate against the DCE APIs:
 
-1. [Using Cognito](#using-cognito)
-1. [Using IAM credentials](#using-iam-credentials)
+1. `AWS Cognito <#using-aws-cognito>`_
+1. `IAM credentials <#using-iam-credentials>`_
 
 ## Using AWS Cognito
 
@@ -100,7 +100,7 @@ view information you do not have access to.
 1. You will need to be authenticated as an admin before continuing to the next section. Type `dce auth` to log in as a different user. Sign out, then enter the username
 and password for the admin that you created. As before, copy the auth code and paste it in the prompt in your command terminal.
 
-    ![Admin login](./quickstartadminlogin.png)
+    ![Admin login](./img/quickstartadminlogin.png)
 
 1. Test that you have admin authorization by typing `dce accounts list`. You should see an empty list now instead of a permissions error.
 
@@ -111,10 +111,32 @@ and password for the admin that you created. As before, copy the auth code and p
 
 ## Using IAM Credentials
 
+The DCE API accepts authentication via IAM credentials using [SigV4 signed requests](https://docs.aws.amazon.com/general/latest/gr/sigv4_signing.html). 
 
-The DCE API accepts authentication via IAM credentials using [SigV4 signed requests](https://docs.aws.amazon.com/general/latest/gr/sigv4_signing.html).
+At minumum, the IAM credentials used to access DCE must have an attached policy that grants permission to invoke the DCE API Gateway methods, e.g.
 
-Any requests made via sufficiently permissioned IAM Credentials will be treated as an [admin role](#admins).
+```
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "execute-api:Invoke"
+      ],
+      "Resource": [
+        "${aws_api_gateway_rest_api.gateway_api.execution_arn}/*"
+      ]
+    }
+  ]
+}
+JSON
+}
+```
+
+This policy is accessible via the api_access_policy_name & api_access_policy_arn terraform outputs.
+
+Any requests made with IAM credentials that have sufficient permissions to invoke the DCE API, but which are not associated with a Congito User Pool User, will be treated as an [admin role](#admins).
 
 The process for signing requests with SigV4 is somewhat involved, but luckily there are a number of tools to make this easier. For example:
 
@@ -124,33 +146,4 @@ The process for signing requests with SigV4 is somewhat involved, but luckily th
 
 AWS also provides [examples for a number of languages in their docs](https://docs.aws.amazon.com/general/latest/gr/signature-v4-examples.html).
 
-### Using IAM Credentials with the DCE CLI
-
-The DCE CLI will search for credentials in the following order:
-
-1. An API Token in the `api.token` field of the `.dce.yaml` config file. You may obtain an API Token by:
-    - Running the `dce auth` command
-    - Base64 encoding the following JSON string. Note that `expireTime` is a Unix epoch timestamp and the string should
-    not contain spaces or newline characters.
-
-        ```json
-        {
-           "accessKeyId":"xxx",
-           "secretAccessKey":"xxx",
-           "sessionToken":"xxx",
-           "expireTime":"xxx"
-        }
-        ```
-1. The Environment Variables: `AWS_ACCESS_KEY_ID`, `AWS_ACCESS_KEY`, and `AWS_SESSION_TOKEN`
-1. Stored in the AWS CLI credentials file under the `default` profile. This is located at `$HOME/.aws/credentials` on Linux/OSX and `%USERPROFILE%\.aws\credentials` on Windows.
-
-### IAM Policy for DCE API requests
-
-The IAM principal used to send requests to the DCE API must have sufficient permissions to execute API requests.
-
-The Terraform module in the repo provides an IAM policy with appropriate permissions for executing DCE API requests. The policy name and ARN are available as Terraform outputs.
-
-```
-terraform output api_access_policy_name
-terraform output api_access_policy_arn
-```
+See `DCE CLI Credentials <./howto.html#configuring-aws-credentials>`_ to configure IAM credentials for the DCE CLI.
