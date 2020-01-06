@@ -4,7 +4,7 @@ A practical guide to common operations and customizations for DCE.
 
 ## Use the DCE CLI
 
-The DCE CLI is the easiest way to quickly deploy and use DCE. For more advanced usage, refer to the [DCE Auth](#use-the-dce-api) section.
+The DCE CLI is the easiest way to quickly deploy and use DCE. For more advanced usage, refer to the `DCE API <#use-the-dce-api>`_ section.
 
 ### Installing the DCE CLI
 
@@ -71,16 +71,10 @@ will look for credentials, ordered by precedence.
 1. The Environment Variables: `AWS_ACCESS_KEY_ID`, `AWS_ACCESS_KEY`, and `AWS_SESSION_TOKEN`
 1. Stored in the AWS CLI credentials file under the `default` profile. This is located at `$HOME/.aws/credentials` on Linux/OSX and `%USERPROFILE%\.aws\credentials` on Windows.
 
-The simplest way to use DCE is by storing credentials in your AWS CLI credentials file. For more advanced usage,
-refer to the [authentication page](./api-auth.md/configuring-cognito-for-usage-with-the-dce-cli).
-
 ### Deploying DCE from the CLI
 
 You can build and deploy DCE from [source](#deploying-dce-from-source) or by using the CLI.
-This section will cover deployment using the CLI.
-
-This section uses the AWS CLI to configure credentials in the `.aws\credentials` file. See [Configuring AWS Credentials](#configuring-aws-credentials)
-for alternatives to using the AWS CLI.
+This section will cover deployment using the DCE CLI with credentilas configured by the AWS CLI. See [Configuring AWS Credentials](#configuring-aws-credentials) for alternatives.
 
 1. [Download and install the AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html)
 
@@ -106,8 +100,8 @@ for alternatives to using the AWS CLI.
 
 There are two ways to authenticate with DCE.
 
-1. [Use IAM credentials for quick access to your individual DCE deployment](./api-auth#using-iam-credentials)
-1. [Use Cognito to set up admin and user profiles](./api-auth#using-cognito)
+1. `Use custom IAM credentials for quick access to your individual DCE deployment <api-auth.html#using-iam-credentials>`_
+1. `Use Cognito to set up admin and user profiles <./api-auth.html#using-aws-cognito>`_
 
 ### Adding a child account
 
@@ -115,9 +109,11 @@ There are two ways to authenticate with DCE.
     - Create an IAM role with `AdministratorAccess` and a trust relationship to your DCE Master Accounts
     - Create an account alias by clicking the 'customize' link in the IAM dashboard of the child account. This must not include the terms "prod" or "production".
 
+1. Authenticate as an admin using the `dce auth` command if you are using `DCE with AWS Cognito <./api-auth.html#using-aws-cognito>`_
+
 1. Use the `dce accounts add` command to add your child account to the "DCE Accounts Pool".
 
-    *WARNING: This will delete any resources in the account.*
+    **WARNING: This will delete any resources in the account.**
 
     ```
     dce accounts add --account-id 555555555555 --admin-role-arn arn:aws:iam::555555555555:role/DCEMasterAccess
@@ -142,8 +138,6 @@ There are two ways to authenticate with DCE.
     The account status will initially say `NotReady`. It may take up to 5 minutes for the new account to be processed. Once the account status is `Ready`, you may proceed with creating a lease.
 
 ### Leasing a DCE Account
-
-1. Use the `dce auth` command to authenticate as a non-admin user.
 
 1. Now that your accounts pool isn't empty, you can create your first lease using the `dce leases create` command.
 
@@ -236,7 +230,7 @@ There are three ways to "log in" to a leased account.
     Lease ended
     ```
 
-1. Type `dce leases list` to verify that the lease has been ended
+1. Type `dce leases list` to verify that the lease has been ended. The `leaseStatus` should now be marked as `Inactive`.
 
     ```
     dce leases list
@@ -262,7 +256,7 @@ There are three ways to "log in" to a leased account.
 
 ### Removing a Child Account
 
-1. Use the `dce auth` command to authenticate as an admin
+1. Authenticate as an admin using the `dce auth` command if you are using `DCE with AWS Cognito <./api-auth.html#using-aws-cognito>`_
 
 1. You can remove an account from the accounts pool using the `dce accounts remove` command
 
@@ -274,9 +268,9 @@ There are three ways to "log in" to a leased account.
 
 DCE provides a set of endpoints for managing account pools and leases, and for monitoring account usage.
 
-See [API Reference Documentation](./api-documentation.md) for details.
+See [API Reference Documentation](./api-documentation.html) for details.
 
-See [API Auth Documentation](./api-auth.md) for details on authenticating and authorizing requests.
+See [API Auth Documentation](./api-auth.html) for details on authenticating and authorizing requests.
 
 ### Prerequisites
 
@@ -291,8 +285,8 @@ that allows DCE to control the child account.
 
 ### Deploying DCE from Source
 
-You can build and deploy DCE from source or by using [the CLI](#deploying-dce).
-This section will cover deployment from source.
+You can build and deploy DCE from source or by using [the CLI](#use-the-dce-cli).
+This section will cover deployment from source. Please ensure you have the following:
 
 1. [GNU Make](https://www.gnu.org/software/make/) 3.81+
 1. [Go](https://golang.org/) 1.12.x+
@@ -308,8 +302,7 @@ command as shown here:
         $ git clone https://github.com/Optum/dce.git dce
 
 1. Verify that the AWS CLI is [configured](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html).
-with an IAM user that has admin-level permissions in your AWS 
-[master account](concepts.md#master-account).
+with an IAM user that has admin-level permissions in your AWS `master account <concepts.html#master-account>`_.
 1. Make sure that the AWS region is set to *us-east-1* by using the command
 as shown:
 
@@ -347,14 +340,14 @@ GET https://asdfghjkl.execute-api.us-east-1.amazonaws.com/api/accounts
 
 There are two ways to authenticate with DCE.
 
-1. [Use IAM credentials for quick access to your individual DCE deployment](./api-auth#using-iam-credentials)
-1. [Use Cognito to set up admin and user profiles](./api-auth#using-cognito)
+1. `Use custom IAM credentials for quick access to your individual DCE deployment <api-auth.html#using-iam-credentials>`_
+1. `Use Cognito to set up admin and user profiles <./api-auth.html#using-aws-cognito>`_
 
 ### Adding Accounts to the DCE Account Pool
 
-DCE manages its collection of AWS accounts in an [account pool](concepts.md#account-pool). Each account in the pool is made available for [leasing](concepts.md#lease) by DCE users.
+DCE manages its collection of AWS accounts in an `account pool <concepts.html#account-pool>`_. Each account in the pool is made available for `leasing <concepts.html#lease>`_ by DCE users.
 
-DCE _does not_ create AWS accounts. These must be added to the account pool by a DCE administrator. You can create accounts using the AWS [`CreateAccount` API](https://docs.aws.amazon.com/cli/latest/reference/organizations/create-account.html).
+DCE _does not_ create AWS accounts. These must be added to the account pool by a DCE administrator. You can create accounts using the AWS [CreateAccount API](https://docs.aws.amazon.com/cli/latest/reference/organizations/create-account.html).
 
 The child account must have an administrative IAM Role with a trust relationship to allow the master account to assume the role. For example:
 
@@ -373,7 +366,7 @@ The child account must have an administrative IAM Role with a trust relationship
 }
 ```
 
-Add the account to the pool using the DCE API
+Use the `/accounts` endpoint to add an account to the DCE accounts pool.
 
 **Request**
 
@@ -545,7 +538,7 @@ The easiest way to log into a leased account is by using the [DCE CLI](#logging-
 
 Leases automatically expire based on their expiration date or budget amount, but
 leases may also be administratively destroyed at any time. To destroy
-a lease with the API, send a DELETE request to `/leases` endpoint.
+a lease with the API, send a DELETE request to the `/leases` endpoint.
 
 **Request**
 
@@ -582,9 +575,9 @@ a lease with the API, send a DELETE request to `/leases` endpoint.
 
 ### Budgets and Lease Periods
 
-Every [lease](concepts.md#lease) comes with a configured **per-lease budget**, which limits AWS account spend during the course of the lease. Additionally there are **per-principal budgets**, which limit spend by a single user across multiple lease during a budget period. This prevents a single user from creating multiple leases to as a way of circumventing lease budgets.
+Every `lease <concepts.html#lease>`_ comes with a configured **per-lease budget**, which limits AWS account spend during the course of the lease. Additionally there are **per-principal budgets**, which limit spend by a single user across multiple leases during a budget period. This prevents a single user from creating multiple leases as a way of circumventing lease budgets.
 
-DCE budget may be configured as [Terraform variables](terraform.md#configuring-terraform-variables).
+DCE budget may be configured as `Terraform variables <terraform.html#configuring-terraform-variables>`_.
 
 | Variable | Default | Description |
 | --- | --- | --- |
@@ -596,7 +589,7 @@ DCE budget may be configured as [Terraform variables](terraform.md#configuring-t
 
 ### Account Resets
 
-To [reset](concepts.md#reset) AWS accounts between leases, DCE uses the [open source `aws-nuke` tool](https://github.com/rebuy-de/aws-nuke). This tool attempts to delete every single resource in th AWS account, and will make several attempts to ensure everything is wiped clean.
+To `reset <concepts.html#reset>`_ AWS accounts between leases, DCE uses the [open source aws-nuke tool](https://github.com/rebuy-de/aws-nuke). This tool attempts to delete every single resource in th AWS account, and will make several attempts to ensure everything is wiped clean.
 
 To prevent `aws-nuke` from deleting certain resources, provide a YAML configuration with a list of resource _filters_. (see [`aws-nuke` docs for the YAML filter configuration syntax](https://github.com/rebuy-de/aws-nuke#filtering-resources)). By default, DCE filters out resources which are critical to running DCE -- for example, the IAM roles for your account's `adminRoleArn` / `principalRoleArn`.
 
@@ -606,7 +599,7 @@ As a DCE implementor, you may have additional resources you wish protect from `a
 - Modify as needed.
 - Upload the YAML configuration file to an S3 bucket in the DCE master account
 
-Then configure reset using [Terraform variables](terraform.md#configuring-terraform-variables):
+Then configure reset using `Terraform variables <terraform.html#configuring-terraform-variables>`_:
 
 | Variable | Default | Description |
 | --- | --- | --- |
@@ -618,7 +611,7 @@ Then configure reset using [Terraform variables](terraform.md#configuring-terraf
 
 ### Budget Notifications
 
-When a lease owner approaches or exceeds their budget, they will receive an email notification. These notifications are [configurable as Terraform variables](terraform.md#configuring-terraform-variables):
+When a lease owner approaches or exceeds their budget, they will receive an email notification. These notifications are `configurable as Terraform variables <terraform.html#configuring-terraform-variables>`_:
 
 | Variable | Default | Description |
 | --- | --- | --- |
@@ -677,7 +670,7 @@ table_name=$(cd modules && terraform output leases_table_name)
   --force-delete-table
 ```
 
-After restoring the DynamoDB table from a backup, [re-apply Terraform](terraform.md#deploying-dce-with-terraform) to ensure that your table is in sync with your Terraform configuration.
+After restoring the DynamoDB table from a backup, `re-apply Terraform <terraform.html#deploy-with-terraform>`_ to ensure that your table is in sync with your Terraform configuration.
 
 See [AWS guide for backing up DynamoDB tables](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Backup.Tutorial.html).
 
@@ -685,7 +678,7 @@ See [AWS guide for backing up DynamoDB tables](https://docs.aws.amazon.com/amazo
 
 DCE comes prebuilt with a number of CloudWatch alarms, which will trigger when DCE systems encounter errors or behaves abnormally.
 
-These CloudWatch alarms are delivered to an SNS topic. The ARN of this SNS topic is available as [a Terraform output](terraform.md#accessing-terraform-outputs):
+These CloudWatch alarms are delivered to an SNS topic. The ARN of this SNS topic is available as `a Terraform output <terraform.html#accessing-terraform-outputs>`_:
 
 ```
 cd modules
