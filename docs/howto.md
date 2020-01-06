@@ -73,8 +73,8 @@ will look for credentials, ordered by precedence.
 
 ### Deploying DCE from the CLI
 
-You can build and deploy DCE from [source](#deploying-dce-from-source) or by using the CLI.
-This section will cover deployment using the DCE CLI with credentilas configured by the AWS CLI. See [Configuring AWS Credentials](#configuring-aws-credentials) for alternatives.
+You can build and deploy DCE from `source <#deploying-dce-from-source>`_ or by using the CLI.
+This section will cover deployment using the DCE CLI with credentilas configured by the AWS CLI. See `Configuring AWS Credentials <#configuring-aws-credentials>`_ for alternatives.
 
 1. [Download and install the AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html)
 
@@ -285,7 +285,7 @@ that allows DCE to control the child account.
 
 ### Deploying DCE from Source
 
-You can build and deploy DCE from source or by using [the CLI](#use-the-dce-cli).
+You can build and deploy DCE from source or by using `the CLI <#deploying-dce-from-the-cli>`_.
 This section will cover deployment from source. Please ensure you have the following:
 
 1. [GNU Make](https://www.gnu.org/software/make/) 3.81+
@@ -518,9 +518,9 @@ You may list leases using the `/leases` endpoint
 
 ### Logging into a leased account
 
-The easiest way to log into a leased account is by using the [DCE CLI](#logging-into-a-leased-account). The following steps cover how to log in without using the CLI:
+The easiest way to log into a leased account is by using the `DCE CLI <#logging-into-a-leased-account>`_. The following steps cover how to log in without using the CLI:
 
-1. Configure [DCE Authentication](#authenticating-with-dce) if you have not already done so
+1. Configure `DCE Authentication <#authenticating-with-dce>`_ if you have not already done so
 1. Open a web browser ([Google Chrome is recommended](https://github.com/Optum/dce/issues/166))
 1. Navigate to `${api_url}/auth` and authenticate as prompted. You will be redirected to a page displaying an authentication code. 
 1. Base64 decode the authentication code to view plaintext credentials of the form:
