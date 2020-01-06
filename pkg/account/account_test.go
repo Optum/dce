@@ -1,11 +1,12 @@
 package account
 
 import (
+	"fmt"
 	"testing"
 
 	dataMocks "github.com/Optum/dce/pkg/account/mocks"
+	"github.com/Optum/dce/pkg/errors"
 	"github.com/Optum/dce/pkg/model"
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -15,13 +16,7 @@ func ptrString(s string) *string {
 	return &ptrS
 }
 
-func ptrInt64(i int64) *int64 {
-	ptrI := i
-	return &ptrI
-}
-
 func TestProperties(t *testing.T) {
-	accountStatusReady := model.Ready
 	tests := []struct {
 		name    string
 		account model.Account
@@ -29,8 +24,8 @@ func TestProperties(t *testing.T) {
 		{
 			name: "standard",
 			account: model.Account{
-				ID:           ptrString("abc123"),
-				Status:       &accountStatusReady,
+				ID:           ptrString("123456789012"),
+				Status:       model.AccountStatusReady.AccountStatusPtr(),
 				AdminRoleArn: ptrString("test:arn"),
 			},
 		},
@@ -44,49 +39,93 @@ func TestProperties(t *testing.T) {
 			assert.Equal(t, tt.account.Metadata, account.Metadata())
 			assert.Equal(t, tt.account.PrincipalRoleArn, account.PrincipalRoleArn())
 			assert.Equal(t, tt.account.PrincipalPolicyHash, account.PrincipalPolicyHash())
+			assert.Equal(t, tt.account.Status, account.Status())
 		})
 	}
 }
 
-func TestGet(t *testing.T) {
+func TestGetAccountByID(t *testing.T) {
 
-	t.Run("should return an account object", func(t *testing.T) {
-		mocksReader := &dataMocks.Reader{}
-		mocksWriter := &dataMocks.WriterDeleter{}
+	tests := []struct {
+		name       string
+		ID         string
+		returnData *model.Account
+		returnErr  error
+		expReturn  *Account
+		expErr     error
+	}{
+		{
+			name: "should get an account by ID",
+			ID:   "123456789012",
+			returnData: &model.Account{
+				ID:     ptrString("123456789012"),
+				Status: model.AccountStatusReady.AccountStatusPtr(),
+			},
+			returnErr: nil,
+			expReturn: &Account{
+				writer: nil,
+				data: model.Account{
+					ID:     ptrString("123456789012"),
+					Status: model.AccountStatusReady.AccountStatusPtr(),
+				},
+			},
+			expErr: nil,
+		},
+		{
+			name:       "should get failure",
+			returnData: nil,
+			returnErr:  errors.NewInternalServer("failure", fmt.Errorf("original failure")),
+			expReturn:  nil,
+			expErr:     errors.NewInternalServer("failure", fmt.Errorf("original failure")),
+		},
+	}
 
-		accountID := "abc123"
-		mocksReader.On("GetAccountByID", accountID, mock.Anything).
-			Return(nil)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mocksReader := &dataMocks.Reader{}
 
-		account, err := GetAccountByID(accountID, mocksReader, mocksWriter)
-		assert.NoError(t, err)
-		assert.NotNil(t, account)
-	})
+			mocksReader.On("GetAccountByID", tt.ID).
+				Return(tt.returnData, tt.returnErr)
 
+			account, err := GetAccountByID(tt.ID, mocksReader, nil)
+			assert.True(t, errors.Is(err, tt.expErr))
+			assert.Equal(t, tt.expReturn, account)
+		})
+	}
 }
 
 func TestDelete(t *testing.T) {
-	accountStatusReady := model.Ready
-	accountStatusLeased := model.Leased
 	tests := []struct {
-		name    string
-		account model.Account
-		errMsg  string
+		name      string
+		expErr    error
+		returnErr error
+		account   model.Account
 	}{
 		{
 			name: "should delete an account",
 			account: model.Account{
-				ID:     ptrString("abc123"),
-				Status: &accountStatusReady,
+				ID:     ptrString("123456789012"),
+				Status: model.AccountStatusReady.AccountStatusPtr(),
 			},
+			returnErr: nil,
 		},
 		{
 			name: "should error when account leased",
 			account: model.Account{
-				ID:     ptrString("abc123"),
-				Status: &accountStatusLeased,
+				ID:     ptrString("123456789012"),
+				Status: model.AccountStatusLeased.AccountStatusPtr(),
 			},
-			errMsg: "operation cannot be fulfilled on account \"abc123\": accountStatus: must not be leased.",
+			returnErr: nil,
+			expErr:    errors.NewConflict("account", "123456789012", fmt.Errorf("accountStatus: must not be leased.")), //nolint golint
+		},
+		{
+			name: "should error when delete fails",
+			account: model.Account{
+				ID:     ptrString("123456789012"),
+				Status: model.AccountStatusReady.AccountStatusPtr(),
+			},
+			returnErr: errors.NewInternalServer("failure", fmt.Errorf("original failure")),
+			expErr:    errors.NewInternalServer("failure", nil),
 		},
 	}
 
@@ -94,15 +133,11 @@ func TestDelete(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mocksDeleter := &dataMocks.WriterDeleter{}
 			mocksDeleter.On("DeleteAccount", mock.Anything).
-				Return(nil)
+				Return(tt.returnErr)
 			account := New(mocksDeleter, tt.account)
 
 			err := account.Delete()
-			if tt.errMsg != "" {
-				assert.EqualError(t, err, tt.errMsg)
-			} else {
-				assert.Nil(t, err)
-			}
+			assert.True(t, errors.Is(err, tt.expErr))
 
 		})
 	}
@@ -111,7 +146,7 @@ func TestDelete(t *testing.T) {
 func TestMarshallJSON(t *testing.T) {
 
 	t.Run("should marshall into JSON", func(t *testing.T) {
-		accountID := "abc123"
+		accountID := "123456789012"
 		accountStatus := model.AccountStatus("Ready")
 
 		account := Account{
@@ -123,113 +158,174 @@ func TestMarshallJSON(t *testing.T) {
 		b, err := account.MarshalJSON()
 		assert.NoError(t, err)
 		assert.Equal(t,
-			"{\"id\":\"abc123\",\"accountStatus\":\"Ready\"}",
+			"{\"id\":\"123456789012\",\"accountStatus\":\"Ready\"}",
 			string(b))
-	})
-
-}
-
-func TestUpdatStatus(t *testing.T) {
-
-	t.Run("should Update status", func(t *testing.T) {
-		accountID := "abc123"
-		mocksWriter := &dataMocks.WriterDeleter{}
-		accountStatus := model.AccountStatus("Ready")
-		lastModifiedOn := int64(1573592058)
-
-		mocksWriter.On("WriteAccount", mock.Anything, mock.Anything).
-			Return(nil)
-
-		account := Account{
-			writer: mocksWriter,
-			data: model.Account{
-				ID:             &accountID,
-				Status:         &accountStatus,
-				LastModifiedOn: &lastModifiedOn,
-				CreatedOn:      &lastModifiedOn,
-				AdminRoleArn:   ptrString("test:arn"),
-			},
-		}
-
-		newStatus := model.Leased
-		err := account.UpdateStatus(newStatus)
-		assert.NoError(t, err)
-		assert.Equal(t, *account.data.Status, newStatus)
-		assert.NotEqual(t, *account.data.LastModifiedOn, int64(1573592058))
 	})
 
 }
 
 func TestUpdate(t *testing.T) {
 
-	t.Run("should Update", func(t *testing.T) {
-		accountID := "123456789012"
-		accountStatusReady := model.Ready
-		mocksWriter := &dataMocks.WriterDeleter{}
-		mocksManager := &dataMocks.Manager{}
-		metadata := map[string]interface{}{
-			"key": "value",
-		}
-
-		mocksWriter.On("WriteAccount", mock.MatchedBy(func(input *model.Account) bool {
-			return (*input.ID == accountID &&
-				*input.Status == "Ready" &&
-				input.Metadata["key"] == "value")
-		}), mock.AnythingOfType("*int64")).Return().
-			Return(nil)
-
-		mocksManager.On("Setup", mock.AnythingOfType("string")).Return(nil)
-
-		account := New(
-			mocksWriter,
-			model.Account{
-				ID:           &accountID,
-				Status:       &accountStatusReady,
+	tests := []struct {
+		name        string
+		expErr      error
+		returnErr   error
+		amReturnErr error
+		origAccount model.Account
+		updAccount  model.Account
+		expAccount  model.Account
+	}{
+		{
+			name: "should update",
+			origAccount: model.Account{
+				ID:           ptrString("123456789012"),
+				Status:       model.AccountStatusReady.AccountStatusPtr(),
 				AdminRoleArn: ptrString("test:arn"),
-			})
+			},
+			updAccount: model.Account{
+				AdminRoleArn: ptrString("test:arn:new"),
+				Metadata: map[string]interface{}{
+					"key": "value",
+				},
+			},
+			expAccount: model.Account{
+				ID:           ptrString("123456789012"),
+				Status:       model.AccountStatusReady.AccountStatusPtr(),
+				AdminRoleArn: ptrString("test:arn"),
+				Metadata: map[string]interface{}{
+					"key": "value",
+				},
+			},
+			returnErr: nil,
+		},
+		{
+			name: "should fail validation on update",
+			origAccount: model.Account{
+				ID:     ptrString("123456789012"),
+				Status: model.AccountStatusReady.AccountStatusPtr(),
+			},
+			updAccount: model.Account{
+				ID: ptrString("abc125"),
+			},
+			expAccount: model.Account{
+				ID:           ptrString("123456789012"),
+				Status:       model.AccountStatusReady.AccountStatusPtr(),
+				AdminRoleArn: ptrString("test:arn"),
+			},
+			returnErr: nil,
+			expErr:    errors.NewValidation("account", fmt.Errorf("id: should be nil.")), //nolint golint
+		},
+		{
+			name: "should fail on save",
+			origAccount: model.Account{
+				ID:           ptrString("123456789012"),
+				Status:       model.AccountStatusReady.AccountStatusPtr(),
+				AdminRoleArn: ptrString("test:arn"),
+			},
+			updAccount: model.Account{
+				Metadata: map[string]interface{}{
+					"key": "value",
+				},
+			},
+			expAccount: model.Account{
+				ID:           ptrString("123456789012"),
+				Status:       model.AccountStatusReady.AccountStatusPtr(),
+				AdminRoleArn: ptrString("test:arn"),
+				Metadata: map[string]interface{}{
+					"key": "value",
+				},
+			},
+			returnErr: errors.NewInternalServer("failure", fmt.Errorf("original failure")),
+			expErr:    errors.NewInternalServer("failure", nil),
+		},
+	}
 
-		newData := model.Account{
-			Metadata: metadata,
-		}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mocksWriter := &dataMocks.WriterDeleter{}
+			mocksManager := &dataMocks.Manager{}
 
-		err := account.Update(newData, mocksManager)
+			mocksWriter.On("WriteAccount", mock.MatchedBy(func(input *model.Account) bool {
+				return (*input.ID == *tt.expAccount.ID)
+			}), mock.AnythingOfType("*int64")).Return(tt.returnErr)
 
-		assert.NoError(t, err)
-		assert.NotEqual(t, *account.data.LastModifiedOn, int64(1573592058))
-		assert.Equal(t, account.data.Metadata, map[string]interface{}{
-			"key": "value",
+			mocksManager.On("Setup", mock.AnythingOfType("string")).Return(tt.amReturnErr)
+
+			account := New(mocksWriter, tt.origAccount)
+
+			err := account.Update(tt.updAccount, mocksManager)
+
+			assert.True(t, errors.Is(err, tt.expErr))
+			assert.NotEqual(t, tt.origAccount.LastModifiedOn, account)
+			if tt.returnErr == nil {
+				assert.Equal(t, tt.expAccount.Metadata, account.data.Metadata)
+			}
+
 		})
-	})
-
+	}
 }
 
 func TestGetReadyAccount(t *testing.T) {
 
-	t.Run("should be able to get a ready account", func(t *testing.T) {
-		mocksReader := &dataMocks.Reader{}
-		mocksWriter := &dataMocks.WriterDeleter{}
-		accountStatus := model.Ready
+	tests := []struct {
+		name       string
+		returnData *model.Accounts
+		returnErr  error
+		expReturn  *Account
+		expErr     error
+	}{
+		{
+			name: "should get a ready account",
+			returnData: &model.Accounts{
+				{
+					ID:     ptrString("123456789012"),
+					Status: model.AccountStatusReady.AccountStatusPtr(),
+				},
+			},
+			returnErr: nil,
+			expReturn: &Account{
+				writer: nil,
+				data: model.Account{
+					ID:     ptrString("123456789012"),
+					Status: model.AccountStatusReady.AccountStatusPtr(),
+				},
+			},
+			expErr: nil,
+		},
+		{
+			name: "should get failure",
+			returnData: &model.Accounts{
+				{
+					ID:     ptrString("123456789012"),
+					Status: model.AccountStatusReady.AccountStatusPtr(),
+				},
+			},
+			returnErr: errors.NewInternalServer("failure", fmt.Errorf("original failure")),
+			expReturn: nil,
+			expErr:    errors.NewInternalServer("failure", fmt.Errorf("original failure")),
+		},
+		{
+			name:       "should fail on empty list",
+			returnData: &model.Accounts{},
+			returnErr:  nil,
+			expReturn:  nil,
+			expErr:     errors.NewNotFound("account", "ready"),
+		},
+	}
 
-		mocksReader.On("GetAccounts", &model.Account{
-			Status: model.Ready.AccountStatusPtr(),
-		}).
-			Return(
-				&model.Accounts{
-					model.Account{
-						ID:     aws.String("1"),
-						Status: &accountStatus,
-					},
-					model.Account{
-						ID:     aws.String("2"),
-						Status: &accountStatus,
-					},
-				}, nil,
-			)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mocksReader := &dataMocks.Reader{}
 
-		readyAccount, err := GetReadyAccount(mocksReader, mocksWriter)
-		assert.NoError(t, err)
-		assert.Equal(t, *readyAccount.data.ID, "1")
-		assert.Equal(t, *readyAccount.data.Status, model.AccountStatus("Ready"))
-	})
+			mocksReader.On("GetAccounts", &model.Account{
+				Status: model.AccountStatusReady.AccountStatusPtr(),
+			}).
+				Return(tt.returnData, tt.returnErr)
+
+			readyAccount, err := GetReadyAccount(mocksReader, nil)
+			assert.True(t, errors.Is(err, tt.expErr))
+			assert.Equal(t, tt.expReturn, readyAccount)
+		})
+	}
 
 }

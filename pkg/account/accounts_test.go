@@ -9,68 +9,80 @@ import (
 	"github.com/Optum/dce/pkg/model"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 func TestGetAccounts(t *testing.T) {
 
-	t.Run("should return a list of accounts by Status", func(t *testing.T) {
-		mocksReader := &dataMocks.MultipleReader{}
-		mocksReader.On("GetAccounts", &model.Account{
-			Status: model.Ready.AccountStatusPtr(),
-		}).
-			Return(
-				&model.Accounts{
-					model.Account{
-						ID:     aws.String("1"),
-						Status: model.Ready.AccountStatusPtr(),
-					},
-					model.Account{
-						ID:     aws.String("2"),
-						Status: model.Ready.AccountStatusPtr(),
-					},
-				}, nil,
-			)
-
-		accounts, err := GetAccounts(&model.Account{
-			Status: model.Ready.AccountStatusPtr(),
-		}, mocksReader)
-		assert.NoError(t, err)
-		assert.Len(t, *accounts, 2)
-		assert.Equal(t, *(*accounts)[0].data.ID, "1")
-		assert.Equal(t, *(*accounts)[0].data.Status, model.AccountStatus("Ready"))
-	})
-
-}
-
-func TestUpdateAccount(t *testing.T) {
-
-	t.Run("should fail when Status is provided", func(t *testing.T) {
-		mocksWriter := &dataMocks.WriterDeleter{}
-		mocksManager := &dataMocks.Manager{}
-		accountReadyStatus := model.Ready
-		accountNotReadyStatus := model.NotReady
-		accountID := "123456789012"
-		mocksWriter.On("Update", mock.AnythingOfType("*model.Account"), mock.AnythingOfType("*int64")).
-			Return(nil)
-
-		mocksManager.On("Setup", "roleArn").Return(nil)
-
-		account := Account{
-			writer: mocksWriter,
-			data: model.Account{
-				ID:     &accountID,
-				Status: &accountReadyStatus,
+	tests := []struct {
+		name       string
+		inputData  *model.Account
+		returnData *model.Accounts
+		returnErr  error
+		expResult  *Accounts
+		expErr     error
+	}{
+		{
+			name: "standard",
+			inputData: &model.Account{
+				Status: model.AccountStatusReady.AccountStatusPtr(),
 			},
-		}
-		data := model.Account{
-			Status: &accountNotReadyStatus,
-		}
-		err := account.Update(data, mocksManager)
-		fmt.Printf("%+v", err)
-		assert.True(t, errors.Is(err, errors.NewValidation("account", fmt.Errorf("accountStatus: should be nil.")))) //nolint:golint
-		assert.Equal(t, *account.data.ID, accountID)
-		assert.Equal(t, *account.data.Status, accountReadyStatus)
-	})
+			returnData: &model.Accounts{
+				model.Account{
+					ID:     aws.String("1"),
+					Status: model.AccountStatusReady.AccountStatusPtr(),
+				},
+				model.Account{
+					ID:     aws.String("2"),
+					Status: model.AccountStatusReady.AccountStatusPtr(),
+				},
+			},
+			returnErr: nil,
+			expErr:    nil,
+			expResult: &Accounts{
+				data: model.Accounts{
+					model.Account{
+						ID:     ptrString("1"),
+						Status: model.AccountStatusReady.AccountStatusPtr(),
+					},
+					model.Account{
+						ID:     ptrString("2"),
+						Status: model.AccountStatusReady.AccountStatusPtr(),
+					},
+				},
+			},
+		},
+		{
+			name: "internal error",
+			inputData: &model.Account{
+				Status: model.AccountStatusReady.AccountStatusPtr(),
+			},
+			returnData: nil,
+			returnErr:  errors.NewInternalServer("failure", fmt.Errorf("original error")),
+			expErr:     errors.NewInternalServer("failure", fmt.Errorf("original error")),
+			expResult:  nil,
+		},
+		{
+			name: "validation error",
+			inputData: &model.Account{
+				ID: ptrString("123456789012"),
+			},
+			returnData: nil,
+			returnErr:  nil,
+			expErr:     errors.NewValidation("account", fmt.Errorf("id: should be nil.")), //nolint golint
+			expResult:  nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mocksReader := &dataMocks.MultipleReader{}
+			mocksReader.On("GetAccounts", tt.inputData).
+				Return(tt.returnData, tt.expErr)
+
+			accounts, err := GetAccounts(tt.inputData, mocksReader)
+			assert.True(t, errors.Is(err, tt.expErr))
+			assert.Equal(t, tt.expResult, accounts)
+		})
+	}
 
 }

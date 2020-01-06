@@ -7,16 +7,8 @@ import (
 )
 
 // Accounts is a list of type Account
-type Accounts []Account
-
-func modelToAccounts(accounts *model.Accounts) *Accounts {
-	res := Accounts{}
-	for _, a := range *accounts {
-		res = append(res, Account{
-			data: a,
-		})
-	}
-	return &res
+type Accounts struct {
+	data model.Accounts
 }
 
 // GetAccounts Get a list of accounts based on Principal ID
@@ -29,10 +21,14 @@ func GetAccounts(q *model.Account, d MultipleReader) (*Accounts, error) {
 		return nil, errors.NewValidation("account", err)
 	}
 
+	newAccounts := &Accounts{
+		data: model.Accounts{},
+	}
 	accounts, err := d.GetAccounts(q)
 	if err != nil {
 		return nil, err
 	}
+	newAccounts.data = *accounts
 
-	return modelToAccounts(accounts), nil
+	return newAccounts, nil
 }

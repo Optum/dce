@@ -10,13 +10,13 @@ type Deleter struct {
 	mock.Mock
 }
 
-// DeleteAccount provides a mock function with given fields: inptut
-func (_m *Deleter) DeleteAccount(inptut *model.Account) error {
-	ret := _m.Called(inptut)
+// DeleteAccount provides a mock function with given fields: input
+func (_m *Deleter) DeleteAccount(input *model.Account) error {
+	ret := _m.Called(input)
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(*model.Account) error); ok {
-		r0 = rf(inptut)
+		r0 = rf(input)
 	} else {
 		r0 = ret.Error(0)
 	}

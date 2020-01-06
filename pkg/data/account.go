@@ -33,10 +33,16 @@ func (a *Account) WriteAccount(account *model.Account, lastModifiedOn *int64) er
 	if lastModifiedOn != nil {
 		modExpr := expression.Name("LastModifiedOn").Equal(expression.Value(lastModifiedOn))
 		expr, err = expression.NewBuilder().WithCondition(modExpr).Build()
+		if err != nil {
+			return errors.NewInternalServer("error building query", err)
+		}
 		returnValue = "NONE"
 	} else {
 		modExpr := expression.Name("LastModifiedOn").AttributeNotExists()
 		expr, err = expression.NewBuilder().WithCondition(modExpr).Build()
+		if err != nil {
+			return errors.NewInternalServer("error building query", err)
+		}
 		returnValue = "NONE"
 	}
 
@@ -102,7 +108,7 @@ func (a *Account) DeleteAccount(account *model.Account) error {
 }
 
 // GetAccountByID the Account record by ID
-func (a *Account) GetAccountByID(accountID string, account *model.Account) error {
+func (a *Account) GetAccountByID(accountID string) (*model.Account, error) {
 
 	res, err := a.DynamoDB.GetItem(
 		&dynamodb.GetItemInput{
@@ -118,15 +124,23 @@ func (a *Account) GetAccountByID(accountID string, account *model.Account) error
 	)
 
 	if err != nil {
-		return errors.NewInternalServer(
+		return nil, errors.NewInternalServer(
 			fmt.Sprintf("get failed for account %q", accountID),
 			err,
 		)
 	}
 
 	if len(res.Item) == 0 {
-		return errors.NewNotFound("account", accountID)
+		return nil, errors.NewNotFound("account", accountID)
 	}
 
-	return dynamodbattribute.UnmarshalMap(res.Item, &account)
+	account := model.Account{}
+	err = dynamodbattribute.UnmarshalMap(res.Item, &account)
+	if err != nil {
+		return nil, errors.NewInternalServer(
+			fmt.Sprintf("failure unmarshaling account %q", accountID),
+			err,
+		)
+	}
+	return &account, nil
 }

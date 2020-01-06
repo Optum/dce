@@ -19,16 +19,16 @@ type Accounts []Account
 type AccountStatus string
 
 const (
-	// None status
-	None AccountStatus = "None"
-	// Ready status
-	Ready AccountStatus = "Ready"
-	// NotReady status
-	NotReady AccountStatus = "NotReady"
-	// Leased status
-	Leased AccountStatus = "Leased"
-	// Orphaned status
-	Orphaned AccountStatus = "Orphaned"
+	// AccountStatusNone status
+	AccountStatusNone AccountStatus = "None"
+	// AccountStatusReady status
+	AccountStatusReady AccountStatus = "Ready"
+	// AccountStatusNotReady status
+	AccountStatusNotReady AccountStatus = "NotReady"
+	// AccountStatusLeased status
+	AccountStatusLeased AccountStatus = "Leased"
+	// AccountStatusOrphaned status
+	AccountStatusOrphaned AccountStatus = "Orphaned"
 )
 
 // String returns the string value of AccountStatus

@@ -10,13 +10,13 @@ type ReaderWriterDeleter struct {
 	mock.Mock
 }
 
-// DeleteAccount provides a mock function with given fields: inptut
-func (_m *ReaderWriterDeleter) DeleteAccount(inptut *model.Account) error {
-	ret := _m.Called(inptut)
+// DeleteAccount provides a mock function with given fields: input
+func (_m *ReaderWriterDeleter) DeleteAccount(input *model.Account) error {
+	ret := _m.Called(input)
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(*model.Account) error); ok {
-		r0 = rf(inptut)
+		r0 = rf(input)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -24,18 +24,27 @@ func (_m *ReaderWriterDeleter) DeleteAccount(inptut *model.Account) error {
 	return r0
 }
 
-// GetAccountByID provides a mock function with given fields: accountID, _a1
-func (_m *ReaderWriterDeleter) GetAccountByID(accountID string, _a1 *model.Account) error {
-	ret := _m.Called(accountID, _a1)
+// GetAccountByID provides a mock function with given fields: accountID
+func (_m *ReaderWriterDeleter) GetAccountByID(accountID string) (*model.Account, error) {
+	ret := _m.Called(accountID)
 
-	var r0 error
-	if rf, ok := ret.Get(0).(func(string, *model.Account) error); ok {
-		r0 = rf(accountID, _a1)
+	var r0 *model.Account
+	if rf, ok := ret.Get(0).(func(string) *model.Account); ok {
+		r0 = rf(accountID)
 	} else {
-		r0 = ret.Error(0)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.Account)
+		}
 	}
 
-	return r0
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(accountID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // GetAccounts provides a mock function with given fields: _a0
@@ -54,29 +63,6 @@ func (_m *ReaderWriterDeleter) GetAccounts(_a0 *model.Account) (*model.Accounts,
 	var r1 error
 	if rf, ok := ret.Get(1).(func(*model.Account) error); ok {
 		r1 = rf(_a0)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// GetAccountsByStatus provides a mock function with given fields: status
-func (_m *ReaderWriterDeleter) GetAccountsByStatus(status string) (*model.Accounts, error) {
-	ret := _m.Called(status)
-
-	var r0 *model.Accounts
-	if rf, ok := ret.Get(0).(func(string) *model.Accounts); ok {
-		r0 = rf(status)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*model.Accounts)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(string) error); ok {
-		r1 = rf(status)
 	} else {
 		r1 = ret.Error(1)
 	}
