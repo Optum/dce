@@ -20,10 +20,7 @@ if [ ! "$(command -v ${GOLANG_LINT_CMD})" ]; then
   go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
 fi
 
-golangci-lint run \
-  --exclude "composite literal uses unkeyed fields" \
-  --exclude '`main` is unused' \
-  --timeout 5m0s
+golangci-lint run
 echo "done."
 
 echo -n "Formatting terraform code.... "
@@ -35,5 +32,5 @@ echo -n "Linting terraform code... "
 cd modules
 terraform init &> /dev/null
 # TODO: test to see if tflint is installed first.
-tflint --deep ./
+tflint --deep ./ | (grep -v "Awesome" || true)
 echo -e '\b done.'

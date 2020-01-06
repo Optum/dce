@@ -1,0 +1,7 @@
+run:
+  timeout: 5m0s
+
+issues:
+  exclude:
+    - "composite literal uses unkeyed fields"
+    - "`main` is unused"
