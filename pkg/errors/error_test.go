@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var errOriginal = errors.New("original error")
@@ -137,7 +138,8 @@ func TestNew(t *testing.T) {
 			assert.Equal(t, tt.err.OriginalError(), tt.expectedStatusError.cause)
 
 			var b bytes.Buffer
-			_ = json.NewEncoder(&b).Encode(tt.err)
+			err := json.NewEncoder(&b).Encode(tt.err)
+			require.Nil(t, err)
 			assert.Equal(
 				t,
 				tt.expectedJSON,
@@ -181,7 +183,8 @@ func TestNewGeneric(t *testing.T) {
 			assert.Equal(t, tt.err.OriginalError(), tt.expectedStatusError.cause)
 
 			var b bytes.Buffer
-			json.NewEncoder(&b).Encode(tt.err)
+			err := json.NewEncoder(&b).Encode(tt.err)
+			require.Nil(t, err)
 			assert.Equal(
 				t,
 				tt.expectedJSON,
@@ -216,7 +219,7 @@ func TestFrameFormat(t *testing.T) {
 			"%+v",
 			"original error\n" +
 				"github.com/Optum/dce/pkg/errors.init\n" +
-				"\t.+/.*/error_test.go:17\n",
+				"\t.+/.*/error_test.go:18\n",
 		},
 	}
 

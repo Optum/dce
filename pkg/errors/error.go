@@ -2,9 +2,10 @@ package errors
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
 	"io"
 	"net/http"
+
+	"github.com/pkg/errors"
 )
 
 // These are the Codes used in the error messages returned to customers

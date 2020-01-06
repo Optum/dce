@@ -35,6 +35,6 @@ func WriteAPIResponse(w http.ResponseWriter, status int, body interface{}) {
 	if err != nil {
 		log.Printf("error encoding and writing message: %+v", body)
 		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(errors.NewInternalServer("error writing response", err))
+		_ = json.NewEncoder(w).Encode(errors.NewInternalServer("error writing response", err))
 	}
 }

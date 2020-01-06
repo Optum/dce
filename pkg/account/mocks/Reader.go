@@ -10,18 +10,27 @@ type Reader struct {
 	mock.Mock
 }
 
-// GetAccountByID provides a mock function with given fields: accountID, _a1
-func (_m *Reader) GetAccountByID(accountID string, _a1 *model.Account) error {
-	ret := _m.Called(accountID, _a1)
+// GetAccountByID provides a mock function with given fields: accountID
+func (_m *Reader) GetAccountByID(accountID string) (*model.Account, error) {
+	ret := _m.Called(accountID)
 
-	var r0 error
-	if rf, ok := ret.Get(0).(func(string, *model.Account) error); ok {
-		r0 = rf(accountID, _a1)
+	var r0 *model.Account
+	if rf, ok := ret.Get(0).(func(string) *model.Account); ok {
+		r0 = rf(accountID)
 	} else {
-		r0 = ret.Error(0)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.Account)
+		}
 	}
 
-	return r0
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(accountID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // GetAccounts provides a mock function with given fields: _a0
@@ -40,29 +49,6 @@ func (_m *Reader) GetAccounts(_a0 *model.Account) (*model.Accounts, error) {
 	var r1 error
 	if rf, ok := ret.Get(1).(func(*model.Account) error); ok {
 		r1 = rf(_a0)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// GetAccountsByStatus provides a mock function with given fields: status
-func (_m *Reader) GetAccountsByStatus(status string) (*model.Accounts, error) {
-	ret := _m.Called(status)
-
-	var r0 *model.Accounts
-	if rf, ok := ret.Get(0).(func(string) *model.Accounts); ok {
-		r0 = rf(status)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*model.Accounts)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(string) error); ok {
-		r1 = rf(status)
 	} else {
 		r1 = ret.Error(1)
 	}
