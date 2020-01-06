@@ -7,8 +7,6 @@ import (
 	"math"
 	"net/http"
 	"time"
-
-	"github.com/Optum/dce/pkg/usage"
 )
 
 type leaseValidationContext struct {
@@ -16,7 +14,6 @@ type leaseValidationContext struct {
 	principalBudgetAmount    float64
 	maxLeasePeriod           int64
 	principalBudgetPeriod    string
-	usageRecords             []*usage.Usage
 	defaultLeaseLengthInDays int
 }
 

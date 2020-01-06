@@ -14,29 +14,6 @@ import (
 	"github.com/Optum/dce/pkg/errors"
 )
 
-// GetAllAccounts - Returns all the accounts.
-func GetAllAccounts(w http.ResponseWriter, r *http.Request) {
-	// Fetch the accounts.
-	accounts, err := Dao.GetAccounts()
-
-	if err != nil {
-		errorMessage := fmt.Sprintf("Failed to query database: %s", err)
-		log.Print(errorMessage)
-		api.WriteAPIErrorResponse(w, errors.NewInternalServer(errorMessage, nil))
-		return
-	}
-
-	// Serialize them for the JSON response.
-	accountResponses := []*response.AccountResponse{}
-
-	for _, a := range accounts {
-		acctRes := response.AccountResponse(*a)
-		accountResponses = append(accountResponses, &acctRes)
-	}
-
-	json.NewEncoder(w).Encode(accountResponses)
-}
-
 // GetAccountByID - Returns the single account by ID
 func GetAccountByID(w http.ResponseWriter, r *http.Request) {
 
@@ -57,7 +34,7 @@ func GetAccountByID(w http.ResponseWriter, r *http.Request) {
 
 	acctRes := response.AccountResponse(*account)
 
-	json.NewEncoder(w).Encode(acctRes)
+	_ = json.NewEncoder(w).Encode(acctRes)
 }
 
 // GetAccountByStatus - Returns the accounts by status
@@ -65,9 +42,13 @@ func GetAccountByStatus(w http.ResponseWriter, r *http.Request) {
 	// Fetch the accounts.
 	accountStatus := r.FormValue("accountStatus")
 	status, err := db.ParseAccountStatus(accountStatus)
+	if err != nil {
+		log.Print(err)
+		api.WriteAPIErrorResponse(w, errors.NewValidation(err.Error(), nil))
+		return
+	}
 
 	accounts, err := Dao.FindAccountsByStatus(status)
-
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed to query database: %s", err)
 		log.Print(errorMessage)
@@ -88,6 +69,6 @@ func GetAccountByStatus(w http.ResponseWriter, r *http.Request) {
 		accountResponses = append(accountResponses, &acctRes)
 	}
 
-	json.NewEncoder(w).Encode(accountResponses)
+	_ = json.NewEncoder(w).Encode(accountResponses)
 
 }

@@ -65,6 +65,9 @@ func handler(ctx context.Context, snsEvent events.SNSEvent) error {
 			PolicyBucket:         common.RequireEnv("ARTIFACTS_BUCKET"),
 			PolicyBucketKey:      common.RequireEnv("PRINCIPAL_POLICY_S3_KEY"),
 		})
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -107,6 +110,9 @@ func processRecord(input processRecordInput) error {
 		PrincipalIAMDenyTags: input.PrincipalIAMDenyTags,
 		AdminRoleArn:         accountRes.AdminRoleArn,
 	})
+	if err != nil {
+		return err
+	}
 
 	if policyHash == accountRes.PrincipalPolicyHash {
 		log.Printf("Policy already matches.  Not updating '%s'", principalPolicyArn.String())

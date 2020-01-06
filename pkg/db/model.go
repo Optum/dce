@@ -70,7 +70,7 @@ func ParseAccountStatus(status string) (AccountStatus, error) {
 	case "leased":
 		return Leased, nil
 	}
-	return None, fmt.Errorf("Cannot parse value %s", status)
+	return None, fmt.Errorf("Invalid account status %s", status)
 }
 
 // LeaseStatus is a account lease status type

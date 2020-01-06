@@ -94,6 +94,6 @@ func readFile(path string) string {
 	}
 	defer file.Close()
 
-	b, err := ioutil.ReadAll(file)
+	b, _ := ioutil.ReadAll(file)
 	return string(b)
 }

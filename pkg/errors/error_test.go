@@ -137,7 +137,7 @@ func TestNew(t *testing.T) {
 			assert.Equal(t, tt.err.OriginalError(), tt.expectedStatusError.cause)
 
 			var b bytes.Buffer
-			json.NewEncoder(&b).Encode(tt.err)
+			_ = json.NewEncoder(&b).Encode(tt.err)
 			assert.Equal(
 				t,
 				tt.expectedJSON,

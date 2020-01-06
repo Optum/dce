@@ -3,6 +3,7 @@
 package tests
 
 import (
+	"github.com/stretchr/testify/require"
 	"testing"
 
 	"github.com/Optum/dce/pkg/config"
@@ -37,6 +38,7 @@ func TestS3Client_FromConfig(t *testing.T) {
 	// This is what the client code would look like...
 	var s3Client s3iface.S3API
 	err = svcBldr.Config.GetService(&s3Client)
+	require.Nil(t, err)
 
 	// try to use the client to list the bucket
 	result, err := s3Client.ListBuckets(&s3.ListBucketsInput{})
@@ -56,6 +58,7 @@ func TestS3Client_FromConfig_WithBadRegion(t *testing.T) {
 	// This is what the client code would look like...
 	var s3Client s3iface.S3API
 	err = svcBldr.Config.GetService(&s3Client)
+	require.Nil(t, err)
 
 	// try to use the client to list the bucket
 	_, err = s3Client.ListBuckets(&s3.ListBucketsInput{})
@@ -78,6 +81,7 @@ func TestS3ClientAndSNSClient_FromConfig(t *testing.T) {
 
 	var s3Client s3iface.S3API
 	err = svcBldr.Config.GetService(&s3Client)
+	require.Nil(t, err)
 
 	// try to use the client to list the bucket
 	result, err := s3Client.ListBuckets(&s3.ListBucketsInput{})
@@ -86,6 +90,7 @@ func TestS3ClientAndSNSClient_FromConfig(t *testing.T) {
 
 	var snsClient snsiface.SNSAPI
 	err = svcBldr.Config.GetService(&snsClient)
+	require.Nil(t, err)
 
 	snsResult, err := snsClient.ListTopics(&sns.ListTopicsInput{})
 	assert.Nil(t, err)

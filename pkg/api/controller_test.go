@@ -53,7 +53,6 @@ func TestRouter_Route(t *testing.T) {
 		request            events.APIGatewayProxyRequest
 		ctx                context.Context
 		expectedController *mockController.Controller
-		expectedErr        error
 		user               api.User
 	}{
 		{

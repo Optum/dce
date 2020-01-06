@@ -49,7 +49,10 @@ func rbenqHandler(cloudWatchEvent events.CloudWatchEvent) error {
 
 	// Create the Queue Service
 	queueURL := common.RequireEnv("RESET_SQS_URL")
-	awsSession := session.New()
+	awsSession, err := session.NewSession()
+	if err != nil {
+		return err
+	}
 	sqsClient := sqs.New(awsSession)
 	queue := common.SQSQueue{
 		Client: sqsClient,

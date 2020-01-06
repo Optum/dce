@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/Optum/dce/pkg/api"
 	"github.com/Optum/dce/pkg/config"
-	"github.com/Optum/dce/pkg/config/configiface"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/awslabs/aws-lambda-go-api-proxy/gorillamux"
@@ -25,10 +24,6 @@ type credentialsWebPageConfig struct {
 
 var (
 	muxLambda *gorillamux.GorillaMuxAdapter
-	// CurrentAccountID - The ID of the AWS Account this is running in
-	CurrentAccountID *string
-	// Services handles the configuration of the AWS services
-	Services configiface.ServiceBuilder
 	// Settings - the configuration settings for the controller
 	Settings *credentialsWebPageConfig
 )
@@ -65,7 +60,7 @@ func initConfig() {
 	}
 
 	// load up the values into the various settings...
-	cfgBldr.WithEnv("AWS_CURRENT_REGION", "AWS_CURRENT_REGION", "us-east-1").Build()
+	_ = cfgBldr.WithEnv("AWS_CURRENT_REGION", "AWS_CURRENT_REGION", "us-east-1").Build()
 	cfgBldr.WithParameterStoreEnv("PS_IDENTITY_POOL_ID", "PS_IDENTITY_POOL_ID", "identityPoolID")
 	cfgBldr.WithParameterStoreEnv("PS_USER_POOL_PROVIDER_NAME", "PS_USER_POOL_PROVIDER_NAME", "userPoolProviderName")
 	cfgBldr.WithParameterStoreEnv("PS_USER_POOL_CLIENT_ID", "PS_USER_POOL_CLIENT_ID", "userPoolClientID")
@@ -79,10 +74,6 @@ func initConfig() {
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed to initialize parameter store: %s", err)
 		log.Fatal(errorMessage)
-	}
-
-	if err != nil {
-		Services = svcBldr
 	}
 
 	if err := cfgBldr.Dump(Settings); err != nil {

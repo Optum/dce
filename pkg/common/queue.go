@@ -58,8 +58,6 @@ func (queue SQSQueue) NewFromEnv() error {
 		return err
 	}
 	queue.Client = sqs.New(awsSession)
-	if err != nil {
-		return err
-	}
+
 	return nil
 }

@@ -1,32 +1,26 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/Optum/dce/pkg/api"
+	"github.com/Optum/dce/pkg/errors"
 	"log"
 	"net/http"
 
 	"github.com/Optum/dce/pkg/api/response"
-	"github.com/Optum/dce/pkg/db"
-	"github.com/aws/aws-lambda-go/events"
 )
 
-type listController struct {
-	Dao db.DBer
-}
-
-// Call handles GET /accounts requests. Returns a response object with a serialized list of accounts.
-func (controller listController) Call(ctx context.Context, req *events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+// GetAllAccounts - Returns all the accounts.
+func GetAllAccounts(w http.ResponseWriter, r *http.Request) {
 	// Fetch the accounts.
-	accounts, err := controller.Dao.GetAccounts()
+	accounts, err := Dao.GetAccounts()
 
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed to query database: %s", err)
 		log.Print(errorMessage)
-		return response.CreateAPIGatewayErrorResponse(http.StatusInternalServerError,
-			response.CreateErrorResponse(
-				"ServerError", errorMessage)), nil
+		api.WriteAPIErrorResponse(w, errors.NewInternalServer(errorMessage, nil))
+		return
 	}
 
 	// Serialize them for the JSON response.
@@ -37,17 +31,5 @@ func (controller listController) Call(ctx context.Context, req *events.APIGatewa
 		accountResponses = append(accountResponses, &acctRes)
 	}
 
-	messageBytes, err := json.Marshal(accountResponses)
-
-	if err != nil {
-		errorMessage := fmt.Sprintf("Failed to serialize data: %s", err)
-		log.Print(errorMessage)
-		return response.CreateAPIGatewayErrorResponse(http.StatusInternalServerError,
-			response.CreateErrorResponse(
-				"ServerError", errorMessage)), nil
-	}
-
-	body := string(messageBytes)
-
-	return response.CreateAPIGatewayResponse(http.StatusOK, body), nil
+	_ = json.NewEncoder(w).Encode(accountResponses)
 }

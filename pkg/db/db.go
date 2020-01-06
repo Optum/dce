@@ -654,7 +654,7 @@ func (db *DB) TransitionAccountStatus(accountID string, prevStatus AccountStatus
 // current version of the Principal IAM Policy applied to the account
 func (db *DB) UpdateAccountPrincipalPolicyHash(accountID string, prevHash string, nextHash string) (*Account, error) {
 
-	conditionExpression := expression.ConditionBuilder{}
+	var conditionExpression expression.ConditionBuilder
 	if prevHash != "" {
 		log.Printf("Using Condition where PrincipalPolicyHash equals '%s'", prevHash)
 		conditionExpression = expression.Name("PrincipalPolicyHash").Equal(expression.Value(prevHash))

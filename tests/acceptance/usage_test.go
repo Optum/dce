@@ -38,9 +38,6 @@ func TestUsageDb(t *testing.T) {
 	// For testing purposes support consistent reads
 	dbSvc.ConsistentRead = true
 
-	// ttl is set to 3-days
-	const ttl int = 3
-
 	// Truncate tables, to make sure we're starting off clean
 	truncateUsageTable(t, dbSvc)
 
