@@ -51,7 +51,7 @@ terraform apply
 make deploy 
 ``` 
 
-See [_Deploying DCE With Terraform_](terraform.md#deploying-dce-with-terraform) documentation for more details.
+See `Deploying DCE With Terraform <terraform.html#deploy-with-terraform>`_ for more details.
 
 To run functional tests:
 
