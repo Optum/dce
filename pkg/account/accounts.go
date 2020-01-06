@@ -32,15 +32,3 @@ func GetAccounts(q *model.Account, d MultipleReader) (*Accounts, error) {
 
 	return newAccounts, nil
 }
-
-// GetAccountsInput contains the filtering criteria for the GetAccountsInput scan.
-type GetAccountsInput struct {
-	data  model.Account
-	Limit int64
-}
-
-// GetAccountsOutput contains the scan results as well as the keys for retrieve the next page of the result set.
-type GetAccountsOutput struct {
-	Results  []*model.Account
-	NextKeys map[string]string
-}

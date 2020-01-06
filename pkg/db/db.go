@@ -46,7 +46,7 @@ type DB struct {
 type DBer interface {
 	GetAccount(accountID string) (*Account, error)
 	GetReadyAccount() (*Account, error)
-	GetAccounts() ([]*Account, error)
+	GetAccounts(input GetAccountsInput) (GetAccountsOutput, error)
 	GetLease(accountID string, principalID string) (*Lease, error)
 	GetLeases(input GetLeasesInput) (GetLeasesOutput, error)
 	GetLeaseByID(leaseID string) (*Lease, error)
@@ -92,30 +92,87 @@ func (db *DB) GetAccount(accountID string) (*Account, error) {
 	return unmarshalAccount(result.Item)
 }
 
-// GetAccounts returns a list of accounts from the table
-// TODO implement pagination and query support
-func (db *DB) GetAccounts() ([]*Account, error) {
-	input := &dynamodb.ScanInput{
+// GetAccountsInput contains filtering criteria for the GetAccountsInput scan.
+type GetAccountsInput struct {
+	AccountID string
+	Status    AccountStatus
+	Limit     int64
+}
+
+// GetAccountsOutput contains scan results as well as keys for retrieve the next page of the result set.
+type GetAccountsOutput struct {
+	Results  []*Account
+	NextKeys map[string]string
+}
+
+// GetAccounts takes a set of filtering criteria and scans Accounts table for matching records.
+func (db *DB) GetAccounts(input GetAccountsInput) (GetAccountsOutput, error) {
+	limit := int64(25)
+	filters := make([]string, 0)
+	filterValues := make(map[string]*dynamodb.AttributeValue)
+
+	if input.Limit > 0 {
+		limit = input.Limit
+	}
+
+	scanInput := &dynamodb.ScanInput{
 		TableName:      aws.String(db.AccountTableName),
+		Limit:          &limit,
 		ConsistentRead: aws.Bool(db.ConsistentRead),
 	}
 
-	// Execute and verify the query
-	resp, err := db.Client.Scan(input)
-	if err != nil {
-		return make([]*Account, 0), err
+	// Build the filter clauses.
+	if input.AccountID != "" {
+		filters = append(filters, "Id = :accountId")
+		filterValues[":accountId"] = &dynamodb.AttributeValue{S: aws.String(input.AccountID)}
 	}
 
-	// Return the Account
-	accounts := []*Account{}
-	for _, r := range resp.Items {
-		n, err := unmarshalAccount(r)
-		if err != nil {
-			return nil, err
-		}
-		accounts = append(accounts, n)
+	if input.Status != "" {
+		filters = append(filters, "AccountStatus = :status")
+		filterValues[":status"] = &dynamodb.AttributeValue{S: aws.String(string(input.Status))}
 	}
-	return accounts, nil
+
+	// This exists in case if we add more filters in future
+	if len(filters) > 0 {
+		filterStatement := strings.Join(filters, " and ")
+		scanInput.FilterExpression = &filterStatement
+		scanInput.ExpressionAttributeValues = filterValues
+	}
+
+	if input.StartKeys != nil && len(input.StartKeys) > 0 {
+		scanInput.ExclusiveStartKey = make(map[string]*dynamodb.AttributeValue)
+		for k, v := range input.StartKeys {
+			scanInput.ExclusiveStartKey[k] = &dynamodb.AttributeValue{S: aws.String(v)}
+		}
+	}
+
+	output, err := db.Client.Scan(scanInput)
+
+	// Parse the results and build the next keys if necessary.
+	if err != nil {
+		return GetAccountsOutput{}, err
+	}
+
+	results := make([]*Account, 0)
+
+	for _, o := range output.Items {
+		account, err := unmarshalAccount(o)
+		if err != nil {
+			return GetAccountsOutput{}, err
+		}
+		results = append(results, account)
+	}
+
+	nextKey := make(map[string]string)
+
+	for k, v := range output.LastEvaluatedKey {
+		nextKey[k] = *v.S
+	}
+
+	return GetAccountsOutput{
+		Results:  results,
+		NextKeys: nextKey,
+	}, nil
 }
 
 // GetReadyAccount returns an available account record with a
@@ -128,6 +185,7 @@ func (db *DB) GetReadyAccount() (*Account, error) {
 	return accounts[0], err
 }
 
+// FindAccountsByStatus finds account by status
 func (db *DB) FindAccountsByStatus(status AccountStatus) ([]*Account, error) {
 	res, err := db.Client.Query(&dynamodb.QueryInput{
 		TableName: aws.String(db.AccountTableName),
@@ -156,6 +214,8 @@ func (db *DB) FindAccountsByStatus(status AccountStatus) ([]*Account, error) {
 
 	return accounts, nil
 }
+
+// FindAccountsByPrincipalID finds accounts by principalID
 func (db *DB) FindAccountsByPrincipalID(principalID string) ([]*Account, error) {
 	res, err := db.Client.Query(&dynamodb.QueryInput{
 		TableName: aws.String(db.AccountTableName),
@@ -340,6 +400,7 @@ func (db *DB) FindLeasesByPrincipalAndAccount(principalID string, accountID stri
 	return leases, nil
 }
 
+// FindLeasesByStatus finds leases by status
 func (db *DB) FindLeasesByStatus(status LeaseStatus) ([]*Lease, error) {
 	res, err := db.Client.Query(&dynamodb.QueryInput{
 		IndexName: aws.String("LeaseStatus"),

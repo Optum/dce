@@ -63,6 +63,13 @@ var (
 	allowedRegions              []string
 )
 
+const (
+	AccountIDParam     = "accountId"
+	NextAccountIDParam = "nextAccountId"
+	StatusParam        = "status"
+	LimitParam         = "limit"
+)
+
 func init() {
 	initConfig()
 
