@@ -136,7 +136,7 @@ JSON
 
 This policy is accessible via the api_access_policy_name & api_access_policy_arn terraform outputs.
 
-Any requests made with IAM credentials that have sufficient permissions to invoke the DCE API, but which are not associated with a Congito User Pool User, will be treated as an [admin role](#admins).
+Any requests made with IAM credentials that have sufficient permissions to invoke the DCE API, but which are not associated with a Congito User Pool User, will be treated as an `admin role <#admins>`_.
 
 The process for signing requests with SigV4 is somewhat involved, but luckily there are a number of tools to make this easier. For example:
 
