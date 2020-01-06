@@ -1,7 +1,11 @@
 pool:
   vmImage: "Ubuntu 16.04"
 
-trigger: none
+trigger:
+  # Run build on tagged versions
+  tags:
+    include:
+      - "v*"
 
 # Run builds for PRs against `master`
 pr:
