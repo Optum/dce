@@ -29,7 +29,7 @@ func TestValidate(t *testing.T) {
 				ID:     ptrString("123456789012"),
 				Status: model.AccountStatusLeased.AccountStatusPtr(),
 			},
-			expErr: errors.NewValidation("account", fmt.Errorf("adminRoleArn: is required.")), //nolint golint
+			expErr: errors.NewValidation("account", fmt.Errorf("adminRoleArn: must be a string.")), //nolint golint
 		},
 	}
 
@@ -38,7 +38,7 @@ func TestValidate(t *testing.T) {
 			account := New(nil, tt.account)
 
 			err := account.Validate()
-			assert.True(t, errors.Is(err, tt.expErr))
+			assert.True(t, errors.Is(err, tt.expErr), "actual error %q doesn't match expected error %q", err, tt.expErr)
 
 		})
 	}

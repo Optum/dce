@@ -88,7 +88,7 @@ func TestGetAccountByID(t *testing.T) {
 				Return(tt.returnData, tt.returnErr)
 
 			account, err := GetAccountByID(tt.ID, mocksReader, nil)
-			assert.True(t, errors.Is(err, tt.expErr))
+			assert.True(t, errors.Is(err, tt.expErr), "actual error %q doesn't match expected error %q", err, tt.expErr)
 			assert.Equal(t, tt.expReturn, account)
 		})
 	}
@@ -137,7 +137,7 @@ func TestDelete(t *testing.T) {
 			account := New(mocksDeleter, tt.account)
 
 			err := account.Delete()
-			assert.True(t, errors.Is(err, tt.expErr))
+			assert.True(t, errors.Is(err, tt.expErr), "actual error %q doesn't match expected error %q", err, tt.expErr)
 
 		})
 	}
@@ -213,7 +213,7 @@ func TestUpdate(t *testing.T) {
 				AdminRoleArn: ptrString("test:arn"),
 			},
 			returnErr: nil,
-			expErr:    errors.NewValidation("account", fmt.Errorf("id: should be nil.")), //nolint golint
+			expErr:    errors.NewValidation("account", fmt.Errorf("id: must be empty.")), //nolint golint
 		},
 		{
 			name: "should fail on save",
@@ -255,7 +255,7 @@ func TestUpdate(t *testing.T) {
 
 			err := account.Update(tt.updAccount, mocksManager)
 
-			assert.True(t, errors.Is(err, tt.expErr))
+			assert.Truef(t, errors.Is(err, tt.expErr), "actual error %q doesn't match expected error %q", err, tt.expErr)
 			assert.NotEqual(t, tt.origAccount.LastModifiedOn, account)
 			if tt.returnErr == nil {
 				assert.Equal(t, tt.expAccount.Metadata, account.data.Metadata)
@@ -263,69 +263,4 @@ func TestUpdate(t *testing.T) {
 
 		})
 	}
-}
-
-func TestGetReadyAccount(t *testing.T) {
-
-	tests := []struct {
-		name       string
-		returnData *model.Accounts
-		returnErr  error
-		expReturn  *Account
-		expErr     error
-	}{
-		{
-			name: "should get a ready account",
-			returnData: &model.Accounts{
-				{
-					ID:     ptrString("123456789012"),
-					Status: model.AccountStatusReady.AccountStatusPtr(),
-				},
-			},
-			returnErr: nil,
-			expReturn: &Account{
-				writer: nil,
-				data: model.Account{
-					ID:     ptrString("123456789012"),
-					Status: model.AccountStatusReady.AccountStatusPtr(),
-				},
-			},
-			expErr: nil,
-		},
-		{
-			name: "should get failure",
-			returnData: &model.Accounts{
-				{
-					ID:     ptrString("123456789012"),
-					Status: model.AccountStatusReady.AccountStatusPtr(),
-				},
-			},
-			returnErr: errors.NewInternalServer("failure", fmt.Errorf("original failure")),
-			expReturn: nil,
-			expErr:    errors.NewInternalServer("failure", fmt.Errorf("original failure")),
-		},
-		{
-			name:       "should fail on empty list",
-			returnData: &model.Accounts{},
-			returnErr:  nil,
-			expReturn:  nil,
-			expErr:     errors.NewNotFound("account", "ready"),
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			mocksReader := &dataMocks.Reader{}
-
-			mocksReader.On("GetAccounts", &model.Account{
-				Status: model.AccountStatusReady.AccountStatusPtr(),
-			}).
-				Return(tt.returnData, tt.returnErr)
-
-			readyAccount, err := GetReadyAccount(mocksReader, nil)
-			assert.True(t, errors.Is(err, tt.expErr))
-			assert.Equal(t, tt.expReturn, readyAccount)
-		})
-	}
-
 }
