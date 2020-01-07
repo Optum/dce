@@ -8,7 +8,7 @@ Deploy DCE and lease an account quickly using the DCE CLI.
 
     ```
     # Download the zip file
-    wget https://github.com/Optum/dce-cli/releases/download/<VERSION>/dce_darwin_amd64.zip
+    curl -L -o dce_darwin_amd64.zip https://github.com/Optum/dce-cli/releases/latest/download/dce_darwin_amd64.zip
 
     # Unzip to a directory on your path
     unzip dce_darwin_amd64.zip -d /usr/local/bin
