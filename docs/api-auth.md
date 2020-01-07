@@ -97,19 +97,6 @@ view information you do not have access to.
     dce accounts list
     err:  [GET /accounts][403] getAccountsForbidden
     ```
-
-1. You will need to be authenticated as an admin before continuing to the next section. Type `dce auth` to log in as a different user. Sign out, then enter the username
-and password for the admin that you created. As before, copy the auth code and paste it in the prompt in your command terminal.
-
-    ![Admin login](./img/quickstartadminlogin.png)
-
-1. Test that you have admin authorization by typing `dce accounts list`. You should see an empty list now instead of a permissions error.
-
-    ```
-    dce accounts list
-    []
-    ```
-
 ## Using IAM Credentials
 
 The DCE API accepts authentication via IAM credentials using [SigV4 signed requests](https://docs.aws.amazon.com/general/latest/gr/sigv4_signing.html). 
