@@ -222,8 +222,7 @@ func createPrincipalRole(childAccount db.Account, masterAccountID string) (*role
 
 	// Create the Role + Policy
 	RoleManager.SetIAMClient(iamClient)
-	createRoleOutput := &rolemanager.CreateRoleWithPolicyOutput{}
-	createRoleOutput, err = RoleManager.CreateRoleWithPolicy(&rolemanager.CreateRoleWithPolicyInput{
+	createRoleOutput, err := RoleManager.CreateRoleWithPolicy(&rolemanager.CreateRoleWithPolicyInput{
 		RoleName:                 principalRoleName,
 		RoleDescription:          "Role to be assumed by principal users of DCE",
 		AssumeRolePolicyDocument: assumeRolePolicy,

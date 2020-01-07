@@ -10,7 +10,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/aws/aws-sdk-go/service/sns"
-	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/aws/aws-sdk-go/service/sts"
 )
 
@@ -20,7 +19,6 @@ var (
 	_config       *serviceConfig
 	_awsSession   *session.Session
 	_tokenService *common.STS
-	_ssmService   *common.SSM
 	_s3Service    *common.S3
 	_snsService   *common.SNS
 	_db           *db.DB
@@ -94,16 +92,6 @@ func (svc *service) tokenService() *common.STS {
 		Client: stsClient,
 	}
 	return _tokenService
-}
-
-func (svc *service) ssmService() *common.SSM {
-	if _ssmService != nil {
-		return _ssmService
-	}
-	_ssmService = &common.SSM{
-		Client: ssm.New(svc.awsSession()),
-	}
-	return _ssmService
 }
 
 func (svc *service) s3Service() *common.S3 {

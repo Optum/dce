@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"net/url"
 
 	"log"
@@ -14,7 +13,6 @@ import (
 	"github.com/Optum/dce/pkg/usage"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
 	"github.com/aws/aws-sdk-go/service/sns"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -31,7 +29,6 @@ const (
 	StatusParam          = "status"
 	LimitParam           = "limit"
 	Weekly               = "WEEKLY"
-	Monthly              = "MONTHLY"
 )
 
 var muxLambda *gorillamux.GorillaMuxAdapter
@@ -47,10 +44,7 @@ var (
 	principalBudgetPeriod    *string
 	maxLeaseBudgetAmount     *float64
 	maxLeasePeriod           *int64
-	queue                    common.Queue
-	snsService               common.Notificationer
 	defaultLeaseLengthInDays *int
-	userDetails              api.UserDetailer
 	baseRequest              url.URL
 )
 
@@ -149,11 +143,6 @@ func Handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 	return muxLambda.ProxyWithContext(ctx, req)
 }
 
-// buildBaseURL returns a base API url from the request properties.
-func buildBaseURL(r *http.Request) string {
-	return fmt.Sprintf("%s://%s", r.URL.Scheme, r.URL.Hostname())
-}
-
 func main() {
 
 	awsSession = newAWSSession()
@@ -168,13 +157,6 @@ func main() {
 	}
 
 	usageSvc = usageService
-
-	userDetails =
-		&api.UserDetails{
-			CognitoUserPoolID:        common.RequireEnv("COGNITO_USER_POOL_ID"),
-			RolesAttributesAdminName: common.RequireEnv("COGNITO_ROLES_ATTRIBUTE_ADMIN_NAME"),
-			CognitoClient:            cognitoidentityprovider.New(awsSession),
-		}
 
 	lambda.Start(Handler)
 }

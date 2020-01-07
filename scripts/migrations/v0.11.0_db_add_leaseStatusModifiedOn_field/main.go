@@ -35,15 +35,6 @@ type Lease struct {
 	LastModifiedOn int64
 }
 
-type LeaseMod struct {
-	AccountID             string `json:"AccountId"`
-	PrincipalID           string `json:"PrincipalId"`
-	LeaseStatus           string
-	CreatedOn             int64
-	LastModifiedOn        int64
-	LeaseStatusModifiedOn int64
-}
-
 type migrationV11Input struct {
 	leaseTableName string
 	leaseModTime   int64

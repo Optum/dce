@@ -3,7 +3,6 @@ package errors
 import (
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 
 	"github.com/pkg/errors"
@@ -53,21 +52,15 @@ func (e *StatusError) Format(s fmt.State, verb rune) {
 	switch verb {
 	case 'v':
 		if s.Flag('+') {
-			fmt.Fprintf(s, "%+v", e.OriginalError())
+			_, _ = fmt.Fprintf(s, "%+v", e.OriginalError())
 			e.stack.Format(s, verb)
 			return
 		}
 		fallthrough
 	case 's':
-		_, err = io.WriteString(s, e.Error())
-		if err != nil {
-			log.Printf("error printing error: %s", err)
-		}
+		_, _ = io.WriteString(s, e.Error())
 	case 'q':
-		_, err = fmt.Fprintf(s, "%q", e.Error())
-		if err != nil {
-			log.Printf("error printing error: %s", err)
-		}
+		_, _ = fmt.Fprintf(s, "%q", e.Error())
 	}
 }
 

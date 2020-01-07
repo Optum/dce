@@ -2,7 +2,6 @@ package account
 
 import (
 	"encoding/json"
-	"fmt"
 	"time"
 
 	"github.com/Optum/dce/pkg/errors"
@@ -120,13 +119,13 @@ func (a *Account) save() error {
 // Validate the account data
 func (a *Account) Validate() error {
 	err := validation.ValidateStruct(&a.data,
-		validation.Field(&a.data.AdminRoleArn, validation.NotNil),
-		validation.Field(&a.data.ID, accountIDRules...),
-		validation.Field(&a.data.LastModifiedOn, validation.NotNil),
-		validation.Field(&a.data.Status, validation.NotNil),
-		validation.Field(&a.data.CreatedOn, validation.NotNil),
-		validation.Field(&a.data.PrincipalRoleArn, validation.NilOrNotEmpty),
-		validation.Field(&a.data.PrincipalPolicyHash, validation.NilOrNotEmpty),
+		validation.Field(&a.data.AdminRoleArn, validateAdminRoleArn...),
+		validation.Field(&a.data.ID, validateID...),
+		validation.Field(&a.data.LastModifiedOn, validateInt64...),
+		validation.Field(&a.data.Status, validateStatus...),
+		validation.Field(&a.data.CreatedOn, validateInt64...),
+		validation.Field(&a.data.PrincipalRoleArn, validatePrincipalRoleArn...),
+		validation.Field(&a.data.PrincipalPolicyHash, validatePrincipalPolicyHash...),
 	)
 	if err != nil {
 		return errors.NewValidation("account", err)
@@ -140,7 +139,6 @@ func (a *Account) Update(d model.Account, am Manager) error {
 		// ID has to be empty
 		validation.Field(&d.ID, validation.NilOrNotEmpty, validation.In(*a.data.ID)),
 		validation.Field(&d.AdminRoleArn, validation.By(isNilOrUsableAdminRole(am))),
-		//validation.Field(&d.AdminRoleArn, validation.By(isNil)),
 		validation.Field(&d.ID, validation.By(isNil)),
 		validation.Field(&d.LastModifiedOn, validation.By(isNil)),
 		validation.Field(&d.Status, validation.By(isNil)),
@@ -214,105 +212,4 @@ func New(wd WriterDeleter, data model.Account) *Account {
 // MarshalJSON Marshals the data inside the account
 func (a *Account) MarshalJSON() ([]byte, error) {
 	return json.Marshal(a.data)
-}
-
-// GetReadyAccount returns an available account record with a
-// corresponding status of 'Ready'
-func GetReadyAccount(d Reader, wd WriterDeleter) (*Account, error) {
-	accounts, err := GetAccounts(
-		&model.Account{
-			Status: model.AccountStatusReady.AccountStatusPtr(),
-		}, d)
-	if err != nil {
-		return nil, err
-	}
-	if len(accounts.data) < 1 {
-		return nil, errors.NewNotFound("account", "ready")
-	}
-
-	newAccount := Account{
-		writer: wd,
-	}
-	newAccount.data = accounts.data[0]
-
-	return &newAccount, err
-}
-
-// CreateAccount creates a new account
-func CreateAccount(ID string, AdminRoleArn string, Metadata map[string]interface{}, r Reader, wd WriterDeleter) (*Account, error) {
-	// Check if the account already exists
-	existingAccount, err := GetAccountByID(ID, r, wd)
-	if !errors.Is(err, &errors.StatusError{}) {
-		if err != nil {
-			return nil, fmt.Errorf("Failed to add account %s to pool: %w", ID, err)
-		}
-		if existingAccount.data.ID != nil {
-			return nil, errors.NewConflict("account", ID, nil)
-		}
-	}
-
-	// Verify that we can assume role in the account,
-	// using the `adminRoleArn`
-	//_, err = TokenSvc.AssumeRole(&sts.AssumeRoleInput{
-	//	RoleArn:         aws.String(request.AdminRoleArn),
-	//	RoleSessionName: aws.String("MasterAssumeRoleVerification"),
-	//})
-
-	//if err != nil {
-	//	return nil, fmt.Errorf("unable to add account %s to pool: adminRole is not assumable by the master account: %w", ID, errors.ErrValidation)
-	//}
-
-	// Prepare the account record
-	account := &Account{
-		data: model.Account{
-			ID:           &ID,
-			Status:       model.AccountStatusReady.AccountStatusPtr(),
-			AdminRoleArn: &AdminRoleArn,
-			Metadata:     Metadata,
-		},
-	}
-
-	// Create an IAM Role for the principal (end-user) to login to
-	//masterAccountID := *CurrentAccountID
-	//createRolRes, policyHash, err := createPrincipalRole(account, masterAccountID)
-	//if err != nil {
-	//	return nil, fmt.Errorf("failed to create principal role for %s: %w", ID, errors.ErrInternalServer)
-	//}
-	//account.PrincipalRoleArn = createRolRes.RoleArn
-	//account.PrincipalPolicyHash = policyHash
-
-	// Write the Account to the DB
-	err = account.save()
-	if err != nil {
-		return nil, errors.NewInternalServer(
-			fmt.Sprintf("failed to add account %s to pool", ID),
-			err,
-		)
-	}
-
-	// Add Account to Reset Queue
-	//err = Queue.SendMessage(&resetQueueURL, &account.ID)
-	//if err != nil {
-	//	return nil, fmt.Errorf("failed to add account %s to reset Queue: %w", ID, errors.ErrInternalServer)
-	//}
-
-	// Publish the Account to an "account-created" topic
-	//accountResponse := response.AccountResponse(account)
-	//snsMessage, err := common.PrepareSNSMessageJSON(accountResponse)
-	//if err != nil {
-	//	return nil, fmt.Errorf("failed to create SNS account-created message for %s: %w", ID, errors.ErrInternalServer)
-	//}
-
-	// TODO: Initialize these in a better spot.
-
-	//_, err = SnsSvc.PublishMessage(&accountCreatedTopicArn, &snsMessage, true)
-	//if err != nil {
-	//	return nil, fmt.Errorf("failed to publish SNS account-created message for %s: %w", ID, errors.ErrInternalServer)
-	//}
-
-	//accountResponseJSON, err := json.Marshal(accountResponse)
-	//if err != nil {
-	//	return nil, fmt.Errorf("failed to marshal account response for %s: %w", ID, errors.ErrInternalServer)
-	//}
-	return account, nil
 }

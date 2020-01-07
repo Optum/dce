@@ -1,34 +1,36 @@
 #!/usr/bin/env bash
-set -euxo pipefail
+set -euo pipefail
 
-# Check Go Formatting
+echo -n "Formatting golang code... "
 gofmtout=$(go fmt ./...)
-test -z "${gofmtout}"
+if [ "$gofmtout" ]; then
+  printf "\n\n"
+  echo "Files with formatting errors:"
+  echo "${gofmtout}"
+  exit 1
+fi
+echo "done."
 
-# Run Golint
+echo -n "Linting golang code... "
 # TODO: Make sure golangci-lint is installed and ready to be run
 GOLANG_LINT_CMD=golangci-lint
 
-if [ ! command -v ${GOLANG_LINT_CMD} ]; then
-  echo "$GOLANG_LINT_CMD not found, fetching..."
+if [ ! "$(command -v ${GOLANG_LINT_CMD})" ]; then
+  echo -n "installing ${GOLANG_LINT_CMD}... "
   go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
 fi
 
-golangci-lint run --disable-all -E golint ./pkg/...
-golangci-lint run --disable-all -E golint ./cmd/...
-golangci-lint run --disable-all -E golint ./tests/...
+golangci-lint run
+echo "done."
 
-# Check terraform formatting
+echo -n "Formatting terraform code.... "
 terraform fmt -diff -check -recursive ./modules/
+echo "done."
 
 # Run tflint
+echo -n "Linting terraform code... "
 cd modules
-function moveBackBackend {
-  mv ./backend.tf{.bak,} || true
-}
-trap moveBackBackend EXIT
-# Move backend.tf, so we can tf init in a CI environment
-mv -f ./backend.tf{,.bak} || true
-terraform init
+terraform init &> /dev/null
 # TODO: test to see if tflint is installed first.
-tflint --deep ./
+tflint --deep ./ | (grep -v "Awesome" || true)
+echo -e '\b done.'

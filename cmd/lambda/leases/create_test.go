@@ -615,14 +615,6 @@ func unmarshal(t *testing.T, jsonStr string) map[string]interface{} {
 	return data
 }
 
-func snsStub() *commonMock.Notificationer {
-	mockSNS := &commonMock.Notificationer{}
-	mockSNS.On("PublishMessage", mock.Anything, mock.Anything, true).
-		Return(aws.String("123"), nil)
-
-	return mockSNS
-}
-
 func invalidBudgetAmountCreateRequest() *events.APIGatewayProxyRequest {
 	createLeaseRequest := &createLeaseRequest{
 		PrincipalID:              "123456",
@@ -653,14 +645,6 @@ func invalidBudgetPeriodCreateRequest() *events.APIGatewayProxyRequest {
 		Path:       "/leases",
 		Body:       string(requestBodyBytes),
 	}
-}
-
-func stubUsageService() *mockUsage.Service {
-	svc := &mockUsage.Service{}
-	svc.On("GetUsageByPrincipal", mock.Anything, mock.Anything).
-		Return([]*usage.Usage{}, nil)
-
-	return svc
 }
 
 // stubDb creates a mock DBer,

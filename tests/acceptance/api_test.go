@@ -1419,7 +1419,7 @@ func TestApi(t *testing.T) {
 					json:   nil,
 				})
 
-				linkHeader, ok = respThree.Header["Link"]
+				_, ok = respThree.Header["Link"]
 				assert.False(t, ok, "Link header should not exist in last page")
 
 				resultsThree := parseResponseArrayJSON(t, respThree)
@@ -1615,7 +1615,7 @@ func TestApi(t *testing.T) {
 				json:   nil,
 			})
 
-			linkHeader, ok = respThree.Header["Link"]
+			_, ok = respThree.Header["Link"]
 			assert.False(t, ok, "Link header should not exist in last page")
 
 			resultsThree := parseResponseArrayJSON(t, respThree)
@@ -1861,6 +1861,7 @@ func apiRequest(t *testing.T, input *apiRequestInput) *apiResponse {
 			req.Header.Set("Content-Type", "application/json")
 			signedHeaders, err = signer.Sign(req, bytes.NewReader(payload),
 				"execute-api", input.region, now)
+			require.Nil(t, err)
 		} else {
 			signedHeaders, err = signer.Sign(req, nil, "execute-api",
 				input.region, now)
@@ -1959,6 +1960,7 @@ func createAdminRole(t *testing.T, awsSession client.ConfigProvider, adminRoleNa
 		RoleName:  aws.String(adminRoleName),
 		PolicyArn: aws.String("arn:aws:iam::aws:policy/IAMFullAccess"),
 	})
+	require.Nil(t, err)
 
 	// Give the Admin Role Permission to access cost explorer
 	costExplorerPolicyName := "CostExplorerFullAccess"
@@ -2007,9 +2009,6 @@ func createUsage(t *testing.T, apiURL string, usageSvc usage.Service) {
 	testStartDate := time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), 0, 0, 0, 0, time.UTC)
 	testEndDate := time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), 23, 59, 59, 59, time.UTC)
 
-	// Create mock usage
-	var expectedUsages []*usage.Usage
-
 	usageStartDate := testStartDate
 	usageEndDate := testEndDate
 	startDate := testStartDate
@@ -2033,8 +2032,6 @@ func createUsage(t *testing.T, apiURL string, usageSvc usage.Service) {
 		}
 		err := usageSvc.PutUsage(input)
 		require.Nil(t, err)
-
-		expectedUsages = append(expectedUsages, &input)
 
 		usageEndDate = endDate
 		startDate = startDate.AddDate(0, 0, -1)

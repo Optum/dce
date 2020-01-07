@@ -130,7 +130,7 @@ func TestTerraform(t *testing.T) {
 }
 
 // Create a Terraform client, pointing at a temp dir
-func terraformTemp(hcl string) (*Terraform, func() error /*cleanup*/, error) {
+func terraformTemp(hcl string) (*Terraform, func() /*cleanup*/, error) {
 	// Create a temp dir for module testing
 	moduleDir, err := ioutil.TempDir("", "go-test-terraform")
 	if err != nil {
@@ -138,8 +138,8 @@ func terraformTemp(hcl string) (*Terraform, func() error /*cleanup*/, error) {
 	}
 	// Create a "callback" function,
 	// so the caller can cleanup the temp dir
-	cleanup := func() error {
-		return os.RemoveAll(moduleDir)
+	cleanup := func() {
+		_ = os.RemoveAll(moduleDir)
 	}
 
 	// Write some HCL to our module

@@ -1,73 +1,54 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
+
+	"github.com/Optum/dce/pkg/db"
 
 	"github.com/Optum/dce/pkg/api/response"
-	"github.com/Optum/dce/pkg/db"
-	"github.com/aws/aws-lambda-go/events"
 )
 
-type listController struct {
-	Dao db.DBer
-}
-
-// Call handles GET /accounts requests. Returns a response object with a serialized list of accounts.
-func (controller listController) Call(ctx context.Context, req *events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+// GetAllAccounts - Returns all the accounts.
+func GetAllAccounts(w http.ResponseWriter, r *http.Request) {
 	// Fetch the accounts.
 
 	getAccountsInput, err := parseGetAccountsInput(r)
 
 	if err != nil {
-		errorMessage := fmt.Sprintf("Failed to parse query params: %s", err)
-		log.Print(errorMessage)
-		return response.CreateAPIGatewayErrorResponse(http.StatusInternalServerError,
-			response.CreateErrorResponse(
-				"ServerError", errorMessage)), nil
+		response.WriteRequestValidationError(w, fmt.Sprintf("Error parsing query params"))
+		return
 	}
 
-	accounts, err := controller.Dao.GetAccounts(getAccountsInput)
+	result, err := Dao.GetAccounts(getAccountsInput)
 
 	if err != nil {
-		errorMessage := fmt.Sprintf("Failed to query database: %s", err)
-		log.Print(errorMessage)
-		return response.CreateAPIGatewayErrorResponse(http.StatusInternalServerError,
-			response.CreateErrorResponse(
-				"ServerError", errorMessage)), nil
+		response.WriteServerErrorWithResponse(w, fmt.Sprintf("Error querying accounts database: %s", err))
+		return
 	}
 
 	// Serialize them for the JSON response.
 	accountResponses := []*response.AccountResponse{}
 
-	for _, a := range accounts.Results {
+	for _, a := range result.Results {
 		acctRes := response.AccountResponse(*a)
 		accountResponses = append(accountResponses, &acctRes)
 	}
 
-	messageBytes, err := json.Marshal(accountResponses)
-
-	if err != nil {
-		errorMessage := fmt.Sprintf("Failed to serialize data: %s", err)
-		log.Print(errorMessage)
-		return response.CreateAPIGatewayErrorResponse(http.StatusInternalServerError,
-			response.CreateErrorResponse(
-				"ServerError", errorMessage)), nil
-	}
-
-	body := string(messageBytes)
-
 	// If the DB result has next keys, then the URL to retrieve the next page is put into the Link header.
-	link := ""
 	if len(result.NextKeys) > 0 {
 		nextURL := response.BuildNextURL(r, result.NextKeys, baseRequest)
-		link = fmt.Sprintf("<%s>; rel=\"next\"", nextURL.String())
+		w.Header().Add("Link", fmt.Sprintf("<%s>; rel=\"next\"", nextURL.String()))
 	}
 
-	return response.CreateAPIGatewayResponseWithLinkHeader(http.StatusOK, body, link), nil
+	err = json.NewEncoder(w).Encode(accountResponses)
+	if err != nil {
+		log.Print(err)
+		response.WriteServerError(w)
+	}
 }
 
 // parseGetAccountsInput creates a GetAccountsInput from the query parameters
@@ -85,9 +66,10 @@ func parseGetAccountsInput(r *http.Request) (db.GetAccountsInput, error) {
 		}
 	}
 
-	accountStatus := r.FormValue(StatusParam)
-	if len(accountStatus) > 0 {
-		query.AccountStatus = accountStatus
+	statusValue := r.FormValue(StatusParam)
+	status, err := db.ParseAccountStatus(statusValue)
+	if err != nil && len(status) > 0 {
+		query.Status = status
 	}
 
 	accountID := r.FormValue(AccountIDParam)

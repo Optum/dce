@@ -3,6 +3,7 @@ package tasks
 import (
 	"context"
 	"errors"
+	"github.com/stretchr/testify/require"
 	"testing"
 
 	"github.com/Optum/dce/pkg/db"
@@ -21,8 +22,8 @@ func TestLeaseHandlers(t *testing.T) {
 
 		leaseCreator := &MultiStepHandler{}
 
-		leaseCreator.AddStep("Step 1", Step1, true)
-		leaseCreator.AddStep("Step 2", Step2, true)
+		_ = leaseCreator.AddStep("Step 1", Step1, true)
+		_ = leaseCreator.AddStep("Step 2", Step2, true)
 		_, err := leaseCreator.Execute(ctx, lease)
 
 		assert.NotNil(t, err)
@@ -41,9 +42,10 @@ func TestLeaseHandlers(t *testing.T) {
 
 		leaseCreator := &MultiStepHandler{}
 
-		leaseCreator.AddStep("Step 1", Step1, false)
-		leaseCreator.AddStep("Step 2", Step2, true)
+		_ = leaseCreator.AddStep("Step 1", Step1, false)
+		_ = leaseCreator.AddStep("Step 2", Step2, true)
 		success, err := leaseCreator.Execute(ctx, lease)
+		require.Nil(t, err)
 
 		// Overall execution is failed, but there is no overall error
 		assert.False(t, success)
@@ -65,7 +67,7 @@ func TestLeaseHandlers(t *testing.T) {
 
 		leaseCreator := &MultiStepHandler{}
 
-		leaseCreator.AddStep("Step 2", Step2, true)
+		_ = leaseCreator.AddStep("Step 2", Step2, true)
 		success, err := leaseCreator.Execute(ctx, lease)
 
 		// Only one successful task, should be true.

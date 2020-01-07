@@ -81,7 +81,10 @@ func (svc *SESEmailService) SendRawEmailWithAttachment(input *SendEmailWithAttac
 	msg.Attach(input.AttachmentFileName)
 
 	var emailRaw bytes.Buffer
-	msg.WriteTo(&emailRaw)
+	_, err := msg.WriteTo(&emailRaw)
+	if err != nil {
+		return err
+	}
 
 	message := ses.RawMessage{Data: emailRaw.Bytes()}
 	emailInput := &ses.SendRawEmailInput{
@@ -89,7 +92,7 @@ func (svc *SESEmailService) SendRawEmailWithAttachment(input *SendEmailWithAttac
 		RawMessage: &message,
 	}
 
-	_, err := svc.SES.SendRawEmail(emailInput)
+	_, err = svc.SES.SendRawEmail(emailInput)
 
 	return err
 }

@@ -80,6 +80,9 @@ func (stor S3) GetObjectWithETag(bucket string, key string) (string, string, err
 func (stor S3) GetTemplateObject(bucket string, key string, input interface{}) (string, string, error) {
 	// Retrieve the S3 Object
 	templateString, templateETag, err := stor.GetObjectWithETag(bucket, key)
+	if err != nil {
+		return "", "", err
+	}
 
 	tmpl := template.New(key)
 

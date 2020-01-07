@@ -192,7 +192,7 @@ func TestDb(t *testing.T) {
 			require.Nil(t, err)
 			require.Equal(t, res.PrincipalPolicyHash, "\"NextHash\"")
 
-			res, err = dbSvc.GetAccount("1")
+			_, err = dbSvc.GetAccount("1")
 			require.Nil(t, err)
 		})
 	})
@@ -223,6 +223,7 @@ func TestDb(t *testing.T) {
 			require.Nil(t, err, "Expected no errors saving a new lease to the db.")
 			require.Equal(t, db.Lease{}, *putAssgn) // should return an empty account lease since its new
 			leaseBefore, err := dbSvc.GetLease(acctID, principalID)
+			require.Nil(t, err)
 
 			time.Sleep(1 * time.Second) // Ensure LastModifiedOn and LeaseStatusModifiedOn changes
 			// Set a ResetLock on the Lease
@@ -326,6 +327,7 @@ func TestDb(t *testing.T) {
 			err := dbSvc.PutAccount(account)
 			require.Nil(t, err)
 			accountBefore, err := dbSvc.GetAccount(acctID)
+			require.Nil(t, err)
 
 			time.Sleep(1 * time.Second) // Ensure LastModifiedOn and LeaseStatusModifiedOn changes
 			// Set a ResetLock on the Lease
@@ -483,6 +485,7 @@ func TestDb(t *testing.T) {
 				LeaseStatusReason: db.LeaseActive,
 			}
 			putAssgn, err := dbSvc.PutLease(lease)
+			require.Nil(t, err)
 			require.Equal(t, db.Lease{}, *putAssgn) // should return an empty account lease since its new
 
 			foundaccount, err := dbSvc.FindLeasesByPrincipal("222")
@@ -648,6 +651,7 @@ func TestDb(t *testing.T) {
 		require.Nil(t, err)
 
 		updatedAccount, err := dbSvc.GetAccount(id)
+		require.Nil(t, err)
 		require.Equal(t, expected, updatedAccount.Metadata, "Metadata should be updated")
 		require.NotEqual(t, 0, updatedAccount.LastModifiedOn, "Last modified is updated")
 	})

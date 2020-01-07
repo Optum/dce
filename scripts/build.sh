@@ -31,10 +31,17 @@ if [ -e $i/main.go ];then
     # Include static web assets if they exist
     if [ -d "./cmd/lambda/$mod_name/public" ] && [ -d "./cmd/lambda/$mod_name/views" ];then
       cd ./cmd/lambda/$mod_name
+      set +e
       zip -u --must-match \
           ../../../bin/lambda/$mod_name.zip \
           public/* \
           views/*
+      set -e
+      # See https://stackoverflow.com/a/19258421/830030
+      zipReturn=$?
+      if [[ zipReturn -ne 12 && zipReturn -gt 0 ]]; then
+          exit $zipReturn
+      fi
       cd ../../..
     fi
 fi

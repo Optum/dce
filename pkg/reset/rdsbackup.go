@@ -80,8 +80,8 @@ func DeleteRdsBackups(rdsService RdsService) error {
 				DbiResourceId: dbInstanceBackup.DbiResourceId,
 			}
 
-			// Ignoring this output, since changing retention period to 0 takes care of deleting automated backups.
-			rdsService.DeleteDBInstanceAutomatedBackup(deleteDBInstanceAutomatedBackupInput)
+			// Ignoring errors, since changing retention period to 0 takes care of deleting automated backups.
+			_, _ = rdsService.DeleteDBInstanceAutomatedBackup(deleteDBInstanceAutomatedBackupInput)
 		}
 
 	}

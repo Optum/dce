@@ -3,11 +3,12 @@ package db
 import (
 	"errors"
 	"fmt"
-	errors2 "github.com/pkg/errors"
 	"log"
 	"strconv"
 	"strings"
 	"time"
+
+	errors2 "github.com/pkg/errors"
 
 	guuid "github.com/google/uuid"
 
@@ -94,6 +95,7 @@ func (db *DB) GetAccount(accountID string) (*Account, error) {
 
 // GetAccountsInput contains filtering criteria for the GetAccountsInput scan.
 type GetAccountsInput struct {
+	StartKeys map[string]string
 	AccountID string
 	Status    AccountStatus
 	Limit     int64
@@ -715,7 +717,7 @@ func (db *DB) TransitionAccountStatus(accountID string, prevStatus AccountStatus
 // current version of the Principal IAM Policy applied to the account
 func (db *DB) UpdateAccountPrincipalPolicyHash(accountID string, prevHash string, nextHash string) (*Account, error) {
 
-	conditionExpression := expression.ConditionBuilder{}
+	var conditionExpression expression.ConditionBuilder
 	if prevHash != "" {
 		log.Printf("Using Condition where PrincipalPolicyHash equals '%s'", prevHash)
 		conditionExpression = expression.Name("PrincipalPolicyHash").Equal(expression.Value(prevHash))

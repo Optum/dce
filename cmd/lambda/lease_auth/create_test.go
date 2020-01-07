@@ -36,7 +36,6 @@ func TestGetLeaseAuth(t *testing.T) {
 
 		tests := []struct {
 			name             string
-			ctx              context.Context
 			expectedResponse *events.APIGatewayProxyResponse
 			expectedErr      error
 			principalRoleArn string
@@ -224,8 +223,8 @@ func TestGetLeaseAuth(t *testing.T) {
 
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
-				expectedLease := &db.Lease{}
-				expectedAccount := &db.Account{}
+				var expectedLease *db.Lease
+				var expectedAccount *db.Account
 
 				mockRequest := events.APIGatewayProxyRequest{
 					HTTPMethod: http.MethodGet,

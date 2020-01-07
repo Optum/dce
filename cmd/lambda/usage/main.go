@@ -3,16 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"net/url"
 
 	"log"
 
 	"github.com/Optum/dce/pkg/api"
-	"github.com/Optum/dce/pkg/common"
 	"github.com/Optum/dce/pkg/usage"
-	"github.com/aws/aws-sdk-go/aws/session"
-
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 
@@ -32,22 +28,10 @@ const (
 var muxLambda *gorillamux.GorillaMuxAdapter
 
 var (
-	// Config - The configuration client
-	Config common.DefaultEnvConfig
-	// AWSSession - The AWS session
-	AWSSession *session.Session
-
 	// UsageSvc - Service for getting usage
 	UsageSvc    *usage.DB
 	baseRequest url.URL
 )
-
-// messageBody is the structured object of the JSON Message to send
-// to an SNS Topic for Provision and Decommission
-type messageBody struct {
-	Default string `json:"default"`
-	Body    string `json:"Body"`
-}
 
 func init() {
 	log.Println("Cold start; creating router for /usage")
@@ -93,27 +77,11 @@ func Handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 	return muxLambda.ProxyWithContext(ctx, req)
 }
 
-// buildBaseURL returns a base API url from the request properties.
-func buildBaseURL(r *http.Request) string {
-	return r.URL.String()
-}
-
 func main() {
-
-	AWSSession = newAWSSession()
 
 	UsageSvc = newUsage()
 
 	lambda.Start(Handler)
-}
-
-func newAWSSession() *session.Session {
-	awsSession, err := session.NewSession()
-	if err != nil {
-		errorMessage := fmt.Sprintf("Failed to create AWS session: %s", err)
-		log.Fatal(errorMessage)
-	}
-	return awsSession
 }
 
 func newUsage() *usage.DB {

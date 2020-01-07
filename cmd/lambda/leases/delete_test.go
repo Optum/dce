@@ -94,7 +94,6 @@ func TestDeleteController_Call(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 
 			dao = tt.fields.Dao
-			snsService = tt.fields.SNS
 
 			got, err := Handler(tt.args.ctx, *tt.args.req)
 			if (err != nil) != tt.wantErr {
