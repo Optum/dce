@@ -65,7 +65,7 @@ Deploy DCE and lease an account quickly using the DCE CLI.
     dce leases create --budget-amount 100.0 --budget-currency USD --email jane.doe@email.com --principal-id quickstartuser
     ```
 
-1. Log in to your leased account
+1. Log in to your leased account using the `--open-browser` flag to open the AWS Console in your default web browser. See the `howto guide <./howto.html#logging-into-a-leased-account>`_ for more login options.
     ```
     dce leases login --open-browser <lease-id>
     ```
