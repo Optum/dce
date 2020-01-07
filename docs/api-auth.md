@@ -5,15 +5,9 @@ There are two ways to authenticate against the DCE APIs:
 1. `AWS Cognito <#using-aws-cognito>`_
 1. `IAM credentials <#using-iam-credentials>`_
 
-## Using AWS Cognito
+## Roles
 
-AWS Cognito is used to authenticate and authorize DCE users. This section will walk through setting this
-up in the AWS web console, but note that all of these operations can be automated using the AWS CLI or SDKs. While
-this example uses Cognito User Pools to create and manage users, you may also [integrate Cognito with your own IdP](https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-pools-identity-provider.html).
-
-### Roles
-
-#### Admins
+### Admins
 
 Admins have full access to all APIs and will not get back filtered results when querying APIs.
 
@@ -23,9 +17,16 @@ There are three different ways a user is considered an admin:
 1. A Cognito user is placed into a Cognito group called `Admins`
 1. A Cognito user has an attribute in `custom:roles` that will match a search criteria specified by the Terraform variable `cognito_roles_attribute_admin_name`
 
-#### Users
+### Users
 
-Users (by default) are given access to the leasing and usage APIs.  This is done so they can request their own lease and look at the usage of their leases.  Any appropriately authenticated user in Cognito will automatically fall into the `Users` role.
+Users (by default) are given access to the leasing and usage APIs.  This is done so they can request their own lease and look at the usage of their leases.  Any user authenticated through Cognito will automatically fall into the `Users` role unless designated as an Admin.
+
+## Using AWS Cognito
+
+AWS Cognito is used to authenticate and authorize DCE users. This section will walk through setting this
+up in the AWS web console, but note that all of these operations can be automated using the AWS CLI or SDKs. While
+this example uses Cognito User Pools to create and manage users, you may also [integrate Cognito with your own IdP](https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-pools-identity-provider.html).
+
 
 ### Configuring Cognito
 
