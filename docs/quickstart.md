@@ -33,7 +33,11 @@ Deploy DCE and lease an account quickly using the DCE CLI.
 
 1. Prepare a second AWS account to be your first "DCE Child Account".
     - Create an IAM role with `AdministratorAccess` and a trust relationship to your DCE Master Accounts
-    - Create an account alias by clicking the 'customize' link in the IAM dashbodard of the child account. This must not include the terms "prod" or "production".
+    - Create an account alias in the IAM dashboard or using the [AWS CLI command](https://docs.aws.amazon.com/cli/latest/reference/iam/create-account-alias.html)
+
+    ```
+    aws iam create-account-alias --account-alias examplealias
+    ```
 
 1. Add your child account to the accounts pool
     ```
