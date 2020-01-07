@@ -122,7 +122,7 @@ JSON
 }
 ```
 
-This policy is accessible via the api_access_policy_name & api_access_policy_arn terraform outputs.
+This policy is accessible via the `api_access_policy_name` and `api_access_policy_arn` `terraform outputs <./terraform.html#accessing-terraform-outputs>`_.
 
 Any requests made with IAM credentials that have sufficient permissions to invoke the DCE API, but which are not associated with a Congito User Pool User, will be treated as an `admin role <#admins>`_.
 
