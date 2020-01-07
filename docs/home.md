@@ -34,7 +34,7 @@ for other people to lease.
 
 ## Getting started
 
-To get started using DCE, see the [how-to guide](howto.md).
+To get started using DCE, see the [quickstart](quickstart.md).
 
 ## Viewing the source
 
