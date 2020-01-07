@@ -1776,7 +1776,7 @@ func TestApi(t *testing.T) {
 	t.Run("Get Accounts", func(t *testing.T) {
 
 		t.Run("should return empty for no accounts", func(t *testing.T) {
-			defer truncateAccountTable(t, dbSvc)
+			//defer truncateAccountTable(t, dbSvc)
 
 			resp := apiRequest(t, &apiRequestInput{
 				method: "GET",
@@ -1789,7 +1789,7 @@ func TestApi(t *testing.T) {
 			assert.Equal(t, results, []map[string]interface{}{}, "API should return []")
 		})
 
-		defer truncateAccountTable(t, dbSvc)
+		//defer truncateAccountTable(t, dbSvc)
 
 		accountIDOne := "1"
 		accountIDTwo := "2"
