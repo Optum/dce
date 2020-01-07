@@ -48,7 +48,6 @@ func (e *StatusError) StackTrace() errors.StackTrace {
 
 // Format for the standard format library
 func (e *StatusError) Format(s fmt.State, verb rune) {
-	var err error
 	switch verb {
 	case 'v':
 		if s.Flag('+') {
