@@ -119,13 +119,13 @@ func (a *Account) save() error {
 // Validate the account data
 func (a *Account) Validate() error {
 	err := validation.ValidateStruct(&a.data,
-		validation.Field(&a.data.AdminRoleArn, validation.NotNil),
-		validation.Field(&a.data.ID, accountIDRules...),
-		validation.Field(&a.data.LastModifiedOn, validation.NotNil),
-		validation.Field(&a.data.Status, validation.NotNil),
-		validation.Field(&a.data.CreatedOn, validation.NotNil),
-		validation.Field(&a.data.PrincipalRoleArn, validation.NilOrNotEmpty),
-		validation.Field(&a.data.PrincipalPolicyHash, validation.NilOrNotEmpty),
+		validation.Field(&a.data.AdminRoleArn, validateAdminRoleArn...),
+		validation.Field(&a.data.ID, validateID...),
+		validation.Field(&a.data.LastModifiedOn, validateInt64...),
+		validation.Field(&a.data.Status, validateStatus...),
+		validation.Field(&a.data.CreatedOn, validateInt64...),
+		validation.Field(&a.data.PrincipalRoleArn, validatePrincipalRoleArn...),
+		validation.Field(&a.data.PrincipalPolicyHash, validatePrincipalPolicyHash...),
 	)
 	if err != nil {
 		return errors.NewValidation("account", err)
@@ -212,26 +212,4 @@ func New(wd WriterDeleter, data model.Account) *Account {
 // MarshalJSON Marshals the data inside the account
 func (a *Account) MarshalJSON() ([]byte, error) {
 	return json.Marshal(a.data)
-}
-
-// GetReadyAccount returns an available account record with a
-// corresponding status of 'Ready'
-func GetReadyAccount(d Reader, wd WriterDeleter) (*Account, error) {
-	accounts, err := GetAccounts(
-		&model.Account{
-			Status: model.AccountStatusReady.AccountStatusPtr(),
-		}, d)
-	if err != nil {
-		return nil, err
-	}
-	if len(accounts.data) < 1 {
-		return nil, errors.NewNotFound("account", "ready")
-	}
-
-	newAccount := Account{
-		writer: wd,
-	}
-	newAccount.data = accounts.data[0]
-
-	return &newAccount, err
 }

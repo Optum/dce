@@ -12,14 +12,34 @@ import (
 // We don't use the internal errors package here because validation will rewrite it anyways
 // Just spit out errors and turn them into validation errors inside the appropriate functions
 
-var accountIDRules = []validation.Rule{
-	validation.NotNil,
+var validateAdminRoleArn = []validation.Rule{
+	validation.NotNil.Error("must be a string"),
+}
+
+var validateID = []validation.Rule{
+	validation.NotNil.Error("must be a string"),
 	validation.Match(regexp.MustCompile("^[0-9]{12}$")).Error("must be a string with 12 digits"),
+}
+
+var validateInt64 = []validation.Rule{
+	validation.NotNil.Error("must be an epoch timestamp"),
+}
+
+var validatePrincipalRoleArn = []validation.Rule{
+	validation.NilOrNotEmpty.Error("must be an ARN or empty"),
+}
+
+var validatePrincipalPolicyHash = []validation.Rule{
+	validation.NilOrNotEmpty.Error("must be a hash or empty"),
+}
+
+var validateStatus = []validation.Rule{
+	validation.NotNil.Error("must be a valid account status"),
 }
 
 func isNil(value interface{}) error {
 	if !reflect.ValueOf(value).IsNil() {
-		return errors.New("should be nil")
+		return errors.New("must be empty")
 	}
 	return nil
 }
@@ -30,7 +50,7 @@ func isNilOrUsableAdminRole(am Manager) validation.RuleFunc {
 			s, _ := value.(*string)
 			err := am.Setup(*s)
 			if err != nil {
-				return errors.New("cannot assume admin role arn")
+				return errors.New("must be an admin role arn that can be assumed")
 			}
 		}
 		return nil

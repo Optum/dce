@@ -26,7 +26,7 @@ func (a *Account) queryAccounts(q *model.Account, keyName string, index string) 
 
 	expr, err = bldr.Build()
 	if err != nil {
-		return nil, errors.NewInternalServer("unabled to build query", err)
+		return nil, errors.NewInternalServer("unable to build query", err)
 	}
 
 	res, err = a.DynamoDB.Query(&dynamodb.QueryInput{
@@ -64,7 +64,7 @@ func (a *Account) scanAccounts(q *model.Account) (*model.Accounts, error) {
 	if filters != nil {
 		expr, err = expression.NewBuilder().WithFilter(*filters).Build()
 		if err != nil {
-			return nil, errors.NewInternalServer("unabled to build query", err)
+			return nil, errors.NewInternalServer("unable to build query", err)
 		}
 	}
 	res, err = a.DynamoDB.Scan(&dynamodb.ScanInput{

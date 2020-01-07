@@ -3,7 +3,6 @@ package data
 import (
 	gErrors "errors"
 	"fmt"
-	"strconv"
 
 	"github.com/Optum/dce/pkg/errors"
 	"github.com/Optum/dce/pkg/model"
@@ -24,26 +23,27 @@ type Account struct {
 }
 
 // WriteAccount the Account record in DynamoDB
-func (a *Account) WriteAccount(account *model.Account, lastModifiedOn *int64) error {
+// This is an upsert operation in which the record will either
+// be inserted or updated
+// prevLastModifiedOn parameter is the original lastModifiedOn
+func (a *Account) WriteAccount(account *model.Account, prevLastModifiedOn *int64) error {
 
 	var expr expression.Expression
 	var err error
-	var returnValue string
+	returnValue := "NONE"
 	// lastModifiedOn is nil on a create
-	if lastModifiedOn != nil {
-		modExpr := expression.Name("LastModifiedOn").Equal(expression.Value(lastModifiedOn))
+	if prevLastModifiedOn != nil {
+		modExpr := expression.Name("LastModifiedOn").Equal(expression.Value(prevLastModifiedOn))
 		expr, err = expression.NewBuilder().WithCondition(modExpr).Build()
 		if err != nil {
 			return errors.NewInternalServer("error building query", err)
 		}
-		returnValue = "NONE"
 	} else {
 		modExpr := expression.Name("LastModifiedOn").AttributeNotExists()
 		expr, err = expression.NewBuilder().WithCondition(modExpr).Build()
 		if err != nil {
 			return errors.NewInternalServer("error building query", err)
 		}
-		returnValue = "NONE"
 	}
 
 	putMap, _ := dynamodbattribute.Marshal(account)
@@ -67,7 +67,7 @@ func (a *Account) WriteAccount(account *model.Account, lastModifiedOn *int64) er
 			return errors.NewConflict(
 				"account",
 				*account.ID,
-				fmt.Errorf("unable to update account with LastModifiedOn=%q", strconv.FormatInt(*account.LastModifiedOn, 10)))
+				fmt.Errorf("unable to update account: accounts has been modified since request was made"))
 		}
 	}
 	if err != nil {

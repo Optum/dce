@@ -68,7 +68,7 @@ func TestGetAccounts(t *testing.T) {
 			},
 			returnData: nil,
 			returnErr:  nil,
-			expErr:     errors.NewValidation("account", fmt.Errorf("id: should be nil.")), //nolint golint
+			expErr:     errors.NewValidation("account", fmt.Errorf("id: must be empty.")), //nolint golint
 			expResult:  nil,
 		},
 	}
@@ -80,7 +80,7 @@ func TestGetAccounts(t *testing.T) {
 				Return(tt.returnData, tt.expErr)
 
 			accounts, err := GetAccounts(tt.inputData, mocksReader)
-			assert.True(t, errors.Is(err, tt.expErr))
+			assert.True(t, errors.Is(err, tt.expErr), "actual error %q doesn't match expected error %q", err, tt.expErr)
 			assert.Equal(t, tt.expResult, accounts)
 		})
 	}

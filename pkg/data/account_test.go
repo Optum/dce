@@ -27,9 +27,9 @@ func TestGetAccountByID(t *testing.T) {
 	}{
 		{
 			name:      "should return an account object",
-			accountID: "abc123",
+			accountID: "123456789012",
 			expectedAccount: &model.Account{
-				ID:             ptrString("abc123"),
+				ID:             ptrString("123456789012"),
 				Status:         model.AccountStatusReady.AccountStatusPtr(),
 				LastModifiedOn: ptrInt64(1573592058),
 				AdminRoleArn:   ptrString("test:arn"),
@@ -38,7 +38,7 @@ func TestGetAccountByID(t *testing.T) {
 			dynamoOutput: &dynamodb.GetItemOutput{
 				Item: map[string]*dynamodb.AttributeValue{
 					"Id": {
-						S: aws.String("abc123"),
+						S: aws.String("123456789012"),
 					},
 					"AccountStatus": {
 						S: aws.String("Ready"),
@@ -55,23 +55,23 @@ func TestGetAccountByID(t *testing.T) {
 		},
 		{
 			name:            "should return nil object when not found",
-			accountID:       "abc123",
+			accountID:       "123456789012",
 			expectedAccount: nil,
 			dynamoErr:       nil,
 			dynamoOutput: &dynamodb.GetItemOutput{
 				Item: map[string]*dynamodb.AttributeValue{},
 			},
-			expectedErr: errors.NewNotFound("account", "abc123"),
+			expectedErr: errors.NewNotFound("account", "123456789012"),
 		},
 		{
 			name:            "should return nil when dynamodb err",
-			accountID:       "abc123",
+			accountID:       "123456789012",
 			expectedAccount: nil,
 			dynamoErr:       gErrors.New("failure"),
 			dynamoOutput: &dynamodb.GetItemOutput{
 				Item: map[string]*dynamodb.AttributeValue{},
 			},
-			expectedErr: errors.NewInternalServer("get failed for account \"abc123\"", gErrors.New("failure")),
+			expectedErr: errors.NewInternalServer("get failed for account \"123456789012\"", gErrors.New("failure")),
 		},
 	}
 
@@ -110,7 +110,7 @@ func TestDelete(t *testing.T) {
 		{
 			name: "should delete an account",
 			account: model.Account{
-				ID:             ptrString("abc123"),
+				ID:             ptrString("123456789012"),
 				Status:         model.AccountStatusReady.AccountStatusPtr(),
 				LastModifiedOn: ptrInt64(1573592058),
 				AdminRoleArn:   ptrString("test:Arn"),
@@ -124,7 +124,7 @@ func TestDelete(t *testing.T) {
 		{
 			name: "should delete an account",
 			account: model.Account{
-				ID:             ptrString("abc123"),
+				ID:             ptrString("123456789012"),
 				Status:         model.AccountStatusReady.AccountStatusPtr(),
 				LastModifiedOn: ptrInt64(1573592058),
 				AdminRoleArn:   ptrString("test:Arn"),
@@ -133,7 +133,7 @@ func TestDelete(t *testing.T) {
 			dynamoOutput: &dynamodb.DeleteItemOutput{
 				Attributes: map[string]*dynamodb.AttributeValue{},
 			},
-			expectedErr: errors.NewInternalServer("delete failed for account \"abc123\"", gErrors.New("failure")),
+			expectedErr: errors.NewInternalServer("delete failed for account \"123456789012\"", gErrors.New("failure")),
 		},
 	}
 
@@ -170,7 +170,7 @@ func TestUpdate(t *testing.T) {
 		{
 			name: "update",
 			account: model.Account{
-				ID:             ptrString("abc123"),
+				ID:             ptrString("123456789012"),
 				Status:         model.AccountStatusReady.AccountStatusPtr(),
 				LastModifiedOn: ptrInt64(1573592058),
 				AdminRoleArn:   ptrString("test:Arn"),
@@ -182,7 +182,7 @@ func TestUpdate(t *testing.T) {
 		{
 			name: "create",
 			account: model.Account{
-				ID:             ptrString("abc123"),
+				ID:             ptrString("123456789012"),
 				Status:         model.AccountStatusReady.AccountStatusPtr(),
 				LastModifiedOn: ptrInt64(1573592058),
 				AdminRoleArn:   ptrString("test:Arn"),
@@ -193,26 +193,29 @@ func TestUpdate(t *testing.T) {
 		{
 			name: "conditional failure",
 			account: model.Account{
-				ID:             ptrString("abc123"),
+				ID:             ptrString("123456789012"),
 				Status:         model.AccountStatusReady.AccountStatusPtr(),
 				LastModifiedOn: ptrInt64(1573592058),
 				AdminRoleArn:   ptrString("test:Arn"),
 			},
 			oldLastModifiedOn: ptrInt64(1573592057),
 			dynamoErr:         awserr.New("ConditionalCheckFailedException", "Message", fmt.Errorf("Bad")),
-			expectedErr:       errors.NewConflict("account", "abc123", fmt.Errorf("unable to update account with LastModifiedOn=\"1573592058\"")),
+			expectedErr: errors.NewConflict(
+				"account",
+				"123456789012",
+				fmt.Errorf("unable to update account: accounts has been modified since request was made")),
 		},
 		{
 			name: "other dynamo error",
 			account: model.Account{
-				ID:             ptrString("abc123"),
+				ID:             ptrString("123456789012"),
 				Status:         model.AccountStatusReady.AccountStatusPtr(),
 				LastModifiedOn: ptrInt64(1573592058),
 				AdminRoleArn:   ptrString("test:Arn"),
 			},
 			oldLastModifiedOn: ptrInt64(1573592057),
 			dynamoErr:         gErrors.New("failure"),
-			expectedErr:       errors.NewInternalServer("update failed for account \"abc123\"", gErrors.New("failure")),
+			expectedErr:       errors.NewInternalServer("update failed for account \"123456789012\"", gErrors.New("failure")),
 		},
 	}
 
@@ -244,7 +247,7 @@ func TestUpdate(t *testing.T) {
 			}
 
 			err := accountData.WriteAccount(&tt.account, tt.oldLastModifiedOn)
-			assert.True(t, errors.Is(err, tt.expectedErr))
+			assert.Truef(t, errors.Is(err, tt.expectedErr), "actual error %q doesn't match expected error %q", err, tt.expectedErr)
 		})
 	}
 
