@@ -3,7 +3,7 @@
 ## DCE
 
 _Disposable Cloud Environment (DCE)_ provide temporary, limited access to Amazon Web 
-Services (AWS) accounts. Administrators can configure this limited access to expire based on time or budget. When the access expires, DCE destroys all of the resources in the account and returns the [account to the [account pool](#account-pool)
+Services (AWS) accounts. Administrators can configure this limited access to expire based on time or budget. When the access expires, DCE destroys all of the resources in the account and returns the account to the [account pool](#account-pool).
 
 ## Account
 An _account_ is an AWS account that is available for leasing.
@@ -74,7 +74,7 @@ the configurable default is unset, DCE uses a period of seven (7) days.
 A lease that is _over budget_ has exceeded the budget amount set
 by the `budgetAmount` field of the lease.
 
-Each lease has a configurable _[budget](#budget)_. DCE periodically
+Each lease has a configurable [budget](#budget). DCE periodically
 monitors the leased child accounts to determine when usage exceeds 
 the budget amount queues the account for [reset](#reset).
 
