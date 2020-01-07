@@ -1838,7 +1838,7 @@ func TestApi(t *testing.T) {
 			assert.Equal(t, 5, len(results), "all five accounts should be returned")
 
 			// Check one of the result objects, to make sure it looks right
-			_, hasAccountID := results[0]["accountId"]
+			_, hasAccountID := results[0]["id"]
 			_, hasAccountStatus := results[0]["accountStatus"]
 
 			assert.True(t, hasAccountID, "response should be serialized with the accountId property")
