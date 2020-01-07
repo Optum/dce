@@ -113,7 +113,7 @@ At minumum, the IAM credentials used to access DCE must have an attached policy 
         "execute-api:Invoke"
       ],
       "Resource": [
-        "${aws_api_gateway_rest_api.gateway_api.execution_arn}/*"
+        "<DCE API Gateway ARN>"
       ]
     }
   ]
