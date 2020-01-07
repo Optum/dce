@@ -1839,7 +1839,7 @@ func apiRequest(t *testing.T, input *apiRequestInput) *apiResponse {
 		input.region = "us-east-1"
 	}
 	if input.maxAttempts == 0 {
-		input.maxAttempts = 15
+		input.maxAttempts = 30
 	}
 
 	// Create API request
