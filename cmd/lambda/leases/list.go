@@ -58,10 +58,14 @@ func parseGetLeasesInput(r *http.Request) (db.GetLeasesInput, error) {
 	}
 
 	statusValue := r.FormValue(StatusParam)
-	status, err := db.ParseLeaseStatus(statusValue)
-
-	if err != nil && len(status) > 0 {
-		query.Status = status
+	if len(statusValue) > 0 {
+		status, err := db.ParseLeaseStatus(statusValue)
+		if err != nil {
+			return query, err
+		}
+		if len(status) > 0 {
+			query.Status = status
+		}
 	}
 
 	limit := r.FormValue(LimitParam)

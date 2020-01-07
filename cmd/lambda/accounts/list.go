@@ -19,7 +19,7 @@ func GetAllAccounts(w http.ResponseWriter, r *http.Request) {
 	getAccountsInput, err := parseGetAccountsInput(r)
 
 	if err != nil {
-		response.WriteRequestValidationError(w, fmt.Sprintf("Error parsing query params"))
+		response.WriteRequestValidationError(w, fmt.Sprintf("Error parsing query params: %s", err))
 		return
 	}
 
@@ -67,9 +67,14 @@ func parseGetAccountsInput(r *http.Request) (db.GetAccountsInput, error) {
 	}
 
 	statusValue := r.FormValue(StatusParam)
-	status, err := db.ParseAccountStatus(statusValue)
-	if err != nil && len(status) > 0 {
-		query.Status = status
+	if len(statusValue) > 0 {
+		status, err := db.ParseAccountStatus(statusValue)
+		if err != nil {
+			return query, err
+		}
+		if len(status) > 0 {
+			query.Status = status
+		}
 	}
 
 	accountID := r.FormValue(AccountIDParam)
