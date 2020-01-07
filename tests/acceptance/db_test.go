@@ -582,10 +582,12 @@ func TestDb(t *testing.T) {
 			err := dbSvc.PutAccount(account)
 			require.Nil(t, err)
 
-			accounts, err := dbSvc.GetAccounts()
+			accounts, err := dbSvc.GetAccounts(db.GetAccountsInput{
+				AccountID: expectedID,
+			})
 			require.Nil(t, err)
-			require.True(t, true, len(accounts) > 0)
-			require.Equal(t, accounts[0].ID, expectedID, "The ID of the returns record should match the expected ID")
+			require.True(t, true, len(accounts.Results) > 0)
+			require.Equal(t, accounts.Results[0].ID, expectedID, "The ID of the returns record should match the expected ID")
 		})
 	})
 
