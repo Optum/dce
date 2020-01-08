@@ -87,7 +87,7 @@ func TestApi(t *testing.T) {
 	truncateAccountTable(t, dbSvc)
 	truncateLeaseTable(t, dbSvc)
 	truncateUsageTable(t, usageSvc)
-	//defer truncateAccountTable(t, dbSvc)
+	defer truncateAccountTable(t, dbSvc)
 	defer truncateLeaseTable(t, dbSvc)
 	defer truncateUsageTable(t, usageSvc)
 
@@ -1776,7 +1776,7 @@ func TestApi(t *testing.T) {
 	t.Run("Get Accounts", func(t *testing.T) {
 
 		t.Run("should return empty for no accounts", func(t *testing.T) {
-			//defer truncateAccountTable(t, dbSvc)
+			defer truncateAccountTable(t, dbSvc)
 
 			resp := apiRequest(t, &apiRequestInput{
 				method: "GET",
@@ -1789,7 +1789,7 @@ func TestApi(t *testing.T) {
 			assert.Equal(t, results, []map[string]interface{}{}, "API should return []")
 		})
 
-		//defer truncateAccountTable(t, dbSvc)
+		defer truncateAccountTable(t, dbSvc)
 
 		accountIDOne := "1"
 		accountIDTwo := "2"
@@ -1925,12 +1925,12 @@ func TestApi(t *testing.T) {
 			assert.False(t, ok, "Link header should not exist in last page")
 
 			resultsThree := parseResponseArrayJSON(t, respThree)
-			assert.Equal(t, 1, len(resultsThree), "only one account should be returned")
+			assert.Equal(t, 2, len(resultsThree), "only two accounts should be returned")
 
 			results := append(resultsOne, resultsTwo...)
 			results = append(results, resultsThree...)
 
-			assert.Equal(t, 5, len(results), "All five accounts should be returned")
+			assert.Equal(t, 5, len(results), "All six accounts should be returned")
 		})
 	})
 }
