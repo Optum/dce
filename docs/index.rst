@@ -13,15 +13,8 @@ Home
    
    home
 
-Concepts
---------
-.. toctree::
-   :maxdepth: 2
-
-   concepts
-
 Quickstart
-----------
+------
 .. toctree::
    :maxdepth: 2
 
@@ -33,6 +26,13 @@ How To
    :maxdepth: 2
 
    howto
+
+Concepts
+--------
+.. toctree::
+   :maxdepth: 2
+
+   concepts
 
 DCE IAM Policies
 ----------------
@@ -82,18 +82,3 @@ Local Development
    :maxdepth: 2
 
    develop
-
-Contribution Guidelines
------------------------
-.. toctree::
-   :maxdepth: 2
-
-   contributing_link
-
-
-Changes
--------
-.. toctree::
-   :maxdepth: 2
-
-   changelog_link

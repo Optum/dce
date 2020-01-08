@@ -10,13 +10,13 @@ At the end of the lease, or if the lease's budget is reached, the account is wip
 
 ## Getting Started & Documentation
 
-Deploy your own Disposable Cloud Environment by following our [quick start guide](./docs/quickstart.md), available on our documentation website:
+Deploy your own Disposable Cloud Environment by following the [quickstart](./docs/quickstart.md), also available on our documentation website:
 
 [dce.readthedocs.io](https://dce.readthedocs.io)
 
 ## DCE CLI
 
-The easiest way to get started with DCE is with the DCE CLI tool:
+The easiest way to get started with DCE is with the DCE CLI:
 
 [github.com/Optum/dce-cli](https://github.com/Optum/dce-cli)
 

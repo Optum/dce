@@ -6,6 +6,7 @@
 - Add `PUT /accounts/:id` endpoint
 - Fixed bug where child account's DCEPrincipal role trusted itself rather than the master account
 - Add `GET /auth` and `GET /auth/{file+}` endpoints for retrieving credentials web page
+- Merged quickstarts into how-to guide
 - Support query params for `GET /usage` endpoints
 
 ## v0.23.0

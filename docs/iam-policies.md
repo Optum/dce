@@ -2,9 +2,9 @@
 
 ## Understanding Principal Policies
 
-When an AWS account is added to the [DCE account pool](concepts.md#account-pool),an IAM role and policy are created within the account. This role is assumed by end-users when accessing their leased account.
+When an AWS account is added to the `DCE account pool <concepts.html#account-pool>`_, an IAM role and policy are created within the account. This role is assumed by end-users when accessing their leased account.
 
-The principal user's IAM role is returned as `principalRoleArn` when [creating a new account via the DCE API](api-documentation.md#accounts). For example:
+The principal user's IAM role is returned as `principalRoleArn` when [creating a new account via the DCE API](swagger_link.html). For example:
 
 ```json
 {
@@ -21,7 +21,7 @@ By default, the `DCEPrincipal` role has _near-administrative_ access to their le
 - Users may not modify resources required by DCE to manage the child account
     - e.g. users cannot modify the IAM Trust Relationship which allows DCE master to assume into the child account's IAM roles
 - Users are limited to a set of configured regions
-    - This is to limit the scope of account resets. See [_Configuring Account Resets_](howto.md#configure-account-resets)
+    - This is to limit the scope of account resets. See `Configuring Account Resets <howto.html#account-resets>`_
 - Users are limited to AWS services which DCE knows how to destroy.
     - This is to prevent orphan resources in accounts after reset.
 
@@ -31,7 +31,7 @@ By default, **principal users may elevate their own IAM access**. For example, u
 
 The best way to block this backdoor access to IAM policy elevation is through a [Service Control Policy](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_manage_policies_scp.html), or SCP. An SCP is an organization-level policy which allows administrators to control access to _all_ IAM roles and users within the organizations. 
 
-See [_DCE Service Control Policies_](#dce-service-control-policies-scp)
+See `DCE Service Control Policies <#dce-service-control-policies-scp>`_
 
 ## DCE Service Control Policies (SCP)
 
@@ -180,7 +180,7 @@ Implementing DCE in an AWS Organization provides the ability to use SCPs, which 
 
 Customize the IAM Policies for DCE Principals via Terraform variables. 
 
-See [_Configuring Terraform Variables_](terraform.md#configuring-terraform-variables).
+See `Configuring Terraform Variables <terraform.html#configuring-terraform-variables>`_.
 
 | Variable | Default | Description |
 | --- | --- | --- |

@@ -108,13 +108,14 @@ stages:
                 # May be referenced as an env var (eg. "${NAMESPACE}")
                 # Or as a pipeline variable (eg. "$(namespace)")
                 - bash: |
-                    # TODO tag name can't be namespace, AWS doesn't like
-                    # it as a resource name.
-                    # If it's a tagged version, just call it `release` or something
-                    if [[ -z ${PR_NUMBER} ]]; then
-                      NS="release"
-                    else
+                    # Use the PR number in the namespace
+                    # so each PR gets its own DCE env.
+                    # Note that sometimes Azure DevOps fails to provide
+                    # the PR number, and the var resolves to "$(System.PullRequest.PullRequestNumber)"
+                    if [[ "${PR_NUMBER}" != *'System.'* ]]; then
                       NS="github-pr-${PR_NUMBER}"
+                    else
+                      NS="cd"
                     fi
 
                     echo "Namespace is ${NS}"
@@ -294,6 +295,12 @@ stages:
     jobs:
       - job: ReleaseArtifacts
         steps:
+          # Grab artifacts from our build stage
+          - download: current
+            artifact: bin
+          - download: current
+            artifact: deploy_scripts
+
           # Publish a Github Release for tagged commits
           # See https://docs.microsoft.com/en-us/azure/devops/pipelines/tasks/utility/github-release?view=azure-devops
           - task: GithubRelease@0

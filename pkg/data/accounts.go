@@ -1,8 +1,6 @@
 package data
 
 import (
-	"fmt"
-
 	"github.com/Optum/dce/pkg/errors"
 	"github.com/Optum/dce/pkg/model"
 	"github.com/aws/aws-sdk-go/aws"
@@ -41,7 +39,7 @@ func (a *Account) queryAccounts(q *model.Account, keyName string, index string) 
 
 	if err != nil {
 		return nil, errors.NewInternalServer(
-			fmt.Sprintf("failed to get accounts by status %q", *q.Status),
+			"failed to query accounts",
 			err,
 		)
 	}

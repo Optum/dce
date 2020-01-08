@@ -237,7 +237,7 @@ func TestGetAccountsQuery(t *testing.T) {
 			qOutputRec:  nil,
 			qOutputErr:  fmt.Errorf("failure"),
 			expAccounts: nil,
-			expErr:      errors.NewInternalServer("failed to get accounts by status \"Ready\"", fmt.Errorf("failure")),
+			expErr:      errors.NewInternalServer("failed to query accounts", fmt.Errorf("failure")),
 		},
 	}
 

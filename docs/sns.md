@@ -4,7 +4,7 @@ The DCE master account publishes messages to a number of SNS topics, to indicate
 
 For example, you could setup an _auto-renewal_ system by listening to the `lease-removed` SNS topic, and triggering a Lambda that recreates the lease as soon as it expires.
 
-See the [_Extending Terraform Configuration_](terraform.md#extending-the-terraform-configuration) documentation, for an example of using Terraform to subscribe to DCE SNS topics  
+See the `Extending Terraform Configuration <terraform.html#extending-the-terraform-configuration>`_ documentation, for an example of using Terraform to subscribe to DCE SNS topics  
 
 
 ## account-created
@@ -12,7 +12,7 @@ See the [_Extending Terraform Configuration_](terraform.md#extending-the-terrafo
 An account was added to the account pool
 
 
-This SNS topic ARN is provided as [a Terraform output](terraform.md#deploying-dce-with-terraform):
+This SNS topic ARN is provided as `a Terraform output <terraform.html#deploy-with-terraform>`_:
 
 ```
 terraform output account_created_topic_arn
@@ -30,7 +30,6 @@ This message includes a payload as JSON, with the following fields:
 | lastModifiedOn | int                              | Last modified timestamp                                                                                     |
 | createdOn      | int                              | Last modified timestamp                                                                                     |
 | metadata       | JSON object                      | Metadata field contains any organization specific data pertaining to the account that needs to be persisted |
-
 
 Example:
 
@@ -52,7 +51,7 @@ Example:
 
 An account was deleted from the account pool
 
-This SNS topic ARN is provided as [a Terraform output](terraform.md#deploying-dce-with-terraform):
+This SNS topic ARN is provided as `a Terraform output <terraform.html#deploy-with-terraform>`_:
 
 ```
 terraform output account_deleted_topic_arn
@@ -92,7 +91,7 @@ Example:
 
 Triggered when a lease is created.
 
-This SNS topic ARN is provided as [a Terraform output](terraform.md#deploying-dce-with-terraform):
+This SNS topic ARN is provided as `a Terraform output <terraform.html#deploy-with-terraform>`_:
 
 ```
 terraform output lease_added_topic_arn
@@ -130,7 +129,7 @@ Example:
 
 Triggered when a lease is deleted.
 
-This SNS topic ARN is provided as [a Terraform output](terraform.md#deploying-dce-with-terraform):
+This SNS topic ARN is provided as `a Terraform output <terraform.html#deploy-with-terraform>`_:
 
 ```
 terraform output lease_removed_topic_arn
