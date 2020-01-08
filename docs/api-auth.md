@@ -99,6 +99,7 @@ view information you do not have access to.
     dce accounts list
     err:  [GET /accounts][403] getAccountsForbidden
     ```
+
 ## Using IAM Credentials
 
 The DCE API accepts authentication via IAM credentials using [SigV4 signed requests](https://docs.aws.amazon.com/general/latest/gr/sigv4_signing.html). 
