@@ -23,6 +23,18 @@ func CreateAPIGatewayResponse(status int, body string) events.APIGatewayProxyRes
 	}
 }
 
+// CreateMultiValueHeaderAPIResponse - creates a response with multi-value headers
+func CreateMultiValueHeaderAPIResponse(status int, body string) events.APIGatewayProxyResponse {
+	return events.APIGatewayProxyResponse{
+		StatusCode: status,
+		MultiValueHeaders: map[string][]string{
+			"Content-Type":                []string{"application/json"},
+			"Access-Control-Allow-Origin": []string{"*"},
+		},
+		Body: fmt.Sprintln(body),
+	}
+}
+
 // CreateMultiValueHeaderAPIErrorResponse - Creates an error response with mulit-value headers
 func CreateMultiValueHeaderAPIErrorResponse(status int, errorCode string, message string) events.APIGatewayProxyResponse {
 
