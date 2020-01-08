@@ -133,7 +133,7 @@ The process for signing requests with SigV4 is somewhat involved, but luckily th
 
 - [AWS Golang SDK signer/v4 package](https://docs.aws.amazon.com/sdk-for-go/api/aws/signer/v4/)
 - [aws-requests-auth](https://github.com/DavidMuller/aws-requests-auth) for Python
-- [Postman _AWS Signature_ authentication](https://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-use-postman-to-call-api.html)
+- [Postman AWS Signature authentication](https://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-use-postman-to-call-api.html)
 
 AWS also provides [examples for a number of languages in their docs](https://docs.aws.amazon.com/general/latest/gr/signature-v4-examples.html).
 
