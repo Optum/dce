@@ -23,32 +23,6 @@ func CreateAPIGatewayResponse(status int, body string) events.APIGatewayProxyRes
 	}
 }
 
-// CreateAPIGatewayResponseWithLinkHeader is a helper function to create and return a valid response with Link header
-// for an API Gateway
-func CreateAPIGatewayResponseWithLinkHeader(status int, body string, link string) events.APIGatewayProxyResponse {
-	return events.APIGatewayProxyResponse{
-		StatusCode: status,
-		Headers: map[string]string{
-			"Content-Type":                "application/json",
-			"Access-Control-Allow-Origin": "*",
-			"Link":                        link,
-		},
-		Body: body,
-	}
-}
-
-// CreateMultiValueHeaderAPIResponse - creates a response with multi-value headers
-func CreateMultiValueHeaderAPIResponse(status int, body string) events.APIGatewayProxyResponse {
-	return events.APIGatewayProxyResponse{
-		StatusCode: status,
-		MultiValueHeaders: map[string][]string{
-			"Content-Type":                []string{"application/json"},
-			"Access-Control-Allow-Origin": []string{"*"},
-		},
-		Body: fmt.Sprintln(body),
-	}
-}
-
 // CreateMultiValueHeaderAPIErrorResponse - Creates an error response with mulit-value headers
 func CreateMultiValueHeaderAPIErrorResponse(status int, errorCode string, message string) events.APIGatewayProxyResponse {
 

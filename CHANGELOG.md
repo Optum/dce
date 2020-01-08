@@ -1,3 +1,6 @@
+## vNext
+
+- Support query params for `GET /accounts` endpoint
 
 ## v0.24.0
 
