@@ -66,8 +66,8 @@ var (
 )
 
 const (
-	AccountIDParam     = "accountId"
-	NextAccountIDParam = "nextAccountId"
+	AccountIDParam     = "id"
+	NextAccountIDParam = "nextId"
 	StatusParam        = "status"
 	LimitParam         = "limit"
 )
