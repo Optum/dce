@@ -295,6 +295,12 @@ stages:
     jobs:
       - job: ReleaseArtifacts
         steps:
+          # Grab artifacts from our build stage
+          - download: current
+            artifact: bin
+          - download: current
+            artifact: deploy_scripts
+
           # Publish a Github Release for tagged commits
           # See https://docs.microsoft.com/en-us/azure/devops/pipelines/tasks/utility/github-release?view=azure-devops
           - task: GithubRelease@0
