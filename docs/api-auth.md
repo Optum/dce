@@ -7,6 +7,8 @@ There are two ways to authenticate against the DCE APIs:
 
 ## Roles
 
+Note: The enforcement of roles is currently a `work in progress <https://github.com/Optum/dce/issues/137>`_.
+
 ### Admins
 
 Admins have full access to all APIs and will not get back filtered results when querying APIs.
