@@ -87,7 +87,7 @@ func TestApi(t *testing.T) {
 	truncateAccountTable(t, dbSvc)
 	truncateLeaseTable(t, dbSvc)
 	truncateUsageTable(t, usageSvc)
-	defer truncateAccountTable(t, dbSvc)
+	//defer truncateAccountTable(t, dbSvc)
 	defer truncateLeaseTable(t, dbSvc)
 	defer truncateUsageTable(t, usageSvc)
 
