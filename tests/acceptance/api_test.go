@@ -1789,7 +1789,7 @@ func TestApi(t *testing.T) {
 			assert.Equal(t, results, []map[string]interface{}{}, "API should return []")
 		})
 
-		defer truncateAccountTable(t, dbSvc)
+		truncateAccountTable(t, dbSvc)
 
 		accountIDOne := "1"
 		accountIDTwo := "2"
@@ -1925,7 +1925,7 @@ func TestApi(t *testing.T) {
 			assert.False(t, ok, "Link header should not exist in last page")
 
 			resultsThree := parseResponseArrayJSON(t, respThree)
-			assert.Equal(t, 2, len(resultsThree), "only two accounts should be returned")
+			assert.Equal(t, 1, len(resultsThree), "only one account should be returned")
 
 			results := append(resultsOne, resultsTwo...)
 			results = append(results, resultsThree...)
