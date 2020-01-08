@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var errOriginal = errors.New("original error")
@@ -137,7 +138,53 @@ func TestNew(t *testing.T) {
 			assert.Equal(t, tt.err.OriginalError(), tt.expectedStatusError.cause)
 
 			var b bytes.Buffer
-			_ = json.NewEncoder(&b).Encode(tt.err)
+			err := json.NewEncoder(&b).Encode(tt.err)
+			require.Nil(t, err)
+			assert.Equal(
+				t,
+				tt.expectedJSON,
+				b.String(),
+			)
+			assert.NotNil(
+				t,
+				GetStackTraceForError(tt.err),
+			)
+		})
+	}
+}
+
+func TestNewGeneric(t *testing.T) {
+
+	tests := []struct {
+		name                string
+		err                 *StatusError
+		expectedJSON        string
+		expectedStatusError StatusError
+	}{
+		{
+			name: "new generic validation error",
+			err:  NewGenericStatusError(http.StatusConflict, nil),
+			expectedStatusError: StatusError{
+				httpCode: http.StatusConflict,
+				Details: detailError{
+					Message: "the server reported a conflict",
+					Code:    conflictError,
+				},
+				cause: nil,
+			},
+			expectedJSON: "{\"error\":{\"message\":\"the server reported a conflict\",\"code\":\"ConflictError\"}}\n",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expectedStatusError.Details.Message, tt.err.Error())
+			assert.Equal(t, tt.expectedStatusError.httpCode, HTTPCodeForError(tt.err))
+			assert.Equal(t, tt.err.OriginalError(), tt.expectedStatusError.cause)
+
+			var b bytes.Buffer
+			err := json.NewEncoder(&b).Encode(tt.err)
+			require.Nil(t, err)
 			assert.Equal(
 				t,
 				tt.expectedJSON,
@@ -172,7 +219,7 @@ func TestFrameFormat(t *testing.T) {
 			"%+v",
 			"original error\n" +
 				"github.com/Optum/dce/pkg/errors.init\n" +
-				"\t.+/.*/error_test.go:17\n",
+				"\t.+/.*/error_test.go:18\n",
 		},
 	}
 

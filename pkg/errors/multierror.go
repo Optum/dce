@@ -14,6 +14,7 @@ type MultiError struct {
 	Errors  []error
 }
 
+// Error returns the error message to satisfy the error interface
 func (err MultiError) Error() string {
 	var errStrs []string
 	for _, e := range err.Errors {
@@ -26,6 +27,7 @@ func (err MultiError) Error() string {
 	)
 }
 
+// NewMultiError is a list of errors
 func NewMultiError(msg string, errs []error) *MultiError {
 	return &MultiError{
 		Message: msg,

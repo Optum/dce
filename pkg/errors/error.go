@@ -2,9 +2,10 @@ package errors
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
 	"io"
 	"net/http"
+
+	"github.com/pkg/errors"
 )
 
 // These are the Codes used in the error messages returned to customers
@@ -67,7 +68,7 @@ func (e *StatusError) Is(err error) bool {
 
 	s, ok := err.(HTTPCode)
 	if ok {
-		if s.HTTPCode() == e.httpCode {
+		if s.HTTPCode() == e.httpCode && e.Error() == err.Error() {
 			return true
 		}
 	}
