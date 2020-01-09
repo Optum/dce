@@ -159,7 +159,6 @@ func initConfig() {
 		WithSNS().
 		WithSQS().
 		// DCE services...
-		WithDAO().
 		WithStorageService().
 		WithDataService().
 		Build()

@@ -7,7 +7,6 @@ import (
 
 	"github.com/Optum/dce/pkg/common"
 	"github.com/Optum/dce/pkg/data"
-	"github.com/Optum/dce/pkg/db"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 	"github.com/aws/aws-sdk-go/service/ssm"
 
@@ -94,12 +93,6 @@ func (bldr *ServiceBuilder) WithCodeBuild() *ServiceBuilder {
 // WithSSM tells the builder to add an AWS SSM service to the `DefaultConfigurater`
 func (bldr *ServiceBuilder) WithSSM() *ServiceBuilder {
 	bldr.handlers = append(bldr.handlers, bldr.createSSM)
-	return bldr
-}
-
-// WithDAO tells the builder to add the DCE DAO (DBer) service to the `ConfigurationBuilder`
-func (bldr *ServiceBuilder) WithDAO() *ServiceBuilder {
-	bldr.handlers = append(bldr.handlers, bldr.createDAO)
 	return bldr
 }
 
@@ -212,34 +205,6 @@ func (bldr *ServiceBuilder) createCodeBuild(config ConfigurationServiceBuilder) 
 func (bldr *ServiceBuilder) createSSM(config ConfigurationServiceBuilder) error {
 	SSMSvc := ssm.New(bldr.awsSession)
 	config.WithService(SSMSvc)
-	return nil
-}
-
-func (bldr *ServiceBuilder) createDAO(config ConfigurationServiceBuilder) error {
-	var daoSvc db.DBer
-
-	var dynamodbSvc dynamodbiface.DynamoDBAPI
-	err := bldr.Config.GetService(&dynamodbSvc)
-
-	if err != nil {
-		log.Println("Could not find DynamoDB service. Call WithDynamoDB() before WithDAO()")
-		return err
-	}
-
-	daoSvcImpl := db.DB{}
-
-	err = bldr.Config.Unmarshal(&daoSvcImpl)
-
-	if err != nil {
-		log.Printf("Error while trying to create DB from env: %s", err.Error())
-		return err
-	}
-
-	daoSvcImpl.Client = dynamodbSvc
-
-	daoSvc = &daoSvcImpl
-
-	config.WithService(daoSvc)
 	return nil
 }
 

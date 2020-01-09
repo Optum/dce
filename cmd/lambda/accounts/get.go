@@ -14,14 +14,14 @@ import (
 func GetAccountByID(w http.ResponseWriter, r *http.Request) {
 
 	accountID := mux.Vars(r)["accountId"]
-	var dao dataiface.AccountData
+	var dataSvc dataiface.AccountData
 
-	if err := Services.Config.GetService(&dao); err != nil {
+	if err := Services.Config.GetService(&dataSvc); err != nil {
 		api.WriteAPIErrorResponse(w, err)
 		return
 	}
 
-	account, err := account.GetAccountByID(accountID, dao, nil)
+	account, err := account.GetAccountByID(accountID, dataSvc, nil)
 
 	if err != nil {
 		api.WriteAPIErrorResponse(w, err)
