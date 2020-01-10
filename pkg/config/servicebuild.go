@@ -244,15 +244,13 @@ func (bldr *ServiceBuilder) createDataService(config ConfigurationServiceBuilder
 }
 
 func (bldr *ServiceBuilder) createAccountManager(config ConfigurationServiceBuilder) error {
-	amSvcImpl := &accountmanager.AccountManager{}
-
 	amSvcInput := accountmanager.NewInput{}
 	err := bldr.Config.Unmarshal(&amSvcInput)
 	if err != nil {
 		return err
 	}
 
-	amSvcImpl, err = accountmanager.New(amSvcInput)
+	amSvcImpl, err := accountmanager.New(amSvcInput)
 	if err != nil {
 		return err
 	}

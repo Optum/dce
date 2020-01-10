@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/Optum/dce/pkg/config"
 	"github.com/Optum/dce/pkg/data/dataiface/mocks"
@@ -15,6 +16,7 @@ import (
 
 func TestGetAccountByID(t *testing.T) {
 
+	now := time.Now().Unix()
 	type response struct {
 		StatusCode int
 		Body       string
@@ -31,10 +33,14 @@ func TestGetAccountByID(t *testing.T) {
 			accountID: "abc123",
 			expResp: response{
 				StatusCode: 200,
-				Body:       "{}\n",
+				Body:       fmt.Sprintf("{\"id\":\"abc123\",\"lastModifiedOn\":%d,\"createdOn\":%d}\n", now, now),
 			},
-			retAccount: &model.Account{},
-			retErr:     nil,
+			retAccount: &model.Account{
+				LastModifiedOn: &now,
+				CreatedOn:      &now,
+				ID:             ptrString("abc123"),
+			},
+			retErr: nil,
 		},
 		{
 			name:      "failure",
@@ -79,7 +85,7 @@ func TestGetAccountByID(t *testing.T) {
 
 			assert.Nil(t, err)
 			assert.Equal(t, tt.expResp.StatusCode, resp.StatusCode)
-			assert.Equal(t, tt.expResp.Body, string(body))
+			assert.JSONEq(t, tt.expResp.Body, string(body))
 		})
 	}
 

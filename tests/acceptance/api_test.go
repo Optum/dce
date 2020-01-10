@@ -1092,8 +1092,6 @@ func TestApi(t *testing.T) {
 					"metadata": map[string]interface{}{
 						"foo": "bar",
 					},
-					// this shouldn't actually persist
-					"accountStatus": "hippos",
 				},
 				f: statusCodeAssertion(200),
 			})
@@ -1103,8 +1101,6 @@ func TestApi(t *testing.T) {
 			require.Equal(t, map[string]interface{}{
 				"foo": "bar",
 			}, resJSON["metadata"], "Response includes updated metadata")
-			require.NotEqual(t, "hippos", resJSON["accountStatus"],
-				"shouldn't update non-updatable fields")
 			require.True(t, resJSON["lastModifiedOn"].(float64) > resJSON["createdOn"].(float64),
 				"should update lastModifiedOn timestamp")
 
@@ -1115,8 +1111,6 @@ func TestApi(t *testing.T) {
 			require.Equal(t, map[string]interface{}{
 				"foo": "bar",
 			}, account.Metadata, "db record metadata is updated")
-			require.NotEqual(t, "hippos", account.AccountStatus,
-				"shouldn't update non-updatable fields in DB")
 			require.True(t, account.LastModifiedOn > account.CreatedOn,
 				"should update lastModifiedOn timestamp")
 		})
@@ -1136,9 +1130,8 @@ func TestApi(t *testing.T) {
 			resJSON := parseResponseJSON(t, res)
 			require.Equal(t, map[string]interface{}{
 				"error": map[string]interface{}{
-					"code": "RequestValidationError",
-					"message": fmt.Sprintf("Unable to update account %s: "+
-						"admin role is not assumable by the master account", accountID),
+					"code":    "RequestValidationError",
+					"message": fmt.Sprintf("account validation error: adminRoleArn: must be an admin role arn that can be assumed."),
 				},
 			}, resJSON)
 		})
@@ -1148,7 +1141,7 @@ func TestApi(t *testing.T) {
 			// with invalid adminRoleArn
 			res := apiRequest(t, &apiRequestInput{
 				method: "PUT",
-				url:    apiURL + "/accounts/not-an-account-id",
+				url:    apiURL + "/accounts/123456789012",
 				json: map[string]interface{}{
 					"metadata": map[string]interface{}{
 						"foo": "bar",
@@ -1160,8 +1153,8 @@ func TestApi(t *testing.T) {
 			resJSON := parseResponseJSON(t, res)
 			require.Equal(t, map[string]interface{}{
 				"error": map[string]interface{}{
-					"code":    "NotFound",
-					"message": "The requested resource could not be found.",
+					"code":    "NotFoundError",
+					"message": "account \"123456789012\" not found",
 				},
 			}, resJSON)
 		})
