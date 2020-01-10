@@ -137,7 +137,7 @@ func (config *ConfigurationBuilder) GetService(svcFor interface{}) error {
 			).Set(config.values.impls[i])
 			return nil
 		} else if kind == reflect.Struct && k.AssignableTo(t.Elem()) {
-			reflect.ValueOf(svcFor).Elem().Set(config.values.impls[i])
+			reflect.ValueOf(svcFor).Elem().Set(config.values.impls[i].Elem())
 			return nil
 		}
 	}

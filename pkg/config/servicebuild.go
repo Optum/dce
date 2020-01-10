@@ -1,10 +1,14 @@
 package config
 
 import (
-	"github.com/aws/aws-sdk-go/service/ssm"
 	"log"
 	"reflect"
 	"runtime"
+
+	"github.com/Optum/dce/pkg/common"
+	"github.com/Optum/dce/pkg/data"
+	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
+	"github.com/aws/aws-sdk-go/service/ssm"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -89,6 +93,18 @@ func (bldr *ServiceBuilder) WithCodeBuild() *ServiceBuilder {
 // WithSSM tells the builder to add an AWS SSM service to the `DefaultConfigurater`
 func (bldr *ServiceBuilder) WithSSM() *ServiceBuilder {
 	bldr.handlers = append(bldr.handlers, bldr.createSSM)
+	return bldr
+}
+
+// WithStorageService tells the builder to add the DCE DAO (DBer) service to the `ConfigurationBuilder`
+func (bldr *ServiceBuilder) WithStorageService() *ServiceBuilder {
+	bldr.handlers = append(bldr.handlers, bldr.createStorageService)
+	return bldr
+}
+
+// WithDataService tells the builder to add the Data service to the `ConfigurationBuilder`
+func (bldr *ServiceBuilder) WithDataService() *ServiceBuilder {
+	bldr.handlers = append(bldr.handlers, bldr.createDataService)
 	return bldr
 }
 
@@ -189,5 +205,32 @@ func (bldr *ServiceBuilder) createCodeBuild(config ConfigurationServiceBuilder) 
 func (bldr *ServiceBuilder) createSSM(config ConfigurationServiceBuilder) error {
 	SSMSvc := ssm.New(bldr.awsSession)
 	config.WithService(SSMSvc)
+	return nil
+}
+
+func (bldr *ServiceBuilder) createStorageService(config ConfigurationServiceBuilder) error {
+	storageService := &common.S3{}
+	config.WithService(storageService)
+	return nil
+}
+
+func (bldr *ServiceBuilder) createDataService(config ConfigurationServiceBuilder) error {
+	var dynamodbSvc dynamodbiface.DynamoDBAPI
+	err := bldr.Config.GetService(&dynamodbSvc)
+
+	if err != nil {
+		return err
+	}
+
+	dataSvcImpl := &data.Account{}
+
+	err = bldr.Config.Unmarshal(dataSvcImpl)
+	if err != nil {
+		return err
+	}
+
+	dataSvcImpl.DynamoDB = dynamodbSvc
+
+	config.WithService(dataSvcImpl)
 	return nil
 }
