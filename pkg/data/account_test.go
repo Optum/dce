@@ -223,6 +223,8 @@ func TestUpdate(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockDynamo := awsmocks.DynamoDBAPI{}
 
+			mockDynamo.On("PutItem", mock.Anything).Return(&dynamodb.PutItemOutput{}, tt.dynamoErr)
+
 			mockDynamo.On("PutItem", mock.MatchedBy(func(input *dynamodb.PutItemInput) bool {
 				if tt.oldLastModifiedOn == nil {
 					return (*input.TableName == "Accounts" &&

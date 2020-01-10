@@ -1,14 +1,12 @@
 package data
 
 import (
-	gErrors "errors"
 	"fmt"
 
 	"github.com/Optum/dce/pkg/errors"
 	"github.com/Optum/dce/pkg/model"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
@@ -30,7 +28,6 @@ func (a *Account) WriteAccount(account *model.Account, prevLastModifiedOn *int64
 
 	var expr expression.Expression
 	var err error
-	returnValue := "NONE"
 	// lastModifiedOn is nil on a create
 	if prevLastModifiedOn != nil {
 		modExpr := expression.Name("LastModifiedOn").Equal(expression.Value(prevLastModifiedOn))
@@ -46,38 +43,8 @@ func (a *Account) WriteAccount(account *model.Account, prevLastModifiedOn *int64
 		}
 	}
 
-	putMap, _ := dynamodbattribute.Marshal(account)
-	_, err = a.DynamoDB.PutItem(
-		&dynamodb.PutItemInput{
-			// Query in Lease Table
-			TableName: aws.String(a.TableName),
-			// Find Account for the requested accountId
-			Item: putMap.M,
-			// Condition Expression
-			ConditionExpression:       expr.Condition(),
-			ExpressionAttributeNames:  expr.Names(),
-			ExpressionAttributeValues: expr.Values(),
-			// Return the updated record
-			ReturnValues: aws.String(returnValue),
-		},
-	)
-	var awsErr awserr.Error
-	if gErrors.As(err, &awsErr) {
-		if awsErr.Code() == "ConditionalCheckFailedException" {
-			return errors.NewConflict(
-				"account",
-				*account.ID,
-				fmt.Errorf("unable to update account: accounts has been modified since request was made"))
-		}
-	}
-	if err != nil {
-		return errors.NewInternalServer(
-			fmt.Sprintf("update failed for account %q", *account.ID),
-			err,
-		)
-	}
+	return putItem(a, account, "Account", &expr)
 
-	return nil
 }
 
 // DeleteAccount the Account record in DynamoDB
