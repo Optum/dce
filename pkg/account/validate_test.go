@@ -35,7 +35,7 @@ func TestValidate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			account := New(nil, tt.account)
+			account := New(tt.account, nil)
 
 			err := account.Validate()
 			assert.True(t, errors.Is(err, tt.expErr), "actual error %q doesn't match expected error %q", err, tt.expErr)

@@ -5,8 +5,10 @@ import (
 	"reflect"
 	"runtime"
 
+	"github.com/Optum/dce/pkg/accountmanager"
 	"github.com/Optum/dce/pkg/common"
 	"github.com/Optum/dce/pkg/data"
+
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 	"github.com/aws/aws-sdk-go/service/ssm"
 
@@ -105,6 +107,12 @@ func (bldr *ServiceBuilder) WithStorageService() *ServiceBuilder {
 // WithDataService tells the builder to add the Data service to the `ConfigurationBuilder`
 func (bldr *ServiceBuilder) WithDataService() *ServiceBuilder {
 	bldr.handlers = append(bldr.handlers, bldr.createDataService)
+	return bldr
+}
+
+// WithAccountManager tells the builder to add the Data service to the `ConfigurationBuilder`
+func (bldr *ServiceBuilder) WithAccountManager() *ServiceBuilder {
+	bldr.handlers = append(bldr.handlers, bldr.createAccountManager)
 	return bldr
 }
 
@@ -232,5 +240,23 @@ func (bldr *ServiceBuilder) createDataService(config ConfigurationServiceBuilder
 	dataSvcImpl.DynamoDB = dynamodbSvc
 
 	config.WithService(dataSvcImpl)
+	return nil
+}
+
+func (bldr *ServiceBuilder) createAccountManager(config ConfigurationServiceBuilder) error {
+	amSvcImpl := &accountmanager.AccountManager{}
+
+	amSvcInput := accountmanager.NewInput{}
+	err := bldr.Config.Unmarshal(&amSvcInput)
+	if err != nil {
+		return err
+	}
+
+	amSvcImpl, err = accountmanager.New(amSvcInput)
+	if err != nil {
+		return err
+	}
+
+	config.WithService(amSvcImpl)
 	return nil
 }

@@ -185,27 +185,28 @@ func (a *Account) Delete() error {
 // GetAccountByID returns an account from ID
 func GetAccountByID(ID string, d SingleReader, wd WriterDeleter) (*Account, error) {
 
-	newAccount := Account{
-		writer: wd,
-	}
 	data, err := d.GetAccountByID(ID)
 	if err != nil {
 		return nil, err
 	}
-	newAccount.data = *data
 
-	return &newAccount, err
+	return New(*data, wd), err
 }
 
 // New returns an account from ID
-func New(wd WriterDeleter, data model.Account) *Account {
-	now := time.Now().Unix()
+func New(data model.Account, wd WriterDeleter) *Account {
 	account := &Account{
 		writer: wd,
 		data:   data,
 	}
-	account.data.CreatedOn = &now
-	account.data.LastModifiedOn = &now
+	now := time.Now().Unix()
+	if account.data.LastModifiedOn == nil {
+		account.data.LastModifiedOn = &now
+	}
+	if account.data.CreatedOn == nil {
+		account.data.CreatedOn = &now
+	}
+
 	return account
 }
 

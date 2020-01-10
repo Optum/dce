@@ -3,6 +3,7 @@ package account
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	dataMocks "github.com/Optum/dce/pkg/account/mocks"
 	"github.com/Optum/dce/pkg/errors"
@@ -33,7 +34,7 @@ func TestProperties(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			account := New(nil, tt.account)
+			account := New(tt.account, nil)
 			assert.Equal(t, tt.account.ID, account.ID())
 			assert.Equal(t, tt.account.AdminRoleArn, account.AdminRoleArn())
 			assert.Equal(t, tt.account.Metadata, account.Metadata())
@@ -45,7 +46,7 @@ func TestProperties(t *testing.T) {
 }
 
 func TestGetAccountByID(t *testing.T) {
-
+	now := time.Now().Unix()
 	tests := []struct {
 		name       string
 		ID         string
@@ -65,8 +66,10 @@ func TestGetAccountByID(t *testing.T) {
 			expReturn: &Account{
 				writer: nil,
 				data: model.Account{
-					ID:     ptrString("123456789012"),
-					Status: model.AccountStatusReady.AccountStatusPtr(),
+					ID:             ptrString("123456789012"),
+					Status:         model.AccountStatusReady.AccountStatusPtr(),
+					LastModifiedOn: &now,
+					CreatedOn:      &now,
 				},
 			},
 			expErr: nil,
@@ -134,7 +137,7 @@ func TestDelete(t *testing.T) {
 			mocksDeleter := &dataMocks.WriterDeleter{}
 			mocksDeleter.On("DeleteAccount", mock.Anything).
 				Return(tt.returnErr)
-			account := New(mocksDeleter, tt.account)
+			account := New(tt.account, mocksDeleter)
 
 			err := account.Delete()
 			assert.True(t, errors.Is(err, tt.expErr), "actual error %q doesn't match expected error %q", err, tt.expErr)
@@ -251,7 +254,7 @@ func TestUpdate(t *testing.T) {
 
 			mocksManager.On("Setup", mock.AnythingOfType("string")).Return(tt.amReturnErr)
 
-			account := New(mocksWriter, tt.origAccount)
+			account := New(tt.origAccount, mocksWriter)
 
 			err := account.Update(tt.updAccount, mocksManager)
 
