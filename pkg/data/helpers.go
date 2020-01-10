@@ -1,11 +1,22 @@
 package data
 
 import (
+	"github.com/Optum/dce/pkg/model"
 	"reflect"
 	"strings"
 
+<<<<<<< HEAD
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
+=======
+	gErrors "errors"
+	"fmt"
+	"github.com/Optum/dce/pkg/errors"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
+>>>>>>> add generic putItem
 	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
 )
 
