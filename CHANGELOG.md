@@ -1,3 +1,6 @@
+## v0.24.1
+
+- Fix failure to render IAM principal policy in `update_principal_policy` lambda (#207)
 
 ## v0.24.0
 
