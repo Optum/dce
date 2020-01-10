@@ -111,7 +111,7 @@ func TestListLeases(t *testing.T) {
 		require.Nil(t, err)
 
 		require.Equal(t, actualResponse.StatusCode, 500, "Returns a 500.")
-		require.Equal(t, actualResponse.Body, "{\"error\":{\"code\":\"ServerError\",\"message\":\"Error querying leases\"}}")
+		require.Equal(t, actualResponse.Body, "{\"error\":{\"code\":\"ServerError\",\"message\":\"Internal server error\"}}")
 	})
 
 }

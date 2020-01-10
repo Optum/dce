@@ -30,7 +30,7 @@ func GetLeases(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		log.Print(err)
-		response.WriteServerErrorWithResponse(w, fmt.Sprintf("Error querying leases"))
+		response.WriteServerError(w)
 		return
 	}
 

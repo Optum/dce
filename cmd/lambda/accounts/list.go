@@ -31,7 +31,7 @@ func GetAllAccounts(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		log.Print(err)
-		response.WriteServerErrorWithResponse(w, fmt.Sprintf("Error querying accounts database"))
+		response.WriteServerError(w)
 		return
 	}
 
