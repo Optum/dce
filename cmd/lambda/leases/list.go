@@ -21,6 +21,7 @@ func GetLeases(w http.ResponseWriter, r *http.Request) {
 	getLeasesInput, err := parseGetLeasesInput(r)
 
 	if err != nil {
+		log.Print(err)
 		response.WriteRequestValidationError(w, fmt.Sprintf("Error parsing query params"))
 		return
 	}
@@ -28,7 +29,8 @@ func GetLeases(w http.ResponseWriter, r *http.Request) {
 	result, err := dao.GetLeases(getLeasesInput)
 
 	if err != nil {
-		response.WriteServerErrorWithResponse(w, fmt.Sprintf("Error querying leases: %s", err))
+		log.Print(err)
+		response.WriteServerErrorWithResponse(w, fmt.Sprintf("Error querying leases"))
 		return
 	}
 

@@ -10,7 +10,6 @@ import (
 	"github.com/Optum/dce/pkg/db"
 
 	"github.com/Optum/dce/pkg/api"
-	"github.com/Optum/dce/pkg/db"
 	"github.com/Optum/dce/pkg/errors"
 
 	"github.com/Optum/dce/pkg/api/response"
@@ -23,14 +22,16 @@ func GetAllAccounts(w http.ResponseWriter, r *http.Request) {
 	getAccountsInput, err := parseGetAccountsInput(r)
 
 	if err != nil {
-		response.WriteRequestValidationError(w, fmt.Sprintf("Error parsing query params: %s", err))
+		log.Print(err)
+		response.WriteRequestValidationError(w, fmt.Sprintf("Error parsing query params"))
 		return
 	}
 
 	result, err := Dao.GetAccounts(getAccountsInput)
 
 	if err != nil {
-		response.WriteServerErrorWithResponse(w, fmt.Sprintf("Error querying accounts database: %s", err))
+		log.Print(err)
+		response.WriteServerErrorWithResponse(w, fmt.Sprintf("Error querying accounts database"))
 		return
 	}
 
