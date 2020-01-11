@@ -48,7 +48,8 @@ func TestCredentialsWebPageLoads(t *testing.T) {
 		// Assert
 		assert.Equal(t, 200, resp.StatusCode)
 		buf := new(bytes.Buffer)
-		buf.ReadFrom(resp.Body)
+		_, err = buf.ReadFrom(resp.Body)
+		assert.NoError(t, err)
 		assert.NotContains(t, buf.String(), `SITE_PATH_PREFIX = ""`)
 		assert.NotContains(t, buf.String(), `APIGW_DEPLOYMENT_NAME = ""`)
 		assert.NotContains(t, buf.String(), `AWS_CURRENT_REGION = ""`)
