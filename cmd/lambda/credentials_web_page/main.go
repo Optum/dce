@@ -12,14 +12,14 @@ import (
 )
 
 type credentialsWebPageConfig struct {
-	AwsCurrentRegion     string `env:"AWS_CURRENT_REGION" defaultEnv:"us-east-1"`
-	SitePathPrefix       string `env:"SITE_PATH_PREFIX" defaultEnv:"sitePathPrefix"`
-	ApigwDeploymentName  string `env:"APIGW_DEPLOYMENT_NAME" defaultEnv:"apigwDeploymentName"`
-	IdentityPoolID       string
-	UserPoolProviderName string
-	UserPoolClientID     string
-	UserPoolAppWebDomain string
-	UserPoolID           string
+	AwsCurrentRegion     string `env:"AWS_CURRENT_REGION"`
+	SitePathPrefix       string `env:"SITE_PATH_PREFIX"`
+	ApigwDeploymentName  string `env:"APIGW_DEPLOYMENT_NAME"`
+	IdentityPoolID       string `env:"PS_IDENTITY_POOL_ID"`
+	UserPoolProviderName string `env:"PS_USER_POOL_PROVIDER_NAME"`
+	UserPoolClientID     string `env:"PS_USER_POOL_CLIENT_ID"`
+	UserPoolAppWebDomain string `env:"PS_USER_POOL_APP_WEB_DOMAIN"`
+	UserPoolID           string `env:"PS_USER_POOL_ID"`
 }
 
 var (
