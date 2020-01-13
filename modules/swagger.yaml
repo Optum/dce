@@ -44,17 +44,45 @@ paths:
             Access-Control-Allow-Origin:
               type: "string"
     get:
-      summary: Lists accounts
+      summary: Get accounts
       produces:
         - application/json
+      parameters:
+        - in: query
+          name: id
+          type: string
+          required: false
+          description: Account ID.
+        - in: query
+          name: status
+          type: string
+          required: false
+          description: Status of the account.
+        - in: query
+          name: nextId
+          type: string
+          required: false
+          description:
+            Account ID with which to begin the scan operation. This is used to traverse through paginated
+            results.
+        - in: query
+          name: limit
+          type: integer
+          required: false
+          description:
+            The maximum number of accounts to evaluate (not necessarily the number of matching accounts). If
+            there is another page, the URL for page will be in the response Link header.
       responses:
         200:
-          description: A list of accounts
+          description: OK
           schema:
             type: array
             items:
               $ref: "#/definitions/account"
           headers:
+            Link:
+              type: string
+              description: Appears only when there is another page of results in the query. The value contains the URL for the next page of the results and follows the `<url>; rel="next"` convention.
             Access-Control-Allow-Headers:
               type: "string"
             Access-Control-Allow-Methods:

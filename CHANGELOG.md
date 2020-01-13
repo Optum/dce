@@ -1,5 +1,7 @@
+
 ## vNext
 
+- Support query params for `GET /accounts` endpoint
 - Fixed bug causing dce auth web page to fail
 
 ## v0.24.1

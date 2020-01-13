@@ -171,22 +171,20 @@ func (_m *DBer) GetAccount(accountID string) (*db.Account, error) {
 	return r0, r1
 }
 
-// GetAccounts provides a mock function with given fields:
-func (_m *DBer) GetAccounts() ([]*db.Account, error) {
-	ret := _m.Called()
+// GetAccounts provides a mock function with given fields: input
+func (_m *DBer) GetAccounts(input db.GetAccountsInput) (db.GetAccountsOutput, error) {
+	ret := _m.Called(input)
 
-	var r0 []*db.Account
-	if rf, ok := ret.Get(0).(func() []*db.Account); ok {
-		r0 = rf()
+	var r0 db.GetAccountsOutput
+	if rf, ok := ret.Get(0).(func(db.GetAccountsInput) db.GetAccountsOutput); ok {
+		r0 = rf(input)
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]*db.Account)
-		}
+		r0 = ret.Get(0).(db.GetAccountsOutput)
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func() error); ok {
-		r1 = rf()
+	if rf, ok := ret.Get(1).(func(db.GetAccountsInput) error); ok {
+		r1 = rf(input)
 	} else {
 		r1 = ret.Error(1)
 	}

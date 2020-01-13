@@ -1772,6 +1772,167 @@ func TestApi(t *testing.T) {
 		})
 
 	})
+
+	t.Run("Get Accounts", func(t *testing.T) {
+
+		t.Run("should return empty for no accounts", func(t *testing.T) {
+			defer truncateAccountTable(t, dbSvc)
+
+			resp := apiRequest(t, &apiRequestInput{
+				method: "GET",
+				url:    apiURL + "/accounts",
+				json:   nil,
+			})
+
+			results := parseResponseArrayJSON(t, resp)
+
+			assert.Equal(t, results, []map[string]interface{}{}, "API should return []")
+		})
+
+		truncateAccountTable(t, dbSvc)
+
+		accountIDOne := "1"
+		accountIDTwo := "2"
+		accountIDThree := "3"
+		accountIDFour := "4"
+		accountIDFive := "5"
+
+		err = dbSvc.PutAccount(db.Account{
+			ID:            accountIDOne,
+			AccountStatus: db.Ready,
+		})
+		assert.Nil(t, err)
+
+		err = dbSvc.PutAccount(db.Account{
+			ID:            accountIDTwo,
+			AccountStatus: db.Ready,
+		})
+		assert.Nil(t, err)
+
+		err = dbSvc.PutAccount(db.Account{
+			ID:            accountIDThree,
+			AccountStatus: db.Ready,
+		})
+		assert.Nil(t, err)
+
+		err = dbSvc.PutAccount(db.Account{
+			ID:            accountIDFour,
+			AccountStatus: db.Ready,
+		})
+		assert.Nil(t, err)
+
+		err = dbSvc.PutAccount(db.Account{
+			ID:            accountIDFive,
+			AccountStatus: db.NotReady,
+		})
+		assert.Nil(t, err)
+
+		t.Run("When there are no query parameters", func(t *testing.T) {
+			resp := apiRequest(t, &apiRequestInput{
+				method: "GET",
+				url:    apiURL + "/accounts",
+				json:   nil,
+			})
+
+			results := parseResponseArrayJSON(t, resp)
+			assert.Equal(t, 5, len(results), "all five accounts should be returned")
+
+			// Check one of the result objects, to make sure it looks right
+			_, hasAccountID := results[0]["id"]
+			_, hasAccountStatus := results[0]["accountStatus"]
+
+			assert.True(t, hasAccountID, "response should be serialized with the accountId property")
+			assert.True(t, hasAccountStatus, "response should be serialized with the accountStatus property")
+		})
+
+		t.Run("When there is an account ID parameter", func(t *testing.T) {
+			resp := apiRequest(t, &apiRequestInput{
+				method: "GET",
+				url:    apiURL + "/accounts?id=" + accountIDOne,
+				json:   nil,
+			})
+
+			results := parseResponseArrayJSON(t, resp)
+			assert.Equal(t, 1, len(results), "one account should be returned")
+		})
+
+		t.Run("When there is a limit parameter", func(t *testing.T) {
+			resp := apiRequest(t, &apiRequestInput{
+				method: "GET",
+				url:    apiURL + "/accounts?limit=1",
+				json:   nil,
+			})
+
+			results := parseResponseArrayJSON(t, resp)
+			assert.Equal(t, 1, len(results), "only one account should be returned")
+		})
+
+		t.Run("When there is a status parameter", func(t *testing.T) {
+			resp := apiRequest(t, &apiRequestInput{
+				method: "GET",
+				url:    apiURL + "/accounts?status=" + string(db.NotReady),
+				json:   nil,
+			})
+
+			results := parseResponseArrayJSON(t, resp)
+			assert.Equal(t, 1, len(results), "only one account should be returned")
+		})
+
+		t.Run("When there is a Link header", func(t *testing.T) {
+			nextPageRegex := regexp.MustCompile(`<(.+)>`)
+
+			respOne := apiRequest(t, &apiRequestInput{
+				method: "GET",
+				url:    apiURL + "/accounts?limit=2",
+				json:   nil,
+			})
+
+			linkHeader, ok := respOne.Header["Link"]
+			assert.True(t, ok, "Link header should exist")
+
+			resultsOne := parseResponseArrayJSON(t, respOne)
+			assert.Equal(t, 2, len(resultsOne), "only two accounts should be returned")
+
+			nextPage := nextPageRegex.FindStringSubmatch(linkHeader[0])[1]
+
+			_, err := url.ParseRequestURI(nextPage)
+			assert.Nil(t, err, "Link header should contain a valid URL")
+
+			respTwo := apiRequest(t, &apiRequestInput{
+				method: "GET",
+				url:    nextPage,
+				json:   nil,
+			})
+
+			linkHeader, ok = respTwo.Header["Link"]
+			assert.True(t, ok, "Link header should exist")
+
+			resultsTwo := parseResponseArrayJSON(t, respTwo)
+			assert.Equal(t, 2, len(resultsTwo), "only two accounts should be returned")
+
+			nextPage = nextPageRegex.FindStringSubmatch(linkHeader[0])[1]
+
+			_, err = url.ParseRequestURI(nextPage)
+			assert.Nil(t, err, "Link header should contain a valid URL")
+
+			respThree := apiRequest(t, &apiRequestInput{
+				method: "GET",
+				url:    nextPage,
+				json:   nil,
+			})
+
+			_, ok = respThree.Header["Link"]
+			assert.False(t, ok, "Link header should not exist in last page")
+
+			resultsThree := parseResponseArrayJSON(t, respThree)
+			assert.Equal(t, 1, len(resultsThree), "only one account should be returned")
+
+			results := append(resultsOne, resultsTwo...)
+			results = append(results, resultsThree...)
+
+			assert.Equal(t, 5, len(results), "All six accounts should be returned")
+		})
+	})
 }
 
 type leaseRequest struct {

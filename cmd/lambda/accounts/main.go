@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/url"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -62,6 +63,7 @@ var (
 	TokenSvc    common.TokenService
 	StorageSvc  common.Storager
 	RoleManager rolemanager.RoleManager
+	baseRequest url.URL
 	Config      common.DefaultEnvConfig
 )
 
@@ -76,6 +78,13 @@ var (
 	tags                        []*iam.Tag
 	resetQueueURL               string
 	allowedRegions              []string
+)
+
+const (
+	AccountIDParam     = "id"
+	NextAccountIDParam = "nextId"
+	StatusParam        = "status"
+	LimitParam         = "limit"
 )
 
 func init() {
@@ -189,6 +198,13 @@ func initConfig() {
 // Handler - Handle the lambda function
 func Handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	CurrentAccountID = &req.RequestContext.AccountID
+
+	// Set baseRequest information lost by integration with gorilla mux
+	baseRequest = url.URL{}
+	baseRequest.Scheme = req.Headers["X-Forwarded-Proto"]
+	baseRequest.Host = req.Headers["Host"]
+	baseRequest.Path = req.RequestContext.Stage
+
 	// If no name is provided in the HTTP request body, throw an error
 	return muxLambda.ProxyWithContext(ctx, req)
 }
