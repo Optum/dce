@@ -1848,7 +1848,7 @@ func TestApi(t *testing.T) {
 		t.Run("When there is an account ID parameter", func(t *testing.T) {
 			resp := apiRequest(t, &apiRequestInput{
 				method: "GET",
-				url:    apiURL + "/accounts?accountId=" + accountIDOne,
+				url:    apiURL + "/accounts?id=" + accountIDOne,
 				json:   nil,
 			})
 
