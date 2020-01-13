@@ -49,12 +49,18 @@ func getFiltersFromStruct(i interface{}, keyName *string) (*expression.KeyCondit
 func putItem(input interface{}, data interface{}, tableName string, expr *expression.Expression) error {
 
 	returnValue := "NONE"
-	fmt.Println(getType(data))
 
-	i, _ := input.(*Account)
-	account, _ := data.(*model.Account)
+	var putMap *dynamodb.AttributeValue
 
-	putMap, _ := dynamodbattribute.Marshal(account)
+	var dataModel *model.Account
+	var i *Account
+
+	if tableName == "account" {
+		i, _ = input.(*Account)
+		dataModel, _ = data.(*model.Account)
+
+	}
+	putMap, _ = dynamodbattribute.Marshal(dataModel)
 	_, err := invoke(i.DynamoDB, "PutItem",
 		&dynamodb.PutItemInput{
 			// Query in input Table
@@ -75,14 +81,14 @@ func putItem(input interface{}, data interface{}, tableName string, expr *expres
 		if awsErr.Code() == "ConditionalCheckFailedException" {
 			return errors.NewConflict(
 				tableName,
-				*account.ID,
+				*dataModel.ID,
 				fmt.Errorf("unable to update %s: %ss has been modified since request was made", tableName, tableName))
 		}
 	}
 
 	if err != nil {
 		return errors.NewInternalServer(
-			fmt.Sprintf("update failed for %s %q", tableName, *account.ID),
+			fmt.Sprintf("update failed for %s %q", tableName, *dataModel.ID),
 			err,
 		)
 	}
@@ -110,4 +116,10 @@ func getType(input interface{}) string {
 	} else {
 		return valueOf.Type().Name()
 	}
+}
+
+func getAccountDataModel(v interface{}) *Account {
+	r := reflect.Indirect(reflect.ValueOf(v))
+	f := r.FieldByName("Account")
+	return f.Interface().(*Account)
 }
