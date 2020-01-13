@@ -49,11 +49,13 @@ func getFiltersFromStruct(i interface{}, keyName *string) (*expression.KeyCondit
 func putItem(input interface{}, data interface{}, tableName string, expr *expression.Expression) error {
 
 	returnValue := "NONE"
+	fmt.Println(getType(data))
+
 	i, _ := input.(*Account)
-	account, _ := data.(model.Account)
+	account, _ := data.(*model.Account)
 
 	putMap, _ := dynamodbattribute.Marshal(account)
-	err := Invoke(i.DynamoDB, "PutItem",
+	_, err := invoke(i.DynamoDB, "PutItem",
 		&dynamodb.PutItemInput{
 			// Query in input Table
 			TableName: aws.String(tableName),
@@ -67,30 +69,45 @@ func putItem(input interface{}, data interface{}, tableName string, expr *expres
 			ReturnValues: aws.String(returnValue),
 		},
 	)
+
 	var awsErr awserr.Error
 	if gErrors.As(err, &awsErr) {
 		if awsErr.Code() == "ConditionalCheckFailedException" {
 			return errors.NewConflict(
 				tableName,
-				"input",
-				fmt.Errorf("unable to update %s: Table has been modified since request was made", tableName))
+				*account.ID,
+				fmt.Errorf("unable to update %s: %ss has been modified since request was made", tableName, tableName))
 		}
 	}
 
+	if err != nil {
+		return errors.NewInternalServer(
+			fmt.Sprintf("update failed for %s %q", tableName, *account.ID),
+			err,
+		)
+	}
 	return nil
 }
 
-func Invoke(any interface{}, name string, args... interface{}) error {
+func invoke(i interface{}, name string, args ...interface{}) (interface{}, error) {
 	inputs := make([]reflect.Value, len(args))
-	for i, _ := range args {
+	for i := range args {
 		inputs[i] = reflect.ValueOf(args[i])
 	}
-	result := reflect.ValueOf(any).MethodByName(name).Call(inputs)
-	err := result[0].Interface()
+	result := reflect.ValueOf(i).MethodByName(name).Call(inputs)
 
-	if err != nil {
-		return nil
+	if result[1].Interface() == nil {
+		return result[0].Interface(), nil
 	}
+	return result[0].Interface(), result[1].Interface().(error)
+}
 
-	return gErrors.New("error")
+func getType(input interface{}) string {
+	valueOf := reflect.ValueOf(input)
+
+	if valueOf.Type().Kind() == reflect.Ptr {
+		return reflect.Indirect(valueOf).Type().Name()
+	} else {
+		return valueOf.Type().Name()
+	}
 }

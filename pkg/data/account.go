@@ -43,7 +43,7 @@ func (a *Account) WriteAccount(account *model.Account, prevLastModifiedOn *int64
 		}
 	}
 
-	return putItem(a, account, "Account", &expr)
+	return putItem(a, account, "account", &expr)
 
 }
 
