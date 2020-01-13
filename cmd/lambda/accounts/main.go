@@ -80,13 +80,6 @@ var (
 	allowedRegions              []string
 )
 
-const (
-	AccountIDParam     = "id"
-	NextAccountIDParam = "nextId"
-	StatusParam        = "status"
-	LimitParam         = "limit"
-)
-
 func init() {
 	initConfig()
 
@@ -95,21 +88,11 @@ func init() {
 		// Routes with query strings always go first,
 		// because the matcher will stop on the first match
 		api.Route{
-			"GetAccountByStatus",
+			"GetAccounts",
 			"GET",
 			"/accounts",
-			[]string{"accountStatus"},
-			GetAccountByStatus,
-		},
-
-		// Routes without query strings go after all of the
-		// routes that use query strings for matchers.
-		api.Route{
-			"GetAllAccounts",
-			"GET",
-			"/accounts",
-			api.EmptyQueryString,
-			GetAllAccounts,
+			api.EmptyQueryString, // should this be the valid query strings? will this give a 404 then?
+			GetAccounts,
 		},
 		api.Route{
 			"GetAccountByID",
@@ -203,7 +186,7 @@ func Handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 	baseRequest = url.URL{}
 	baseRequest.Scheme = req.Headers["X-Forwarded-Proto"]
 	baseRequest.Host = req.Headers["Host"]
-	baseRequest.Path = req.RequestContext.Stage
+	baseRequest.Path = fmt.Sprintf("%s%s", req.RequestContext.Stage, req.Path)
 
 	// If no name is provided in the HTTP request body, throw an error
 	return muxLambda.ProxyWithContext(ctx, req)

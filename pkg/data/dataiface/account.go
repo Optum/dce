@@ -17,4 +17,6 @@ type AccountData interface {
 	DeleteAccount(account *model.Account) error
 	// GetAccountByID the Account record by ID
 	GetAccountByID(accountID string) (*model.Account, error)
+	// GetAccounts Get a list of accounts
+	GetAccounts(q *model.Account) (*model.Accounts, error)
 }

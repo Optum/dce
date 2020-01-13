@@ -1870,7 +1870,7 @@ func TestApi(t *testing.T) {
 		t.Run("When there is a status parameter", func(t *testing.T) {
 			resp := apiRequest(t, &apiRequestInput{
 				method: "GET",
-				url:    apiURL + "/accounts?status=" + string(db.NotReady),
+				url:    apiURL + "/accounts?accountStatus=" + string(db.NotReady),
 				json:   nil,
 			})
 

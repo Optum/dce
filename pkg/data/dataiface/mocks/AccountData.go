@@ -47,6 +47,29 @@ func (_m *AccountData) GetAccountByID(accountID string) (*model.Account, error) 
 	return r0, r1
 }
 
+// GetAccounts provides a mock function with given fields: q
+func (_m *AccountData) GetAccounts(q *model.Account) (*model.Accounts, error) {
+	ret := _m.Called(q)
+
+	var r0 *model.Accounts
+	if rf, ok := ret.Get(0).(func(*model.Account) *model.Accounts); ok {
+		r0 = rf(q)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.Accounts)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*model.Account) error); ok {
+		r1 = rf(q)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // WriteAccount provides a mock function with given fields: account, prevLastModifiedOn
 func (_m *AccountData) WriteAccount(account *model.Account, prevLastModifiedOn *int64) error {
 	ret := _m.Called(account, prevLastModifiedOn)
