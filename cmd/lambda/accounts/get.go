@@ -16,7 +16,7 @@ func GetAccountByID(w http.ResponseWriter, r *http.Request) {
 	accountID := mux.Vars(r)["accountId"]
 	var dataSvc dataiface.AccountData
 
-	if err := Services.Config.GetService(&dataSvc); err != nil {
+	if err := Services.GetService(&dataSvc); err != nil {
 		api.WriteAPIErrorResponse(w, err)
 		return
 	}

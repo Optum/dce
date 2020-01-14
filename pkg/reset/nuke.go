@@ -16,7 +16,7 @@ type NukeAccountInput struct {
 	AccountID  string
 	RoleName   string
 	ConfigPath string
-	NoDryRun   bool
+	DryRun     bool
 	Token      common.TokenService
 	Nuke       Nuker
 }
@@ -30,7 +30,7 @@ func NukeAccount(input *NukeAccountInput) error {
 	// path and force to bypass prompts.
 	params := cmd.NukeParameters{
 		ConfigPath:     input.ConfigPath,
-		NoDryRun:       input.NoDryRun,
+		NoDryRun:       !input.DryRun,
 		ForceSleep:     5,
 		MaxWaitRetries: 200,
 		Force:          true,

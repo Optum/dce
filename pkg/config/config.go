@@ -37,9 +37,53 @@ type ConfigurationBuilder struct {
 // Unmarshal loads configuration into the provided structure from environment variables.
 // Use the "env" tag on cfgStruct fields to indicate the corresponding environment variable to load from.
 func (config *ConfigurationBuilder) Unmarshal(cfgStruct interface{}) error {
+	// Unmarshal env vars into the struct
 	config.parsers = config.createCustomParsers()
 	err := env.ParseWithFuncs(cfgStruct, config.parsers)
-	return err
+	if err != nil {
+		return err
+	}
+
+	// Unmarshal services into the struct
+	val := reflect.ValueOf(cfgStruct)
+	// Reflection will panic on nil cfgStruct, so better to catch it here
+	if val.IsNil() {
+		return errors.New("Unable to unmarshal config: the provided struct is nil")
+	}
+	if config.values != nil {
+		elem := val.Elem()
+		// Look at all the fields in our target struct
+		for fi := 0; fi < elem.NumField(); fi++ {
+			field := elem.Field(fi)
+			fieldType := field.Type()
+
+			// See if we have a matching service type
+			for ti, t := range config.values.types {
+				// Target struct has a pointer to our service value
+				if fieldType.Kind() == reflect.Interface && t.Implements(fieldType) {
+					field.Set(config.values.impls[ti])
+					break
+				} else if fieldType.Kind() == reflect.Ptr && fieldType.Elem() == t {
+					// Convert our value to a pointer
+					impl := config.values.impls[ti]
+					ptrVal := reflect.New(impl.Type())
+					ptrVal.Elem().Set(impl)
+					field.Set(ptrVal)
+					break
+				} else if t.Kind() == reflect.Ptr && t.Elem() == fieldType {
+					// Target struct has a value, for our service pointer
+					field.Set(config.values.impls[ti].Elem())
+					break
+				} else if t == fieldType {
+					// If the type matches, set the value
+					field.Set(config.values.impls[ti])
+					break
+				}
+			}
+		}
+	}
+
+	return nil
 }
 
 // Dump dumps the current config into the provided structure. Config keys are matched to

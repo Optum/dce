@@ -108,9 +108,10 @@ resource "aws_codebuild_project" "reset_build" {
     }
 
     environment_variable {
-      name  = "RESET_NAMESPACE"
-      value = var.namespace
-      type  = "PLAINTEXT"
+      name  = "RESET_NUKE_REGIONS"
+      value = join(",", var.allowed_regions)
+      // Only need to nuke regions which the principal has access to
+      type = "PLAINTEXT"
     }
 
     environment_variable {

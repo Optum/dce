@@ -66,7 +66,7 @@ func initConfig() {
 	cfgBldr.WithParameterStoreEnv("PS_USER_POOL_CLIENT_ID", "PS_USER_POOL_CLIENT_ID", "userPoolClientID")
 	cfgBldr.WithParameterStoreEnv("PS_USER_POOL_APP_WEB_DOMAIN", "PS_USER_POOL_APP_WEB_DOMAIN", "userPoolAppWebDomain")
 	cfgBldr.WithParameterStoreEnv("PS_USER_POOL_ID", "PS_USER_POOL_ID", "userPoolID")
-	svcBldr := &config.ServiceBuilder{Config: cfgBldr}
+	svcBldr := &config.ServiceBuilder{ConfigurationBuilder: *cfgBldr}
 
 	_, err := svcBldr.
 		WithSSM().

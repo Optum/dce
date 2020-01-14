@@ -5,6 +5,7 @@ import (
 	"github.com/Optum/dce/pkg/awsiface/mocks"
 	"github.com/aws/aws-sdk-go/service/ssm"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 	"os"
 	"strconv"
 	"testing"
@@ -196,9 +197,9 @@ func TestConfigBuilder_BuildWithEnvVarWithDefault(t *testing.T) {
 
 func TestConfigBuilder_BuildWithParameterStoreEnvVar(t *testing.T) {
 	// Arrange
-	cfg := &ConfigurationBuilder{}
 	var mockSSMClient = &mocks.SSMAPI{}
-	cfg.WithService(mockSSMClient)
+	svcBuilder := &ServiceBuilder{}
+	svcBuilder.WithService(mockSSMClient)
 	expectedSSMVal := "valueStoredInSSM"
 	paramName := ExpectedEnvStrVal
 	getParametersOutput := ssm.GetParametersOutput{
@@ -214,23 +215,22 @@ func TestConfigBuilder_BuildWithParameterStoreEnvVar(t *testing.T) {
 	})).Return(&getParametersOutput, nil)
 
 	// Act
-	cfg.WithParameterStoreEnv("bar", "SOME_STRING_VALUE", "defaultVal")
-	svcBuilder := &ServiceBuilder{Config: cfg}
+	svcBuilder.WithParameterStoreEnv("bar", "SOME_STRING_VALUE", "defaultVal")
 	_, err := svcBuilder.Build()
 
 	// Assert
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
-	actualVal, err := cfg.GetVal("bar")
-	assert.Nil(t, err)
-	assert.Equal(t, expectedSSMVal, actualVal)
+	actualVal, err := svcBuilder.GetVal("bar")
+	require.Nil(t, err)
+	require.Equal(t, expectedSSMVal, actualVal)
 }
 
 func TestConfigBuilder_BuildWithParameterStoreEnvVar_UsesDefaultWhenInvalidParameter(t *testing.T) {
 	// Arrange
-	cfg := &ConfigurationBuilder{}
 	var mockSSMClient = &mocks.SSMAPI{}
-	cfg.WithService(mockSSMClient)
+	svcBuilder := &ServiceBuilder{}
+	svcBuilder.WithService(mockSSMClient)
 	paramName := ExpectedEnvStrVal
 	getParametersOutput := ssm.GetParametersOutput{
 		InvalidParameters: []*string{&paramName},
@@ -241,16 +241,15 @@ func TestConfigBuilder_BuildWithParameterStoreEnvVar_UsesDefaultWhenInvalidParam
 	})).Return(&getParametersOutput, nil)
 
 	// Act
-	cfg.WithParameterStoreEnv("bar", "SOME_STRING_VALUE", defaultValue)
-	svcBuilder := &ServiceBuilder{Config: cfg}
+	svcBuilder.WithParameterStoreEnv("bar", "SOME_STRING_VALUE", defaultValue)
 	_, err := svcBuilder.Build()
 
 	// Assert
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
-	actualVal, err := cfg.GetVal("bar")
-	assert.Nil(t, err)
-	assert.Equal(t, defaultValue, actualVal)
+	actualVal, err := svcBuilder.GetVal("bar")
+	require.Nil(t, err)
+	require.Equal(t, defaultValue, actualVal)
 }
 
 func TestConfigBuilder_BuildWithParameterStoreEnvVar_UsesDefaultWhenNoEnvVar(t *testing.T) {
@@ -320,4 +319,112 @@ func TestConfigBuilder_BuildWithServiceWithError(t *testing.T) {
 	err = cfg.GetService(&otherIface)
 	assert.NotNil(t, err)
 	assert.Equal(t, expectedErr.Error(), err.Error())
+}
+
+func TestConfigBuilder_UnmarshalService(t *testing.T) {
+	type session struct {
+		region string
+	}
+	type database struct {
+		session   *session
+		tableName string
+	}
+	type services struct {
+		Foo     string `env:"FOO" envDefault:"bar"`
+		Session *session
+		Db      *database
+	}
+
+	sess := &session{region: "us-east-1"}
+	db := &database{session: sess, tableName: "myTable"}
+
+	// Setup config builder
+	cfg := &ConfigurationBuilder{}
+	cfg.
+		WithService(sess).
+		WithService(db)
+
+	// Unmarshal into a service struct
+	var svc services
+	err := cfg.Unmarshal(&svc)
+	require.Nil(t, err)
+	require.NotNil(t, svc)
+
+	require.Equal(t, "bar", svc.Foo)
+	require.Equal(t, &session{region: "us-east-1"}, svc.Session)
+	require.Equal(t, &database{session: sess, tableName: "myTable"}, svc.Db)
+}
+
+func TestConfigBuilder_UnmarshalValueIntoPointer(t *testing.T) {
+	type database struct {
+		tableName string
+	}
+	type services struct {
+		// Load as pointer
+		Db *database
+	}
+
+	cfg := &ConfigurationBuilder{}
+	// Configure as value
+	cfg.WithService(database{tableName: "myTable"})
+
+	var svc services
+	err := cfg.Unmarshal(&svc)
+	require.Nil(t, err)
+	require.NotNil(t, svc)
+
+	require.NotNil(t, svc.Db)
+	require.Equal(t, svc.Db, &database{tableName: "myTable"})
+}
+
+func TestConfigBuilder_UnmarshalPointerIntoValue(t *testing.T) {
+	type database struct {
+		tableName string
+	}
+	type services struct {
+		// Load as value
+		Db database
+	}
+
+	cfg := &ConfigurationBuilder{}
+	// Configure as pointer
+	cfg.WithService(&database{tableName: "myTable"})
+
+	var svc services
+	err := cfg.Unmarshal(&svc)
+	require.Nil(t, err)
+	require.NotNil(t, svc)
+
+	require.NotNil(t, svc.Db)
+	require.Equal(t, svc.Db, database{tableName: "myTable"})
+}
+
+type dber interface {
+	Query()
+}
+
+// Implements dber
+type database struct {
+	tableName string
+}
+
+func (d *database) Query() {
+
+}
+
+func TestConfigBuilder_UnmarshalInterface(t *testing.T) {
+	type services struct {
+		Db dber
+	}
+
+	cfg := &ConfigurationBuilder{}
+	cfg.WithService(&database{tableName: "myTable"})
+
+	var svc services
+	err := cfg.Unmarshal(&svc)
+	require.Nil(t, err)
+	require.NotNil(t, svc)
+
+	require.NotNil(t, svc.Db)
+	require.Equal(t, svc.Db, &database{tableName: "myTable"})
 }

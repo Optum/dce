@@ -1,6 +1,8 @@
 package config
 
 import (
+	"github.com/Optum/dce/pkg/db"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"log"
 	"reflect"
 	"runtime"
@@ -39,13 +41,12 @@ type ConfigurationServiceBuilder interface {
 }
 
 // createrFunc internal functions for handling the creation of the services
-type createrFunc func(config ConfigurationServiceBuilder) error
+type createrFunc func() error
 
 // ServiceBuilder is the default implementation of the `ServiceBuild`
 type ServiceBuilder struct {
-	handlers   []createrFunc
-	awsSession *session.Session
-	Config     *ConfigurationBuilder
+	ConfigurationBuilder
+	handlers []createrFunc
 }
 
 // WithSTS tells the builder to add an AWS STS service to the `DefaultConfigurater`
@@ -108,115 +109,245 @@ func (bldr *ServiceBuilder) WithDataService() *ServiceBuilder {
 	return bldr
 }
 
+func (bldr *ServiceBuilder) WithDB() *ServiceBuilder {
+	bldr.handlers = append(bldr.handlers, func() error {
+		awsSession, err := bldr.Session()
+		if err != nil {
+			return err
+		}
+
+		// TODO: Load these env vars from the ServiceBuilder
+		// but we need a way for config service definitions to depend
+		// on other config fields
+		region := common.RequireEnv("AWS_CURRENT_REGION")
+		accountTableName := common.RequireEnv("ACCOUNT_DB")
+		leaseTableName := common.RequireEnv("LEASE_DB")
+		defaultLeaseLength := common.GetEnvInt("DEFAULT_LEASE_LENGTH_IN_DAYS", 7)
+
+		dbSvc := db.New(
+			dynamodb.New(
+				awsSession,
+				aws.NewConfig().WithRegion(region),
+			),
+			accountTableName,
+			leaseTableName,
+			defaultLeaseLength,
+		)
+		bldr.WithService(dbSvc)
+
+		return nil
+	})
+	return bldr
+}
+
+func (bldr *ServiceBuilder) WithTokenService() *ServiceBuilder {
+	bldr.handlers = append(bldr.handlers, func() error {
+		awsSession, err := bldr.Session()
+		if err != nil {
+			return err
+		}
+
+		stsClient := sts.New(awsSession)
+		tokenService := &common.STS{
+			Client: stsClient,
+		}
+		bldr.WithService(tokenService)
+
+		return nil
+	})
+	return bldr
+}
+
+func (bldr *ServiceBuilder) WithStorager() *ServiceBuilder {
+	bldr.handlers = append(bldr.handlers, func() error {
+		awsSession, err := bldr.Session()
+		if err != nil {
+			return err
+		}
+
+		bldr.WithService(&common.S3{
+			Client:  s3.New(awsSession),
+			Manager: s3manager.NewDownloader(awsSession),
+		})
+
+		return nil
+	})
+	return bldr
+}
+
+func (bldr *ServiceBuilder) WithNotificationer() *ServiceBuilder {
+	bldr.handlers = append(bldr.handlers, func() error {
+		awsSession, err := bldr.Session()
+		if err != nil {
+			return err
+		}
+
+		bldr.WithService(&common.SNS{
+			Client: sns.New(awsSession),
+		})
+
+		return nil
+	})
+	return bldr
+}
+
 // Build creates and returns a structue with AWS services
-func (bldr *ServiceBuilder) Build() (*ConfigurationBuilder, error) {
-	err := bldr.Config.Build()
+func (bldr *ServiceBuilder) Build() (*ServiceBuilder, error) {
+	err := bldr.ConfigurationBuilder.Build()
 	if err != nil {
 		// We failed to build the configuration, so honestly there is no
 		// point in continuating...
-		return bldr.Config, AWSConfigurationError(err)
+		return bldr, AWSConfigurationError(err)
 	}
 
 	// Create session is done first, and explicitly, because everything else
 	// uses it
-	err = bldr.createSession(bldr.Config)
+	err = bldr.createSession()
 
 	if err != nil {
 		log.Printf("Could not create session: %s", err.Error())
-		return bldr.Config, AWSConfigurationError(err)
+		return bldr, AWSConfigurationError(err)
 	}
 
 	for _, f := range bldr.handlers {
-		err := f(bldr.Config)
+		err := f()
 		if err != nil {
 			log.Printf("Error while trying to execute handler: %s", runtime.FuncForPC(reflect.ValueOf(f).Pointer()).Name())
-			return bldr.Config, AWSConfigurationError(err)
+			return bldr, AWSConfigurationError(err)
 		}
 	}
 
 	// Setting config values from parameter store requires services to be configured first
-	if err := bldr.Config.RetrieveParameterStoreVals(); err != nil {
-		return bldr.Config, AWSConfigurationError(err)
+	if err := bldr.RetrieveParameterStoreVals(); err != nil {
+		return bldr, AWSConfigurationError(err)
 	}
 
 	// make certain build is called before returning.
-	return bldr.Config, nil
+	return bldr, nil
 }
 
-func (bldr *ServiceBuilder) createSession(config ConfigurationServiceBuilder) error {
+func (bldr *ServiceBuilder) createSession() error {
 	var err error
-	region, err := bldr.Config.GetStringVal("AWS_CURRENT_REGION")
-	if err == nil {
+	region := common.GetEnv("AWS_CURRENT_REGION", "")
+	var awsSession *session.Session
+	if region == "" {
 		log.Printf("Using AWS region \"%s\" to create session...", region)
-		bldr.awsSession, err = session.NewSession(
+		awsSession, err = session.NewSession(
 			&aws.Config{
 				Region: aws.String(region),
 			},
 		)
+		if err != nil {
+			return err
+		}
 	} else {
 		log.Println("Creating AWS session using defaults...")
-		bldr.awsSession, err = session.NewSession()
+		awsSession, err = session.NewSession()
+		if err != nil {
+			return err
+		}
 	}
-	return err
-}
 
-func (bldr *ServiceBuilder) createSTS(config ConfigurationServiceBuilder) error {
-	stsSvc := sts.New(bldr.awsSession)
-	config.WithService(stsSvc)
+	bldr.WithService(awsSession)
+
 	return nil
 }
 
-func (bldr *ServiceBuilder) createSNS(config ConfigurationServiceBuilder) error {
-	snsSvc := sns.New(bldr.awsSession)
-	config.WithService(snsSvc)
+func (bldr *ServiceBuilder) Session() (*session.Session, error) {
+	var awsSession session.Session
+	err := bldr.GetService(&awsSession)
+	return &awsSession, err
+}
+
+func (bldr *ServiceBuilder) createSTS() error {
+	awsSession, err := bldr.Session()
+	if err != nil {
+		return err
+	}
+	stsSvc := sts.New(awsSession)
+	bldr.WithService(stsSvc)
 	return nil
 }
 
-func (bldr *ServiceBuilder) createSQS(config ConfigurationServiceBuilder) error {
-	sqsSvc := sqs.New(bldr.awsSession)
-	config.WithService(sqsSvc)
+func (bldr *ServiceBuilder) createSNS() error {
+	awsSession, err := bldr.Session()
+	if err != nil {
+		return err
+	}
+	snsSvc := sns.New(awsSession)
+	bldr.WithService(snsSvc)
 	return nil
 }
 
-func (bldr *ServiceBuilder) createDynamoDB(config ConfigurationServiceBuilder) error {
-	dynamodbSvc := dynamodb.New(bldr.awsSession)
-	config.WithService(dynamodbSvc)
+func (bldr *ServiceBuilder) createSQS() error {
+	awsSession, err := bldr.Session()
+	if err != nil {
+		return err
+	}
+	sqsSvc := sqs.New(awsSession)
+	bldr.WithService(sqsSvc)
 	return nil
 }
 
-func (bldr *ServiceBuilder) createS3(config ConfigurationServiceBuilder) error {
-	s3Svc := s3.New(bldr.awsSession)
-	config.WithService(s3Svc)
+func (bldr *ServiceBuilder) createDynamoDB() error {
+	awsSession, err := bldr.Session()
+	if err != nil {
+		return err
+	}
+	dynamodbSvc := dynamodb.New(awsSession)
+	bldr.WithService(dynamodbSvc)
 	return nil
 }
 
-func (bldr *ServiceBuilder) createCognito(config ConfigurationServiceBuilder) error {
-	cognitoSvc := cognitoidentityprovider.New(bldr.awsSession)
-	config.WithService(cognitoSvc)
+func (bldr *ServiceBuilder) createS3() error {
+	awsSession, err := bldr.Session()
+	if err != nil {
+		return err
+	}
+	s3Svc := s3.New(awsSession)
+	bldr.WithService(s3Svc)
 	return nil
 }
 
-func (bldr *ServiceBuilder) createCodeBuild(config ConfigurationServiceBuilder) error {
-	codeBuildSvc := codebuild.New(bldr.awsSession)
-	config.WithService(codeBuildSvc)
+func (bldr *ServiceBuilder) createCognito() error {
+	awsSession, err := bldr.Session()
+	if err != nil {
+		return err
+	}
+	cognitoSvc := cognitoidentityprovider.New(awsSession)
+	bldr.WithService(cognitoSvc)
 	return nil
 }
 
-func (bldr *ServiceBuilder) createSSM(config ConfigurationServiceBuilder) error {
-	SSMSvc := ssm.New(bldr.awsSession)
-	config.WithService(SSMSvc)
+func (bldr *ServiceBuilder) createCodeBuild() error {
+	awsSession, err := bldr.Session()
+	if err != nil {
+		return err
+	}
+	codeBuildSvc := codebuild.New(awsSession)
+	bldr.WithService(codeBuildSvc)
 	return nil
 }
 
-func (bldr *ServiceBuilder) createStorageService(config ConfigurationServiceBuilder) error {
+func (bldr *ServiceBuilder) createSSM() error {
+	awsSession, err := bldr.Session()
+	if err != nil {
+		return err
+	}
+	SSMSvc := ssm.New(awsSession)
+	bldr.WithService(SSMSvc)
+	return nil
+}
+
+func (bldr *ServiceBuilder) createStorageService() error {
 	storageService := &common.S3{}
-	config.WithService(storageService)
+	bldr.WithService(storageService)
 	return nil
 }
 
-func (bldr *ServiceBuilder) createDataService(config ConfigurationServiceBuilder) error {
+func (bldr *ServiceBuilder) createDataService() error {
 	var dynamodbSvc dynamodbiface.DynamoDBAPI
-	err := bldr.Config.GetService(&dynamodbSvc)
+	err := bldr.GetService(&dynamodbSvc)
 
 	if err != nil {
 		return err
@@ -224,13 +355,13 @@ func (bldr *ServiceBuilder) createDataService(config ConfigurationServiceBuilder
 
 	dataSvcImpl := &data.Account{}
 
-	err = bldr.Config.Unmarshal(dataSvcImpl)
+	err = bldr.Unmarshal(dataSvcImpl)
 	if err != nil {
 		return err
 	}
 
 	dataSvcImpl.DynamoDB = dynamodbSvc
 
-	config.WithService(dataSvcImpl)
+	bldr.WithService(dataSvcImpl)
 	return nil
 }

@@ -30,14 +30,14 @@ func TestS3Client_FromConfig(t *testing.T) {
 
 	cfgBldr := &config.ConfigurationBuilder{}
 	cfgBldr.WithEnv("AWS_CURRENT_REGION", "AWS_CURRENT_REGION", "us-east-1")
-	svcBldr := &config.ServiceBuilder{Config: cfgBldr}
+	svcBldr := &config.ServiceBuilder{ConfigurationBuilder: *cfgBldr}
 
 	_, err := svcBldr.WithS3().Build()
 	assert.Nil(t, err)
 
 	// This is what the client code would look like...
 	var s3Client s3iface.S3API
-	err = svcBldr.Config.GetService(&s3Client)
+	err = svcBldr.GetService(&s3Client)
 	require.Nil(t, err)
 
 	// try to use the client to list the bucket
@@ -50,14 +50,14 @@ func TestS3Client_FromConfig_WithBadRegion(t *testing.T) {
 
 	cfgBldr := &config.ConfigurationBuilder{}
 	cfgBldr.WithEnv("AWS_CURRENT_REGION", "AWS_CURRENT_REGION", "mars-hemi-1")
-	svcBldr := &config.ServiceBuilder{Config: cfgBldr}
+	svcBldr := &config.ServiceBuilder{ConfigurationBuilder: *cfgBldr}
 
 	_, err := svcBldr.WithS3().Build()
 	assert.Nil(t, err)
 
 	// This is what the client code would look like...
 	var s3Client s3iface.S3API
-	err = svcBldr.Config.GetService(&s3Client)
+	err = svcBldr.GetService(&s3Client)
 	require.Nil(t, err)
 
 	// try to use the client to list the bucket
@@ -70,7 +70,7 @@ func TestS3ClientAndSNSClient_FromConfig(t *testing.T) {
 	cfgBldr := &config.ConfigurationBuilder{}
 	cfgBldr.WithEnv("AWS_CURRENT_REGION", "AWS_CURRENT_REGION", "us-east-1")
 
-	svcBldr := &config.ServiceBuilder{Config: cfgBldr}
+	svcBldr := &config.ServiceBuilder{ConfigurationBuilder: *cfgBldr}
 
 	_, err := svcBldr.
 		WithS3().
@@ -80,7 +80,7 @@ func TestS3ClientAndSNSClient_FromConfig(t *testing.T) {
 	assert.Nil(t, err)
 
 	var s3Client s3iface.S3API
-	err = svcBldr.Config.GetService(&s3Client)
+	err = svcBldr.GetService(&s3Client)
 	require.Nil(t, err)
 
 	// try to use the client to list the bucket
@@ -89,7 +89,7 @@ func TestS3ClientAndSNSClient_FromConfig(t *testing.T) {
 	assert.NotNil(t, result)
 
 	var snsClient snsiface.SNSAPI
-	err = svcBldr.Config.GetService(&snsClient)
+	err = svcBldr.GetService(&snsClient)
 	require.Nil(t, err)
 
 	snsResult, err := snsClient.ListTopics(&sns.ListTopicsInput{})
@@ -102,7 +102,7 @@ func TestAllClients_FromConfig(t *testing.T) {
 
 	cfgBldr := &config.ConfigurationBuilder{}
 	cfgBldr.WithEnv("AWS_CURRENT_REGION", "AWS_CURRENT_REGION", "us-east-1")
-	svcBldr := &config.ServiceBuilder{Config: cfgBldr}
+	svcBldr := &config.ServiceBuilder{ConfigurationBuilder: *cfgBldr}
 
 	// Go ahead and just build all of the things...
 	_, err := svcBldr.
@@ -121,7 +121,7 @@ func TestAllClients_FromConfig(t *testing.T) {
 
 	t.Run("test code pipeline", func(t *testing.T) {
 		var codeBuildClient codebuildiface.CodeBuildAPI
-		err = svcBldr.Config.GetService(&codeBuildClient)
+		err = svcBldr.GetService(&codeBuildClient)
 		assert.Nil(t, err)
 
 		result, err := codeBuildClient.ListProjects(&codebuild.ListProjectsInput{})
@@ -131,7 +131,7 @@ func TestAllClients_FromConfig(t *testing.T) {
 
 	t.Run("test cognito", func(t *testing.T) {
 		var cognitoClient cognitoidentityprovideriface.CognitoIdentityProviderAPI
-		err = svcBldr.Config.GetService(&cognitoClient)
+		err = svcBldr.GetService(&cognitoClient)
 		assert.Nil(t, err)
 
 		result, err := cognitoClient.ListUserPools(&cognitoidentityprovider.ListUserPoolsInput{MaxResults: aws.Int64(1)})
@@ -141,7 +141,7 @@ func TestAllClients_FromConfig(t *testing.T) {
 
 	t.Run("test dynamodb", func(t *testing.T) {
 		var ddbClient dynamodbiface.DynamoDBAPI
-		err = svcBldr.Config.GetService(&ddbClient)
+		err = svcBldr.GetService(&ddbClient)
 		assert.Nil(t, err)
 
 		result, err := ddbClient.ListTables(&dynamodb.ListTablesInput{})
@@ -151,7 +151,7 @@ func TestAllClients_FromConfig(t *testing.T) {
 
 	t.Run("test s3", func(t *testing.T) {
 		var s3Client s3iface.S3API
-		err = svcBldr.Config.GetService(&s3Client)
+		err = svcBldr.GetService(&s3Client)
 		assert.Nil(t, err)
 
 		result, err := s3Client.ListBuckets(&s3.ListBucketsInput{})
@@ -161,7 +161,7 @@ func TestAllClients_FromConfig(t *testing.T) {
 
 	t.Run("test sns", func(t *testing.T) {
 		var snsClient snsiface.SNSAPI
-		err = svcBldr.Config.GetService(&snsClient)
+		err = svcBldr.GetService(&snsClient)
 		assert.Nil(t, err)
 
 		snsResult, err := snsClient.ListTopics(&sns.ListTopicsInput{})
@@ -171,7 +171,7 @@ func TestAllClients_FromConfig(t *testing.T) {
 
 	t.Run("test sqs", func(t *testing.T) {
 		var sqsClient sqsiface.SQSAPI
-		err = svcBldr.Config.GetService(&sqsClient)
+		err = svcBldr.GetService(&sqsClient)
 		assert.Nil(t, err)
 
 		snsResult, err := sqsClient.ListQueues(&sqs.ListQueuesInput{})
@@ -181,7 +181,7 @@ func TestAllClients_FromConfig(t *testing.T) {
 
 	t.Run("test sts", func(t *testing.T) {
 		var stsClient stsiface.STSAPI
-		err = svcBldr.Config.GetService(&stsClient)
+		err = svcBldr.GetService(&stsClient)
 		assert.Nil(t, err)
 
 		snsResult, err := stsClient.GetCallerIdentity(&sts.GetCallerIdentityInput{})

@@ -158,7 +158,7 @@ func initConfig() {
 	if err != nil {
 		log.Printf("Error: %+v", err)
 	}
-	svcBldr := &config.ServiceBuilder{Config: cfgBldr}
+	svcBldr := &config.ServiceBuilder{}
 
 	_, err = svcBldr.
 		// AWS services...

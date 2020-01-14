@@ -57,14 +57,13 @@ func TestGetAccountByID(t *testing.T) {
 			})
 			w := httptest.NewRecorder()
 
-			cfgBldr := &config.ConfigurationBuilder{}
-			svcBldr := &config.ServiceBuilder{Config: cfgBldr}
+			svcBldr := &config.ServiceBuilder{}
 
 			dataSvc := mocks.AccountData{}
 			dataSvc.On("GetAccountByID", tt.accountID).Return(
 				tt.retAccount, tt.retErr,
 			)
-			svcBldr.Config.WithService(&dataSvc)
+			svcBldr.WithService(&dataSvc)
 			_, err := svcBldr.Build()
 
 			assert.Nil(t, err)
