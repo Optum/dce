@@ -59,11 +59,12 @@ func (config *ConfigurationBuilder) Unmarshal(cfgStruct interface{}) error {
 
 			// See if we have a matching service type
 			for ti, t := range config.values.types {
-				// Target struct has a pointer to our service value
 				if fieldType.Kind() == reflect.Interface && t.Implements(fieldType) {
+					// Target struct defines an interface, and we have a service that implements it
 					field.Set(config.values.impls[ti])
 					break
 				} else if fieldType.Kind() == reflect.Ptr && fieldType.Elem() == t {
+					// Target struct has a pointer to our service value
 					// Convert our value to a pointer
 					impl := config.values.impls[ti]
 					ptrVal := reflect.New(impl.Type())
@@ -72,10 +73,12 @@ func (config *ConfigurationBuilder) Unmarshal(cfgStruct interface{}) error {
 					break
 				} else if t.Kind() == reflect.Ptr && t.Elem() == fieldType {
 					// Target struct has a value, for our service pointer
+					// Convert our pointer to a value
 					field.Set(config.values.impls[ti].Elem())
 					break
 				} else if t == fieldType {
-					// If the type matches, set the value
+					// Target struct type exactly matches our service type.
+					// Set it.
 					field.Set(config.values.impls[ti])
 					break
 				}
