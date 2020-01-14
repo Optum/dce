@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
@@ -29,10 +28,10 @@ type createLeaseRequest struct {
 func CreateLease(w http.ResponseWriter, r *http.Request) {
 
 	c := leaseValidationContext{
-		maxLeaseBudgetAmount:     aws.Float64Value(maxLeaseBudgetAmount),
-		maxLeasePeriod:           aws.Int64Value(maxLeasePeriod),
-		defaultLeaseLengthInDays: aws.IntValue(defaultLeaseLengthInDays),
-		principalBudgetPeriod:    aws.StringValue(principalBudgetPeriod),
+		maxLeaseBudgetAmount:     conf.MaxLeaseBudgetAmount,
+		maxLeasePeriod:           conf.MaxLeasePeriod,
+		defaultLeaseLengthInDays: conf.DefaultLeaseLengthInDays,
+		principalBudgetPeriod:    conf.PrincipalBudgetPeriod,
 	}
 
 	// Extract the Body from the Request
@@ -52,7 +51,7 @@ func CreateLease(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Creating lease for Principal %s", principalID)
 
 	// Fail if the Principal already has an active lease
-	principalLeases, err := dao.FindLeasesByPrincipal(requestBody.PrincipalID)
+	principalLeases, err := conf.DB.FindLeasesByPrincipal(requestBody.PrincipalID)
 	if err != nil {
 		log.Printf("Failed to list leases for principal %s: %s", requestBody.PrincipalID, err)
 		response.WriteServerErrorWithResponse(w, "Internal server error")
@@ -69,7 +68,7 @@ func CreateLease(w http.ResponseWriter, r *http.Request) {
 
 	// Get the First Ready Account
 	// Exit if there's an error or no ready accounts
-	account, err := dao.GetReadyAccount()
+	account, err := conf.DB.GetReadyAccount()
 	if err != nil {
 		log.Printf("Failed to Check Ready Accounts: %s", err)
 		response.WriteServerErrorWithResponse(
@@ -88,7 +87,7 @@ func CreateLease(w http.ResponseWriter, r *http.Request) {
 
 	// Create/Update lease record
 	now := time.Now()
-	lease, err := dao.UpsertLease(db.Lease{
+	lease, err := conf.DB.UpsertLease(db.Lease{
 		AccountID:                account.ID,
 		PrincipalID:              requestBody.PrincipalID,
 		ID:                       uuid.New().String(),
@@ -111,13 +110,13 @@ func CreateLease(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Mark the accOunt as Status=Leased
-	_, err = dao.TransitionAccountStatus(account.ID, db.Ready, db.Leased)
+	_, err = conf.DB.TransitionAccountStatus(account.ID, db.Ready, db.Leased)
 	if err != nil {
 		log.Printf("ERROR Failed to transition account %s to Leased for lease for %s. Attemping to deactivate lease...",
 			lease.AccountID, lease.PrincipalID)
 		// If setting the account status fails, attempt to deactivate the lease
 		// before returning a 500 error
-		_, err = dao.TransitionLeaseStatus(
+		_, err = conf.DB.TransitionLeaseStatus(
 			lease.AccountID, lease.PrincipalID,
 			db.Active, db.Inactive, db.LeaseRolledBack,
 		)
@@ -131,17 +130,17 @@ func CreateLease(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Publish Lease to the topic
-	message, err := publishLease(snsSvc, lease, leaseAddedTopicARN)
+	message, err := publishLease(conf.SNS, lease, &conf.LeaseAddedTopicARN)
 	if err != nil {
 		log.Print(err.Error())
 
 		// Attempt to rollback the lease
-		_, err := dao.TransitionLeaseStatus(lease.AccountID, lease.PrincipalID, db.Active, db.Inactive, db.LeaseRolledBack)
+		_, err := conf.DB.TransitionLeaseStatus(lease.AccountID, lease.PrincipalID, db.Active, db.Inactive, db.LeaseRolledBack)
 		if err != nil {
 			log.Printf("Failed to deactivate lease on SNS error for %s / %s: %s",
 				lease.AccountID, lease.PrincipalID, err)
 		} else {
-			_, err := dao.TransitionAccountStatus(lease.AccountID, db.Leased, db.Ready)
+			_, err := conf.DB.TransitionAccountStatus(lease.AccountID, db.Leased, db.Ready)
 			log.Printf("Failed to rollback account status on SNS error for %s / %s: %s",
 				lease.AccountID, lease.PrincipalID, err)
 		}

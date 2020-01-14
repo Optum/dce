@@ -65,7 +65,7 @@ func validateLeaseFromRequest(context *leaseValidationContext, req *http.Request
 	// Validate requested lease budget amount is less than PRINCIPAL_BUDGET_AMOUNT for current principal billing period
 	usageStartTime := getBeginningOfCurrentBillingPeriod(context.principalBudgetPeriod)
 
-	usageRecords, err := usageSvc.GetUsageByPrincipal(usageStartTime, requestBody.PrincipalID)
+	usageRecords, err := conf.Usage.GetUsageByPrincipal(usageStartTime, requestBody.PrincipalID)
 	if err != nil {
 		errStr := fmt.Sprintf("Failed to retrieve usage: %s", err)
 		return requestBody, true, "", errors.New(errStr)

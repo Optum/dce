@@ -55,10 +55,12 @@ func TestCreateController_Call(t *testing.T) {
 		period := "WEEKLY"
 		leasePeriod := int64(704800)
 
-		principalBudgetAmount = &amount
-		principalBudgetPeriod = &period
-		maxLeaseBudgetAmount = &amount
-		maxLeasePeriod = &leasePeriod
+		conf = &leasesConfig{
+			PrincipalBudgetAmount: amount,
+			PrincipalBudgetPeriod: period,
+			MaxLeaseBudgetAmount:  amount,
+			MaxLeasePeriod:        leasePeriod,
+		}
 
 		dbMock := stubDb()
 		snsMock := &commonMock.Notificationer{}
@@ -94,10 +96,10 @@ func TestCreateController_Call(t *testing.T) {
 			SNS:                   snsMock,
 			LeaseTopicARN:         &leaseTopicARN,
 			UsageSvc:              usageMock,
-			PrincipalBudgetAmount: principalBudgetAmount,
-			PrincipalBudgetPeriod: principalBudgetPeriod,
-			MaxLeaseBudgetAmount:  maxLeaseBudgetAmount,
-			MaxLeasePeriod:        maxLeasePeriod,
+			PrincipalBudgetAmount: &conf.PrincipalBudgetAmount,
+			PrincipalBudgetPeriod: &conf.PrincipalBudgetPeriod,
+			MaxLeaseBudgetAmount:  &conf.MaxLeaseBudgetAmount,
+			MaxLeasePeriod:        &conf.MaxLeasePeriod,
 		}
 
 		successResponse := createSuccessCreateResponse()
@@ -155,7 +157,7 @@ func TestCreateController_Call(t *testing.T) {
 					LeaseTopicARN:         &leaseTopicARN,
 					UsageSvc:              usageMock,
 					PrincipalBudgetAmount: aws.Float64(9999999999),
-					PrincipalBudgetPeriod: principalBudgetPeriod,
+					PrincipalBudgetPeriod: &conf.PrincipalBudgetPeriod,
 					MaxLeaseBudgetAmount:  aws.Float64(9999999999),
 					MaxLeasePeriod:        aws.Int64(600000000),
 				},
@@ -166,14 +168,14 @@ func TestCreateController_Call(t *testing.T) {
 		}
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
-				dao = tt.fields.Dao
-				snsSvc = tt.fields.SNS
-				leaseAddedTopicARN = tt.fields.LeaseTopicARN
-				usageSvc = tt.fields.UsageSvc
-				principalBudgetAmount = tt.fields.PrincipalBudgetAmount
-				principalBudgetPeriod = tt.fields.PrincipalBudgetPeriod
-				maxLeaseBudgetAmount = tt.fields.MaxLeaseBudgetAmount
-				maxLeasePeriod = tt.fields.MaxLeasePeriod
+				conf.DB = tt.fields.Dao
+				conf.SNS = tt.fields.SNS
+				conf.LeaseAddedTopicARN = *tt.fields.LeaseTopicARN
+				conf.Usage = tt.fields.UsageSvc
+				conf.PrincipalBudgetAmount = *tt.fields.PrincipalBudgetAmount
+				conf.PrincipalBudgetPeriod = *tt.fields.PrincipalBudgetPeriod
+				conf.MaxLeaseBudgetAmount = *tt.fields.MaxLeaseBudgetAmount
+				conf.MaxLeasePeriod = *tt.fields.MaxLeasePeriod
 				got, err := Handler(tt.args.ctx, *tt.args.req)
 				if (err != nil) != tt.wantErr {
 					t.Errorf("CreateController.Call() error = %v, wantErr %v", err, tt.wantErr)
@@ -201,7 +203,7 @@ func TestCreateController_Call(t *testing.T) {
 			}}, nil)
 
 		// Create the controller
-		dao = dbMock
+		conf.DB = dbMock
 
 		// Call the controller
 		res, err := Handler(context.TODO(), *apiGatewayRequest(t, map[string]interface{}{
@@ -221,7 +223,7 @@ func TestCreateController_Call(t *testing.T) {
 	t.Run("should mark the account.Status=Leased", func(t *testing.T) {
 		// Setup the controller
 		dbMock := stubDb()
-		dao = dbMock
+		conf.DB = dbMock
 
 		// Return a ready account
 		util.ReplaceMock(&dbMock.Mock, "GetReadyAccount").
@@ -257,7 +259,7 @@ func TestCreateController_Call(t *testing.T) {
 			return &lease
 		}, nil)
 
-		dao = dbMock
+		conf.DB = dbMock
 
 		// Call the controller
 		res, err := Handler(context.TODO(), *apiGatewayRequest(t, map[string]interface{}{
@@ -275,7 +277,7 @@ func TestCreateController_Call(t *testing.T) {
 	t.Run("should create lease with metadata", func(t *testing.T) {
 		// Setup the controller
 		dbMock := stubDb()
-		dao = dbMock
+		conf.DB = dbMock
 
 		// Should put lease metadata to DB
 		util.ReplaceMock(&dbMock.Mock, "UpsertLease",
@@ -319,7 +321,7 @@ func TestCreateController_Call(t *testing.T) {
 		// Setup the controller
 		// Setup the controller
 		dbMock := stubDb()
-		dao = dbMock
+		conf.DB = dbMock
 
 		// Should put lease metadata to DB
 		util.ReplaceMock(&dbMock.Mock, "UpsertLease",
@@ -384,7 +386,7 @@ func TestCreateController_Call(t *testing.T) {
 		// Setup the controller
 		// Setup the controller
 		dbMock := stubDb()
-		dao = dbMock
+		conf.DB = dbMock
 
 		// Should put lease metadata to DB
 		util.ReplaceMock(&dbMock.Mock, "UpsertLease",
@@ -446,7 +448,7 @@ func TestCreateController_Call(t *testing.T) {
 	t.Run("should deactivate the lease if the account status update fails", func(t *testing.T) {
 		// Setup the controller
 		dbMock := stubDb()
-		dao = dbMock
+		conf.DB = dbMock
 
 		// Mock account status update to fail
 		util.ReplaceMock(&dbMock.Mock, "TransitionAccountStatus",
@@ -481,8 +483,8 @@ func TestCreateController_Call(t *testing.T) {
 			Return(nil, errors.New("test error"))
 
 		dbMock := stubDb()
-		snsSvc = snsMock
-		dao = dbMock
+		conf.SNS = snsMock
+		conf.DB = dbMock
 
 		// Should deactivate the lease
 		util.ReplaceMock(&dbMock.Mock, "TransitionLeaseStatus",
@@ -519,8 +521,8 @@ func TestCreateController_Call(t *testing.T) {
 			Return(nil, errors.New("test error"))
 
 		dbMock := stubDb()
-		snsSvc = snsMock
-		dao = dbMock
+		conf.SNS = snsMock
+		conf.DB = dbMock
 
 		// Should deactivate the lease (FAILS)
 		util.ReplaceMock(&dbMock.Mock, "TransitionLeaseStatus",

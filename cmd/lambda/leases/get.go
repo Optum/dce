@@ -16,7 +16,7 @@ import (
 func GetLeaseByID(w http.ResponseWriter, r *http.Request) {
 	// Fetch the account.
 	leaseID := mux.Vars(r)["leaseID"]
-	lease, err := dao.GetLeaseByID(leaseID)
+	lease, err := conf.DB.GetLeaseByID(leaseID)
 	if err != nil {
 		log.Printf("Error Getting Lease for Id: %s", leaseID)
 		response.WriteServerErrorWithResponse(w, fmt.Sprintf("Failed Get on Lease %s", leaseID))
@@ -42,7 +42,7 @@ func GetLeasesByPrincipcalIDAndAccountID(w http.ResponseWriter, r *http.Request)
 	// Fetch the account.
 	principalID := r.FormValue(PrincipalIDParam)
 	accountID := r.FormValue(AccountIDParam)
-	lease, err := dao.GetLease(accountID, principalID)
+	lease, err := conf.DB.GetLease(accountID, principalID)
 	if err != nil {
 		errMsg := fmt.Sprintf("Error getting lease for principal %s and acccount %s: %s", principalID, accountID, err.Error())
 		log.Println(errMsg)
@@ -69,7 +69,7 @@ func GetLeasesByPrincipcalIDAndAccountID(w http.ResponseWriter, r *http.Request)
 func GetLeasesByPrincipalID(w http.ResponseWriter, r *http.Request) {
 	// Fetch the account.
 	principalID := r.FormValue(PrincipalIDParam)
-	leases, err := dao.FindLeasesByPrincipal(principalID)
+	leases, err := conf.DB.FindLeasesByPrincipal(principalID)
 	if err != nil {
 		errMsg := fmt.Sprintf("Error getting leases for principal %s: %s", principalID, err.Error())
 		log.Println(errMsg)
@@ -102,7 +102,7 @@ func GetLeasesByPrincipalID(w http.ResponseWriter, r *http.Request) {
 func GetLeasesByAccountID(w http.ResponseWriter, r *http.Request) {
 	// Fetch the account.
 	accountID := r.FormValue(AccountIDParam)
-	leases, err := dao.FindLeasesByAccount(accountID)
+	leases, err := conf.DB.FindLeasesByAccount(accountID)
 	if err != nil {
 		errMsg := fmt.Sprintf("Error getting leases for account %s: %s", accountID, err.Error())
 		log.Println(errMsg)
@@ -131,7 +131,7 @@ func GetLeasesByStatus(w http.ResponseWriter, r *http.Request) {
 	// Fetch the account.
 	leaseStatus := r.FormValue(StatusParam)
 	status, _ := db.ParseLeaseStatus(leaseStatus)
-	leases, err := dao.FindLeasesByStatus(status)
+	leases, err := conf.DB.FindLeasesByStatus(status)
 	if err != nil {
 		errMsg := fmt.Sprintf("Error getting leases with status \"%s\": %s", leaseStatus, err.Error())
 		log.Println(errMsg)

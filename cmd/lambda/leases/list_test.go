@@ -55,7 +55,7 @@ func TestListLeases(t *testing.T) {
 		mockDb.On("GetLeases", *mockLeaseInput).Return(*leasesResult, nil)
 		mockRequest := createGetEmptyLeasesRequest()
 
-		dao = &mockDb
+		conf.DB = &mockDb
 
 		actualResponse, err := Handler(context.Background(), mockRequest)
 		require.Nil(t, err)
@@ -84,7 +84,7 @@ func TestListLeases(t *testing.T) {
 		mockDb.On("GetLease", "987654321", "12345").Return(leasesResult, nil)
 		mockRequest := createGetSingleLeaseRequest()
 
-		dao = &mockDb
+		conf.DB = &mockDb
 
 		actualResponse, err := Handler(context.Background(), mockRequest)
 		require.Nil(t, err)
@@ -105,7 +105,7 @@ func TestListLeases(t *testing.T) {
 		mockDb.On("GetLeases", *mockLeaseInput).Return(*leasesResult, expectedError)
 		mockRequest := createGetLeasesRequest()
 
-		dao = &mockDb
+		conf.DB = &mockDb
 
 		actualResponse, err := Handler(context.Background(), mockRequest)
 		require.Nil(t, err)

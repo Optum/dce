@@ -93,7 +93,7 @@ func TestDeleteController_Call(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			dao = tt.fields.Dao
+			conf.DB = tt.fields.Dao
 
 			got, err := Handler(tt.args.ctx, *tt.args.req)
 			if (err != nil) != tt.wantErr {

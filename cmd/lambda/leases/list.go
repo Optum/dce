@@ -26,7 +26,7 @@ func GetLeases(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := dao.GetLeases(getLeasesInput)
+	result, err := conf.DB.GetLeases(getLeasesInput)
 
 	if err != nil {
 		log.Print(err)

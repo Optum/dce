@@ -36,7 +36,7 @@ func DeleteLease(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Destroying lease %s for Principal %s", accountID, principalID)
 
 	// Move the account to decommissioned
-	accts, err := dao.FindLeasesByPrincipal(principalID)
+	accts, err := conf.DB.FindLeasesByPrincipal(principalID)
 	if err != nil {
 		log.Printf("Error finding leases for Principal %s: %s", principalID, err)
 		response.WriteServerErrorWithResponse(w, fmt.Sprintf("Cannot verify if Principal %s has a lease", principalID))
@@ -68,7 +68,7 @@ func DeleteLease(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Transition the Lease Status
-	updatedLease, err := dao.TransitionLeaseStatus(acct.AccountID, principalID,
+	updatedLease, err := conf.DB.TransitionLeaseStatus(acct.AccountID, principalID,
 		db.Active, db.Inactive, db.LeaseDestroyed)
 	if err != nil {
 		log.Printf("Error transitioning lease status: %s", err)
@@ -77,7 +77,7 @@ func DeleteLease(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Transition the Account Status
-	_, err = dao.TransitionAccountStatus(acct.AccountID, db.Leased,
+	_, err = conf.DB.TransitionAccountStatus(acct.AccountID, db.Leased,
 		db.NotReady)
 	if err != nil {
 		response.WriteServerErrorWithResponse(w, fmt.Sprintf("Failed Decommission on Account Lease %s - %s", principalID, accountID))

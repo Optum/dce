@@ -2,6 +2,7 @@ package config
 
 import (
 	"github.com/Optum/dce/pkg/db"
+	"github.com/Optum/dce/pkg/usage"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"log"
 	"reflect"
@@ -185,6 +186,26 @@ func (bldr *ServiceBuilder) WithNotificationer() *ServiceBuilder {
 		bldr.WithService(&common.SNS{
 			Client: sns.New(awsSession),
 		})
+
+		return nil
+	})
+	return bldr
+}
+
+func (bldr *ServiceBuilder) WithUsageService() *ServiceBuilder {
+	bldr.handlers = append(bldr.handlers, func() error {
+		var dynDB dynamodb.DynamoDB
+		err := bldr.GetService(dynDB)
+		if err != nil {
+			return err
+		}
+
+		bldr.WithService(usage.New(
+			&dynDB,
+			common.RequireEnv("USAGE_CACHE_DB"),
+			"StartDate",
+			"PrincipalId",
+		))
 
 		return nil
 	})
