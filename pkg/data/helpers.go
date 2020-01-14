@@ -1,17 +1,10 @@
 package data
 
 import (
-	"github.com/Optum/dce/pkg/model"
 	"reflect"
 	"strings"
 
-	gErrors "errors"
-	"fmt"
-	"github.com/Optum/dce/pkg/errors"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
 )
 
@@ -46,53 +39,9 @@ func getFiltersFromStruct(i interface{}, keyName *string) (*expression.KeyCondit
 	return kb, cb
 }
 
-func putItem(input interface{}, data interface{}, tableName string, expr *expression.Expression) error {
-
-	returnValue := "NONE"
-
-	var putMap *dynamodb.AttributeValue
-
-	var dataModel *model.Account
-	var i *Account
-
-	if tableName == "account" {
-		i, _ = input.(*Account)
-		dataModel, _ = data.(*model.Account)
-
-	}
-	putMap, _ = dynamodbattribute.Marshal(dataModel)
-	_, err := invoke(i.DynamoDB, "PutItem",
-		&dynamodb.PutItemInput{
-			// Query in input Table
-			TableName: aws.String(tableName),
-			// Find record for the requested input
-			Item: putMap.M,
-			// Condition Expression
-			ConditionExpression:       expr.Condition(),
-			ExpressionAttributeNames:  expr.Names(),
-			ExpressionAttributeValues: expr.Values(),
-			// Return the updated record
-			ReturnValues: aws.String(returnValue),
-		},
-	)
-
-	var awsErr awserr.Error
-	if gErrors.As(err, &awsErr) {
-		if awsErr.Code() == "ConditionalCheckFailedException" {
-			return errors.NewConflict(
-				tableName,
-				*dataModel.ID,
-				fmt.Errorf("unable to update %s: %ss has been modified since request was made", tableName, tableName))
-		}
-	}
-
-	if err != nil {
-		return errors.NewInternalServer(
-			fmt.Sprintf("update failed for %s %q", tableName, *dataModel.ID),
-			err,
-		)
-	}
-	return nil
+func putItem(input *dynamodb.PutItemInput, dataInterface *Account) error {
+	_, err := invoke(dataInterface.DynamoDB, "PutItem", input)
+	return err
 }
 
 func invoke(i interface{}, name string, args ...interface{}) (interface{}, error) {
@@ -106,20 +55,4 @@ func invoke(i interface{}, name string, args ...interface{}) (interface{}, error
 		return result[0].Interface(), nil
 	}
 	return result[0].Interface(), result[1].Interface().(error)
-}
-
-func getType(input interface{}) string {
-	valueOf := reflect.ValueOf(input)
-
-	if valueOf.Type().Kind() == reflect.Ptr {
-		return reflect.Indirect(valueOf).Type().Name()
-	} else {
-		return valueOf.Type().Name()
-	}
-}
-
-func getAccountDataModel(v interface{}) *Account {
-	r := reflect.Indirect(reflect.ValueOf(v))
-	f := r.FieldByName("Account")
-	return f.Interface().(*Account)
 }

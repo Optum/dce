@@ -1,33 +1,28 @@
 package data
 
 import (
+	gErrors "errors"
 	"fmt"
 
 	"github.com/Optum/dce/pkg/errors"
 	"github.com/Optum/dce/pkg/model"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
-	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
 )
-
-// Lease - Data Layer Struct
-type Lease struct {
-	DynamoDB       dynamodbiface.DynamoDBAPI
-	TableName      string `env:"LEASE_DB"`
-	ConsistentRead bool   `env:"USE_CONSISTENT_READS" envDefault:"false"`
-}
 
 // WriteLease the Lease record in DynamoDB
 // This is an upsert operation in which the record will either
 // be inserted or updated
 // prevLastModifiedOn parameter is the original lastModifiedOn
-func (a *Lease) WriteLease(lease *model.Lease, prevLastModifiedOn *int64) error {
+func (a *Account) WriteLease(lease *model.Lease, prevLastModifiedOn *int64) error {
 
 	var expr expression.Expression
 	var err error
+	returnValue := "NONE"
 	// lastModifiedOn is nil on a create
 	if prevLastModifiedOn != nil {
 		modExpr := expression.Name("LastModifiedOn").Equal(expression.Value(prevLastModifiedOn))
@@ -43,12 +38,38 @@ func (a *Lease) WriteLease(lease *model.Lease, prevLastModifiedOn *int64) error 
 		}
 	}
 
-	return putItem(a, lease, "lease", &expr)
+	putMap, _ := dynamodbattribute.Marshal(lease)
+	input := &dynamodb.PutItemInput{
+		TableName: aws.String(a.TableName),
+		Item: putMap.M,
+		ConditionExpression:       expr.Condition(),
+		ExpressionAttributeNames:  expr.Names(),
+		ExpressionAttributeValues: expr.Values(),
+		ReturnValues: aws.String(returnValue),
+	}
+	err = putItem(input, a)
+	var awsErr awserr.Error
+	if gErrors.As(err, &awsErr) {
+		if awsErr.Code() == "ConditionalCheckFailedException" {
+			return errors.NewConflict(
+				"lease",
+				*lease.ID,
+				fmt.Errorf("unable to update lease: leases has been modified since request was made"))
+		}
+	}
+	if err != nil {
+		return errors.NewInternalServer(
+			fmt.Sprintf("update failed for lease %q", *lease.ID),
+			err,
+		)
+	}
+
+	return nil
 
 }
 
 // DeleteLease the Lease record in DynamoDB
-func (a *Lease) DeleteLease(lease *model.Lease) error {
+func (a *Account) DeleteLease(lease *model.Lease) error {
 
 	_, err := a.DynamoDB.DeleteItem(
 		&dynamodb.DeleteItemInput{
@@ -58,10 +79,10 @@ func (a *Lease) DeleteLease(lease *model.Lease) error {
 			ReturnValues: aws.String("ALL_NEW"),
 			Key: map[string]*dynamodb.AttributeValue{
 				"AccountId": {
-					S: &lease.AccountID,
+					S: lease.AccountID,
 				},
 				"PrincipalId": {
-					S: &lease.PrincipalID,
+					S: lease.PrincipalID,
 				},
 			},
 		},
@@ -69,7 +90,7 @@ func (a *Lease) DeleteLease(lease *model.Lease) error {
 
 	if err != nil {
 		return errors.NewInternalServer(
-			fmt.Sprintf("delete lease failed for account %q and principal %q", &lease.AccountID, &lease.PrincipalID),
+			fmt.Sprintf("delete lease failed for account %q and principal %q", *lease.AccountID, *lease.PrincipalID),
 			err,
 		)
 	}
@@ -78,7 +99,7 @@ func (a *Lease) DeleteLease(lease *model.Lease) error {
 }
 
 // GetLeaseByID the Lease record by ID
-func (a *Lease) GetLeaseByAccountIDAndPrincipalID(accountID string, principalID string) (*model.Lease, error) {
+func (a *Account) GetLeaseByAccountIDAndPrincipalID(accountID string, principalID string) (*model.Lease, error) {
 
 	res, err := a.DynamoDB.GetItem(
 		&dynamodb.GetItemInput{
