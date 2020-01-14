@@ -30,8 +30,9 @@ func CreateLease(w http.ResponseWriter, r *http.Request) {
 	c := leaseValidationContext{
 		maxLeaseBudgetAmount:     conf.MaxLeaseBudgetAmount,
 		maxLeasePeriod:           conf.MaxLeasePeriod,
-		defaultLeaseLengthInDays: conf.DefaultLeaseLengthInDays,
+		principalBudgetAmount:    conf.PrincipalBudgetAmount,
 		principalBudgetPeriod:    conf.PrincipalBudgetPeriod,
+		defaultLeaseLengthInDays: conf.DefaultLeaseLengthInDays,
 	}
 
 	// Extract the Body from the Request
