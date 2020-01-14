@@ -3,6 +3,7 @@
 
 - Support query params for `GET /accounts` endpoint
 - Fixed bug causing dce auth web page to fail
+- Fixed bug causing nuke to only delete global resources (#218)
 
 ## v0.24.1
 

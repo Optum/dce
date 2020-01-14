@@ -24,10 +24,12 @@ import (
 // aws-nuke
 func main() {
 	// Initialize a service container
-	svc := &service{}
-	config := svc.config()
+	conf, err := initConfig()
+	if err != nil {
+		log.Fatalf("Failed to initialize config: %s", err)
+	}
 
-	if !config.isNukeEnabled {
+	if !conf.IsNukeEnabled {
 		log.Println("INFO: Nuke is set in Dry Run mode and will not remove " +
 			"any resources and cannot set back the state of the DCE child account " +
 			"Please set 'RESET_NUKE_DRY_RUN' to not 'true' to exit Dry Run " +
@@ -35,15 +37,15 @@ func main() {
 	}
 
 	// Delete RDS automated backups
-	if config.isNukeEnabled {
+	if conf.IsNukeEnabled {
 		log.Println("RDS backup nuke")
-		awsSession := svc.awsSession()
-		tokenService := svc.tokenService()
-		roleArn := "arn:aws:iam::" + config.accountID + ":role/" + config.accountAdminRoleName
+		awsSession := conf.Session
+		tokenService := conf.TokenService
+		roleArn := conf.AdminRoleARN()
 		rdsCreds := tokenService.NewCredentials(awsSession, roleArn)
 		rdsSession, err := tokenService.NewSession(awsSession, roleArn)
 		if err != nil {
-			log.Fatalf("Failed to create rds session %s: %s\n", config.accountID, err)
+			log.Fatalf("Failed to create rds session %s: %s\n", conf.AccountID, err)
 		}
 		rdsClient := rds.New(rdsSession, &aws.Config{
 			Credentials: rdsCreds,
@@ -53,7 +55,7 @@ func main() {
 		}
 		err = reset.DeleteRdsBackups(rdsReset)
 		if err != nil {
-			log.Fatalf("Failed to execute aws-nuke RDS backup on account %s: %s\n", config.accountID, err)
+			log.Fatalf("Failed to execute aws-nuke RDS backup on account %s: %s\n", conf.AccountID, err)
 		}
 
 		// Delete Athena resources
@@ -68,25 +70,21 @@ func main() {
 		}
 		err = reset.DeleteAthenaResources(athenaReset)
 		if err != nil {
-			log.Fatalf("Failed to execute aws-nuke athena on account %s: %s\n", config.accountID, err)
+			log.Fatalf("Failed to execute aws-nuke athena on account %s: %s\n", conf.AccountID, err)
 		}
 	}
 
 	// Execute aws-nuke, to delete all resources from the account
-	err := nukeAccount(
-		svc,
-		// Execute nuke as a dry run, if isNukeEnabled is off
-		!config.isNukeEnabled,
-	)
+	err = nukeAccount(conf)
 	if err != nil {
-		log.Fatalf("Failed to execute aws-nuke on account %s: %s\n", config.accountID, err)
+		log.Fatalf("Failed to execute aws-nuke on account %s: %s\n", conf.AccountID, err)
 	}
-	log.Printf("%s  :  Nuke Success\n", config.accountID)
+	log.Printf("%s  :  Nuke Success\n", conf.AccountID)
 
 	// Update the DB with Account/Lease statuses
-	err = updateDBPostReset(svc.db(), svc.snsService(), config.accountID, common.RequireEnv("RESET_COMPLETE_TOPIC_ARN"))
+	err = updateDBPostReset(conf.DB, conf.SNS, conf.AccountID, conf.ResetCompleteTopicARN)
 	if err != nil {
-		log.Fatalf("Failed to update the DB post-reset for account %s:  %s", config.accountID, err)
+		log.Fatalf("Failed to update the DB post-reset for account %s:  %s", conf.AccountID, err)
 	}
 }
 
@@ -129,20 +127,18 @@ func updateDBPostReset(dbSvc db.DBer, snsSvc common.Notificationer, accountID st
 	return nil
 }
 
-func nukeAccount(svc *service, isDryRun bool) error {
+func nukeAccount(conf *resetConfig) error {
 	// Generate the configuration of the yaml file using the template file
 	// provided and substituting necessary phrases.
 
-	config := svc.config()
-
 	// Create the file
-	configFile := fmt.Sprintf("/tmp/nuke-config-%s.yml", config.accountID)
+	configFile := fmt.Sprintf("/tmp/nuke-config-%s.yml", conf.AccountID)
 	f, err := os.Create(configFile)
 	if err != nil {
 		log.Fatalf("Failed to create file %s: %s", configFile, err)
 		return err
 	}
-	err = generateNukeConfig(svc, f)
+	err = generateNukeConfig(conf, f)
 	if err != nil {
 		return err
 	}
@@ -152,11 +148,11 @@ func nukeAccount(svc *service, isDryRun bool) error {
 
 	// Configure the NukeAccountInput
 	nukeAccountInput := reset.NukeAccountInput{
-		AccountID:  config.accountID,
-		RoleName:   config.accountAdminRoleName,
+		AccountID:  conf.AccountID,
+		RoleName:   conf.AdminRoleName,
 		ConfigPath: configFile,
-		NoDryRun:   !isDryRun,
-		Token:      svc.tokenService(),
+		DryRun:     !conf.IsNukeEnabled,
+		Token:      conf.TokenService,
 		Nuke:       nuke,
 	}
 
@@ -175,36 +171,34 @@ func nukeAccount(svc *service, isDryRun bool) error {
 	return nil
 }
 
-func generateNukeConfig(svc *service, f io.Writer) error {
-	config := svc.config()
-
+func generateNukeConfig(conf *resetConfig, f io.Writer) error {
 	// Verify the nuke template configuration to download file from s3 or to
 	// use the default
 	var templateFile string
-	if config.nukeTemplateBucket != "STUB" && config.nukeTemplateKey != "STUB" {
+	if conf.NukeTemplateBucket != "STUB" && conf.NukeTemplateKey != "STUB" {
 		log.Printf("Using Nuke Configuration from S3: %s/%s",
-			config.nukeTemplateBucket, config.nukeTemplateKey)
+			conf.NukeTemplateBucket, conf.NukeTemplateKey)
 
 		// Download the file from S3
-		templateFile = fmt.Sprintf("nuke-config-template-%s.yml", config.accountID)
-		err := svc.s3Service().Download(config.nukeTemplateBucket,
-			config.nukeTemplateKey, templateFile)
+		templateFile = fmt.Sprintf("nuke-config-template-%s.yml", conf.AccountID)
+		err := conf.S3.Download(conf.NukeTemplateBucket,
+			conf.NukeTemplateKey, templateFile)
 		if err != nil {
 			return errors.Wrapf(err, "Failed to download nuke template at s3://%s/%s to %s",
-				config.nukeTemplateBucket, config.nukeTemplateKey, templateFile)
+				conf.NukeTemplateBucket, conf.NukeTemplateKey, templateFile)
 		}
 	} else {
 		log.Printf("Using Default Nuke Configuration: %s",
-			config.nukeTemplateDefault)
+			conf.NukeTemplateDefault)
 
 		// Use default template
-		templateFile = config.nukeTemplateDefault
+		templateFile = conf.NukeTemplateDefault
 	}
 
-	template, err := template.New(templateFile).ParseFiles(templateFile)
+	tmpl, err := template.New(templateFile).ParseFiles(templateFile)
 	if err != nil {
 		log.Printf("Failed to generate nuke config for acount %s using template %s: %s",
-			config.accountID, templateFile, err)
+			conf.AccountID, templateFile, err)
 		return err
 	}
 
@@ -216,16 +210,16 @@ func generateNukeConfig(svc *service, f io.Writer) error {
 		Regions         []string
 	}
 
-	err = template.ExecuteTemplate(f, templateFile, &templateParams{
-		ID:              config.accountID,
-		AdminRole:       config.accountAdminRoleName,
-		PrincipalRole:   config.accountPrincipalRoleName,
-		PrincipalPolicy: config.accountPrincipalPolicyName,
-		Regions:         config.allowedRegions,
+	err = tmpl.ExecuteTemplate(f, templateFile, &templateParams{
+		ID:              conf.AccountID,
+		AdminRole:       conf.AdminRoleName,
+		PrincipalRole:   conf.PrincipalRoleName,
+		PrincipalPolicy: conf.PrincipalPolicyName,
+		Regions:         conf.NukeRegions,
 	})
 	if err != nil {
 		log.Printf("Failed to generate nuke config for acount %s using template %s: %s",
-			config.accountID, templateFile, err)
+			conf.AccountID, templateFile, err)
 		return err
 	}
 

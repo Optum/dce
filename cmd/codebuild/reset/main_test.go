@@ -123,19 +123,18 @@ func TestResetPipeline(t *testing.T) {
 	t.Run("testNukeConfigGeneration", func(t *testing.T) {
 
 		var b bytes.Buffer
-		_config = &serviceConfig{
-			accountID:                  "ABC123",
-			accountAdminRoleName:       "AdminRole",
-			allowedRegions:             []string{"us-east-1", "us-west-1"},
-			accountPrincipalRoleName:   "PrincipalRole",
-			accountPrincipalPolicyName: "PrincipalPolicy",
-			nukeTemplateDefault:        "default-nuke-config-template.yml",
-			nukeTemplateBucket:         "STUB",
-			nukeTemplateKey:            "STUB",
+		conf := &resetConfig{
+			AccountID:           "ABC123",
+			AdminRoleName:       "AdminRole",
+			NukeRegions:         []string{"us-east-1", "us-west-1"},
+			PrincipalRoleName:   "PrincipalRole",
+			PrincipalPolicyName: "PrincipalPolicy",
+			NukeTemplateDefault: "default-nuke-config-template.yml",
+			NukeTemplateBucket:  "STUB",
+			NukeTemplateKey:     "STUB",
 		}
-		svc := service{}
 
-		err := generateNukeConfig(&svc, &b)
+		err := generateNukeConfig(conf, &b)
 		assert.NoError(t, err)
 
 		got := b.String()
