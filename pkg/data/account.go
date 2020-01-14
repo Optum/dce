@@ -29,6 +29,7 @@ func (a *Account) Write(account *account.Account, prevLastModifiedOn *int64) err
 
 	var expr expression.Expression
 	var err error
+	returnValue := "NONE"
 	// lastModifiedOn is nil on a create
 	if prevLastModifiedOn != nil {
 		modExpr := expression.Name("LastModifiedOn").Equal(expression.Value(prevLastModifiedOn))
@@ -74,6 +75,7 @@ func (a *Account) Write(account *account.Account, prevLastModifiedOn *int64) err
 		)
 	}
 
+	return nil
 }
 
 // Delete the Account record in DynamoDB

@@ -8,19 +8,19 @@ import (
 // Lease is a type corresponding to a Lease
 // table record
 type Lease struct {
-	AccountID                string                 `json:"AccountId"`                // AWS Account ID
-	PrincipalID              string                 `json:"PrincipalId"`              // Azure User Principal ID
-	ID                       string                 `json:"Id"`                       // Lease ID
-	LeaseStatus              LeaseStatus            `json:"LeaseStatus"`              // Status of the Lease
-	LeaseStatusReason        LeaseStatusReason      `json:"LeaseStatusReason"`        // Reason for the status of the lease
-	CreatedOn                int64                  `json:"CreatedOn"`                // Created Epoch Timestamp
-	LastModifiedOn           int64                  `json:"LastModifiedOn"`           // Last Modified Epoch Timestamp
-	BudgetAmount             float64                `json:"BudgetAmount"`             // Budget Amount allocated for this lease
-	BudgetCurrency           string                 `json:"BudgetCurrency"`           // Budget currency
-	BudgetNotificationEmails []string               `json:"BudgetNotificationEmails"` // Budget notification emails
-	LeaseStatusModifiedOn    int64                  `json:"LeaseStatusModifiedOn"`    // Last Modified Epoch Timestamp
-	ExpiresOn                int64                  `json:"ExpiresOn"`                // Lease expiration time as Epoch
-	Metadata                 map[string]interface{} `json:"Metadata"`                 // Arbitrary key-value metadata to store with lease object
+	AccountID                *string                 `json:"AccountId"`                // AWS Account ID
+	PrincipalID              *string                 `json:"PrincipalId"`              // Azure User Principal ID
+	ID                       *string                 `json:"Id"`                       // Lease ID
+	LeaseStatus              *LeaseStatus            `json:"LeaseStatus"`              // Status of the Lease
+	LeaseStatusReason        *LeaseStatusReason      `json:"LeaseStatusReason"`        // Reason for the status of the lease
+	CreatedOn                *int64                  `json:"CreatedOn"`                // Created Epoch Timestamp
+	LastModifiedOn           *int64                  `json:"LastModifiedOn"`           // Last Modified Epoch Timestamp
+	BudgetAmount             *float64                `json:"BudgetAmount"`             // Budget Amount allocated for this lease
+	BudgetCurrency           *string                 `json:"BudgetCurrency"`           // Budget currency
+	BudgetNotificationEmails *[]string               `json:"BudgetNotificationEmails"` // Budget notification emails
+	LeaseStatusModifiedOn    *int64                  `json:"LeaseStatusModifiedOn"`    // Last Modified Epoch Timestamp
+	ExpiresOn                *int64                  `json:"ExpiresOn"`                // Lease expiration time as Epoch
+	Metadata                 *map[string]interface{} `json:"Metadata"`                 // Arbitrary key-value metadata to store with lease object
 }
 
 // Leases is multiple of Lease
@@ -33,9 +33,9 @@ const (
 	// EmptyLeaseStatus status
 	EmptyLeaseStatus LeaseStatus = ""
 	// Active status
-	Active LeaseStatus = "Active"
+	LeaseStatusActive LeaseStatus = "Active"
 	// Inactive status
-	Inactive LeaseStatus = "Inactive"
+	LeaseStatusInactive LeaseStatus = "Inactive"
 )
 
 // String returns the string value of LeaseStatus
@@ -59,9 +59,9 @@ func (c LeaseStatus) LeaseStatusPtr() *LeaseStatus {
 func ParseLeaseStatus(status string) (LeaseStatus, error) {
 	switch strings.ToLower(status) {
 	case "active":
-		return Active, nil
+		return LeaseStatusActive, nil
 	case "inactive":
-		return Inactive, nil
+		return LeaseStatusInactive, nil
 	}
 	return EmptyLeaseStatus, fmt.Errorf("Cannot parse value %s", status)
 }
