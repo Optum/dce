@@ -5,10 +5,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/service/dynamodb"
-<<<<<<< HEAD
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
-=======
->>>>>>> leas unit tests
 	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
 )
 
