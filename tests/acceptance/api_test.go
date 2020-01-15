@@ -36,11 +36,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 )
 
-var adminRoleName = ""
-
 func TestMain(m *testing.M) {
 	code := m.Run()
-	deleteAdminRole()
 	os.Exit(code)
 }
 
@@ -78,8 +75,24 @@ func TestApi(t *testing.T) {
 	)
 
 	// Create an adminRole for the test account
-	adminRoleName = "dce-api-test-admin-role-" + fmt.Sprintf("%v", time.Now().Unix())
-	adminRoleRes := createAdminRole(t, awsSession, adminRoleName)
+	adminRoleName := "dce-api-test-admin-role-" + fmt.Sprintf("%v", time.Now().Unix())
+	costExplorerPolicyName := "dce-api-test-ce-full-access-" + fmt.Sprintf("%v", time.Now().Unix())
+	costExplorerPolicyDocument := `{
+				"Version": "2012-10-17",
+				"Statement": [
+					{
+						"Effect": "Allow",
+						"Action": "ce:*",
+						"Resource": "*"
+					}
+				]
+			}`
+	cePolicy := createPolicy(t, awsSession, costExplorerPolicyName, costExplorerPolicyDocument)
+	policies := []string{
+		"arn:aws:iam::aws:policy/IAMFullAccess",
+		*cePolicy.Arn,
+	}
+	adminRoleRes := createAdminRole(t, awsSession, adminRoleName, policies)
 	accountID := adminRoleRes.accountID
 	adminRoleArn := adminRoleRes.adminRoleArn
 
@@ -90,6 +103,8 @@ func TestApi(t *testing.T) {
 	defer truncateAccountTable(t, dbSvc)
 	defer truncateLeaseTable(t, dbSvc)
 	defer truncateUsageTable(t, usageSvc)
+	defer deletePolicy(t, *cePolicy.Arn)
+	defer deleteAdminRole(t, adminRoleName, policies)
 
 	t.Run("Authentication", func(t *testing.T) {
 
@@ -2081,13 +2096,28 @@ func parseResponseArrayJSON(t *testing.T, resp *apiResponse) []map[string]interf
 	return arrJSON
 }
 
+func createPolicy(t *testing.T, awsSession client.ConfigProvider, name string, body string) *iam.Policy {
+	iamSvc := iam.New(awsSession)
+	policy, err := iamSvc.CreatePolicy(&iam.CreatePolicyInput{
+		PolicyDocument: &body,
+		PolicyName:     &name,
+	})
+
+	// Ignore errors indicating the policy already exists (e.g. if a previous test run already created the policy)
+	if err != nil && strings.Contains(err.Error(), iam.ErrCodeEntityAlreadyExistsException) {
+		err = nil
+	}
+	require.Nil(t, err)
+	return policy.Policy
+}
+
 type createAdminRoleOutput struct {
 	accountID    string
 	roleName     string
 	adminRoleArn string
 }
 
-func createAdminRole(t *testing.T, awsSession client.ConfigProvider, adminRoleName string) *createAdminRoleOutput {
+func createAdminRole(t *testing.T, awsSession client.ConfigProvider, adminRoleName string, policies []string) *createAdminRoleOutput {
 	currentAccountID := aws2.GetAccountId(t)
 
 	// Create an Admin Role that can be assumed
@@ -2115,43 +2145,13 @@ func createAdminRole(t *testing.T, awsSession client.ConfigProvider, adminRoleNa
 
 	adminRoleArn := *roleRes.Role.Arn
 
-	// Give the Admin Role Permission to create other IAM Roles
-	// (so it can create a role for the principal)
-	_, err = iamSvc.AttachRolePolicy(&iam.AttachRolePolicyInput{
-		RoleName:  aws.String(adminRoleName),
-		PolicyArn: aws.String("arn:aws:iam::aws:policy/IAMFullAccess"),
-	})
-	require.Nil(t, err)
-
-	// Give the Admin Role Permission to access cost explorer
-	costExplorerPolicyName := "CostExplorerFullAccess"
-	costExplorerPolicyDocument := `{
-				"Version": "2012-10-17",
-				"Statement": [
-					{
-						"Effect": "Allow",
-						"Action": "ce:*",
-						"Resource": "*"
-					}
-				]
-			}`
-	_, err = iamSvc.CreatePolicy(&iam.CreatePolicyInput{
-		PolicyDocument: &costExplorerPolicyDocument,
-		PolicyName:     &costExplorerPolicyName,
-	})
-
-	// Ignore errors indicating the policy already exists (e.g. if a previous test run already created the policy)
-	if err != nil && strings.Contains(err.Error(), iam.ErrCodeEntityAlreadyExistsException) {
-		err = nil
+	for _, p := range policies {
+		_, err = iamSvc.AttachRolePolicy(&iam.AttachRolePolicyInput{
+			RoleName:  aws.String(adminRoleName),
+			PolicyArn: aws.String(p),
+		})
+		require.Nil(t, err)
 	}
-	require.Nil(t, err)
-
-	_, err = iamSvc.AttachRolePolicy(&iam.AttachRolePolicyInput{
-		RoleName:  aws.String(adminRoleName),
-		PolicyArn: aws.String(fmt.Sprintf("arn:aws:iam::%s:policy/%s", currentAccountID, costExplorerPolicyName)),
-	})
-	require.Nil(t, err)
-
 	// IAM Role takes a while to propagate....
 	//time.Sleep(10 * time.Second)
 
@@ -2236,10 +2236,31 @@ func NewCredentials(t *testing.T, awsSession *session.Session, roleArn string) *
 	return creds
 }
 
-func deleteAdminRole() {
+func deleteAdminRole(t *testing.T, role string, policies []string) {
 	awsSession, _ := session.NewSession()
 	iamSvc := iam.New(awsSession)
-	_, _ = iamSvc.DeleteRole(&iam.DeleteRoleInput{
-		RoleName: aws.String(adminRoleName),
+	testutil.Retry(t, 10, 2*time.Second, func(r *testutil.R) {
+		for _, p := range policies {
+			_, err := iamSvc.DetachRolePolicy(&iam.DetachRolePolicyInput{
+				RoleName:  aws.String(role),
+				PolicyArn: aws.String(p),
+			})
+			assert.Nil(t, err)
+		}
+		_, err := iamSvc.DeleteRole(&iam.DeleteRoleInput{
+			RoleName: aws.String(role),
+		})
+		assert.Nil(t, err)
+	})
+}
+
+func deletePolicy(t *testing.T, policyArn string) {
+	awsSession, _ := session.NewSession()
+	iamSvc := iam.New(awsSession)
+	testutil.Retry(t, 10, 2*time.Second, func(r *testutil.R) {
+		_, err := iamSvc.DeletePolicy(&iam.DeletePolicyInput{
+			PolicyArn: aws.String(policyArn),
+		})
+		assert.Nil(t, err)
 	})
 }

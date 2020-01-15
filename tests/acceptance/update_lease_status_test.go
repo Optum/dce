@@ -83,10 +83,28 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 	// Create Lambda service client
 	lambdaClient := lambda.New(awsSession)
 
-	// Create an adminRole for the account
-	var adminRoleName = "dce-api-test-admin-role-updateleasestatus-" + fmt.Sprintf("%v", time.Now().Unix())
-	adminRoleRes := createAdminRole(t, awsSession, adminRoleName)
-	defer deleteAdminRole()
+	// Create an adminRole for the test account
+	adminRoleName := "dce-api-test-admin-role-updateleasestatus-" + fmt.Sprintf("%v", time.Now().Unix())
+	costExplorerPolicyName := "dce-api-test-ce-full-access-updateleasestatus-" + fmt.Sprintf("%v", time.Now().Unix())
+	costExplorerPolicyDocument := `{
+				"Version": "2012-10-17",
+				"Statement": [
+					{
+						"Effect": "Allow",
+						"Action": "ce:*",
+						"Resource": "*"
+					}
+				]
+			}`
+	cePolicy := createPolicy(t, awsSession, costExplorerPolicyName, costExplorerPolicyDocument)
+	policies := []string{
+		"arn:aws:iam::aws:policy/IAMFullAccess",
+		*cePolicy.Arn,
+	}
+	adminRoleRes := createAdminRole(t, awsSession, adminRoleName, policies)
+
+	defer deletePolicy(t, *cePolicy.Arn)
+	defer deleteAdminRole(t, adminRoleName, policies)
 
 	t.Run("Not exceeded lease budget result in Active lease with reason Active.", func(t *testing.T) {
 
