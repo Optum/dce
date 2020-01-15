@@ -40,12 +40,12 @@ func (a *Account) WriteLease(lease *model.Lease, prevLastModifiedOn *int64) erro
 
 	putMap, _ := dynamodbattribute.Marshal(lease)
 	input := &dynamodb.PutItemInput{
-		TableName: aws.String(a.TableName),
-		Item: putMap.M,
+		TableName:                 aws.String(a.TableName),
+		Item:                      putMap.M,
 		ConditionExpression:       expr.Condition(),
 		ExpressionAttributeNames:  expr.Names(),
 		ExpressionAttributeValues: expr.Values(),
-		ReturnValues: aws.String(returnValue),
+		ReturnValues:              aws.String(returnValue),
 	}
 	err = putItem(input, a)
 	var awsErr awserr.Error
