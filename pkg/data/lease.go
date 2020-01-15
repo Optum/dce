@@ -53,13 +53,13 @@ func (a *Account) WriteLease(lease *model.Lease, prevLastModifiedOn *int64) erro
 		if awsErr.Code() == "ConditionalCheckFailedException" {
 			return errors.NewConflict(
 				"lease",
-				*lease.ID,
+				*lease.AccountID,
 				fmt.Errorf("unable to update lease: leases has been modified since request was made"))
 		}
 	}
 	if err != nil {
 		return errors.NewInternalServer(
-			fmt.Sprintf("update failed for lease %q", *lease.ID),
+			fmt.Sprintf("update failed for lease with AccountID %q and PrincipalID %q", *lease.AccountID, *lease.PrincipalID),
 			err,
 		)
 	}

@@ -207,9 +207,9 @@ func TestLeaseUpdate(t *testing.T) {
 			oldLastModifiedOn: ptrInt64(1573592057),
 			dynamoErr:         awserr.New("ConditionalCheckFailedException", "Message", fmt.Errorf("Bad")),
 			expectedErr: errors.NewConflict(
-				"account",
+				"lease",
 				"123456789012",
-				fmt.Errorf("unable to update account: accounts has been modified since request was made")),
+				fmt.Errorf("unable to update lease: leases has been modified since request was made")),
 		},
 		{
 			name: "other dynamo error",
@@ -221,7 +221,7 @@ func TestLeaseUpdate(t *testing.T) {
 			},
 			oldLastModifiedOn: ptrInt64(1573592057),
 			dynamoErr:         gErrors.New("failure"),
-			expectedErr:       errors.NewInternalServer("update failed for account \"123456789012\"", gErrors.New("failure")),
+			expectedErr:       errors.NewInternalServer("update failed for lease with AccountID \"123456789012\" and PrincipalID \"User2\"", gErrors.New("failure")),
 		},
 	}
 
