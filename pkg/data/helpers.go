@@ -40,19 +40,6 @@ func getFiltersFromStruct(i interface{}, keyName *string) (*expression.KeyCondit
 }
 
 func putItem(input *dynamodb.PutItemInput, dataInterface *Account) error {
-	_, err := invoke(dataInterface.DynamoDB, "PutItem", input)
+	_, err := dataInterface.DynamoDB.PutItem(input)
 	return err
-}
-
-func invoke(i interface{}, name string, args ...interface{}) (interface{}, error) {
-	inputs := make([]reflect.Value, len(args))
-	for i := range args {
-		inputs[i] = reflect.ValueOf(args[i])
-	}
-	result := reflect.ValueOf(i).MethodByName(name).Call(inputs)
-
-	if result[1].Interface() == nil {
-		return result[0].Interface(), nil
-	}
-	return result[0].Interface(), result[1].Interface().(error)
 }
