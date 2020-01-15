@@ -37,7 +37,7 @@ type serviceConfig struct {
 	accountPrincipalPolicyName string
 	accountAdminRoleName       string
 	accountAdminRoleARN        string
-	allowedRegions             []string
+	nukeRegions                []string
 
 	isNukeEnabled       bool
 	nukeTemplateDefault string
@@ -62,6 +62,7 @@ func (svc *service) config() *serviceConfig {
 		nukeTemplateDefault: common.RequireEnv("RESET_NUKE_TEMPLATE_DEFAULT"),
 		nukeTemplateBucket:  common.RequireEnv("RESET_NUKE_TEMPLATE_BUCKET"),
 		nukeTemplateKey:     common.RequireEnv("RESET_NUKE_TEMPLATE_KEY"),
+		nukeRegions:         common.RequireEnvStringSlice("RESET_NUKE_REGIONS", ","),
 	}
 	return _config
 }

@@ -221,7 +221,7 @@ func generateNukeConfig(svc *service, f io.Writer) error {
 		AdminRole:       config.accountAdminRoleName,
 		PrincipalRole:   config.accountPrincipalRoleName,
 		PrincipalPolicy: config.accountPrincipalPolicyName,
-		Regions:         config.allowedRegions,
+		Regions:         config.nukeRegions,
 	})
 	if err != nil {
 		log.Printf("Failed to generate nuke config for acount %s using template %s: %s",
