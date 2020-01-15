@@ -1,7 +1,6 @@
 package data
 
 import (
-	gErrors "errors"
 	"fmt"
 
 	"github.com/Optum/dce/pkg/errors"
@@ -49,7 +48,7 @@ func (a *Account) WriteLease(lease *model.Lease, prevLastModifiedOn *int64) erro
 	}
 	err = putItem(input, a)
 	var awsErr awserr.Error
-	if gErrors.As(err, &awsErr) {
+	if errors.As(err, &awsErr) {
 		if awsErr.Code() == "ConditionalCheckFailedException" {
 			return errors.NewConflict(
 				"lease",

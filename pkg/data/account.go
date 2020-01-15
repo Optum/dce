@@ -1,7 +1,6 @@
 package data
 
 import (
-	gErrors "errors"
 	"fmt"
 
 	"github.com/Optum/dce/pkg/errors"
@@ -61,7 +60,7 @@ func (a *Account) WriteAccount(account *model.Account, prevLastModifiedOn *int64
 	}
 	err = putItem(input, a)
 	var awsErr awserr.Error
-	if gErrors.As(err, &awsErr) {
+	if errors.As(err, &awsErr) {
 		if awsErr.Code() == "ConditionalCheckFailedException" {
 			return errors.NewConflict(
 				"account",
