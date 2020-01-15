@@ -1,4 +1,13 @@
 
+## vNext
+
+- Support query params for `GET /accounts` endpoint
+- Fixed bug causing dce auth web page to fail
+
+## v0.24.1
+
+- Fix failure to render IAM principal policy in `update_principal_policy` lambda (#207)
+
 ## v0.24.0
 
 - Update Status Lambda - budget_check: Terminate lease if spend > Principal budget amount

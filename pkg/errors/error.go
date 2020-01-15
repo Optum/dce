@@ -33,21 +33,21 @@ type StatusError struct {
 	stack    *stack
 }
 
-func (e *StatusError) Error() string { return e.Details.Message }
+func (e StatusError) Error() string { return e.Details.Message }
 
 // OriginalError provides the underlying error
-func (e *StatusError) OriginalError() error { return e.cause }
+func (e StatusError) OriginalError() error { return e.cause }
 
 // HTTPCode returns the http code
-func (e *StatusError) HTTPCode() int { return e.httpCode }
+func (e StatusError) HTTPCode() int { return e.httpCode }
 
 // StackTrace returns the frames for a stack trace
-func (e *StatusError) StackTrace() errors.StackTrace {
+func (e StatusError) StackTrace() errors.StackTrace {
 	return e.stack.StackTrace()
 }
 
 // Format for the standard format library
-func (e *StatusError) Format(s fmt.State, verb rune) {
+func (e StatusError) Format(s fmt.State, verb rune) {
 	switch verb {
 	case 'v':
 		if s.Flag('+') {
@@ -64,7 +64,7 @@ func (e *StatusError) Format(s fmt.State, verb rune) {
 }
 
 // Is checks to see if the errors match
-func (e *StatusError) Is(err error) bool {
+func (e StatusError) Is(err error) bool {
 
 	s, ok := err.(HTTPCode)
 	if ok {

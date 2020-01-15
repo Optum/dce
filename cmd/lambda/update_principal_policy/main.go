@@ -109,6 +109,7 @@ func processRecord(input processRecordInput) error {
 		PrincipalRoleArn:     fmt.Sprintf("arn:aws:iam::%s:role/%s", input.AccountID, input.PrincipalRoleName),
 		PrincipalIAMDenyTags: input.PrincipalIAMDenyTags,
 		AdminRoleArn:         accountRes.AdminRoleArn,
+		Regions:              input.Regions,
 	})
 	if err != nil {
 		return err
@@ -144,6 +145,7 @@ func processRecord(input processRecordInput) error {
 	if err != nil {
 		log.Printf("Failed to update account '%s' resource record.  Policy Hash from '%s' to '%s': %s",
 			input.AccountID, accountRes.PrincipalPolicyHash, policyHash, err)
+		return err
 	}
 	return err
 }
@@ -153,4 +155,5 @@ type getPolicyInput struct {
 	PrincipalRoleArn     string
 	PrincipalIAMDenyTags []string
 	AdminRoleArn         string
+	Regions              []string
 }

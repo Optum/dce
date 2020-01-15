@@ -4,50 +4,67 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/url"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iam"
-
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
-
-	"github.com/Optum/dce/pkg/common"
-	"github.com/Optum/dce/pkg/rolemanager"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/sts"
 
+	"github.com/aws/aws-sdk-go/aws/session"
+
 	"github.com/Optum/dce/pkg/api"
+	"github.com/Optum/dce/pkg/common"
 	"github.com/Optum/dce/pkg/db"
+	"github.com/Optum/dce/pkg/rolemanager"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 
+	"github.com/Optum/dce/pkg/config"
 	"github.com/awslabs/aws-lambda-go-api-proxy/gorillamux"
 )
 
-var muxLambda *gorillamux.GorillaMuxAdapter
+type accountControllerConfiguration struct {
+	Debug                       string   `env:"DEBUG" defaultEnv:"false"`
+	PolicyName                  string   `env:"PRINCIPAL_POLICY_NAME" defaultEnv:"DCEPrincipalDefaultPolicy"`
+	AccountCreatedTopicArn      string   `env:"ACCOUNT_CREATED_TOPIC_ARN" defaultEnv:"DefaultAccountCreatedTopicArn"`
+	AccountDeletedTopicArn      string   `env:"ACCOUNT_DELETED_TOPIC_ARN"`
+	ArtifactsBucket             string   `env:"ARTIFACTS_BUCKET" defaultEnv:"DefaultArtifactBucket"`
+	PrincipalPolicyS3Key        string   `env:"PRINCIPAL_POLICY_S3_KEY" defaultEnv:"DefaultPrincipalPolicyS3Key"`
+	PrincipalRoleName           string   `env:"PRINCIPAL_ROLE_NAME" defaultEnv:"DCEPrincipal"`
+	PrincipalPolicyName         string   `env:"PRINCIPAL_POLICY_NAME"`
+	PrincipalIAMDenyTags        []string `env:"PRINCIPAL_IAM_DENY_TAGS" defaultEnv:"DefaultPrincipalIamDenyTags"`
+	PrincipalMaxSessionDuration int64    `env:"PRINCIPAL_MAX_SESSION_DURATION" defaultEnv:"100"`
+	Tags                        []*iam.Tag
+	ResetQueueURL               string   `env:"RESET_SQS_URL" defaultEnv:"DefaultResetSQSUrl"`
+	AllowedRegions              []string `env:"ALLOWED_REGIONS" defaultEnv:"us-east-1"`
+}
 
 var (
-	// CurrentAccountID - The ID of the AWS Account this is running in
+	muxLambda *gorillamux.GorillaMuxAdapter
+	//CurrentAccountID is the ID where the request is being created
 	CurrentAccountID *string
-	// AWSSession - The AWS session
-	AWSSession *session.Session
-	// RoleManager - Manages the roles
+	// Services handles the configuration of the AWS services
+	Services *config.ServiceBuilder
+	// Settings - the configuration settings for the controller
+	Settings *accountControllerConfiguration
+)
+
+var (
+	// Soon to be deprecated - Legacy support
+	AWSSession  *session.Session
+	Dao         db.DBer
+	SnsSvc      common.Notificationer
+	Queue       common.Queue
+	TokenSvc    common.TokenService
+	StorageSvc  common.Storager
 	RoleManager rolemanager.RoleManager
-	// Dao - Database service
-	Dao db.DBer
-	// SnsSvc - SNS service
-	SnsSvc common.Notificationer
-	// Queue - SQS Queue client
-	Queue common.Queue
-	// TokenSvc - Token service client
-	TokenSvc common.TokenService
-	// StorageSvc - Storage service client
-	StorageSvc common.Storager
-	// Config - The configuration client
-	Config common.DefaultEnvConfig
+	baseRequest url.URL
+	Config      common.DefaultEnvConfig
 )
 
 var (
@@ -61,6 +78,13 @@ var (
 	tags                        []*iam.Tag
 	resetQueueURL               string
 	allowedRegions              []string
+)
+
+const (
+	AccountIDParam     = "id"
+	NextAccountIDParam = "nextId"
+	StatusParam        = "status"
+	LimitParam         = "limit"
 )
 
 func init() {
@@ -123,6 +147,36 @@ func init() {
 // initConfig configures package-level variables
 // loaded from env vars.
 func initConfig() {
+	cfgBldr := &config.ConfigurationBuilder{}
+	Settings = &accountControllerConfiguration{}
+	if err := cfgBldr.Unmarshal(Settings); err != nil {
+		log.Fatalf("Could not load configuration: %s", err.Error())
+	}
+
+	// load up the values into the various settings...
+	err := cfgBldr.WithEnv("AWS_CURRENT_REGION", "AWS_CURRENT_REGION", "us-east-1").Build()
+	if err != nil {
+		log.Printf("Error: %+v", err)
+	}
+	svcBldr := &config.ServiceBuilder{Config: cfgBldr}
+
+	_, err = svcBldr.
+		// AWS services...
+		WithDynamoDB().
+		WithSTS().
+		WithS3().
+		WithSNS().
+		WithSQS().
+		// DCE services...
+		WithStorageService().
+		WithDataService().
+		Build()
+	if err != nil {
+		panic(err)
+	}
+
+	Services = svcBldr
+
 	policyName = Config.GetEnvVar("PRINCIPAL_POLICY_NAME", "DCEPrincipalDefaultPolicy")
 	artifactsBucket = Config.GetEnvVar("ARTIFACTS_BUCKET", "DefaultArtifactBucket")
 	principalPolicyS3Key = Config.GetEnvVar("PRINCIPAL_POLICY_S3_KEY", "DefaultPrincipalPolicyS3Key")
@@ -144,12 +198,18 @@ func initConfig() {
 // Handler - Handle the lambda function
 func Handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	CurrentAccountID = &req.RequestContext.AccountID
+
+	// Set baseRequest information lost by integration with gorilla mux
+	baseRequest = url.URL{}
+	baseRequest.Scheme = req.Headers["X-Forwarded-Proto"]
+	baseRequest.Host = req.Headers["Host"]
+	baseRequest.Path = req.RequestContext.Stage
+
 	// If no name is provided in the HTTP request body, throw an error
 	return muxLambda.ProxyWithContext(ctx, req)
 }
 
 func main() {
-	// Setup services
 	Dao = newDBer()
 	AWSSession = newAWSSession()
 	Queue = common.SQSQueue{Client: sqs.New(AWSSession)}
@@ -162,7 +222,6 @@ func main() {
 	}
 
 	RoleManager = &rolemanager.IAMRoleManager{}
-
 	// Send Lambda requests to the router
 	lambda.Start(Handler)
 }
