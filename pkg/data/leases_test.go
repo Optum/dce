@@ -184,7 +184,7 @@ func TestGetLeasesQuery(t *testing.T) {
 		{
 			name: "query all leases by status with filter",
 			query: model.Lease{
-				LeaseStatus:  model.LeaseStatusActive.LeaseStatusPtr(),
+				LeaseStatus: model.LeaseStatusActive.LeaseStatusPtr(),
 				PrincipalID: aws.String("User1"),
 			},
 			qInput: &dynamodb.QueryInput{
@@ -228,7 +228,7 @@ func TestGetLeasesQuery(t *testing.T) {
 		{
 			name: "query internal error",
 			query: model.Lease{
-				LeaseStatus:  model.LeaseStatusActive.LeaseStatusPtr(),
+				LeaseStatus: model.LeaseStatusActive.LeaseStatusPtr(),
 				PrincipalID: aws.String("User1"),
 			},
 			qInput: &dynamodb.QueryInput{
