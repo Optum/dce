@@ -3,6 +3,8 @@
 
 - Support query params for `GET /accounts` endpoint
 - Fixed bug causing dce auth web page to fail
+- Fix incorrect `POST /leases` validation errors on principal budget (#214)
+- Fix missing regions config from nuke template (#221)
 
 ## v0.24.1
 
