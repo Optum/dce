@@ -109,7 +109,7 @@ resource "aws_codebuild_project" "reset_build" {
 
     environment_variable {
       name  = "RESET_NUKE_REGIONS"
-      value = join("," var.allowed_regions)
+      value = join(",", var.allowed_regions)
       type  = "PLAINTEXT"
     }
 
