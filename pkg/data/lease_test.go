@@ -260,3 +260,128 @@ func TestLeaseUpdate(t *testing.T) {
 	}
 
 }
+
+func TestGetLeaseByID(t *testing.T) {
+	tests := []struct {
+		name          string
+		leaseID       string
+		dynamoErr     error
+		dynamoOutput  *dynamodb.QueryOutput
+		expectedErr   error
+		expectedLease *model.Lease
+	}{
+		{
+			name:    "should return a lease object",
+			leaseID: "123",
+			expectedLease: &model.Lease{
+				ID:             ptrString("123"),
+				AccountID:      ptrString("123456789012"),
+				PrincipalID:    ptrString("User1"),
+				LeaseStatus:    model.LeaseStatusActive.LeaseStatusPtr(),
+				LastModifiedOn: ptrInt64(1573592058),
+			},
+			dynamoErr: nil,
+			dynamoOutput: &dynamodb.QueryOutput{
+				Items: []map[string]*dynamodb.AttributeValue{
+					{
+						"Id": {
+							S: aws.String("123"),
+						},
+						"AccountId": {
+							S: aws.String("123456789012"),
+						},
+						"PrincipalId": {
+							S: aws.String("User1"),
+						},
+						"LeaseStatus": {
+							S: aws.String("Active"),
+						},
+						"LastModifiedOn": {
+							N: aws.String(strconv.Itoa(1573592058)),
+						},
+					},
+				},
+			},
+			expectedErr: nil,
+		},
+		{
+			name:    "should return nil when more than one found",
+			leaseID: "123",
+			expectedLease: nil,
+			dynamoErr: nil,
+			dynamoOutput: &dynamodb.QueryOutput{
+				Items: []map[string]*dynamodb.AttributeValue{
+					{
+						"Id": {
+							S: aws.String("123"),
+						},
+						"AccountId": {
+							S: aws.String("123456789012"),
+						},
+						"PrincipalId": {
+							S: aws.String("User1"),
+						},
+						"LeaseStatus": {
+							S: aws.String("Active"),
+						},
+						"LastModifiedOn": {
+							N: aws.String(strconv.Itoa(1573592058)),
+						},
+					},
+					{
+						"Id": {
+							S: aws.String("123"),
+						},
+						"AccountId": {
+							S: aws.String("123456789012"),
+						},
+						"PrincipalId": {
+							S: aws.String("User1"),
+						},
+						"LeaseStatus": {
+							S: aws.String("Active"),
+						},
+						"LastModifiedOn": {
+							N: aws.String(strconv.Itoa(1573592058)),
+						},
+					},
+				},
+			},
+			expectedErr: errors.NewInternalServer("Found more than one Lease with id: \"123\"", gErrors.New("failure")),
+		},
+		{
+			name:          "should return nil when dynamodb err",
+			leaseID:       "123",
+			expectedLease: nil,
+			dynamoErr:     gErrors.New("failure"),
+			dynamoOutput: &dynamodb.QueryOutput{
+				Items: []map[string]*dynamodb.AttributeValue{},
+			},
+			expectedErr: errors.NewInternalServer("get lease failed for id \"123\"", gErrors.New("failure")),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockDynamo := awsmocks.DynamoDBAPI{}
+
+			mockDynamo.On("Query", mock.MatchedBy(func(input *dynamodb.QueryInput) bool {
+				return (*input.TableName == "Leases" &&
+					*input.IndexName == "LeaseId" &&
+					*input.KeyConditionExpression == "Id = :id" &&
+					*input.ExpressionAttributeValues[":id"].S == tt.leaseID)
+			})).Return(
+				tt.dynamoOutput, tt.dynamoErr,
+			)
+			leaseData := &Account{
+				DynamoDB:  &mockDynamo,
+				TableName: "Leases",
+			}
+
+			lease, err := leaseData.GetLeaseByID(tt.leaseID)
+			assert.Equal(t, tt.expectedLease, lease)
+			assert.True(t, errors.Is(err, tt.expectedErr))
+		})
+	}
+
+}

@@ -97,7 +97,7 @@ func (a *Account) DeleteLease(lease *model.Lease) error {
 	return nil
 }
 
-// GetLeaseByID the Lease record by ID
+// GetLeaseByAccountIDAndPrincipalID gets the Lease record by AccountID and PrincipalID
 func (a *Account) GetLeaseByAccountIDAndPrincipalID(accountID string, principalID string) (*model.Lease, error) {
 
 	res, err := a.DynamoDB.GetItem(
@@ -132,6 +132,51 @@ func (a *Account) GetLeaseByAccountIDAndPrincipalID(accountID string, principalI
 	if err != nil {
 		return nil, errors.NewInternalServer(
 			fmt.Sprintf("failure unmarshaling lease with account %q and princiapl %q", accountID, principalID),
+			err,
+		)
+	}
+	return &lease, nil
+}
+
+// GetLeaseByID gets the Lease record by ID
+func (a *Account) GetLeaseByID(leaseID string) (*model.Lease, error) {
+
+	input := &dynamodb.QueryInput{
+		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+			":id": {
+				S: aws.String(leaseID),
+			},
+		},
+		KeyConditionExpression: aws.String("Id = :id"),
+		TableName:              aws.String(a.TableName),
+		IndexName:              aws.String("LeaseId"),
+		ConsistentRead: aws.Bool(a.ConsistentRead),
+	}
+	res, err := query(input, a)
+
+	if err != nil {
+		return nil, errors.NewInternalServer(
+			fmt.Sprintf("get lease failed for id %q", leaseID),
+			err,
+		)
+	}
+
+	if len(res.Items) == 0 {
+		return nil, errors.NewNotFound("lease", leaseID)
+	}
+
+	if len(res.Items) > 1 {
+		return nil, errors.NewInternalServer(
+			fmt.Sprintf("Found more than one Lease with id: %q", leaseID),
+			err,
+		)
+	}
+
+	lease := model.Lease{}
+	err = dynamodbattribute.UnmarshalMap(res.Items[0], &lease)
+	if err != nil {
+		return nil, errors.NewInternalServer(
+			fmt.Sprintf("failure unmarshaling lease with id %q", leaseID),
 			err,
 		)
 	}

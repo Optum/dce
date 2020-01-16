@@ -43,3 +43,8 @@ func putItem(input *dynamodb.PutItemInput, dataInterface *Account) error {
 	_, err := dataInterface.DynamoDB.PutItem(input)
 	return err
 }
+
+func query(input *dynamodb.QueryInput, dataInterface *Account) (*dynamodb.QueryOutput, error) {
+	output, err := dataInterface.DynamoDB.Query(input)
+	return output, err
+}
