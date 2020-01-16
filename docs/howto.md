@@ -637,6 +637,11 @@ Budget notification email templates are rendered using [golang templates](https:
 | ActualSpend | The calculated spend on the account at time of notification |
 | ThresholdPercentile | The configured threshold percentage for the notification |
 
+### AWS Regions
+
+By default, DCE users are limited to working in `us-east-1` by IAM Policy. Limiting users to a small number of regions reduces the amount of time it takes to reset accounts. 
+
+To override this behavior, you may set the terraform `allowed_regions` variable to a list of AWS region names.
 
 ## Backup DCE Database Tables
 
