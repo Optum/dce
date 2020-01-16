@@ -78,7 +78,10 @@ func validateLeaseFromRequest(context *leaseValidationContext, req *http.Request
 	}
 
 	if spent > context.principalBudgetAmount {
-		validationErrStr := fmt.Sprintf("Unable to create lease: User principal %s has already spent %f of their principal budget", requestBody.PrincipalID, math.Round(context.principalBudgetAmount))
+		validationErrStr := fmt.Sprintf(
+			"Unable to create lease: User principal %s has already spent %.2f of their %.2f principal budget",
+			requestBody.PrincipalID, spent, context.principalBudgetAmount,
+		)
 		return requestBody, false, validationErrStr, nil
 	}
 

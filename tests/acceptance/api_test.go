@@ -1735,7 +1735,7 @@ func TestApi(t *testing.T) {
 		})
 
 		t.Run("Should validate requested budget amount against principal budget amount", func(t *testing.T) {
-
+			truncateUsageTable(t, usageSvc)
 			defer truncateUsageTable(t, usageSvc)
 			createUsage(t, apiURL, usageSvc)
 
@@ -1766,9 +1766,12 @@ func TestApi(t *testing.T) {
 			// Verify error response json
 			// Get nested json in response json
 			err := data["error"].(map[string]interface{})
-			errStr := fmt.Sprintf("Unable to create lease: User principal %s has already spent 0.000000 of their principal budget", principalID)
 			require.Equal(t, "RequestValidationError", err["code"].(string))
-			require.Equal(t, errStr, err["message"].(string))
+			require.Equal(t,
+				"Unable to create lease: User principal TestUser1 " +
+				"has already spent 10000.00 of their 1000.00 principal budget",
+				err["message"].(string),
+			)
 		})
 
 	})
@@ -2071,6 +2074,7 @@ func parseResponseArrayJSON(t *testing.T, resp *apiResponse) []map[string]interf
 	// Go doesn't allow you to cast directly to []map[string]interface{}
 	// so we need to mess around here a bit.
 	// This might be relevant: https://stackoverflow.com/questions/38579485/golang-convert-slices-into-map
+	require.IsTypef(t, []interface{}{}, resp.json, "Expected JSON array response, got %v", resp.json)
 	respJSON := resp.json.([]interface{})
 
 	arrJSON := []map[string]interface{}{}
