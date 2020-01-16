@@ -85,5 +85,5 @@ const (
 	LeaseRolledBack LeaseStatusReason = "Rollback"
 	// AccountOrphaned means that the health of the account was compromised.  The account has been orphaned
 	// which means the leases are also made Inactive
-	AccountOrphaned LeaseStatusReason = "AccountOrphaned"
+	LeaseAccountOrphaned LeaseStatusReason = "LeaseAccountOrphaned"
 )
