@@ -154,7 +154,7 @@ func nukeAccount(svc *service, isDryRun bool) error {
 		return err
 	}
 	log.Println("Rendered nuke file:")
-	log.Print(conf)
+	log.Print(string(conf))
 
 	// Construct Nuke
 	nuke := reset.Nuke{}
