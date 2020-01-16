@@ -305,10 +305,10 @@ func TestGetLeaseByID(t *testing.T) {
 			expectedErr: nil,
 		},
 		{
-			name:    "should return nil when more than one found",
-			leaseID: "123",
+			name:          "should return nil when more than one found",
+			leaseID:       "123",
 			expectedLease: nil,
-			dynamoErr: nil,
+			dynamoErr:     nil,
 			dynamoOutput: &dynamodb.QueryOutput{
 				Items: []map[string]*dynamodb.AttributeValue{
 					{

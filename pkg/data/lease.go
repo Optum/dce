@@ -149,7 +149,7 @@ func (a *Account) GetLeaseByID(leaseID string) (*model.Lease, error) {
 		KeyConditionExpression: aws.String("Id = :id"),
 		TableName:              aws.String(a.TableName),
 		IndexName:              aws.String("LeaseId"),
-		ConsistentRead: aws.Bool(a.ConsistentRead),
+		ConsistentRead:         aws.Bool(a.ConsistentRead),
 	}
 	res, err := query(input, a)
 
