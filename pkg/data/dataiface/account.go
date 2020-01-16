@@ -14,7 +14,7 @@ type AccountData interface {
 	// prevLastModifiedOn parameter is the original lastModifiedOn
 	WriteAccount(account *account.Account, prevLastModifiedOn *int64) error
 	// DeleteAccount the Account record in DynamoDB
-	DeleteAccount(account account.Account) error
+	DeleteAccount(account *account.Account) error
 	// GetAccountByID the Account record by ID
 	GetAccountByID(ID string, account *account.Account) error
 }

@@ -79,7 +79,7 @@ func (a *Account) WriteAccount(account *account.Account, prevLastModifiedOn *int
 }
 
 // DeleteAccount the Account record in DynamoDB
-func (a *Account) DeleteAccount(account account.Account) error {
+func (a *Account) DeleteAccount(account *account.Account) error {
 
 	_, err := a.DynamoDB.DeleteItem(
 		&dynamodb.DeleteItemInput{

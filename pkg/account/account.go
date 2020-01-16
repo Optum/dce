@@ -2,6 +2,8 @@ package account
 
 import (
 	"encoding/json"
+	"fmt"
+	"io"
 	"time"
 
 	"github.com/Optum/dce/pkg/errors"
@@ -225,6 +227,15 @@ func (a *Account) Delete() error {
 		return err
 	}
 
+	return nil
+}
+
+// Delete finds a given account and deletes it if it is not of status `Leased`. Returns the account.
+func (a *Account) Write(writer io.Writer) error {
+	err := json.NewEncoder(writer).Encode(a.data)
+	if err != nil {
+		return errors.NewInternalServer(fmt.Sprintf("error encoding and writing message: %+v", a.data), err)
+	}
 	return nil
 }
 
