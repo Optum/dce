@@ -48,3 +48,18 @@ func query(input *dynamodb.QueryInput, dataInterface *Account) (*dynamodb.QueryO
 	output, err := dataInterface.DynamoDB.Query(input)
 	return output, err
 }
+
+func scan(input *dynamodb.ScanInput, dataInterface *Account) (*dynamodb.ScanOutput, error) {
+	output, err := dataInterface.DynamoDB.Scan(input)
+	return output, err
+}
+
+func getItem(input *dynamodb.GetItemInput, dataInterface *Account) (*dynamodb.GetItemOutput, error) {
+	output, err := dataInterface.DynamoDB.GetItem(input)
+	return output, err
+}
+
+func deleteItem(input *dynamodb.DeleteItemInput, dataInterface *Account) (*dynamodb.DeleteItemOutput, error) {
+	output, err := dataInterface.DynamoDB.DeleteItem(input)
+	return output, err
+}

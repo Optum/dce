@@ -70,22 +70,21 @@ func (a *Account) WriteLease(lease *model.Lease, prevLastModifiedOn *int64) erro
 // DeleteLease the Lease record in DynamoDB
 func (a *Account) DeleteLease(lease *model.Lease) error {
 
-	_, err := a.DynamoDB.DeleteItem(
-		&dynamodb.DeleteItemInput{
-			// Query in Lease Table
-			TableName: aws.String(a.TableName),
-			// Return the updated record
-			ReturnValues: aws.String("ALL_NEW"),
-			Key: map[string]*dynamodb.AttributeValue{
-				"AccountId": {
-					S: lease.AccountID,
-				},
-				"PrincipalId": {
-					S: lease.PrincipalID,
-				},
+	input := &dynamodb.DeleteItemInput{
+		// Query in Lease Table
+		TableName: aws.String(a.TableName),
+		// Return the updated record
+		ReturnValues: aws.String("ALL_NEW"),
+		Key: map[string]*dynamodb.AttributeValue{
+			"AccountId": {
+				S: lease.AccountID,
+			},
+			"PrincipalId": {
+				S: lease.PrincipalID,
 			},
 		},
-	)
+	}
+	_, err := deleteItem(input, a)
 
 	if err != nil {
 		return errors.NewInternalServer(
@@ -100,21 +99,21 @@ func (a *Account) DeleteLease(lease *model.Lease) error {
 // GetLeaseByAccountIDAndPrincipalID gets the Lease record by AccountID and PrincipalID
 func (a *Account) GetLeaseByAccountIDAndPrincipalID(accountID string, principalID string) (*model.Lease, error) {
 
-	res, err := a.DynamoDB.GetItem(
-		&dynamodb.GetItemInput{
-			// Query in Lease Table
-			TableName: aws.String(a.TableName),
-			Key: map[string]*dynamodb.AttributeValue{
-				"AccountId": {
-					S: aws.String(accountID),
-				},
-				"PrincipalId": {
-					S: aws.String(principalID),
-				},
+	input := &dynamodb.GetItemInput{
+		// Query in Lease Table
+		TableName: aws.String(a.TableName),
+		Key: map[string]*dynamodb.AttributeValue{
+			"AccountId": {
+				S: aws.String(accountID),
 			},
-			ConsistentRead: aws.Bool(a.ConsistentRead),
+			"PrincipalId": {
+				S: aws.String(principalID),
+			},
 		},
-	)
+		ConsistentRead: aws.Bool(a.ConsistentRead),
+	}
+
+	res, err := getItem(input, a)
 
 	if err != nil {
 		return nil, errors.NewInternalServer(
