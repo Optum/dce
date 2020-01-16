@@ -1768,8 +1768,8 @@ func TestApi(t *testing.T) {
 			err := data["error"].(map[string]interface{})
 			require.Equal(t, "RequestValidationError", err["code"].(string))
 			require.Equal(t,
-				"Unable to create lease: User principal TestUser1 " +
-				"has already spent 10000.00 of their 1000.00 principal budget",
+				"Unable to create lease: User principal TestUser1 "+
+					"has already spent 10000.00 of their 1000.00 principal budget",
 				err["message"].(string),
 			)
 		})
