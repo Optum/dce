@@ -3,7 +3,7 @@
 package dataiface
 
 import (
-	"github.com/Optum/dce/pkg/model"
+	"github.com/Optum/dce/pkg/account"
 )
 
 // AccountData makes working with the Account Data Layer easier
@@ -12,9 +12,9 @@ type AccountData interface {
 	// This is an upsert operation in which the record will either
 	// be inserted or updated
 	// prevLastModifiedOn parameter is the original lastModifiedOn
-	WriteAccount(account *model.Account, prevLastModifiedOn *int64) error
+	WriteAccount(account *account.Account, prevLastModifiedOn *int64) error
 	// DeleteAccount the Account record in DynamoDB
-	DeleteAccount(account *model.Account) error
+	DeleteAccount(account account.Account) error
 	// GetAccountByID the Account record by ID
-	GetAccountByID(accountID string) (*model.Account, error)
+	GetAccountByID(ID string, account *account.Account) error
 }

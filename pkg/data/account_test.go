@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/Optum/dce/pkg/account"
 	awsmocks "github.com/Optum/dce/pkg/awsiface/mocks"
 	"github.com/Optum/dce/pkg/errors"
-	"github.com/Optum/dce/pkg/model"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -23,17 +23,18 @@ func TestGetAccountByID(t *testing.T) {
 		dynamoErr       error
 		dynamoOutput    *dynamodb.GetItemOutput
 		expectedErr     error
-		expectedAccount *model.Account
+		expectedAccount *account.Account
 	}{
 		{
 			name:      "should return an account object",
 			accountID: "123456789012",
-			expectedAccount: &model.Account{
+			expectedAccount: account.New(nil, account.Data{
 				ID:             ptrString("123456789012"),
-				Status:         model.AccountStatusReady.AccountStatusPtr(),
+				Status:         account.AccountStatusReady.StatusPtr(),
 				LastModifiedOn: ptrInt64(1573592058),
+				CreatedOn:      ptrInt64(1573592058),
 				AdminRoleArn:   ptrString("test:arn"),
-			},
+			}),
 			dynamoErr: nil,
 			dynamoOutput: &dynamodb.GetItemOutput{
 				Item: map[string]*dynamodb.AttributeValue{
@@ -46,6 +47,9 @@ func TestGetAccountByID(t *testing.T) {
 					"LastModifiedOn": {
 						N: aws.String(strconv.Itoa(1573592058)),
 					},
+					"CreatedOn": {
+						N: aws.String(strconv.Itoa(1573592058)),
+					},
 					"AdminRoleArn": {
 						S: aws.String("test:arn"),
 					},
@@ -56,7 +60,7 @@ func TestGetAccountByID(t *testing.T) {
 		{
 			name:            "should return nil object when not found",
 			accountID:       "123456789012",
-			expectedAccount: nil,
+			expectedAccount: &account.Account{},
 			dynamoErr:       nil,
 			dynamoOutput: &dynamodb.GetItemOutput{
 				Item: map[string]*dynamodb.AttributeValue{},
@@ -66,7 +70,7 @@ func TestGetAccountByID(t *testing.T) {
 		{
 			name:            "should return nil when dynamodb err",
 			accountID:       "123456789012",
-			expectedAccount: nil,
+			expectedAccount: &account.Account{},
 			dynamoErr:       gErrors.New("failure"),
 			dynamoOutput: &dynamodb.GetItemOutput{
 				Item: map[string]*dynamodb.AttributeValue{},
@@ -90,8 +94,10 @@ func TestGetAccountByID(t *testing.T) {
 				TableName: "Accounts",
 			}
 
-			account, err := accountData.GetAccountByID(tt.accountID)
-			assert.Equal(t, tt.expectedAccount, account)
+			accountSvc := &account.Account{}
+			err := accountData.GetAccountByID(tt.accountID, accountSvc)
+
+			assert.Equal(t, tt.expectedAccount, accountSvc)
 			assert.True(t, errors.Is(err, tt.expectedErr))
 		})
 	}
@@ -102,16 +108,16 @@ func TestDelete(t *testing.T) {
 
 	tests := []struct {
 		name         string
-		account      model.Account
+		account      account.Data
 		dynamoErr    error
 		dynamoOutput *dynamodb.DeleteItemOutput
 		expectedErr  error
 	}{
 		{
 			name: "should delete an account",
-			account: model.Account{
+			account: account.Data{
 				ID:             ptrString("123456789012"),
-				Status:         model.AccountStatusReady.AccountStatusPtr(),
+				Status:         account.AccountStatusReady.StatusPtr(),
 				LastModifiedOn: ptrInt64(1573592058),
 				AdminRoleArn:   ptrString("test:Arn"),
 			},
@@ -123,9 +129,9 @@ func TestDelete(t *testing.T) {
 		},
 		{
 			name: "should delete an account",
-			account: model.Account{
+			account: account.Data{
 				ID:             ptrString("123456789012"),
-				Status:         model.AccountStatusReady.AccountStatusPtr(),
+				Status:         account.AccountStatusReady.StatusPtr(),
 				LastModifiedOn: ptrInt64(1573592058),
 				AdminRoleArn:   ptrString("test:Arn"),
 			},
@@ -152,7 +158,9 @@ func TestDelete(t *testing.T) {
 				TableName: "Accounts",
 			}
 
-			err := accountData.DeleteAccount(&tt.account)
+			account := account.New(nil, tt.account)
+
+			err := accountData.DeleteAccount(*account)
 			assert.True(t, errors.Is(err, tt.expectedErr))
 		})
 	}
@@ -162,16 +170,16 @@ func TestDelete(t *testing.T) {
 func TestUpdate(t *testing.T) {
 	tests := []struct {
 		name              string
-		account           model.Account
+		account           account.Data
 		dynamoErr         error
 		expectedErr       error
 		oldLastModifiedOn *int64
 	}{
 		{
 			name: "update",
-			account: model.Account{
+			account: account.Data{
 				ID:             ptrString("123456789012"),
-				Status:         model.AccountStatusReady.AccountStatusPtr(),
+				Status:         account.AccountStatusReady.StatusPtr(),
 				LastModifiedOn: ptrInt64(1573592058),
 				AdminRoleArn:   ptrString("test:Arn"),
 			},
@@ -181,9 +189,9 @@ func TestUpdate(t *testing.T) {
 		},
 		{
 			name: "create",
-			account: model.Account{
+			account: account.Data{
 				ID:             ptrString("123456789012"),
-				Status:         model.AccountStatusReady.AccountStatusPtr(),
+				Status:         account.AccountStatusReady.StatusPtr(),
 				LastModifiedOn: ptrInt64(1573592058),
 				AdminRoleArn:   ptrString("test:Arn"),
 			},
@@ -192,9 +200,9 @@ func TestUpdate(t *testing.T) {
 		},
 		{
 			name: "conditional failure",
-			account: model.Account{
+			account: account.Data{
 				ID:             ptrString("123456789012"),
-				Status:         model.AccountStatusReady.AccountStatusPtr(),
+				Status:         account.AccountStatusReady.StatusPtr(),
 				LastModifiedOn: ptrInt64(1573592058),
 				AdminRoleArn:   ptrString("test:Arn"),
 			},
@@ -207,9 +215,9 @@ func TestUpdate(t *testing.T) {
 		},
 		{
 			name: "other dynamo error",
-			account: model.Account{
+			account: account.Data{
 				ID:             ptrString("123456789012"),
-				Status:         model.AccountStatusReady.AccountStatusPtr(),
+				Status:         account.AccountStatusReady.StatusPtr(),
 				LastModifiedOn: ptrInt64(1573592058),
 				AdminRoleArn:   ptrString("test:Arn"),
 			},
@@ -248,7 +256,9 @@ func TestUpdate(t *testing.T) {
 				TableName: "Accounts",
 			}
 
-			err := accountData.WriteAccount(&tt.account, tt.oldLastModifiedOn)
+			accountSvc := account.New(nil, tt.account)
+
+			err := accountData.WriteAccount(accountSvc, tt.oldLastModifiedOn)
 			assert.Truef(t, errors.Is(err, tt.expectedErr), "actual error %q doesn't match expected error %q", err, tt.expectedErr)
 		})
 	}

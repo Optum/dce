@@ -6,55 +6,55 @@ import (
 
 	dataMocks "github.com/Optum/dce/pkg/account/mocks"
 	"github.com/Optum/dce/pkg/errors"
-	"github.com/Optum/dce/pkg/model"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestGetAccounts(t *testing.T) {
 
 	tests := []struct {
 		name       string
-		inputData  *model.Account
-		returnData *model.Accounts
+		inputData  accountData
+		returnData accountsData
 		returnErr  error
 		expResult  *Accounts
 		expErr     error
 	}{
 		{
 			name: "standard",
-			inputData: &model.Account{
-				Status: model.AccountStatusReady.AccountStatusPtr(),
+			inputData: accountData{
+				Status: AccountStatusReady.StatusPtr(),
 			},
-			returnData: &model.Accounts{
-				model.Account{
+			returnData: accountsData{
+				accountData{
 					ID:     aws.String("1"),
-					Status: model.AccountStatusReady.AccountStatusPtr(),
+					Status: AccountStatusReady.StatusPtr(),
 				},
-				model.Account{
+				accountData{
 					ID:     aws.String("2"),
-					Status: model.AccountStatusReady.AccountStatusPtr(),
+					Status: AccountStatusReady.StatusPtr(),
 				},
 			},
 			returnErr: nil,
 			expErr:    nil,
 			expResult: &Accounts{
-				data: model.Accounts{
-					model.Account{
+				data: accountsData{
+					accountData{
 						ID:     ptrString("1"),
-						Status: model.AccountStatusReady.AccountStatusPtr(),
+						Status: AccountStatusReady.StatusPtr(),
 					},
-					model.Account{
+					accountData{
 						ID:     ptrString("2"),
-						Status: model.AccountStatusReady.AccountStatusPtr(),
+						Status: AccountStatusReady.StatusPtr(),
 					},
 				},
 			},
 		},
 		{
 			name: "internal error",
-			inputData: &model.Account{
-				Status: model.AccountStatusReady.AccountStatusPtr(),
+			inputData: accountData{
+				Status: AccountStatusReady.StatusPtr(),
 			},
 			returnData: nil,
 			returnErr:  errors.NewInternalServer("failure", fmt.Errorf("original error")),
@@ -63,7 +63,7 @@ func TestGetAccounts(t *testing.T) {
 		},
 		{
 			name: "validation error",
-			inputData: &model.Account{
+			inputData: accountData{
 				ID: ptrString("123456789012"),
 			},
 			returnData: nil,
@@ -76,10 +76,21 @@ func TestGetAccounts(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mocksReader := &dataMocks.MultipleReader{}
-			mocksReader.On("GetAccounts", tt.inputData).
-				Return(tt.returnData, tt.expErr)
+			mocksReader.On("GetAccounts", mock.MatchedBy(func(account *Account) bool {
+				if account.data.Status != nil {
+					bool := account.data.Status.String() == tt.inputData.Status.String()
+					return bool
+				}
+				return false
+			}), mock.MatchedBy(func(accounts *Accounts) bool {
+				accounts.data = tt.returnData
+				return true
+			})).Return(tt.expErr)
 
-			accounts, err := GetAccounts(tt.inputData, mocksReader)
+			query := Account{
+				data: tt.inputData,
+			}
+			accounts, err := GetAccounts(&query, mocksReader)
 			assert.True(t, errors.Is(err, tt.expErr), "actual error %q doesn't match expected error %q", err, tt.expErr)
 			assert.Equal(t, tt.expResult, accounts)
 		})

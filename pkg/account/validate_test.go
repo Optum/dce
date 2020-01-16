@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/Optum/dce/pkg/errors"
-	"github.com/Optum/dce/pkg/model"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -13,21 +12,21 @@ func TestValidate(t *testing.T) {
 	tests := []struct {
 		name    string
 		expErr  error
-		account model.Account
+		account accountData
 	}{
 		{
 			name: "should validate",
-			account: model.Account{
+			account: accountData{
 				ID:           ptrString("123456789012"),
-				Status:       model.AccountStatusReady.AccountStatusPtr(),
+				Status:       AccountStatusReady.StatusPtr(),
 				AdminRoleArn: ptrString("test:arn"),
 			},
 		},
 		{
 			name: "should not validate no admin role",
-			account: model.Account{
+			account: accountData{
 				ID:     ptrString("123456789012"),
-				Status: model.AccountStatusLeased.AccountStatusPtr(),
+				Status: AccountStatusLeased.StatusPtr(),
 			},
 			expErr: errors.NewValidation("account", fmt.Errorf("adminRoleArn: must be a string.")), //nolint golint
 		},
