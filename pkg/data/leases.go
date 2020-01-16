@@ -27,7 +27,7 @@ func (a *Account) queryLeases(q *model.Lease, keyName string, index string) (*mo
 		return nil, errors.NewInternalServer("unable to build query", err)
 	}
 
-	res, err = a.DynamoDB.Query(&dynamodb.QueryInput{
+	input := &dynamodb.QueryInput{
 		TableName:                 aws.String(a.TableName),
 		IndexName:                 aws.String(index),
 		KeyConditionExpression:    expr.KeyCondition(),
@@ -35,7 +35,8 @@ func (a *Account) queryLeases(q *model.Lease, keyName string, index string) (*mo
 		FilterExpression:          expr.Filter(),
 		ExpressionAttributeNames:  expr.Names(),
 		ExpressionAttributeValues: expr.Values(),
-	})
+	}
+	res, err = query(input, a)
 
 	if err != nil {
 		return nil, errors.NewInternalServer(
@@ -65,13 +66,14 @@ func (a *Account) scanLeases(q *model.Lease) (*model.Leases, error) {
 			return nil, errors.NewInternalServer("unable to build query", err)
 		}
 	}
-	res, err = a.DynamoDB.Scan(&dynamodb.ScanInput{
+	input := &dynamodb.ScanInput{
 		TableName:                 aws.String(a.TableName),
 		ConsistentRead:            aws.Bool(a.ConsistentRead),
 		FilterExpression:          expr.Filter(),
 		ExpressionAttributeNames:  expr.Names(),
 		ExpressionAttributeValues: expr.Values(),
-	})
+	}
+	res, err = scan(input, a)
 	if err != nil {
 		return nil, errors.NewInternalServer("error getting leases", err)
 	}
