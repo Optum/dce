@@ -64,9 +64,3 @@ func deleteItem(input *dynamodb.DeleteItemInput, dataInterface dynamodbiface.Dyn
 	output, err := dataInterface.DeleteItem(input)
 	return output, err
 }
-
-func getAccountDataModel(v interface{}) *Account {
-	r := reflect.Indirect(reflect.ValueOf(v))
-	f := r.FieldByName("Account")
-	return f.Interface().(*Account)
-}
