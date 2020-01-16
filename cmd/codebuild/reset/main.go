@@ -5,6 +5,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"text/template"
@@ -146,6 +147,14 @@ func nukeAccount(svc *service, isDryRun bool) error {
 	if err != nil {
 		return err
 	}
+
+	// Print the contents of the config file, for logging/debugging
+	conf, err := ioutil.ReadFile(configFile)
+	if err != nil {
+		return err
+	}
+	log.Println("Rendered nuke file:")
+	log.Print(conf)
 
 	// Construct Nuke
 	nuke := reset.Nuke{}
