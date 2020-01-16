@@ -198,6 +198,8 @@ variable "principal_budget_period" {
 
 variable "allowed_regions" {
   type = list(string)
-  default = ["us-east-1"]
+  default = [
+    "us-east-1"
+  ]
   description = "List of AWS regions which DCE Principals have access to. These regions will also be targeted for reset in nuke.yml."
 }
