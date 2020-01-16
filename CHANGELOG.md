@@ -5,6 +5,7 @@
 - Fixed bug causing dce auth web page to fail
 - Fix incorrect `POST /leases` validation errors on principal budget (#214)
 - Fix missing regions config from nuke template (#221)
+- Add `execute-api:*` to DCE Principal policy (#224)
 
 ## v0.24.1
 
