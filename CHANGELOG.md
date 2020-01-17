@@ -1,5 +1,5 @@
 
-## vNext
+## v0.25.0
 
 - **BREAKING CHANGE:** Set the default allowed regions to us-east-1 only
 - Support query params for `GET /accounts` endpoint
