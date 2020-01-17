@@ -95,6 +95,7 @@ Implementing DCE in an AWS Organization provides the ability to use SCPs, which 
                 "elastictranscoder:*",
                 "es:*",
                 "events:*",
+                "execute-api:*",
                 "firehose:*",
                 "fsx:*",
                 "glue:*",

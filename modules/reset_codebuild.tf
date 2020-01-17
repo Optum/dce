@@ -108,14 +108,8 @@ resource "aws_codebuild_project" "reset_build" {
     }
 
     environment_variable {
-      name  = "RESET_NAMESPACE"
-      value = var.namespace
-      type  = "PLAINTEXT"
-    }
-
-    environment_variable {
-      name  = "IS_PR"
-      value = local.isPr ? "true" : "false"
+      name  = "RESET_NUKE_REGIONS"
+      value = join(",", var.allowed_regions)
       type  = "PLAINTEXT"
     }
 

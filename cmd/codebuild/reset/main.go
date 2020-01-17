@@ -5,6 +5,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"text/template"
@@ -147,6 +148,14 @@ func nukeAccount(svc *service, isDryRun bool) error {
 		return err
 	}
 
+	// Print the contents of the config file, for logging/debugging
+	conf, err := ioutil.ReadFile(configFile)
+	if err != nil {
+		return err
+	}
+	log.Println("Rendered nuke file:")
+	log.Print(string(conf))
+
 	// Construct Nuke
 	nuke := reset.Nuke{}
 
@@ -221,7 +230,7 @@ func generateNukeConfig(svc *service, f io.Writer) error {
 		AdminRole:       config.accountAdminRoleName,
 		PrincipalRole:   config.accountPrincipalRoleName,
 		PrincipalPolicy: config.accountPrincipalPolicyName,
-		Regions:         config.allowedRegions,
+		Regions:         config.nukeRegions,
 	})
 	if err != nil {
 		log.Printf("Failed to generate nuke config for acount %s using template %s: %s",

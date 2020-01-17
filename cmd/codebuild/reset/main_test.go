@@ -126,7 +126,7 @@ func TestResetPipeline(t *testing.T) {
 		_config = &serviceConfig{
 			accountID:                  "ABC123",
 			accountAdminRoleName:       "AdminRole",
-			allowedRegions:             []string{"us-east-1", "us-west-1"},
+			nukeRegions:                []string{"us-east-1", "us-west-1"},
 			accountPrincipalRoleName:   "PrincipalRole",
 			accountPrincipalPolicyName: "PrincipalPolicy",
 			nukeTemplateDefault:        "default-nuke-config-template.yml",

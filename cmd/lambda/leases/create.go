@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
@@ -29,10 +28,11 @@ type createLeaseRequest struct {
 func CreateLease(w http.ResponseWriter, r *http.Request) {
 
 	c := leaseValidationContext{
-		maxLeaseBudgetAmount:     aws.Float64Value(maxLeaseBudgetAmount),
-		maxLeasePeriod:           aws.Int64Value(maxLeasePeriod),
-		defaultLeaseLengthInDays: aws.IntValue(defaultLeaseLengthInDays),
-		principalBudgetPeriod:    aws.StringValue(principalBudgetPeriod),
+		maxLeaseBudgetAmount:     *maxLeaseBudgetAmount,
+		maxLeasePeriod:           *maxLeasePeriod,
+		defaultLeaseLengthInDays: *defaultLeaseLengthInDays,
+		principalBudgetPeriod:    *principalBudgetPeriod,
+		principalBudgetAmount:    *principalBudgetAmount,
 	}
 
 	// Extract the Body from the Request
