@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
 )
 
@@ -36,4 +37,29 @@ func getFiltersFromStruct(i interface{}, keyName *string) (*expression.KeyCondit
 		}
 	}
 	return kb, cb
+}
+
+func putItem(input *dynamodb.PutItemInput, dataInterface *Account) error {
+	_, err := dataInterface.DynamoDB.PutItem(input)
+	return err
+}
+
+func query(input *dynamodb.QueryInput, dataInterface *Account) (*dynamodb.QueryOutput, error) {
+	output, err := dataInterface.DynamoDB.Query(input)
+	return output, err
+}
+
+func scan(input *dynamodb.ScanInput, dataInterface *Account) (*dynamodb.ScanOutput, error) {
+	output, err := dataInterface.DynamoDB.Scan(input)
+	return output, err
+}
+
+func getItem(input *dynamodb.GetItemInput, dataInterface *Account) (*dynamodb.GetItemOutput, error) {
+	output, err := dataInterface.DynamoDB.GetItem(input)
+	return output, err
+}
+
+func deleteItem(input *dynamodb.DeleteItemInput, dataInterface *Account) (*dynamodb.DeleteItemOutput, error) {
+	output, err := dataInterface.DynamoDB.DeleteItem(input)
+	return output, err
 }

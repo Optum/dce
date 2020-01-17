@@ -46,20 +46,19 @@ func (a *Account) WriteAccount(account *model.Account, prevLastModifiedOn *int64
 	}
 
 	putMap, _ := dynamodbattribute.Marshal(account)
-	_, err = a.DynamoDB.PutItem(
-		&dynamodb.PutItemInput{
-			// Query in Lease Table
-			TableName: aws.String(a.TableName),
-			// Find Account for the requested accountId
-			Item: putMap.M,
-			// Condition Expression
-			ConditionExpression:       expr.Condition(),
-			ExpressionAttributeNames:  expr.Names(),
-			ExpressionAttributeValues: expr.Values(),
-			// Return the updated record
-			ReturnValues: aws.String(returnValue),
-		},
-	)
+	input := &dynamodb.PutItemInput{
+		// Query in Lease Table
+		TableName: aws.String(a.TableName),
+		// Find Account for the requested accountId
+		Item: putMap.M,
+		// Condition Expression
+		ConditionExpression:       expr.Condition(),
+		ExpressionAttributeNames:  expr.Names(),
+		ExpressionAttributeValues: expr.Values(),
+		// Return the updated record
+		ReturnValues: aws.String(returnValue),
+	}
+	err = putItem(input, a)
 	var awsErr awserr.Error
 	if errors.As(err, &awsErr) {
 		if awsErr.Code() == "ConditionalCheckFailedException" {
