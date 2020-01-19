@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"io"
 	"log"
 	"net/http"
 
@@ -29,25 +28,13 @@ func WriteAPIErrorResponse(w http.ResponseWriter, err error) {
 	)
 }
 
-type writer interface {
-	Write(writer io.Writer) error
-}
-
 // WriteAPIResponse writes the response out to the provided ResponseWriter
-func WriteAPIResponse(httpWriter http.ResponseWriter, status int, body interface{}) {
-	httpWriter.WriteHeader(status)
-
-	if m, ok := body.(writer); ok {
-		err := m.Write(httpWriter)
-		if err != nil {
-			log.Printf("error encoding and writing message: %+v", body)
-			httpWriter.WriteHeader(http.StatusInternalServerError)
-			_ = json.NewEncoder(httpWriter).Encode(errors.NewInternalServer("error writing response", err))
-		}
-	} else {
-		log.Printf("error encoding and writing message. No Write function exists for: %+v", body)
-		httpWriter.WriteHeader(http.StatusInternalServerError)
-		_ = json.NewEncoder(httpWriter).Encode(errors.NewInternalServer("error writing response", nil))
+func WriteAPIResponse(w http.ResponseWriter, status int, body interface{}) {
+	w.WriteHeader(status)
+	err := json.NewEncoder(w).Encode(body)
+	if err != nil {
+		log.Printf("error encoding and writing message: %+v", body)
+		w.WriteHeader(http.StatusInternalServerError)
+		_ = json.NewEncoder(w).Encode(errors.NewInternalServer("error writing response", err))
 	}
-
 }

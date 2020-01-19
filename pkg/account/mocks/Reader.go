@@ -10,30 +10,48 @@ type Reader struct {
 	mock.Mock
 }
 
-// GetAccountByID provides a mock function with given fields: ID, _a1
-func (_m *Reader) GetAccountByID(ID string, _a1 *account.Account) error {
-	ret := _m.Called(ID, _a1)
+// Get provides a mock function with given fields: ID
+func (_m *Reader) Get(ID string) (*account.Account, error) {
+	ret := _m.Called(ID)
 
-	var r0 error
-	if rf, ok := ret.Get(0).(func(string, *account.Account) error); ok {
-		r0 = rf(ID, _a1)
+	var r0 *account.Account
+	if rf, ok := ret.Get(0).(func(string) *account.Account); ok {
+		r0 = rf(ID)
 	} else {
-		r0 = ret.Error(0)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*account.Account)
+		}
 	}
 
-	return r0
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(ID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
-// GetAccounts provides a mock function with given fields: query, accounts
-func (_m *Reader) GetAccounts(query *account.Account, accounts *account.Accounts) error {
-	ret := _m.Called(query, accounts)
+// List provides a mock function with given fields: query
+func (_m *Reader) List(query *account.Account) (*account.Accounts, error) {
+	ret := _m.Called(query)
 
-	var r0 error
-	if rf, ok := ret.Get(0).(func(*account.Account, *account.Accounts) error); ok {
-		r0 = rf(query, accounts)
+	var r0 *account.Accounts
+	if rf, ok := ret.Get(0).(func(*account.Account) *account.Accounts); ok {
+		r0 = rf(query)
 	} else {
-		r0 = ret.Error(0)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*account.Accounts)
+		}
 	}
 
-	return r0
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*account.Account) error); ok {
+		r1 = rf(query)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }

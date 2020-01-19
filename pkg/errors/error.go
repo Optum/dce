@@ -1,7 +1,6 @@
 package errors
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -62,15 +61,6 @@ func (e StatusError) Format(s fmt.State, verb rune) {
 	case 'q':
 		_, _ = fmt.Fprintf(s, "%q", e.Error())
 	}
-}
-
-// Write finds a given account and deletes it if it is not of status `Leased`. Returns the account.
-func (e StatusError) Write(writer io.Writer) error {
-	err := json.NewEncoder(writer).Encode(e)
-	if err != nil {
-		return NewInternalServer(fmt.Sprintf("error encoding and writing message: %+v", e), err)
-	}
-	return nil
 }
 
 // Is checks to see if the errors match

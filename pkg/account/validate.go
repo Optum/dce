@@ -58,7 +58,7 @@ func isNilOrUsableAdminRole(am Manager) validation.RuleFunc {
 
 func isAccountNotLeased(value interface{}) error {
 	s, _ := value.(*Status)
-	if s.String() == AccountStatusLeased.String() {
+	if s.String() == StatusLeased.String() {
 		return errors.New("must not be leased")
 	}
 	return nil

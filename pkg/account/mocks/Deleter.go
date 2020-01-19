@@ -10,8 +10,8 @@ type Deleter struct {
 	mock.Mock
 }
 
-// DeleteAccount provides a mock function with given fields: i
-func (_m *Deleter) DeleteAccount(i *account.Account) error {
+// Delete provides a mock function with given fields: i
+func (_m *Deleter) Delete(i *account.Account) error {
 	ret := _m.Called(i)
 
 	var r0 error

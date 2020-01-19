@@ -10,8 +10,8 @@ type Writer struct {
 	mock.Mock
 }
 
-// WriteAccount provides a mock function with given fields: i, lastModifiedOn
-func (_m *Writer) WriteAccount(i *account.Account, lastModifiedOn *int64) error {
+// Write provides a mock function with given fields: i, lastModifiedOn
+func (_m *Writer) Write(i *account.Account, lastModifiedOn *int64) error {
 	ret := _m.Called(i, lastModifiedOn)
 
 	var r0 error

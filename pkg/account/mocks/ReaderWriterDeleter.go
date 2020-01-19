@@ -10,8 +10,8 @@ type ReaderWriterDeleter struct {
 	mock.Mock
 }
 
-// DeleteAccount provides a mock function with given fields: i
-func (_m *ReaderWriterDeleter) DeleteAccount(i *account.Account) error {
+// Delete provides a mock function with given fields: i
+func (_m *ReaderWriterDeleter) Delete(i *account.Account) error {
 	ret := _m.Called(i)
 
 	var r0 error
@@ -24,36 +24,54 @@ func (_m *ReaderWriterDeleter) DeleteAccount(i *account.Account) error {
 	return r0
 }
 
-// GetAccountByID provides a mock function with given fields: ID, _a1
-func (_m *ReaderWriterDeleter) GetAccountByID(ID string, _a1 *account.Account) error {
-	ret := _m.Called(ID, _a1)
+// Get provides a mock function with given fields: ID
+func (_m *ReaderWriterDeleter) Get(ID string) (*account.Account, error) {
+	ret := _m.Called(ID)
 
-	var r0 error
-	if rf, ok := ret.Get(0).(func(string, *account.Account) error); ok {
-		r0 = rf(ID, _a1)
+	var r0 *account.Account
+	if rf, ok := ret.Get(0).(func(string) *account.Account); ok {
+		r0 = rf(ID)
 	} else {
-		r0 = ret.Error(0)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*account.Account)
+		}
 	}
 
-	return r0
-}
-
-// GetAccounts provides a mock function with given fields: query, accounts
-func (_m *ReaderWriterDeleter) GetAccounts(query *account.Account, accounts *account.Accounts) error {
-	ret := _m.Called(query, accounts)
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(*account.Account, *account.Accounts) error); ok {
-		r0 = rf(query, accounts)
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(ID)
 	} else {
-		r0 = ret.Error(0)
+		r1 = ret.Error(1)
 	}
 
-	return r0
+	return r0, r1
 }
 
-// WriteAccount provides a mock function with given fields: i, lastModifiedOn
-func (_m *ReaderWriterDeleter) WriteAccount(i *account.Account, lastModifiedOn *int64) error {
+// List provides a mock function with given fields: query
+func (_m *ReaderWriterDeleter) List(query *account.Account) (*account.Accounts, error) {
+	ret := _m.Called(query)
+
+	var r0 *account.Accounts
+	if rf, ok := ret.Get(0).(func(*account.Account) *account.Accounts); ok {
+		r0 = rf(query)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*account.Accounts)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*account.Account) error); ok {
+		r1 = rf(query)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// Write provides a mock function with given fields: i, lastModifiedOn
+func (_m *ReaderWriterDeleter) Write(i *account.Account, lastModifiedOn *int64) error {
 	ret := _m.Called(i, lastModifiedOn)
 
 	var r0 error

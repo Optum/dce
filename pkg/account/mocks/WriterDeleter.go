@@ -10,8 +10,8 @@ type WriterDeleter struct {
 	mock.Mock
 }
 
-// DeleteAccount provides a mock function with given fields: i
-func (_m *WriterDeleter) DeleteAccount(i *account.Account) error {
+// Delete provides a mock function with given fields: i
+func (_m *WriterDeleter) Delete(i *account.Account) error {
 	ret := _m.Called(i)
 
 	var r0 error
@@ -24,8 +24,8 @@ func (_m *WriterDeleter) DeleteAccount(i *account.Account) error {
 	return r0
 }
 
-// WriteAccount provides a mock function with given fields: i, lastModifiedOn
-func (_m *WriterDeleter) WriteAccount(i *account.Account, lastModifiedOn *int64) error {
+// Write provides a mock function with given fields: i, lastModifiedOn
+func (_m *WriterDeleter) Write(i *account.Account, lastModifiedOn *int64) error {
 	ret := _m.Called(i, lastModifiedOn)
 
 	var r0 error

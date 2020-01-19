@@ -8,13 +8,15 @@ import (
 
 // AccountData makes working with the Account Data Layer easier
 type AccountData interface {
-	// WriteAccount the Account record in DynamoDB
+	// Write the Account record in DynamoDB
 	// This is an upsert operation in which the record will either
 	// be inserted or updated
 	// prevLastModifiedOn parameter is the original lastModifiedOn
-	WriteAccount(account *account.Account, prevLastModifiedOn *int64) error
-	// DeleteAccount the Account record in DynamoDB
-	DeleteAccount(account *account.Account) error
-	// GetAccountByID the Account record by ID
-	GetAccountByID(ID string, account *account.Account) error
+	Write(account *account.Account, prevLastModifiedOn *int64) error
+	// Delete the Account record in DynamoDB
+	Delete(account *account.Account) error
+	// Get the Account record by ID
+	Get(ID string) (*account.Account, error)
+	// List Get a list of accounts
+	List(query *account.Account) (*account.Accounts, error)
 }

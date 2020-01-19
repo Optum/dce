@@ -28,13 +28,13 @@ func TestGetAccountByID(t *testing.T) {
 		{
 			name:      "should return an account object",
 			accountID: "123456789012",
-			expectedAccount: account.New(nil, account.Data{
+			expectedAccount: &account.Account{
 				ID:             ptrString("123456789012"),
-				Status:         account.AccountStatusReady.StatusPtr(),
+				Status:         account.StatusReady.StatusPtr(),
 				LastModifiedOn: ptrInt64(1573592058),
 				CreatedOn:      ptrInt64(1573592058),
 				AdminRoleArn:   ptrString("test:arn"),
-			}),
+			},
 			dynamoErr: nil,
 			dynamoOutput: &dynamodb.GetItemOutput{
 				Item: map[string]*dynamodb.AttributeValue{
@@ -60,7 +60,7 @@ func TestGetAccountByID(t *testing.T) {
 		{
 			name:            "should return nil object when not found",
 			accountID:       "123456789012",
-			expectedAccount: &account.Account{},
+			expectedAccount: nil,
 			dynamoErr:       nil,
 			dynamoOutput: &dynamodb.GetItemOutput{
 				Item: map[string]*dynamodb.AttributeValue{},
@@ -70,7 +70,7 @@ func TestGetAccountByID(t *testing.T) {
 		{
 			name:            "should return nil when dynamodb err",
 			accountID:       "123456789012",
-			expectedAccount: &account.Account{},
+			expectedAccount: nil,
 			dynamoErr:       gErrors.New("failure"),
 			dynamoOutput: &dynamodb.GetItemOutput{
 				Item: map[string]*dynamodb.AttributeValue{},
@@ -94,10 +94,9 @@ func TestGetAccountByID(t *testing.T) {
 				TableName: "Accounts",
 			}
 
-			accountSvc := &account.Account{}
-			err := accountData.GetAccountByID(tt.accountID, accountSvc)
+			result, err := accountData.Get(tt.accountID)
 
-			assert.Equal(t, tt.expectedAccount, accountSvc)
+			assert.Equal(t, tt.expectedAccount, result)
 			assert.True(t, errors.Is(err, tt.expectedErr))
 		})
 	}
@@ -108,16 +107,16 @@ func TestDelete(t *testing.T) {
 
 	tests := []struct {
 		name         string
-		account      account.Data
+		account      account.Account
 		dynamoErr    error
 		dynamoOutput *dynamodb.DeleteItemOutput
 		expectedErr  error
 	}{
 		{
 			name: "should delete an account",
-			account: account.Data{
+			account: account.Account{
 				ID:             ptrString("123456789012"),
-				Status:         account.AccountStatusReady.StatusPtr(),
+				Status:         account.StatusReady.StatusPtr(),
 				LastModifiedOn: ptrInt64(1573592058),
 				AdminRoleArn:   ptrString("test:Arn"),
 			},
@@ -129,9 +128,9 @@ func TestDelete(t *testing.T) {
 		},
 		{
 			name: "should delete an account",
-			account: account.Data{
+			account: account.Account{
 				ID:             ptrString("123456789012"),
-				Status:         account.AccountStatusReady.StatusPtr(),
+				Status:         account.StatusReady.StatusPtr(),
 				LastModifiedOn: ptrInt64(1573592058),
 				AdminRoleArn:   ptrString("test:Arn"),
 			},
@@ -158,9 +157,7 @@ func TestDelete(t *testing.T) {
 				TableName: "Accounts",
 			}
 
-			account := account.New(nil, tt.account)
-
-			err := accountData.DeleteAccount(*account)
+			err := accountData.Delete(&tt.account)
 			assert.True(t, errors.Is(err, tt.expectedErr))
 		})
 	}
@@ -170,16 +167,16 @@ func TestDelete(t *testing.T) {
 func TestUpdate(t *testing.T) {
 	tests := []struct {
 		name              string
-		account           account.Data
+		account           account.Account
 		dynamoErr         error
 		expectedErr       error
 		oldLastModifiedOn *int64
 	}{
 		{
 			name: "update",
-			account: account.Data{
+			account: account.Account{
 				ID:             ptrString("123456789012"),
-				Status:         account.AccountStatusReady.StatusPtr(),
+				Status:         account.StatusReady.StatusPtr(),
 				LastModifiedOn: ptrInt64(1573592058),
 				AdminRoleArn:   ptrString("test:Arn"),
 			},
@@ -189,9 +186,9 @@ func TestUpdate(t *testing.T) {
 		},
 		{
 			name: "create",
-			account: account.Data{
+			account: account.Account{
 				ID:             ptrString("123456789012"),
-				Status:         account.AccountStatusReady.StatusPtr(),
+				Status:         account.StatusReady.StatusPtr(),
 				LastModifiedOn: ptrInt64(1573592058),
 				AdminRoleArn:   ptrString("test:Arn"),
 			},
@@ -200,9 +197,9 @@ func TestUpdate(t *testing.T) {
 		},
 		{
 			name: "conditional failure",
-			account: account.Data{
+			account: account.Account{
 				ID:             ptrString("123456789012"),
-				Status:         account.AccountStatusReady.StatusPtr(),
+				Status:         account.StatusReady.StatusPtr(),
 				LastModifiedOn: ptrInt64(1573592058),
 				AdminRoleArn:   ptrString("test:Arn"),
 			},
@@ -215,9 +212,9 @@ func TestUpdate(t *testing.T) {
 		},
 		{
 			name: "other dynamo error",
-			account: account.Data{
+			account: account.Account{
 				ID:             ptrString("123456789012"),
-				Status:         account.AccountStatusReady.StatusPtr(),
+				Status:         account.StatusReady.StatusPtr(),
 				LastModifiedOn: ptrInt64(1573592058),
 				AdminRoleArn:   ptrString("test:Arn"),
 			},
@@ -256,9 +253,7 @@ func TestUpdate(t *testing.T) {
 				TableName: "Accounts",
 			}
 
-			accountSvc := account.New(nil, tt.account)
-
-			err := accountData.WriteAccount(accountSvc, tt.oldLastModifiedOn)
+			err := accountData.Write(&tt.account, tt.oldLastModifiedOn)
 			assert.Truef(t, errors.Is(err, tt.expectedErr), "actual error %q doesn't match expected error %q", err, tt.expectedErr)
 		})
 	}

@@ -9,6 +9,7 @@ import (
 	"os"
 	"reflect"
 
+	"github.com/Optum/dce/pkg/account/accountiface"
 	"github.com/caarlos0/env"
 	"github.com/mitchellh/mapstructure"
 )
@@ -255,4 +256,15 @@ func getKeyPtrs(aMap map[string]ParameterStoreVal) []*string {
 		keys = append(keys, &newK)
 	}
 	return keys
+}
+
+// AccountSvc returns the account Service for you
+func (config *ConfigurationBuilder) AccountSvc() accountiface.Servicer {
+
+	var accountSvc accountiface.Servicer
+	if err := config.GetService(&accountSvc); err != nil {
+		panic(err)
+	}
+
+	return accountSvc
 }

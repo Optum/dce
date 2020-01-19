@@ -171,6 +171,7 @@ func initConfig() {
 		WithStorageService().
 		WithDataService().
 		WithAccountManager().
+		WithAccountService().
 		Build()
 	if err != nil {
 		panic(err)

@@ -21,11 +21,11 @@ type Account struct {
 	ConsistentRead bool   `env:"USE_CONSISTENT_READS" envDefault:"false"`
 }
 
-// WriteAccount the Account record in DynamoDB
+// Write the Account record in DynamoDB
 // This is an upsert operation in which the record will either
 // be inserted or updated
 // prevLastModifiedOn parameter is the original lastModifiedOn
-func (a *Account) WriteAccount(account *account.Account, prevLastModifiedOn *int64) error {
+func (a *Account) Write(account *account.Account, prevLastModifiedOn *int64) error {
 
 	var expr expression.Expression
 	var err error
@@ -58,19 +58,19 @@ func (a *Account) WriteAccount(account *account.Account, prevLastModifiedOn *int
 		// Return the updated record
 		ReturnValues: aws.String(returnValue),
 	}
-	err = putItem(input, a)
+	err = putItem(input, a.DynamoDB)
 	var awsErr awserr.Error
 	if errors.As(err, &awsErr) {
 		if awsErr.Code() == "ConditionalCheckFailedException" {
 			return errors.NewConflict(
 				"account",
-				*account.ID(),
+				*account.ID,
 				fmt.Errorf("unable to update account: accounts has been modified since request was made"))
 		}
 	}
 	if err != nil {
 		return errors.NewInternalServer(
-			fmt.Sprintf("update failed for account %q", *account.ID()),
+			fmt.Sprintf("update failed for account %q", *account.ID),
 			err,
 		)
 	}
@@ -78,8 +78,8 @@ func (a *Account) WriteAccount(account *account.Account, prevLastModifiedOn *int
 	return nil
 }
 
-// DeleteAccount the Account record in DynamoDB
-func (a *Account) DeleteAccount(account *account.Account) error {
+// Delete the Account record in DynamoDB
+func (a *Account) Delete(account *account.Account) error {
 
 	_, err := a.DynamoDB.DeleteItem(
 		&dynamodb.DeleteItemInput{
@@ -89,7 +89,7 @@ func (a *Account) DeleteAccount(account *account.Account) error {
 			ReturnValues: aws.String("ALL_NEW"),
 			Key: map[string]*dynamodb.AttributeValue{
 				"Id": {
-					S: account.ID(),
+					S: account.ID,
 				},
 			},
 		},
@@ -97,7 +97,7 @@ func (a *Account) DeleteAccount(account *account.Account) error {
 
 	if err != nil {
 		return errors.NewInternalServer(
-			fmt.Sprintf("delete failed for account %q", *account.ID()),
+			fmt.Sprintf("delete failed for account %q", *account.ID),
 			err,
 		)
 	}
@@ -105,8 +105,8 @@ func (a *Account) DeleteAccount(account *account.Account) error {
 	return nil
 }
 
-// GetAccountByID the Account record by ID
-func (a *Account) GetAccountByID(ID string, account *account.Account) error {
+// Get the Account record by ID
+func (a *Account) Get(ID string) (*account.Account, error) {
 	res, err := a.DynamoDB.GetItem(
 		&dynamodb.GetItemInput{
 			// Query in Lease Table
@@ -121,22 +121,23 @@ func (a *Account) GetAccountByID(ID string, account *account.Account) error {
 	)
 
 	if err != nil {
-		return errors.NewInternalServer(
+		return nil, errors.NewInternalServer(
 			fmt.Sprintf("get failed for account %q", ID),
 			err,
 		)
 	}
 
 	if len(res.Item) == 0 {
-		return errors.NewNotFound("account", ID)
+		return nil, errors.NewNotFound("account", ID)
 	}
 
+	account := &account.Account{}
 	err = dynamodbattribute.UnmarshalMap(res.Item, account)
 	if err != nil {
-		return errors.NewInternalServer(
+		return nil, errors.NewInternalServer(
 			fmt.Sprintf("failure unmarshaling account %q", ID),
 			err,
 		)
 	}
-	return nil
+	return account, nil
 }
