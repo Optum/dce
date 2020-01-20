@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"net/http"
 	"net/url"
 	"os"
@@ -1782,9 +1783,11 @@ func TestApi(t *testing.T) {
 			// Get nested json in response json
 			err := data["error"].(map[string]interface{})
 			require.Equal(t, "RequestValidationError", err["code"].(string))
+			// Weekday + 1 since Sunday is 0.  Min of 5 because thats what the write usage does
+			weekday := math.Min(float64(time.Now().Weekday())+1, 5)
 			require.Equal(t,
-				"Unable to create lease: User principal TestUser1 "+
-					"has already spent 10000.00 of their 1000.00 principal budget",
+				fmt.Sprintf("Unable to create lease: User principal TestUser1 "+
+					"has already spent %.2f of their 1000.00 principal budget", weekday*2000),
 				err["message"].(string),
 			)
 		})
