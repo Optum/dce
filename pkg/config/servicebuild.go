@@ -5,8 +5,13 @@ import (
 	"reflect"
 	"runtime"
 
+	"github.com/Optum/dce/pkg/account"
+	"github.com/Optum/dce/pkg/accountmanager"
+	"github.com/Optum/dce/pkg/accountmanager/accountmanageriface"
 	"github.com/Optum/dce/pkg/common"
 	"github.com/Optum/dce/pkg/data"
+	"github.com/Optum/dce/pkg/data/dataiface"
+
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 	"github.com/aws/aws-sdk-go/service/ssm"
 
@@ -105,6 +110,18 @@ func (bldr *ServiceBuilder) WithStorageService() *ServiceBuilder {
 // WithDataService tells the builder to add the Data service to the `ConfigurationBuilder`
 func (bldr *ServiceBuilder) WithDataService() *ServiceBuilder {
 	bldr.handlers = append(bldr.handlers, bldr.createDataService)
+	return bldr
+}
+
+// WithAccountManager tells the builder to add the Data service to the `ConfigurationBuilder`
+func (bldr *ServiceBuilder) WithAccountManager() *ServiceBuilder {
+	bldr.handlers = append(bldr.handlers, bldr.createAccountManager)
+	return bldr
+}
+
+// WithAccountService tells the builder to add the Account service to the `ConfigurationBuilder`
+func (bldr *ServiceBuilder) WithAccountService() *ServiceBuilder {
+	bldr.handlers = append(bldr.handlers, bldr.createAccountService)
 	return bldr
 }
 
@@ -232,5 +249,45 @@ func (bldr *ServiceBuilder) createDataService(config ConfigurationServiceBuilder
 	dataSvcImpl.DynamoDB = dynamodbSvc
 
 	config.WithService(dataSvcImpl)
+	return nil
+}
+
+func (bldr *ServiceBuilder) createAccountManager(config ConfigurationServiceBuilder) error {
+	amSvcInput := accountmanager.NewInput{}
+	err := bldr.Config.Unmarshal(&amSvcInput)
+	if err != nil {
+		return err
+	}
+
+	amSvcImpl, err := accountmanager.New(amSvcInput)
+	if err != nil {
+		return err
+	}
+
+	config.WithService(amSvcImpl)
+	return nil
+}
+
+func (bldr *ServiceBuilder) createAccountService(config ConfigurationServiceBuilder) error {
+	var dataSvc dataiface.AccountData
+	err := bldr.Config.GetService(&dataSvc)
+	if err != nil {
+		return err
+	}
+
+	var managerSvc accountmanageriface.AccountManagerAPI
+	err = bldr.Config.GetService(&managerSvc)
+	if err != nil {
+		return err
+	}
+
+	accountSvc := account.NewService(
+		account.NewServiceInput{
+			DataSvc:    dataSvc,
+			ManagerSvc: managerSvc,
+		},
+	)
+
+	config.WithService(accountSvc)
 	return nil
 }

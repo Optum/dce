@@ -6,9 +6,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/Optum/dce/pkg/account"
+	"github.com/Optum/dce/pkg/account/accountiface/mocks"
 	"github.com/Optum/dce/pkg/config"
-	"github.com/Optum/dce/pkg/data/dataiface/mocks"
-	"github.com/Optum/dce/pkg/model"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 )
@@ -23,7 +23,7 @@ func TestGetAccountByID(t *testing.T) {
 		name       string
 		expResp    response
 		accountID  string
-		retAccount *model.Account
+		retAccount *account.Account
 		retErr     error
 	}{
 		{
@@ -33,7 +33,7 @@ func TestGetAccountByID(t *testing.T) {
 				StatusCode: 200,
 				Body:       "{}\n",
 			},
-			retAccount: &model.Account{},
+			retAccount: &account.Account{},
 			retErr:     nil,
 		},
 		{
@@ -60,11 +60,11 @@ func TestGetAccountByID(t *testing.T) {
 			cfgBldr := &config.ConfigurationBuilder{}
 			svcBldr := &config.ServiceBuilder{Config: cfgBldr}
 
-			dataSvc := mocks.AccountData{}
-			dataSvc.On("GetAccountByID", tt.accountID).Return(
+			accountSvc := mocks.Servicer{}
+			accountSvc.On("Get", tt.accountID).Return(
 				tt.retAccount, tt.retErr,
 			)
-			svcBldr.Config.WithService(&dataSvc)
+			svcBldr.Config.WithService(&accountSvc)
 			_, err := svcBldr.Build()
 
 			assert.Nil(t, err)
