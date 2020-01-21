@@ -153,13 +153,6 @@ func (a *Service) Delete(data *Account) error {
 
 // List Get a list of accounts based on Principal ID
 func (a *Service) List(query *Account) (*Accounts, error) {
-	err := validation.ValidateStruct(query,
-		// ID has to be empty
-		validation.Field(&query.ID, validation.NilOrNotEmpty, validation.By(isNil)),
-	)
-	if err != nil {
-		return nil, errors.NewValidation("account", err)
-	}
 
 	accounts, err := a.dataSvc.List(query)
 	if err != nil {
