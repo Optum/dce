@@ -37,7 +37,7 @@ func (l *Lease) Validate() error {
 		validation.Field(&l.CreatedOn, validateInt64...),
 	)
 	if err != nil {
-		return errors.NewValidation("account", err)
+		return errors.NewValidation("lease", err)
 	}
 	return nil
 }

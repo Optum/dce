@@ -55,12 +55,12 @@ type Manager interface {
 	Setup(adminRole string) error
 }
 
-// Service is a type corresponding to a Account table record
+// Service is a type corresponding to a Lease table record
 type Service struct {
 	dataSvc ReaderWriterDeleter
 }
 
-// Get returns an account from ID
+// Get returns a lease from ID
 func (a *Service) Get(ID string) (*Lease, error) {
 
 	new, err := a.dataSvc.Get(ID)
@@ -95,7 +95,7 @@ func (a *Service) Save(data *Lease) error {
 	return nil
 }
 
-// Delete finds a given account and deletes it if it is not of status `Leased`. Returns the account.
+// Delete finds a given lease and deletes it if it is not of status `Active`. Returns the lease.
 func (a *Service) Delete(data *Lease) error {
 
 	err := a.dataSvc.Delete(data)
@@ -106,22 +106,22 @@ func (a *Service) Delete(data *Lease) error {
 	return nil
 }
 
-// List Get a list of accounts based on Principal ID
+// List Get a list of leases based on Principal ID
 func (a *Service) List(query *Lease) (*Leases, error) {
 	err := validation.ValidateStruct(query,
 		// ID has to be empty
 		validation.Field(&query.ID, validation.NilOrNotEmpty, validation.By(isNil)),
 	)
 	if err != nil {
-		return nil, errors.NewValidation("account", err)
+		return nil, errors.NewValidation("lease", err)
 	}
 
-	accounts, err := a.dataSvc.List(query)
+	leases, err := a.dataSvc.List(query)
 	if err != nil {
 		return nil, err
 	}
 
-	return accounts, nil
+	return leases, nil
 }
 
 // NewServiceInput Input for creating a new Service

@@ -143,6 +143,7 @@ func TestSave(t *testing.T) {
 			lease: &lease.Lease{
 				ID:             ptrString("70c2d96d-7938-4ec9-917d-476f2b09cc04"),
 				Status:         lease.StatusActive.StatusPtr(),
+				AccountID:      ptrString("123456789012"),
 				PrincipalID:    ptrString("test:arn"),
 				CreatedOn:      &now,
 				LastModifiedOn: &now,
@@ -151,6 +152,7 @@ func TestSave(t *testing.T) {
 				data: &lease.Lease{
 					ID:             ptrString("70c2d96d-7938-4ec9-917d-476f2b09cc04"),
 					Status:         lease.StatusActive.StatusPtr(),
+					AccountID:      ptrString("123456789012"),
 					PrincipalID:    ptrString("test:arn"),
 					LastModifiedOn: &now,
 					CreatedOn:      &now,
@@ -165,12 +167,14 @@ func TestSave(t *testing.T) {
 				ID:          ptrString("70c2d96d-7938-4ec9-917d-476f2b09cc04"),
 				Status:      lease.StatusActive.StatusPtr(),
 				PrincipalID: ptrString("test:arn"),
+				AccountID:   ptrString("123456789012"),
 			},
 			exp: response{
 				data: &lease.Lease{
 					ID:             ptrString("70c2d96d-7938-4ec9-917d-476f2b09cc04"),
 					Status:         lease.StatusActive.StatusPtr(),
 					PrincipalID:    ptrString("test:arn"),
+					AccountID:      ptrString("123456789012"),
 					LastModifiedOn: &now,
 					CreatedOn:      &now,
 				},
@@ -184,12 +188,14 @@ func TestSave(t *testing.T) {
 				ID:          ptrString("70c2d96d-7938-4ec9-917d-476f2b09cc04"),
 				Status:      lease.StatusActive.StatusPtr(),
 				PrincipalID: ptrString("test:arn"),
+				AccountID:   ptrString("123456789012"),
 			},
 			exp: response{
 				data: &lease.Lease{
 					ID:             ptrString("70c2d96d-7938-4ec9-917d-476f2b09cc04"),
 					Status:         lease.StatusActive.StatusPtr(),
 					PrincipalID:    ptrString("test:arn"),
+					AccountID:      ptrString("123456789012"),
 					LastModifiedOn: &now,
 					CreatedOn:      &now,
 				},
