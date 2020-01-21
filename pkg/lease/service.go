@@ -1,23 +1,30 @@
 package lease
 
+import (
+	"time"
+
+	"github.com/Optum/dce/pkg/errors"
+	validation "github.com/go-ozzo/ozzo-validation"
+)
+
 // Writer put an item into the data store
 type Writer interface {
-	WriteLease(input *Lease, lastModifiedOn *int64) error
+	Write(input *Lease, lastModifiedOn *int64) error
 }
 
 // Deleter Deletes an item from the data store
 type Deleter interface {
-	DeleteLease(input *Lease) error
+	Delete(input *Lease) error
 }
 
 // SingleReader Reads an item information from the data store
 type SingleReader interface {
-	GetLeaseByID(leaseID string) (*Lease, error)
+	Get(leaseID string) (*Lease, error)
 }
 
 // MultipleReader reads multiple items from the data store
 type MultipleReader interface {
-	GetLeases(*Lease) (*Leases, error)
+	List(*Lease) (*Leases, error)
 }
 
 // Reader data Layer
@@ -51,6 +58,70 @@ type Manager interface {
 // Service is a type corresponding to a Account table record
 type Service struct {
 	dataSvc ReaderWriterDeleter
+}
+
+// Get returns an account from ID
+func (a *Service) Get(ID string) (*Lease, error) {
+
+	new, err := a.dataSvc.Get(ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return new, err
+}
+
+// Save writes the record to the dataSvc
+func (a *Service) Save(data *Lease) error {
+	var lastModifiedOn *int64
+	now := time.Now().Unix()
+	if data.LastModifiedOn == nil {
+		lastModifiedOn = nil
+		data.CreatedOn = &now
+		data.LastModifiedOn = &now
+	} else {
+		lastModifiedOn = data.LastModifiedOn
+		data.LastModifiedOn = &now
+	}
+
+	err := data.Validate()
+	if err != nil {
+		return err
+	}
+	err = a.dataSvc.Write(data, lastModifiedOn)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Delete finds a given account and deletes it if it is not of status `Leased`. Returns the account.
+func (a *Service) Delete(data *Lease) error {
+
+	err := a.dataSvc.Delete(data)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// List Get a list of accounts based on Principal ID
+func (a *Service) List(query *Lease) (*Leases, error) {
+	err := validation.ValidateStruct(query,
+		// ID has to be empty
+		validation.Field(&query.ID, validation.NilOrNotEmpty, validation.By(isNil)),
+	)
+	if err != nil {
+		return nil, errors.NewValidation("account", err)
+	}
+
+	accounts, err := a.dataSvc.List(query)
+	if err != nil {
+		return nil, err
+	}
+
+	return accounts, nil
 }
 
 // NewServiceInput Input for creating a new Service
