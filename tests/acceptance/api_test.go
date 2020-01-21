@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/aws/aws-sdk-go/service/cognitoidentity"
 	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
 	"io/ioutil"
 	"math/rand"
@@ -36,8 +37,7 @@ import (
 	"github.com/Optum/dce/pkg/usage"
 	"github.com/Optum/dce/tests/acceptance/testutil"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
-	//"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
-	)
+)
 
 func TestMain(m *testing.M) {
 	code := m.Run()
@@ -428,11 +428,15 @@ func TestApi(t *testing.T) {
 
 		t.Run("Should not be able to create and destroy and lease for other user", func(t *testing.T) {
 
-			cognitoSvc := cognitoidentityprovider.New(
+			userPoolSvc := cognitoidentityprovider.New(
 				awsSession,
 				aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
 				)
 
+			identityPoolSvc := cognitoidentity.New(
+				awsSession,
+				aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
+			)
 			// Create user
 			username := getRandString(t,8, "abcdefghijklmnopqrstuvwxyz")
 			tempPassword := getRandString(t, 4, "abcdefghijklmnopqrstuvwxyz") +
@@ -442,7 +446,7 @@ func TestApi(t *testing.T) {
 
 			supress := "SUPPRESS"
 			userPoolID := tfOut["cognito_user_pool_id"].(string)
-			_, err := cognitoSvc.AdminCreateUser(&cognitoidentityprovider.AdminCreateUserInput{
+			_, err := userPoolSvc.AdminCreateUser(&cognitoidentityprovider.AdminCreateUserInput{
 				MessageAction:          &supress,
 				TemporaryPassword:      &tempPassword,
 				UserPoolId:             &userPoolID,
@@ -450,7 +454,7 @@ func TestApi(t *testing.T) {
 			})
 			require.Nil(t, err)
 
-			defer cognitoSvc.AdminDeleteUser(&cognitoidentityprovider.AdminDeleteUserInput{
+			defer userPoolSvc.AdminDeleteUser(&cognitoidentityprovider.AdminDeleteUserInput{
 				UserPoolId: &userPoolID,
 				Username:   &username,
 			})
@@ -461,7 +465,7 @@ func TestApi(t *testing.T) {
 				getRandString(t, 2, "123456789") +
 				getRandString(t, 1, "!^*")
 			permanent := true
-			_, err = cognitoSvc.AdminSetUserPassword(&cognitoidentityprovider.AdminSetUserPasswordInput{
+			_, err = userPoolSvc.AdminSetUserPassword(&cognitoidentityprovider.AdminSetUserPasswordInput{
 				Password:   &permPassword,
 				Permanent:  &permanent,
 				UserPoolId: &userPoolID,
@@ -475,7 +479,7 @@ func TestApi(t *testing.T) {
 			ALLOW_REFRESH_TOKEN_AUTH := "ALLOW_REFRESH_TOKEN_AUTH"
 			ALLOW_ADMIN_USER_PASSWORD_AUTH := "ALLOW_ADMIN_USER_PASSWORD_AUTH"
 			allowedAuthFlows := []*string{&ALLOW_REFRESH_TOKEN_AUTH, &ALLOW_ADMIN_USER_PASSWORD_AUTH,}
-			_, err = cognitoSvc.UpdateUserPoolClient(&cognitoidentityprovider.UpdateUserPoolClientInput{
+			_, err = userPoolSvc.UpdateUserPoolClient(&cognitoidentityprovider.UpdateUserPoolClientInput{
 				ClientId:                        &clientID,
 				ExplicitAuthFlows:               allowedAuthFlows,
 				UserPoolId:                      &userPoolID,
@@ -488,7 +492,7 @@ func TestApi(t *testing.T) {
 			userCreds["USERNAME"] = &username
 			userCreds["PASSWORD"] = &permPassword
 			adminAuthFlow := "ADMIN_USER_PASSWORD_AUTH"
-			output, err := cognitoSvc.AdminInitiateAuth(&cognitoidentityprovider.AdminInitiateAuthInput{
+			output, err := userPoolSvc.AdminInitiateAuth(&cognitoidentityprovider.AdminInitiateAuthInput{
 				AuthFlow:          &adminAuthFlow,
 				AuthParameters:    userCreds,
 				ClientId:          &clientID,
@@ -503,6 +507,11 @@ func TestApi(t *testing.T) {
 			var logins map[string]*string = make(map[string]*string)
 			userPoolProviderName := "cognito-idp.us-east-1.amazonaws.com/us-east-1_drjuf6UEb"
 			logins[userPoolProviderName] = output.AuthenticationResult.IdToken
+			//_, err := identityPoolSvc.GetCredentialsForIdentity(cognitoidentity.GetCredentialsForIdentityInput{
+			//	CustomRoleArn: nil,
+			//	IdentityId:    nil,
+			//	Logins:        logins,
+			//})
 
 			// Change session to use user creds
 
