@@ -70,12 +70,14 @@ func TestListLeases(t *testing.T) {
 
 	t.Run("When the invoking Call and there are no errors", func(t *testing.T) {
 
-		expectedLeaseResponses := response.LeaseResponse{
-			ID:             "unique-id",
-			AccountID:      "987654321",
-			PrincipalID:    "12345",
-			LeaseStatus:    db.Active,
-			LastModifiedOn: 1561149393,
+		expectedLeaseResponses := []*response.LeaseResponse{
+			{
+				ID:             "unique-id",
+				AccountID:      "987654321",
+				PrincipalID:    "12345",
+				LeaseStatus:    db.Active,
+				LastModifiedOn: 1561149393,
+			},
 		}
 
 		leasesResult := createSingleLeaseOutput()
@@ -89,7 +91,7 @@ func TestListLeases(t *testing.T) {
 		actualResponse, err := Handler(context.Background(), mockRequest)
 		require.Nil(t, err)
 
-		parsedResponse := response.LeaseResponse{}
+		parsedResponse := []*response.LeaseResponse{}
 		err = json.Unmarshal([]byte(actualResponse.Body), &parsedResponse)
 		require.Nil(t, err)
 
