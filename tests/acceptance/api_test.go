@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"os"
@@ -34,7 +36,8 @@ import (
 	"github.com/Optum/dce/pkg/usage"
 	"github.com/Optum/dce/tests/acceptance/testutil"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
-)
+	//"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
+	)
 
 func TestMain(m *testing.M) {
 	code := m.Run()
@@ -421,6 +424,98 @@ func TestApi(t *testing.T) {
 			assert.NotNil(t, data["lastModifiedOn"])
 			assert.NotNil(t, data["leaseStatusModifiedOn"])
 
+		})
+
+		t.Run("Should not be able to create and destroy and lease for other user", func(t *testing.T) {
+
+			cognitoSvc := cognitoidentityprovider.New(
+				awsSession,
+				aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
+				)
+
+			// Create user
+			username := getRandString(t,8, "abcdefghijklmnopqrstuvwxyz")
+			tempPassword := getRandString(t, 4, "abcdefghijklmnopqrstuvwxyz") +
+				getRandString(t, 2, "ABCDEFGHIJKLMNOPQRSTUVWXYZ") +
+				getRandString(t, 2, "123456789") +
+				getRandString(t, 1, "!^*")
+
+			supress := "SUPPRESS"
+			userPoolID := tfOut["cognito_user_pool_id"].(string)
+			_, err := cognitoSvc.AdminCreateUser(&cognitoidentityprovider.AdminCreateUserInput{
+				MessageAction:          &supress,
+				TemporaryPassword:      &tempPassword,
+				UserPoolId:             &userPoolID,
+				Username:               &username,
+			})
+			require.Nil(t, err)
+
+			defer cognitoSvc.AdminDeleteUser(&cognitoidentityprovider.AdminDeleteUserInput{
+				UserPoolId: &userPoolID,
+				Username:   &username,
+			})
+
+			// Reset user's password
+			permPassword := getRandString(t, 4, "abcdefghijklmnopqrstuvwxyz") +
+				getRandString(t, 2, "ABCDEFGHIJKLMNOPQRSTUVWXYZ") +
+				getRandString(t, 2, "123456789") +
+				getRandString(t, 1, "!^*")
+			permanent := true
+			_, err = cognitoSvc.AdminSetUserPassword(&cognitoidentityprovider.AdminSetUserPasswordInput{
+				Password:   &permPassword,
+				Permanent:  &permanent,
+				UserPoolId: &userPoolID,
+				Username:   &username,
+			})
+			require.Nil(t, err)
+
+
+			// Update user pool client to allow ADMIN_USER_PASSWORD_AUTH
+			clientID := "1lamh3mgr1sof9trnd38jag18"
+			ALLOW_REFRESH_TOKEN_AUTH := "ALLOW_REFRESH_TOKEN_AUTH"
+			ALLOW_ADMIN_USER_PASSWORD_AUTH := "ALLOW_ADMIN_USER_PASSWORD_AUTH"
+			allowedAuthFlows := []*string{&ALLOW_REFRESH_TOKEN_AUTH, &ALLOW_ADMIN_USER_PASSWORD_AUTH,}
+			_, err = cognitoSvc.UpdateUserPoolClient(&cognitoidentityprovider.UpdateUserPoolClientInput{
+				ClientId:                        &clientID,
+				ExplicitAuthFlows:               allowedAuthFlows,
+				UserPoolId:                      &userPoolID,
+			})
+			require.Nil(t, err)
+
+			// Login
+			var userCreds map[string]*string
+			userCreds = make(map[string]*string)
+			userCreds["USERNAME"] = &username
+			userCreds["PASSWORD"] = &permPassword
+			adminAuthFlow := "ADMIN_USER_PASSWORD_AUTH"
+			output, err := cognitoSvc.AdminInitiateAuth(&cognitoidentityprovider.AdminInitiateAuthInput{
+				AuthFlow:          &adminAuthFlow,
+				AuthParameters:    userCreds,
+				ClientId:          &clientID,
+				UserPoolId:        &userPoolID,
+			})
+			require.Nil(t, err)
+			fmt.Println("@@@@Output: ", output)
+			fmt.Println("@@@@output.AuthenticationResult.IdToken: ", *output.AuthenticationResult.IdToken)
+
+
+			// Get iam creds
+			var logins map[string]*string = make(map[string]*string)
+			userPoolProviderName := "cognito-idp.us-east-1.amazonaws.com/us-east-1_drjuf6UEb"
+			logins[userPoolProviderName] = output.AuthenticationResult.IdToken
+
+			// Change session to use user creds
+
+			// Assert GET lease returns 403
+
+			// Assert POST lease returns 403
+
+			// Assert DELETE lease returns 403
+
+		})
+
+		t.Run("Should be able to create and destroy and lease for self", func(t *testing.T) {
+			fmt.Print("TODO")
 		})
 
 		t.Run("Should not be able to create lease with empty json", func(t *testing.T) {
@@ -2267,4 +2362,15 @@ func deletePolicy(t *testing.T, policyArn string) {
 		})
 		assert.Nil(t, err)
 	})
+}
+
+// https://stackoverflow.com/questions/22892120/how-to-generate-a-random-string-of-a-fixed-length-in-go
+func getRandString(t *testing.T, n int, letters string) string {
+	t.Helper()
+	rand.Seed(time.Now().UnixNano())
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = letters[rand.Int63()%int64(len(letters))]
+	}
+	return string(b)
 }
