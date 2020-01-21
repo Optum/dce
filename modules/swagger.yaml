@@ -685,6 +685,34 @@ paths:
         passthroughBehavior: "when_no_match"
       security:
         - sigv4: []
+    delete:
+      summary: Delete a lease by ID.
+      parameters:
+        - in: path
+          name: id
+          type: string
+          required: true
+          description: The ID of the lease to be deleted.
+      responses:
+        200:
+          schema:
+            $ref: "#/definitions/lease"
+        400:
+          description: >
+            "Failed to Parse Request Body" if the request body is blank or incorrectly formatted.
+            or if there are no account leases found for the specified accountId or if the account
+            specified is not already Active.
+        403:
+          description: "Failed to authenticate request"
+        500:
+          description: Server errors if the database cannot be reached.
+      x-amazon-apigateway-integration:
+        uri: ${leases_lambda}
+        httpMethod: "POST"
+        type: "aws_proxy"
+        passthroughBehavior: "when_no_match"
+      security:
+        - sigv4: []
   "/leases/{id}/auth":
     options:
       summary: CORS support

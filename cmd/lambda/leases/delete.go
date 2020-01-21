@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/Optum/dce/pkg/api/response"
+	"github.com/gorilla/mux"
 
 	"github.com/Optum/dce/pkg/db"
 )
@@ -35,59 +36,86 @@ func DeleteLease(w http.ResponseWriter, r *http.Request) {
 	accountID := requestBody.AccountID
 	log.Printf("Destroying lease %s for Principal %s", accountID, principalID)
 
-	// Move the account to decommissioned
-	accts, err := dao.FindLeasesByPrincipal(principalID)
+	// Move the lease to decommissioned
+	lease, err := dao.GetLease(accountID, principalID)
 	if err != nil {
-		log.Printf("Error finding leases for Principal %s: %s", principalID, err)
-		response.WriteServerErrorWithResponse(w, fmt.Sprintf("Cannot verify if Principal %s has a lease", principalID))
+		log.Printf("Error finding leases for Principal %q and Account ID %q: %s", principalID, accountID, err)
+		response.WriteServerErrorWithResponse(w, fmt.Sprintf("Cannot verify if Principal %q and Account %q has a lease", principalID, accountID))
 		return
 	}
-	if accts == nil {
-		errStr := fmt.Sprintf("No leases found for %s", principalID)
+	if lease == nil {
+		errStr := fmt.Sprintf("No leases found for Principal %q and Account ID %q", principalID, accountID)
 		log.Printf("Error: %s", errStr)
 		response.WriteBadRequestError(w, errStr)
 		return
 	}
 
-	// Get the Lease
-	var acct *db.Lease
-	for _, a := range accts {
-		if a.AccountID == requestBody.AccountID {
-			acct = a
-			break
-		}
-	}
-	if acct == nil {
-		response.WriteBadRequestError(w, fmt.Sprintf("No active account leases found for %s", principalID))
-		return
-	} else if acct.LeaseStatus != db.Active {
-		errStr := fmt.Sprintf("Lease is not active for %s - %s",
-			principalID, accountID)
-		response.WriteBadRequestError(w, errStr)
-		return
-	}
-
-	// Transition the Lease Status
-	updatedLease, err := dao.TransitionLeaseStatus(acct.AccountID, principalID,
-		db.Active, db.Inactive, db.LeaseDestroyed)
+	err = endLease(w, lease)
 	if err != nil {
-		log.Printf("Error transitioning lease status: %s", err)
-		response.WriteServerErrorWithResponse(w, fmt.Sprintf("Failed Decommission on Account Lease %s - %s", principalID, accountID))
 		return
 	}
 
-	// Transition the Account Status
-	_, err = dao.TransitionAccountStatus(acct.AccountID, db.Leased,
-		db.NotReady)
-	if err != nil {
-		response.WriteServerErrorWithResponse(w, fmt.Sprintf("Failed Decommission on Account Lease %s - %s", principalID, accountID))
-		return
-	}
-
-	leaseResponse := response.LeaseResponse(*updatedLease)
+	leaseResponse := response.LeaseResponse(*lease)
 	err = json.NewEncoder(w).Encode(leaseResponse)
 	if err != nil {
 		response.WriteServerErrorWithResponse(w, fmt.Sprintf("Failed Decommission on Account Lease %s - %s", principalID, accountID))
 		return
 	}
+}
+
+// DeleteLeaseByID - Deletes the given lease
+func DeleteLeaseByID(w http.ResponseWriter, r *http.Request) {
+
+	leaseID := mux.Vars(r)["leaseID"]
+	lease, err := dao.GetLeaseByID(leaseID)
+
+	if err != nil {
+		log.Printf("Error finding leases for ID %q: %s", leaseID, err)
+		response.WriteServerErrorWithResponse(w, fmt.Sprintf("Cannot verify if Lease ID %q exists", leaseID))
+		return
+	}
+	if lease == nil {
+		errStr := fmt.Sprintf("No leases found for ID %q", leaseID)
+		log.Printf("Error: %s", errStr)
+		response.WriteBadRequestError(w, errStr)
+		return
+	}
+
+	err = endLease(w, lease)
+	if err != nil {
+		return
+	}
+
+	leaseResponse := response.LeaseResponse(*lease)
+	err = json.NewEncoder(w).Encode(leaseResponse)
+	if err != nil {
+		response.WriteServerErrorWithResponse(w, fmt.Sprintf("Failed Decommission on Account Lease %q", leaseID))
+		return
+	}
+}
+
+func endLease(w http.ResponseWriter, lease *db.Lease) error {
+	if lease.LeaseStatus != db.Active {
+		response.WriteBadRequestError(w, fmt.Sprintf("Lease is not active for %q", lease.ID))
+		return fmt.Errorf("Lease is not active for %q", lease.ID)
+	}
+
+	// Transition the Lease Status
+	newLease, err := dao.TransitionLeaseStatus(lease.AccountID, lease.PrincipalID,
+		db.Active, db.Inactive, db.LeaseDestroyed)
+	if err != nil {
+		response.WriteServerErrorWithResponse(w, err.Error())
+		return fmt.Errorf("Failed Decommission on Account Lease %q: %w", lease.ID, err)
+	}
+
+	*lease = *newLease
+
+	// Transition the Account Status
+	_, err = dao.TransitionAccountStatus(lease.AccountID, db.Leased,
+		db.NotReady)
+	if err != nil {
+		response.WriteServerErrorWithResponse(w, err.Error())
+		return fmt.Errorf("Failed Decommission on Account Lease %q: %w", lease.ID, err)
+	}
+	return nil
 }
