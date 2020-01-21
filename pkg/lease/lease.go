@@ -122,28 +122,6 @@ func (a *Lease) Validate() error {
 	return nil
 }
 
-// Update the Lease record in DynamoDB
-func (a *Lease) Update(d model.Lease, am Manager) error {
-	err := validation.ValidateStruct(&d,
-		// ID has to be empty
-		validation.Field(&d.ID, validation.NilOrNotEmpty, validation.In(*a.data.ID)),
-		validation.Field(&d.ID, validation.By(isNil)),
-		validation.Field(&d.LastModifiedOn, validation.By(isNil)),
-		validation.Field(&d.LeaseStatus, validation.By(isNil)),
-		validation.Field(&d.CreatedOn, validation.By(isNil)),
-		validation.Field(&d.PrincipalID, validation.By(isNil)),
-		validation.Field(&d.AccountID, validation.By(isNil)),
-	)
-	if err != nil {
-		return errors.NewValidation("lease", err)
-	}
-
-	err = a.save()
-	if err != nil {
-		return err
-	}
-	return nil
-}
 
 // Delete finds a given lease and deletes it if it is not of status `Active`. Returns the lease.
 func (a *Lease) Delete() error {
