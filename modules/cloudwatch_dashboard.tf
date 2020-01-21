@@ -5,9 +5,31 @@ resource "aws_cloudwatch_dashboard" "main" {
 {
   "widgets": [
     {
+        "type": "metric",
+        "x": 0,
+        "y": 0,
+        "width": 24,
+        "height": 6,
+        "properties": {
+            "metrics": [
+                [ "AWS/ApiGateway", "5XXError", "ApiName", "${aws_api_gateway_rest_api.gateway_api.name}", "Stage", "${aws_api_gateway_stage.api.stage_name}", { "color": "#d62728" } ],
+                [ ".", "4XXError", ".", ".", ".", "." ]
+            ],
+            "view": "timeSeries",
+            "stacked": false,
+            "title": "API Errors",
+            "region": "${var.aws_region}",
+            "legend": {
+                "position": "bottom"
+            },
+            "stat": "Average",
+            "period": 300
+        }
+    },
+    {
       "type": "metric",
       "x": 0,
-      "y": 0,
+      "y": 6,
       "width": 12,
       "height": 6,
       "properties": {
@@ -26,7 +48,7 @@ resource "aws_cloudwatch_dashboard" "main" {
     {
       "type": "log",
       "x": 12,
-      "y": 0,
+      "y": 6,
       "width": 12,
       "height": 6,
       "properties": {
@@ -39,7 +61,7 @@ resource "aws_cloudwatch_dashboard" "main" {
     {
       "type": "metric",
       "x": 0,
-      "y": 6,
+      "y": 12,
       "width": 12,
       "height": 6,
       "properties": {
@@ -58,7 +80,7 @@ resource "aws_cloudwatch_dashboard" "main" {
     {
       "type": "log",
       "x": 12,
-      "y": 6,
+      "y": 12,
       "width": 12,
       "height": 6,
       "properties": {
@@ -71,7 +93,7 @@ resource "aws_cloudwatch_dashboard" "main" {
     {
       "type": "metric",
       "x": 0,
-      "y": 6,
+      "y": 18,
       "width": 12,
       "height": 6,
       "properties": {
@@ -90,7 +112,7 @@ resource "aws_cloudwatch_dashboard" "main" {
     {
       "type": "log",
       "x": 12,
-      "y": 6,
+      "y": 18,
       "width": 12,
       "height": 6,
       "properties": {
@@ -103,7 +125,7 @@ resource "aws_cloudwatch_dashboard" "main" {
     {
       "type": "metric",
       "x": 0,
-      "y": 12,
+      "y": 24,
       "width": 12,
       "height": 6,
       "properties": {
@@ -122,7 +144,7 @@ resource "aws_cloudwatch_dashboard" "main" {
     {
       "type": "log",
       "x": 12,
-      "y": 12,
+      "y": 24,
       "width": 12,
       "height": 6,
       "properties": {
@@ -135,7 +157,7 @@ resource "aws_cloudwatch_dashboard" "main" {
         {
             "type": "metric",
             "x": 0,
-            "y": 24,
+            "y": 30,
             "width": 12,
             "height": 6,
             "properties": {
@@ -153,7 +175,7 @@ resource "aws_cloudwatch_dashboard" "main" {
         {
             "type": "log",
             "x": 12,
-            "y": 24,
+            "y": 30,
             "width": 6,
             "height": 6,
             "properties": {
@@ -167,7 +189,7 @@ resource "aws_cloudwatch_dashboard" "main" {
         {
             "type": "log",
             "x": 18,
-            "y": 24,
+            "y": 30,
             "width": 6,
             "height": 6,
             "properties": {
