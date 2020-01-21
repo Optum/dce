@@ -77,11 +77,6 @@ func GetLeasesByPrincipalID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if len(leases) == 0 {
-		response.WriteNotFoundError(w)
-		return
-	}
-
 	leaseResponses := []*response.LeaseResponse{}
 
 	for _, l := range leases {
@@ -136,11 +131,6 @@ func GetLeasesByStatus(w http.ResponseWriter, r *http.Request) {
 		errMsg := fmt.Sprintf("Error getting leases with status \"%s\": %s", leaseStatus, err.Error())
 		log.Println(errMsg)
 		response.WriteServerErrorWithResponse(w, errMsg)
-		return
-	}
-
-	if len(leases) == 0 {
-		response.WriteNotFoundError(w)
 		return
 	}
 
