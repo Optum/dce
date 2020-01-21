@@ -31,3 +31,5 @@ accounts:
       IAMRolePolicyAttachment:
         # Do not remove the policy from the principal user role
         - "{{ .PrincipalRole}} -> {{ .PrincipalPolicy}}"
+        - property: RoleName
+          value: "{{ .AdminRole}}"
