@@ -1,6 +1,13 @@
-## vNext
-- Change `GET /leases` to always return a list
-- Change `GET /leases` to not return 404 when the list is empty
+## v0.26.0
+
+- **BREAKING CHANGE** Change `GET /leases` to always return a list
+- **BREAKING CHANGE** Change `GET /leases` to not return 404 when the list is empty
+
+**Migration Notes**
+
+This release makes breaking changes to the `GET /leases` endpoint, so that requests will always return a HTTP 200 response, with a JSON array in the payload, even if the result set is empty. Previously, if a query had no results, the endpoint would return an HTTP 404 response, with an error object in the response body.
+
+DCE API clients will need to be updated accordingly, to handle this response.  
 
 ## v0.25.0
 
