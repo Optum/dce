@@ -1,3 +1,6 @@
+## vNext
+
+- Add CloudWatch Dashboard for monitoring DCE
 
 ## v0.25.0
 
