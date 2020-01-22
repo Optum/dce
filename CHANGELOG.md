@@ -1,3 +1,6 @@
+## vNext
+- Change `GET /leases` to always return a list
+- Change `GET /leases` to not return 404 when the list is empty
 
 ## v0.25.0
 
