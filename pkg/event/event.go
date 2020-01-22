@@ -1,6 +1,7 @@
 package event
 
 import (
+	"github.com/Optum/dce/pkg/account"
 	"github.com/aws/aws-sdk-go/service/sns/snsiface"
 	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
 )
@@ -42,23 +43,23 @@ func (e *Hub) publish(i interface{}, p ...Publisher) error {
 }
 
 // AccountCreate publish events
-func (e *Hub) AccountCreate(i interface{}) error {
-	return e.publish(i, e.accountCreate...)
+func (e *Hub) AccountCreate(data *account.Account) error {
+	return e.publish(data, e.accountCreate...)
 }
 
 // AccountDelete publish events
-func (e *Hub) AccountDelete(i interface{}) error {
-	return e.publish(i, e.accountDelete...)
+func (e *Hub) AccountDelete(data *account.Account) error {
+	return e.publish(data, e.accountDelete...)
 }
 
 // AccountUpdate publish events
-func (e *Hub) AccountUpdate(i interface{}) error {
-	return e.publish(i, e.accountUpdate...)
+func (e *Hub) AccountUpdate(data *account.Account) error {
+	return e.publish(data, e.accountUpdate...)
 }
 
 // AccountReset publish events
-func (e *Hub) AccountReset(i interface{}) error {
-	return e.publish(i, e.accountReset...)
+func (e *Hub) AccountReset(data *account.Account) error {
+	return e.publish(data, e.accountReset...)
 }
 
 // LeaseCreate publish events

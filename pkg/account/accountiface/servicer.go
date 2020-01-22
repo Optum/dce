@@ -18,4 +18,6 @@ type Servicer interface {
 	Delete(data *account.Account) error
 	// List Get a list of accounts based on Principal ID
 	List(query *account.Account) (*account.Accounts, error)
+	// Create creates a new account using the data provided. Returns the account record
+	Create(data *account.Account) (*account.Account, error)
 }

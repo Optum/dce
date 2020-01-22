@@ -119,9 +119,9 @@ func (bldr *ServiceBuilder) WithLeaseDataService() *ServiceBuilder {
 	return bldr
 }
 
-// WithAccountManager tells the builder to add the Data service to the `ConfigurationBuilder`
-func (bldr *ServiceBuilder) WithAccountManager() *ServiceBuilder {
-	bldr.handlers = append(bldr.handlers, bldr.createAccountManager)
+// WithAccountManagerService tells the builder to add the Data service to the `ConfigurationBuilder`
+func (bldr *ServiceBuilder) WithAccountManagerService() *ServiceBuilder {
+	bldr.handlers = append(bldr.handlers, bldr.createAccountManagerService)
 	return bldr
 }
 
@@ -264,19 +264,23 @@ func (bldr *ServiceBuilder) createAccountDataService(config ConfigurationService
 	return nil
 }
 
-func (bldr *ServiceBuilder) createAccountManager(config ConfigurationServiceBuilder) error {
-	amSvcInput := accountmanager.NewInput{}
-	err := bldr.Config.Unmarshal(&amSvcInput)
+func (bldr *ServiceBuilder) createAccountManagerService(config ConfigurationServiceBuilder) error {
+	amSvc := &accountmanager.Service{}
+	err := bldr.Config.Unmarshal(amSvc)
 	if err != nil {
 		return err
 	}
 
-	amSvcImpl, err := accountmanager.New(amSvcInput)
+	amSvc.Session = bldr.awsSession
+
+	var storagerSvc common.Storager
+	err = bldr.Config.GetService(&storagerSvc)
 	if err != nil {
 		return err
 	}
+	amSvc.Storager = storagerSvc
 
-	config.WithService(amSvcImpl)
+	config.WithService(amSvc)
 	return nil
 }
 
@@ -287,7 +291,7 @@ func (bldr *ServiceBuilder) createAccountService(config ConfigurationServiceBuil
 		return err
 	}
 
-	var managerSvc accountmanageriface.AccountManagerAPI
+	var managerSvc accountmanageriface.Servicer
 	err = bldr.Config.GetService(&managerSvc)
 	if err != nil {
 		return err

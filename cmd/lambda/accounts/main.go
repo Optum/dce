@@ -153,7 +153,7 @@ func initConfig() {
 		// DCE services...
 		WithStorageService().
 		WithAccountDataService().
-		WithAccountManager().
+		WithAccountManagerService().
 		WithAccountService().
 		Build()
 	if err != nil {
