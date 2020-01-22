@@ -91,7 +91,7 @@ func init() {
 			"GetAccounts",
 			"GET",
 			"/accounts",
-			api.EmptyQueryString, // should this be the valid query strings? will this give a 404 then?
+			api.EmptyQueryString,
 			GetAccounts,
 		},
 		api.Route{

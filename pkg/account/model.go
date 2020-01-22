@@ -8,7 +8,7 @@ import (
 // Account - Handles importing and exporting Accounts and non-exported Properties
 type Account struct {
 	ID                  *string                `json:"id,omitempty" dynamodbav:"Id" schema:"id,omitempty"`                                                              // AWS Account ID
-	Status              *Status                `json:"accountStatus,omitempty" dynamodbav:"AccountStatus,omitempty" schema:"accountStatus,omitempty"`                   // Status of the AWS Account
+	Status              *Status                `json:"accountStatus,omitempty" dynamodbav:"AccountStatus,omitempty" schema:"status,omitempty"`                          // Status of the AWS Account
 	LastModifiedOn      *int64                 `json:"lastModifiedOn,omitempty" dynamodbav:"LastModifiedOn" schema:"lastModifiedOn,omitempty"`                          // Last Modified Epoch Timestamp
 	CreatedOn           *int64                 `json:"createdOn,omitempty"  dynamodbav:"CreatedOn,omitempty" schema:"createdOn,omitempty"`                              // Account CreatedOn
 	AdminRoleArn        *string                `json:"adminRoleArn,omitempty"  dynamodbav:"AdminRoleArn" schema:"adminRoleArn,omitempty"`                               // Assumed by the master account, to manage this user account

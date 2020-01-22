@@ -23,7 +23,7 @@ func GetAccounts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	accounts, err := Services.Config.AccountSvc().List(query)
+	accounts, err := Services.Config.AccountService().List(query)
 	if err != nil {
 		api.WriteAPIErrorResponse(w, err)
 		return
