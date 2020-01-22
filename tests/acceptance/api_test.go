@@ -1559,6 +1559,28 @@ func TestApi(t *testing.T) {
 			assert.Equal(t, 2, len(results), "only two leases should be returned")
 		})
 
+		t.Run("When there is a principal ID and an Account ID parameter", func(t *testing.T) {
+			resp := apiRequest(t, &apiRequestInput{
+				method: "GET",
+				url:    apiURL + "/leases?principalId=" + principalIDOne + "&accountId=" + accountIDOne,
+				json:   nil,
+			})
+
+			results := parseResponseArrayJSON(t, resp)
+			assert.Equal(t, 1, len(results), "only one lease should be returned")
+		})
+
+		t.Run("When there is no leases found with principal and account don't exist", func(t *testing.T) {
+			resp := apiRequest(t, &apiRequestInput{
+				method: "GET",
+				url:    apiURL + "/leases?principalId=reallybadprincipal&accountId=notanaccount",
+				json:   nil,
+			})
+
+			results := parseResponseArrayJSON(t, resp)
+			assert.Equal(t, 0, len(results), "only one lease should be returned")
+		})
+
 		t.Run("When there is a limit parameter", func(t *testing.T) {
 			resp := apiRequest(t, &apiRequestInput{
 				method: "GET",

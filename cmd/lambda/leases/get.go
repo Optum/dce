@@ -49,14 +49,14 @@ func GetLeasesByPrincipcalIDAndAccountID(w http.ResponseWriter, r *http.Request)
 		response.WriteServerErrorWithResponse(w, errMsg)
 		return
 	}
-	if lease == nil {
-		log.Printf("Error Getting Lease for Id: %s", err)
-		response.WriteNotFoundError(w)
-		return
+	leaseResponses := []*response.LeaseResponse{}
+	if lease != nil {
+		// Serialize them for the JSON response.
+		leaseResponse := response.LeaseResponse(*lease)
+		leaseResponses = append(leaseResponses, &leaseResponse)
 	}
 
-	leaseResponse := response.LeaseResponse(*lease)
-	err = json.NewEncoder(w).Encode(leaseResponse)
+	err = json.NewEncoder(w).Encode(leaseResponses)
 	if err != nil {
 		errMsg := fmt.Sprintf("Error getting lease for principal %s and acccount %s: %s", principalID, accountID, err.Error())
 		log.Println(errMsg)
@@ -74,11 +74,6 @@ func GetLeasesByPrincipalID(w http.ResponseWriter, r *http.Request) {
 		errMsg := fmt.Sprintf("Error getting leases for principal %s: %s", principalID, err.Error())
 		log.Println(errMsg)
 		response.WriteServerErrorWithResponse(w, errMsg)
-		return
-	}
-
-	if len(leases) == 0 {
-		response.WriteNotFoundError(w)
 		return
 	}
 
@@ -136,11 +131,6 @@ func GetLeasesByStatus(w http.ResponseWriter, r *http.Request) {
 		errMsg := fmt.Sprintf("Error getting leases with status \"%s\": %s", leaseStatus, err.Error())
 		log.Println(errMsg)
 		response.WriteServerErrorWithResponse(w, errMsg)
-		return
-	}
-
-	if len(leases) == 0 {
-		response.WriteNotFoundError(w)
 		return
 	}
 
