@@ -5,7 +5,6 @@ import (
 	"reflect"
 	"regexp"
 
-	"github.com/Optum/dce/pkg/model"
 	validation "github.com/go-ozzo/ozzo-validation"
 )
 
@@ -58,8 +57,8 @@ func isNilOrUsableAdminRole(am Manager) validation.RuleFunc {
 }
 
 func isAccountNotLeased(value interface{}) error {
-	s, _ := value.(*model.AccountStatus)
-	if s.String() == model.AccountStatusLeased.String() {
+	s, _ := value.(*Status)
+	if s.String() == StatusLeased.String() {
 		return errors.New("must not be leased")
 	}
 	return nil

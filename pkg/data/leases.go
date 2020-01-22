@@ -2,15 +2,15 @@ package data
 
 import (
 	"github.com/Optum/dce/pkg/errors"
-	"github.com/Optum/dce/pkg/model"
+	"github.com/Optum/dce/pkg/lease"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
 )
 
-// queryLeases for doing a query against dynamodb
-func (a *Account) queryLeases(q *model.Lease, keyName string, index string) (*model.Leases, error) {
+// query for doing a query against dynamodb
+func (a *Lease) query(q *lease.Lease, keyName string, index string) (*lease.Leases, error) {
 	var expr expression.Expression
 	var bldr expression.Builder
 	var err error
@@ -36,7 +36,7 @@ func (a *Account) queryLeases(q *model.Lease, keyName string, index string) (*mo
 		ExpressionAttributeNames:  expr.Names(),
 		ExpressionAttributeValues: expr.Values(),
 	}
-	res, err = query(input, a)
+	res, err = query(input, a.DynamoDB)
 
 	if err != nil {
 		return nil, errors.NewInternalServer(
@@ -45,7 +45,7 @@ func (a *Account) queryLeases(q *model.Lease, keyName string, index string) (*mo
 		)
 	}
 
-	leases := &model.Leases{}
+	leases := &lease.Leases{}
 	err = dynamodbattribute.UnmarshalListOfMaps(res.Items, leases)
 	if err != nil {
 		return nil, errors.NewInternalServer("failed unmarshaling of leases", err)
@@ -53,8 +53,8 @@ func (a *Account) queryLeases(q *model.Lease, keyName string, index string) (*mo
 	return leases, nil
 }
 
-// scanLeases for doing a scan against dynamodb
-func (a *Account) scanLeases(q *model.Lease) (*model.Leases, error) {
+// scan for doing a scan against dynamodb
+func (a *Lease) scan(q *lease.Lease) (*lease.Leases, error) {
 	var expr expression.Expression
 	var err error
 	var res *dynamodb.ScanOutput
@@ -73,12 +73,12 @@ func (a *Account) scanLeases(q *model.Lease) (*model.Leases, error) {
 		ExpressionAttributeNames:  expr.Names(),
 		ExpressionAttributeValues: expr.Values(),
 	}
-	res, err = scan(input, a)
+	res, err = scan(input, a.DynamoDB)
 	if err != nil {
 		return nil, errors.NewInternalServer("error getting leases", err)
 	}
 
-	leases := &model.Leases{}
+	leases := &lease.Leases{}
 	err = dynamodbattribute.UnmarshalListOfMaps(res.Items, leases)
 	if err != nil {
 		return nil, errors.NewInternalServer("failed unmarshaling of leases", err)
@@ -86,11 +86,11 @@ func (a *Account) scanLeases(q *model.Lease) (*model.Leases, error) {
 	return leases, err
 }
 
-// GetLeases Get a list of leases
-func (a *Account) GetLeases(q *model.Lease) (*model.Leases, error) {
+// List Get a list of leases
+func (a *Lease) List(query *lease.Lease) (*lease.Leases, error) {
 
-	if q.LeaseStatus != nil {
-		return a.queryLeases(q, "LeaseStatus", "LeaseStatus")
+	if query.Status != nil {
+		return a.query(query, "LeaseStatus", "LeaseStatus")
 	}
-	return a.scanLeases(q)
+	return a.scan(query)
 }

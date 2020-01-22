@@ -1,22 +1,22 @@
 package data
 
 import (
+	"github.com/Optum/dce/pkg/account"
 	"github.com/Optum/dce/pkg/errors"
-	"github.com/Optum/dce/pkg/model"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
 )
 
-// queryAccounts for doing a query against dynamodb
-func (a *Account) queryAccounts(q *model.Account, keyName string, index string) (*model.Accounts, error) {
+// query for doing a query against dynamodb
+func (a *Account) query(query *account.Account, keyName string, index string) (*account.Accounts, error) {
 	var expr expression.Expression
 	var bldr expression.Builder
 	var err error
 	var res *dynamodb.QueryOutput
 
-	keyCondition, filters := getFiltersFromStruct(q, &keyName)
+	keyCondition, filters := getFiltersFromStruct(query, &keyName)
 	bldr = expression.NewBuilder().WithKeyCondition(*keyCondition)
 	if filters != nil {
 		bldr = bldr.WithFilter(*filters)
@@ -44,7 +44,7 @@ func (a *Account) queryAccounts(q *model.Account, keyName string, index string) 
 		)
 	}
 
-	accounts := &model.Accounts{}
+	accounts := &account.Accounts{}
 	err = dynamodbattribute.UnmarshalListOfMaps(res.Items, accounts)
 	if err != nil {
 		return nil, errors.NewInternalServer("failed unmarshaling of accounts", err)
@@ -52,13 +52,13 @@ func (a *Account) queryAccounts(q *model.Account, keyName string, index string) 
 	return accounts, nil
 }
 
-// scanAccounts for doing a scan against dynamodb
-func (a *Account) scanAccounts(q *model.Account) (*model.Accounts, error) {
+// scan for doing a scan against dynamodb
+func (a *Account) scan(query *account.Account) (*account.Accounts, error) {
 	var expr expression.Expression
 	var err error
 	var res *dynamodb.ScanOutput
 
-	_, filters := getFiltersFromStruct(q, nil)
+	_, filters := getFiltersFromStruct(query, nil)
 	if filters != nil {
 		expr, err = expression.NewBuilder().WithFilter(*filters).Build()
 		if err != nil {
@@ -76,7 +76,7 @@ func (a *Account) scanAccounts(q *model.Account) (*model.Accounts, error) {
 		return nil, errors.NewInternalServer("error getting accounts", err)
 	}
 
-	accounts := &model.Accounts{}
+	accounts := &account.Accounts{}
 	err = dynamodbattribute.UnmarshalListOfMaps(res.Items, accounts)
 	if err != nil {
 		return nil, errors.NewInternalServer("failed unmarshaling of accounts", err)
@@ -84,11 +84,11 @@ func (a *Account) scanAccounts(q *model.Account) (*model.Accounts, error) {
 	return accounts, err
 }
 
-// GetAccounts Get a list of accounts
-func (a *Account) GetAccounts(q *model.Account) (*model.Accounts, error) {
+// List Get a list of accounts
+func (a *Account) List(query *account.Account) (*account.Accounts, error) {
 
-	if q.Status != nil {
-		return a.queryAccounts(q, "AccountStatus", "AccountStatus")
+	if query.Status != nil {
+		return a.query(query, "AccountStatus", "AccountStatus")
 	}
-	return a.scanAccounts(q)
+	return a.scan(query)
 }

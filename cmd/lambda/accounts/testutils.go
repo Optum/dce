@@ -3,8 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/aws/aws-lambda-go/events"
-	"github.com/stretchr/testify/require"
 	"testing"
 
 	awsMocks "github.com/Optum/dce/pkg/awsiface/mocks"
@@ -123,14 +121,4 @@ func roleManagerStub() *roleManagerMocks.RoleManager {
 		}, nil)
 
 	return roleManagerMock
-}
-
-func newRequest(t *testing.T, method string, endpoint string, req interface{}) events.APIGatewayProxyRequest {
-	requestBody, err := json.Marshal(&req)
-	require.Nil(t, err)
-	return events.APIGatewayProxyRequest{
-		HTTPMethod: method,
-		Path:       endpoint,
-		Body:       string(requestBody),
-	}
 }
