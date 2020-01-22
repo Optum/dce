@@ -14,7 +14,8 @@ resource "aws_cloudwatch_dashboard" "main" {
         "properties": {
             "metrics": [
                 [ "AWS/ApiGateway", "5XXError", "ApiName", "${aws_api_gateway_rest_api.gateway_api.name}", "Stage", "${aws_api_gateway_stage.api.stage_name}", { "color": "#d62728" } ],
-                [ ".", "4XXError", ".", ".", ".", "." ]
+                [ ".", "4XXError", ".", ".", ".", "." ],
+                [ ".", "Count", ".", "." ]
             ],
             "view": "timeSeries",
             "stacked": false,
@@ -23,7 +24,7 @@ resource "aws_cloudwatch_dashboard" "main" {
             "legend": {
                 "position": "bottom"
             },
-            "stat": "Average",
+            "stat": "Sum",
             "period": 300
         }
     },
@@ -42,7 +43,8 @@ resource "aws_cloudwatch_dashboard" "main" {
             ],
             "region": "${var.aws_region}",
             "period": 300,
-            "title": "resets codebuild"
+            "title": "resets codebuild",
+            "stat": "Sum"
         }
     },
     {
@@ -66,7 +68,7 @@ resource "aws_cloudwatch_dashboard" "main" {
         "width": 6,
         "height": 6,
         "properties": {
-            "query": "SOURCE '/aws/codebuild/${aws_codebuild_project.reset_build.name}' | FIELDS @message, @logStream, @timestamp\n| filter @message ~= \": # Child Account\"\n| parse @message \"*: # Child Account\" as account\n| display account, @logStream, @timestamp\n| stats count() by account\n| sort count desc",
+            "query": "SOURCE '/aws/codebuild/account-reset-dashboard2' | FIELDS @message, @logStream, @timestamp\n| filter @message ~= \": # Child Account\"\n| parse @message \"*: # Child Account\" as account\n| display account, @logStream, @timestamp\n| stats count() by account as resetNum\n| sort resetNum asc",
             "region": "${var.aws_region}",
             "stacked": false,
             "title": "Most Frequently Reset",
@@ -233,7 +235,8 @@ resource "aws_cloudwatch_dashboard" "main" {
                 [ ".", "Errors", ".", ".", { "color": "#d62728" } ]
             ],
             "region": "${var.aws_region}",
-            "title": "${module.update_lease_status_lambda.name} λ"
+            "title": "${module.update_lease_status_lambda.name} λ",
+            "stat": "Sum"
         }
     },
     {
@@ -264,7 +267,8 @@ resource "aws_cloudwatch_dashboard" "main" {
                 [ ".", "Errors", ".", ".", { "color": "#d62728" } ]
             ],
             "region": "${var.aws_region}",
-            "title": "${module.fan_out_update_lease_status_lambda.name} λ"
+            "title": "${module.fan_out_update_lease_status_lambda.name} λ",
+            "stat": "Sum"
         }
     },
     {
@@ -295,7 +299,8 @@ resource "aws_cloudwatch_dashboard" "main" {
                 [ ".", "Errors", ".", ".", { "color": "#d62728" } ]
             ],
             "region": "${var.aws_region}",
-            "title": "${module.populate_reset_queue.name} λ"
+            "title": "${module.populate_reset_queue.name} λ",
+            "stat": "Sum"
         }
     },
     {
@@ -326,7 +331,8 @@ resource "aws_cloudwatch_dashboard" "main" {
                 [ ".", "Errors", ".", ".", { "color": "#d62728" } ]
             ],
             "region": "${var.aws_region}",
-            "title": "${module.process_reset_queue.name} λ"
+            "title": "${module.process_reset_queue.name} λ",
+            "stat": "Sum"
         }
     },
     {
@@ -357,7 +363,8 @@ resource "aws_cloudwatch_dashboard" "main" {
                 [ ".", "Errors", ".", ".", { "color": "#d62728" } ]
             ],
             "region": "${var.aws_region}",
-            "title": "${module.publish_lease_events_lambda.name} λ"
+            "title": "${module.publish_lease_events_lambda.name} λ",
+            "stat": "Sum"
         }
     },
     {
@@ -388,7 +395,8 @@ resource "aws_cloudwatch_dashboard" "main" {
                 [ ".", "Errors", ".", ".", { "color": "#d62728" } ]
             ],
             "region": "${var.aws_region}",
-            "title": "${module.update_lease_status_lambda.name} λ"
+            "title": "${module.update_lease_status_lambda.name} λ",
+            "stat": "Sum"
         }
     },
     {
@@ -419,7 +427,8 @@ resource "aws_cloudwatch_dashboard" "main" {
                 [ ".", "Errors", ".", ".", { "color": "#d62728" } ]
             ],
             "region": "${var.aws_region}",
-            "title": "${module.update_principal_policy.name} λ"
+            "title": "${module.update_principal_policy.name} λ",
+            "stat": "Sum"
         }
     },
     {
