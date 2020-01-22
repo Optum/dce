@@ -19,7 +19,7 @@ resource "aws_cloudwatch_dashboard" "main" {
             ],
             "view": "timeSeries",
             "stacked": false,
-            "title": "API Errors",
+            "title": "API Gateway",
             "region": "${var.aws_region}",
             "legend": {
                 "position": "bottom"
