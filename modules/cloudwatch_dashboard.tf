@@ -34,7 +34,7 @@ resource "aws_cloudwatch_dashboard" "main" {
       "height": 6,
       "properties": {
         "metrics": [
-          [ "AWS/Lambda", "Invocations", "FunctionName", "${module.accounts_lambda.name}" ],
+          [ "AWS/Lambda", "Invocations", "FunctionName", "${module.accounts_lambda.name}", { "color": "#1f77b4" } ],
           [ ".", "Errors", ".", ".", { "color": "#d62728" } ]
         ],
         "view": "timeSeries",
@@ -52,10 +52,11 @@ resource "aws_cloudwatch_dashboard" "main" {
       "width": 12,
       "height": 6,
       "properties": {
-        "query": "SOURCE '/aws/lambda/${module.accounts_lambda.name}' | fields @timestamp, @message\n| sort @timestamp desc\n| limit 100",
+        "query": "SOURCE '/aws/lambda/${module.accounts_lambda.name}' | fields @timestamp, @message\n| sort @timestamp desc\n| filter @message ~= \"error\"\n| display @timestamp, @message, @logStream\n| limit 100\n",
         "region": "${var.aws_region}",
         "stacked": false,
-        "view": "table"
+        "view": "table",
+        "title": "accounts λ error scraper"
       }
     },
     {
@@ -66,7 +67,7 @@ resource "aws_cloudwatch_dashboard" "main" {
       "height": 6,
       "properties": {
         "metrics": [
-          [ "AWS/Lambda", "Invocations", "FunctionName", "${module.leases_lambda.name}" ],
+          [ "AWS/Lambda", "Invocations", "FunctionName", "${module.leases_lambda.name}", { "color": "#1f77b4" } ],
           [ ".", "Errors", ".", ".", { "color": "#d62728" } ]
         ],
         "view": "timeSeries",
@@ -84,10 +85,11 @@ resource "aws_cloudwatch_dashboard" "main" {
       "width": 12,
       "height": 6,
       "properties": {
-        "query": "SOURCE '/aws/lambda/${module.leases_lambda.name}' | fields @timestamp, @message\n| sort @timestamp desc\n| limit 100",
+        "query": "SOURCE '/aws/lambda/${module.leases_lambda.name}' | fields @timestamp, @message\n| sort @timestamp desc\n| filter @message ~= \"error\"\n| display @timestamp, @message, @logStream\n| limit 100\n",
         "region": "${var.aws_region}",
         "stacked": false,
-        "view": "table"
+        "view": "table",
+        "title": "leases λ error scraper"
       }
     },
     {
@@ -98,7 +100,7 @@ resource "aws_cloudwatch_dashboard" "main" {
       "height": 6,
       "properties": {
         "metrics": [
-          [ "AWS/Lambda", "Invocations", "FunctionName", "${module.lease_auth_lambda.name}" ],
+          [ "AWS/Lambda", "Invocations", "FunctionName", "${module.lease_auth_lambda.name}", { "color": "#1f77b4" } ],
           [ ".", "Errors", ".", ".", { "color": "#d62728" } ]
         ],
         "view": "timeSeries",
@@ -116,10 +118,11 @@ resource "aws_cloudwatch_dashboard" "main" {
       "width": 12,
       "height": 6,
       "properties": {
-        "query": "SOURCE '/aws/lambda/${module.lease_auth_lambda.name}' | fields @timestamp, @message\n| sort @timestamp desc\n| limit 100",
+        "query": "SOURCE '/aws/lambda/${module.lease_auth_lambda.name}' | fields @timestamp, @message\n| sort @timestamp desc\n| filter @message ~= \"error\"\n| display @timestamp, @message, @logStream\n| limit 100\n",
         "region": "${var.aws_region}",
         "stacked": false,
-        "view": "table"
+        "view": "table",
+        "title": "lease_auth λ error scraper"
       }
     },
     {
@@ -130,7 +133,7 @@ resource "aws_cloudwatch_dashboard" "main" {
       "height": 6,
       "properties": {
         "metrics": [
-          [ "AWS/Lambda", "Invocations", "FunctionName", "${module.usage_lambda.name}" ],
+          [ "AWS/Lambda", "Invocations", "FunctionName", "${module.usage_lambda.name}", { "color": "#1f77b4" } ],
           [ ".", "Errors", ".", ".", { "color": "#d62728" } ]
         ],
         "view": "timeSeries",
@@ -148,10 +151,11 @@ resource "aws_cloudwatch_dashboard" "main" {
       "width": 12,
       "height": 6,
       "properties": {
-        "query": "SOURCE '/aws/lambda/${module.usage_lambda.name}' | fields @timestamp, @message\n| sort @timestamp desc\n| limit 100",
+        "query": "SOURCE '/aws/lambda/${module.usage_lambda.name}' | fields @timestamp, @message\n| sort @timestamp desc\n| filter @message ~= \"error\"\n| display @timestamp, @message, @logStream\n| limit 100\n",
         "region": "${var.aws_region}",
         "stacked": false,
-        "view": "table"
+        "view": "table",
+        "title": "usage λ error scraper"
       }
     },
         {
@@ -164,12 +168,12 @@ resource "aws_cloudwatch_dashboard" "main" {
                 "view": "timeSeries",
                 "stacked": false,
                 "metrics": [
-                    [ "AWS/CodeBuild", "SucceededBuilds", "ProjectName", "${aws_codebuild_project.reset_build.name}" ],
-                    [ ".", "FailedBuilds", ".", "." ]
+                    [ "AWS/CodeBuild", "SucceededBuilds", "ProjectName", "${aws_codebuild_project.reset_build.name}", { "color": "#1f77b4" } ],
+                    [ ".", "FailedBuilds", ".", ".", { "color": "#d62728" } ]
                 ],
                 "region": "${var.aws_region}",
                 "period": 300,
-                "title": "CodeBuild Resets"
+                "title": "resets codebuild"
             }
         },
         {
@@ -199,6 +203,237 @@ resource "aws_cloudwatch_dashboard" "main" {
                 "title": "Most Frequently Reset",
                 "view": "table"
             }
+        },
+        {
+            "type": "log",
+            "x": 0,
+            "y": 36,
+            "width": 24,
+            "height": 6,
+            "properties": {
+                "query": "SOURCE '/aws/codebuild/${aws_codebuild_project.reset_build.name}' | fields @timestamp, @message\n| sort @timestamp desc\n| filter @message ~= \"error\"\n| display @timestamp, @message, @logStream\n| limit 100\n",
+                "region": "us-east-1",
+                "stacked": false,
+                "view": "table",
+                "title": "resets codebuild error scraper"
+            }
+        },
+        {
+            "type": "metric",
+            "x": 0,
+            "y": 42,
+            "width": 12,
+            "height": 6,
+            "properties": {
+                "view": "timeSeries",
+                "stacked": false,
+                "metrics": [
+                    [ "AWS/Lambda", "Invocations", "FunctionName", "${module.update_lease_status_lambda.name}", { "color": "#1f77b4" } ],
+                    [ ".", "Errors", ".", ".", { "color": "#d62728" } ]
+                ],
+                "region": "${var.aws_region}",
+                "title": "${module.update_lease_status_lambda.name} λ"
+            }
+        },
+        {
+          "type": "log",
+          "x": 12,
+          "y": 42,
+          "width": 12,
+          "height": 6,
+          "properties": {
+            "query": "SOURCE '/aws/lambda/${module.update_lease_status_lambda.name}' | fields @timestamp, @message\n| sort @timestamp desc\n| filter @message ~= \"error\"\n| display @timestamp, @message, @logStream\n| limit 100\n",
+            "region": "${var.aws_region}",
+            "stacked": false,
+            "view": "table",
+            "title": "${module.update_lease_status_lambda.name} λ error scraper"
+          }
+        },
+        {
+            "type": "metric",
+            "x": 0,
+            "y": 48,
+            "width": 12,
+            "height": 6,
+            "properties": {
+                "view": "timeSeries",
+                "stacked": false,
+                "metrics": [
+                    [ "AWS/Lambda", "Invocations", "FunctionName", "${module.fan_out_update_lease_status_lambda.name}", { "color": "#1f77b4" } ],
+                    [ ".", "Errors", ".", ".", { "color": "#d62728" } ]
+                ],
+                "region": "${var.aws_region}",
+                "title": "${module.fan_out_update_lease_status_lambda.name} λ"
+            }
+        },
+        {
+          "type": "log",
+          "x": 12,
+          "y": 48,
+          "width": 12,
+          "height": 6,
+          "properties": {
+            "query": "SOURCE '/aws/lambda/${module.fan_out_update_lease_status_lambda.name}' | fields @timestamp, @message\n| sort @timestamp desc\n| filter @message ~= \"error\"\n| display @timestamp, @message, @logStream\n| limit 100\n",
+            "region": "${var.aws_region}",
+            "stacked": false,
+            "view": "table",
+            "title": "${module.fan_out_update_lease_status_lambda.name} λ error scraper"
+          }
+        },
+        {
+            "type": "metric",
+            "x": 0,
+            "y": 54,
+            "width": 12,
+            "height": 6,
+            "properties": {
+                "view": "timeSeries",
+                "stacked": false,
+                "metrics": [
+                    [ "AWS/Lambda", "Invocations", "FunctionName", "${module.populate_reset_queue.name}", { "color": "#1f77b4" } ],
+                    [ ".", "Errors", ".", ".", { "color": "#d62728" } ]
+                ],
+                "region": "${var.aws_region}",
+                "title": "${module.populate_reset_queue.name} λ"
+            }
+        },
+        {
+          "type": "log",
+          "x": 12,
+          "y": 54,
+          "width": 12,
+          "height": 6,
+          "properties": {
+            "query": "SOURCE '/aws/lambda/${module.populate_reset_queue.name}' | fields @timestamp, @message\n| sort @timestamp desc\n| filter @message ~= \"error\"\n| display @timestamp, @message, @logStream\n| limit 100\n",
+            "region": "${var.aws_region}",
+            "stacked": false,
+            "view": "table",
+            "title": "${module.populate_reset_queue.name} λ error scraper"
+          }
+        },
+        {
+            "type": "metric",
+            "x": 0,
+            "y": 60,
+            "width": 12,
+            "height": 6,
+            "properties": {
+                "view": "timeSeries",
+                "stacked": false,
+                "metrics": [
+                    [ "AWS/Lambda", "Invocations", "FunctionName", "${module.process_reset_queue.name}", { "color": "#1f77b4" } ],
+                    [ ".", "Errors", ".", ".", { "color": "#d62728" } ]
+                ],
+                "region": "${var.aws_region}",
+                "title": "${module.process_reset_queue.name} λ"
+            }
+        },
+        {
+          "type": "log",
+          "x": 12,
+          "y": 60,
+          "width": 12,
+          "height": 6,
+          "properties": {
+            "query": "SOURCE '/aws/lambda/${module.process_reset_queue.name}' | fields @timestamp, @message\n| sort @timestamp desc\n| filter @message ~= \"error\"\n| display @timestamp, @message, @logStream\n| limit 100\n",
+            "region": "${var.aws_region}",
+            "stacked": false,
+            "view": "table",
+            "title": "${module.process_reset_queue.name} λ error scraper"
+          }
+        },
+        {
+            "type": "metric",
+            "x": 0,
+            "y": 66,
+            "width": 12,
+            "height": 6,
+            "properties": {
+                "view": "timeSeries",
+                "stacked": false,
+                "metrics": [
+                    [ "AWS/Lambda", "Invocations", "FunctionName", "${module.publish_lease_events_lambda.name}", { "color": "#1f77b4" } ],
+                    [ ".", "Errors", ".", ".", { "color": "#d62728" } ]
+                ],
+                "region": "${var.aws_region}",
+                "title": "${module.publish_lease_events_lambda.name} λ"
+            }
+        },
+        {
+          "type": "log",
+          "x": 12,
+          "y": 66,
+          "width": 12,
+          "height": 6,
+          "properties": {
+            "query": "SOURCE '/aws/lambda/${module.publish_lease_events_lambda.name}' | fields @timestamp, @message\n| sort @timestamp desc\n| filter @message ~= \"error\"\n| display @timestamp, @message, @logStream\n| limit 100\n",
+            "region": "${var.aws_region}",
+            "stacked": false,
+            "view": "table",
+            "title": "${module.publish_lease_events_lambda.name} λ error scraper"
+          }
+        },
+        {
+            "type": "metric",
+            "x": 0,
+            "y": 72,
+            "width": 12,
+            "height": 6,
+            "properties": {
+                "view": "timeSeries",
+                "stacked": false,
+                "metrics": [
+                    [ "AWS/Lambda", "Invocations", "FunctionName", "${module.update_lease_status_lambda.name}", { "color": "#1f77b4" } ],
+                    [ ".", "Errors", ".", ".", { "color": "#d62728" } ]
+                ],
+                "region": "${var.aws_region}",
+                "title": "${module.update_lease_status_lambda.name} λ"
+            }
+        },
+        {
+          "type": "log",
+          "x": 12,
+          "y": 72,
+          "width": 12,
+          "height": 6,
+          "properties": {
+            "query": "SOURCE '/aws/lambda/${module.update_lease_status_lambda.name}' | fields @timestamp, @message\n| sort @timestamp desc\n| filter @message ~= \"error\"\n| display @timestamp, @message, @logStream\n| limit 100\n",
+            "region": "${var.aws_region}",
+            "stacked": false,
+            "view": "table",
+            "title": "${module.update_lease_status_lambda.name} λ error scraper"
+          }
+        },
+        {
+            "type": "metric",
+            "x": 0,
+            "y": 78,
+            "width": 12,
+            "height": 6,
+            "properties": {
+                "view": "timeSeries",
+                "stacked": false,
+                "metrics": [
+                    [ "AWS/Lambda", "Invocations", "FunctionName", "${module.update_principal_policy.name}", { "color": "#1f77b4" } ],
+                    [ ".", "Errors", ".", ".", { "color": "#d62728" } ]
+                ],
+                "region": "${var.aws_region}",
+                "title": "${module.update_principal_policy.name} λ"
+            }
+        },
+        {
+          "type": "log",
+          "x": 12,
+          "y": 78,
+          "width": 12,
+          "height": 6,
+          "properties": {
+            "query": "SOURCE '/aws/lambda/${module.update_principal_policy.name}' | fields @timestamp, @message\n| sort @timestamp desc\n| filter @message ~= \"error\"\n| display @timestamp, @message, @logStream\n| limit 100\n",
+            "region": "${var.aws_region}",
+            "stacked": false,
+            "view": "table",
+            "title": "${module.update_principal_policy.name} λ error scraper"
+          }
         }
   ]
 }
