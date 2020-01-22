@@ -80,7 +80,7 @@ resource "aws_cloudwatch_dashboard" "main" {
         "width": 24,
         "height": 6,
         "properties": {
-            "query": "SOURCE '/aws/codebuild/${aws_codebuild_project.reset_build.name}' | fields @timestamp, @message\n| sort @timestamp desc\n| filter @message ~= \"error\" or @message ~= \"fail\"\n| display @timestamp, @message, @logStream\n| limit 100\n",
+            "query": "SOURCE '/aws/codebuild/${aws_codebuild_project.reset_build.name}' | fields @timestamp, @message\n| sort @timestamp desc\n| filter @message ~= \"error\" or @message ~= \"fail\" or @message ~= \"fork/exec\"\n| display @timestamp, @message, @logStream\n| limit 100\n",
             "region": "us-east-1",
             "stacked": false,
             "view": "table",
@@ -113,7 +113,7 @@ resource "aws_cloudwatch_dashboard" "main" {
       "width": 12,
       "height": 6,
       "properties": {
-        "query": "SOURCE '/aws/lambda/${module.accounts_lambda.name}' | fields @timestamp, @message\n| sort @timestamp desc\n| filter @message ~= \"error\" or @message ~= \"fail\"\n| display @timestamp, @message, @logStream\n| limit 100\n",
+        "query": "SOURCE '/aws/lambda/${module.accounts_lambda.name}' | fields @timestamp, @message\n| sort @timestamp desc\n| filter @message ~= \"error\" or @message ~= \"fail\" or @message ~= \"fork/exec\"\n| display @timestamp, @message, @logStream\n| limit 100\n",
         "region": "${var.aws_region}",
         "stacked": false,
         "view": "table",
@@ -146,7 +146,7 @@ resource "aws_cloudwatch_dashboard" "main" {
       "width": 12,
       "height": 6,
       "properties": {
-        "query": "SOURCE '/aws/lambda/${module.leases_lambda.name}' | fields @timestamp, @message\n| sort @timestamp desc\n| filter @message ~= \"error\" or @message ~= \"fail\"\n| display @timestamp, @message, @logStream\n| limit 100\n",
+        "query": "SOURCE '/aws/lambda/${module.leases_lambda.name}' | fields @timestamp, @message\n| sort @timestamp desc\n| filter @message ~= \"error\" or @message ~= \"fail\" or @message ~= \"fork/exec\"\n| display @timestamp, @message, @logStream\n| limit 100\n",
         "region": "${var.aws_region}",
         "stacked": false,
         "view": "table",
@@ -179,7 +179,7 @@ resource "aws_cloudwatch_dashboard" "main" {
       "width": 12,
       "height": 6,
       "properties": {
-        "query": "SOURCE '/aws/lambda/${module.lease_auth_lambda.name}' | fields @timestamp, @message\n| sort @timestamp desc\n| filter @message ~= \"error\" or @message ~= \"fail\"\n| display @timestamp, @message, @logStream\n| limit 100\n",
+        "query": "SOURCE '/aws/lambda/${module.lease_auth_lambda.name}' | fields @timestamp, @message\n| sort @timestamp desc\n| filter @message ~= \"error\" or @message ~= \"fail\" or @message ~= \"fork/exec\"\n| display @timestamp, @message, @logStream\n| limit 100\n",
         "region": "${var.aws_region}",
         "stacked": false,
         "view": "table",
@@ -212,7 +212,7 @@ resource "aws_cloudwatch_dashboard" "main" {
       "width": 12,
       "height": 6,
       "properties": {
-        "query": "SOURCE '/aws/lambda/${module.usage_lambda.name}' | fields @timestamp, @message\n| sort @timestamp desc\n| filter @message ~= \"error\" or @message ~= \"fail\"\n| display @timestamp, @message, @logStream\n| limit 100\n",
+        "query": "SOURCE '/aws/lambda/${module.usage_lambda.name}' | fields @timestamp, @message\n| sort @timestamp desc\n| filter @message ~= \"error\" or @message ~= \"fail\" or @message ~= \"fork/exec\"\n| display @timestamp, @message, @logStream\n| limit 100\n",
         "region": "${var.aws_region}",
         "stacked": false,
         "view": "table",
@@ -243,7 +243,7 @@ resource "aws_cloudwatch_dashboard" "main" {
       "width": 12,
       "height": 6,
       "properties": {
-        "query": "SOURCE '/aws/lambda/${module.update_lease_status_lambda.name}' | fields @timestamp, @message\n| sort @timestamp desc\n| filter @message ~= \"error\" or @message ~= \"fail\"\n| display @timestamp, @message, @logStream\n| limit 100\n",
+        "query": "SOURCE '/aws/lambda/${module.update_lease_status_lambda.name}' | fields @timestamp, @message\n| sort @timestamp desc\n| filter @message ~= \"error\" or @message ~= \"fail\" or @message ~= \"fork/exec\"\n| display @timestamp, @message, @logStream\n| limit 100\n",
         "region": "${var.aws_region}",
         "stacked": false,
         "view": "table",
@@ -274,7 +274,7 @@ resource "aws_cloudwatch_dashboard" "main" {
       "width": 12,
       "height": 6,
       "properties": {
-        "query": "SOURCE '/aws/lambda/${module.fan_out_update_lease_status_lambda.name}' | fields @timestamp, @message\n| sort @timestamp desc\n| filter @message ~= \"error\" or @message ~= \"fail\"\n| display @timestamp, @message, @logStream\n| limit 100\n",
+        "query": "SOURCE '/aws/lambda/${module.fan_out_update_lease_status_lambda.name}' | fields @timestamp, @message\n| sort @timestamp desc\n| filter @message ~= \"error\" or @message ~= \"fail\" or @message ~= \"fork/exec\"\n| display @timestamp, @message, @logStream\n| limit 100\n",
         "region": "${var.aws_region}",
         "stacked": false,
         "view": "table",
@@ -305,7 +305,7 @@ resource "aws_cloudwatch_dashboard" "main" {
       "width": 12,
       "height": 6,
       "properties": {
-        "query": "SOURCE '/aws/lambda/${module.populate_reset_queue.name}' | fields @timestamp, @message\n| sort @timestamp desc\n| filter @message ~= \"error\" or @message ~= \"fail\"\n| display @timestamp, @message, @logStream\n| limit 100\n",
+        "query": "SOURCE '/aws/lambda/${module.populate_reset_queue.name}' | fields @timestamp, @message\n| sort @timestamp desc\n| filter @message ~= \"error\" or @message ~= \"fail\" or @message ~= \"fork/exec\"\n| display @timestamp, @message, @logStream\n| limit 100\n",
         "region": "${var.aws_region}",
         "stacked": false,
         "view": "table",
@@ -336,7 +336,7 @@ resource "aws_cloudwatch_dashboard" "main" {
       "width": 12,
       "height": 6,
       "properties": {
-        "query": "SOURCE '/aws/lambda/${module.process_reset_queue.name}' | fields @timestamp, @message\n| sort @timestamp desc\n| filter @message ~= \"error\" or @message ~= \"fail\"\n| display @timestamp, @message, @logStream\n| limit 100\n",
+        "query": "SOURCE '/aws/lambda/${module.process_reset_queue.name}' | fields @timestamp, @message\n| sort @timestamp desc\n| filter @message ~= \"error\" or @message ~= \"fail\" or @message ~= \"fork/exec\"\n| display @timestamp, @message, @logStream\n| limit 100\n",
         "region": "${var.aws_region}",
         "stacked": false,
         "view": "table",
@@ -367,7 +367,7 @@ resource "aws_cloudwatch_dashboard" "main" {
       "width": 12,
       "height": 6,
       "properties": {
-        "query": "SOURCE '/aws/lambda/${module.publish_lease_events_lambda.name}' | fields @timestamp, @message\n| sort @timestamp desc\n| filter @message ~= \"error\" or @message ~= \"fail\"\n| display @timestamp, @message, @logStream\n| limit 100\n",
+        "query": "SOURCE '/aws/lambda/${module.publish_lease_events_lambda.name}' | fields @timestamp, @message\n| sort @timestamp desc\n| filter @message ~= \"error\" or @message ~= \"fail\" or @message ~= \"fork/exec\"\n| display @timestamp, @message, @logStream\n| limit 100\n",
         "region": "${var.aws_region}",
         "stacked": false,
         "view": "table",
@@ -398,7 +398,7 @@ resource "aws_cloudwatch_dashboard" "main" {
       "width": 12,
       "height": 6,
       "properties": {
-        "query": "SOURCE '/aws/lambda/${module.update_lease_status_lambda.name}' | fields @timestamp, @message\n| sort @timestamp desc\n| filter @message ~= \"error\" or @message ~= \"fail\"\n| display @timestamp, @message, @logStream\n| limit 100\n",
+        "query": "SOURCE '/aws/lambda/${module.update_lease_status_lambda.name}' | fields @timestamp, @message\n| sort @timestamp desc\n| filter @message ~= \"error\" or @message ~= \"fail\" or @message ~= \"fork/exec\"\n| display @timestamp, @message, @logStream\n| limit 100\n",
         "region": "${var.aws_region}",
         "stacked": false,
         "view": "table",
@@ -429,7 +429,7 @@ resource "aws_cloudwatch_dashboard" "main" {
       "width": 12,
       "height": 6,
       "properties": {
-        "query": "SOURCE '/aws/lambda/${module.update_principal_policy.name}' | fields @timestamp, @message\n| sort @timestamp desc\n| filter @message ~= \"error\" or @message ~= \"fail\"\n| display @timestamp, @message, @logStream\n| limit 100\n",
+        "query": "SOURCE '/aws/lambda/${module.update_principal_policy.name}' | fields @timestamp, @message\n| sort @timestamp desc\n| filter @message ~= \"error\" or @message ~= \"fail\" or @message ~= \"fork/exec\"\n| display @timestamp, @message, @logStream\n| limit 100\n",
         "region": "${var.aws_region}",
         "stacked": false,
         "view": "table",
