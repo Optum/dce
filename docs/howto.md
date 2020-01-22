@@ -71,6 +71,73 @@ will look for credentials, ordered by precedence.
 1. The Environment Variables: `AWS_ACCESS_KEY_ID`, `AWS_ACCESS_KEY`, and `AWS_SESSION_TOKEN`
 1. Stored in the AWS CLI credentials file under the `default` profile. This is located at `$HOME/.aws/credentials` on Linux/OSX and `%USERPROFILE%\.aws\credentials` on Windows.
 
+### Configuring other CLI (advanced)
+
+The DCE CLI stores its configuration by default in the `$HOME/.dce/config.yaml` location. This
+can by overridden using the `--config` command line option. The file is as shown:
+
+```yaml
+# The API configutation. This is the DCE API that has been deployed to 
+# an AWS account.
+api:
+  # This is the host name only, in the format of 
+  # {restapi_id}.execute-api.{region}.amazonaws.com
+  # For more information, see 
+  # https://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-call-api.html
+  host: api-gateway-id.execute-api.us-east-1.amazonaws.com
+  # The stage name of the API Gateway
+  # Default: /api
+  basepath: /api
+# The AWS region. It must match the region configured in the 
+# api.host. Must be one of:
+# "us-east-1", "us-east-2", "us-west-1", "us-west-2"
+region: us-east-1
+# Terraform configuration
+terraform:
+  # The full path to the locally-cached terraform binary used
+  # by DCE to provision resources. Default value is 
+  # $HOME/.dce/.cache/terraform/0.12.18/terraform
+  bin: /path/to/terraform
+  # The source from which terraform was downloaded. This
+  # is reserved for future use.
+  source: https://download.url.example.com/terraform.zip
+  # The options passed to the underlying terraform init command.
+  # This value is read if the --tf-init-options command option
+  # is not specified or if the DCE_TF_INIT_OPTIONS environment
+  # variable is empty, in that order.
+  # The format of the value should be just as you would pass
+  # them to terraform, as a quoted string.
+  initOptions: ""
+  # The options passed to the underlying terraform apply command.
+  # Like the --tf-init-options flag, the command option is read
+  # first, then the DCE_TF_APPLY_OPTIONS environment variable,
+  # and lastly this value here. Use the --save-options flag to
+  # easily save the values you supply on the CLI to this file.
+  # The format of the value should be just as you would pass
+  # them to terraform, as a quoted string.
+  applyOptions: ""
+
+```
+
+The DCE CLI uses [terraform](https://www.terraform.io/) to provision the infrastructure into the AWS account. 
+You can use the `--tf-init-options` and `--tf-apply-options` to supply options directly to `terraform init`
+and `terraform apply` (respectively) in the same format in which you would supply them to the `terraform` command.
+
+> Note: if you are an advanced terraform user, you should consider 
+> using the `DCE terraform module directly<terraform.html>`_.
+
+The `--save-options` flag, if supplied, saves the values supplied to `--tf-init-options` and `--tf-apply-options`
+in the configuration file in the following locations:
+
+```yaml
+terraform:
+  initOptions: "-lock=true"
+  applyOptions: "-compact-warnings -lock=true"
+```
+
+For more information on the configuration file, see the descriptions and examples inside the
+`$HOME/.dce/config.yaml` file after running `dce init`.
+
 ### Deploying DCE from the CLI
 
 You can build and deploy DCE from `source <#deploying-dce-from-source>`_ or by using the CLI.
