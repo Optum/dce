@@ -52,6 +52,11 @@ variable "reset_nuke_toggle" {
   default     = "true"
 }
 
+variable "cloudwatch_dashboard_toggle" {
+  description = "Set to 'true' to enable an out of the box cloudwatch dashboard. Defaults to 'false."
+  default     = "false"
+}
+
 variable "populate_reset_queue_schedule_expression" {
   description = "The schedule used with CloudWatch to enqueue accounts for reset."
   default     = "rate(6 hours)" // Runs every six hours
