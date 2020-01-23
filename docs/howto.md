@@ -72,7 +72,50 @@ will look for credentials, ordered by precedence.
 1. The Environment Variables: `AWS_ACCESS_KEY_ID`, `AWS_ACCESS_KEY`, and `AWS_SESSION_TOKEN`
 1. Stored in the AWS CLI credentials file under the `default` profile. This is located at `$HOME/.aws/credentials` on Linux/OSX and `%USERPROFILE%\.aws\credentials` on Windows.
 
-### Configuring other CLI (advanced)
+.
+
+### Deploying DCE from the CLI
+
+You can build and deploy DCE from `source <#deploying-dce-from-source>`_ or by using the CLI.
+This section will cover deployment using the DCE CLI with credentilas configured by the AWS CLI. See `Configuring AWS Credentials <#configuring-aws-credentials>`_ for alternatives.
+
+1. [Download and install the AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html)
+
+1. Choose an AWS account to be your new "DCE Master Account" and configure the AWS CLI with user credentials that have AdministratorAccess in that account.
+
+    ```
+    aws configure set aws_access_key_id default_access_key
+    aws configure set aws_secret_access_key default_secret_key
+    ```
+
+1. Type `dce system deploy` to deploy dce to the AWS account specified in the previous step.
+
+1. Edit your dce config file with the host and base url from the api gateway that was just deployed to your master account. This can be found in the master account under `API Gateway > (The API with "dce" in the title) > Stages > "Invoke URL: https://<host>/<baseurl>"`. Your config file should look something like this:
+
+    ```
+    api:
+      host: abcdefghij.execute-api.us-east-1.amazonaws.com
+      basepath: /api
+    region: us-east-1
+    ```
+
+#### Using advanced deployment options
+
+The DCE CLI uses [terraform](https://www.terraform.io/) to provision the infrastructure into the AWS account. 
+You can use the `--tf-init-options` and `--tf-apply-options` to supply options directly to `terraform init`
+and `terraform apply` (respectively) in the same format in which you would supply them to the `terraform` command.
+
+> Note: if you are an advanced terraform user, you should consider 
+> using the `DCE terraform module directly<terraform.html>`_.
+
+The `--save-options` flag, if supplied, saves the values supplied to `--tf-init-options` and `--tf-apply-options`
+in the configuration file in the following locations:
+
+```yaml
+terraform:
+  initOptions: "-lock=true"
+  applyOptions: "-compact-warnings -lock=true"
+```
 
 The DCE CLI stores its configuration by default in the `$HOME/.dce/config.yaml` location. This
 can by overridden using the `--config` command line option. The file is as shown:
@@ -119,50 +162,6 @@ terraform:
   applyOptions: ""
 
 ```
-
-The DCE CLI uses [terraform](https://www.terraform.io/) to provision the infrastructure into the AWS account. 
-You can use the `--tf-init-options` and `--tf-apply-options` to supply options directly to `terraform init`
-and `terraform apply` (respectively) in the same format in which you would supply them to the `terraform` command.
-
-> Note: if you are an advanced terraform user, you should consider 
-> using the `DCE terraform module directly<terraform.html>`_.
-
-The `--save-options` flag, if supplied, saves the values supplied to `--tf-init-options` and `--tf-apply-options`
-in the configuration file in the following locations:
-
-```yaml
-terraform:
-  initOptions: "-lock=true"
-  applyOptions: "-compact-warnings -lock=true"
-```
-
-For more information on the configuration file, see the descriptions and examples inside the
-`$HOME/.dce/config.yaml` file after running `dce init`.
-
-### Deploying DCE from the CLI
-
-You can build and deploy DCE from `source <#deploying-dce-from-source>`_ or by using the CLI.
-This section will cover deployment using the DCE CLI with credentilas configured by the AWS CLI. See `Configuring AWS Credentials <#configuring-aws-credentials>`_ for alternatives.
-
-1. [Download and install the AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html)
-
-1. Choose an AWS account to be your new "DCE Master Account" and configure the AWS CLI with user credentials that have AdministratorAccess in that account.
-
-    ```
-    aws configure set aws_access_key_id default_access_key
-    aws configure set aws_secret_access_key default_secret_key
-    ```
-
-1. Type `dce system deploy` to deploy dce to the AWS account specified in the previous step.
-
-1. Edit your dce config file with the host and base url from the api gateway that was just deployed to your master account. This can be found in the master account under `API Gateway > (The API with "dce" in the title) > Stages > "Invoke URL: https://<host>/<baseurl>"`. Your config file should look something like this:
-
-    ```
-    api:
-      host: abcdefghij.execute-api.us-east-1.amazonaws.com
-      basepath: /api
-    region: us-east-1
-    ```
 
 ### Authenticating with DCE
 
