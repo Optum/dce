@@ -6,14 +6,14 @@ regions:
 {{range .Regions}}  - "{{.}}"
 {{end}}
 account-blacklist:
-  - "999999999999" # Arbitrary production account id
+  - "{{ .ParentAccountID}}" # Arbitrary production account id
 
 resource-types:
   excludes:
     - S3Object # Let the S3Bucket delete all Objects instead of individual objects (optimization)
 
 accounts:
-  "{{ .ID}}": # Child Account
+  "{{ .ChildAccountID}}": # Child Account
     filters:
       IAMPolicy:
         - type: "contains"
