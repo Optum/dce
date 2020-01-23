@@ -40,7 +40,7 @@ func TestService(t *testing.T) {
 			config := svc.config()
 
 			// Check configs from env vars
-			require.Equal(t, "RESET_ACCOUNT_VAL", config.accountID)
+			require.Equal(t, "RESET_ACCOUNT_VAL", config.childAccountID)
 			require.Equal(t, "RESET_ACCOUNT_ADMIN_ROLE_NAME_VAL", config.accountAdminRoleName)
 			require.Equal(t, "RESET_ACCOUNT_PRINCIPAL_ROLE_NAME_VAL", config.accountPrincipalRoleName)
 			require.Equal(t, "RESET_ACCOUNT_PRINCIPAL_POLICY_NAME_VAL", config.accountPrincipalPolicyName)
