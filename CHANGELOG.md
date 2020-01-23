@@ -1,3 +1,7 @@
+## vNext
+
+- Add CloudWatch Dashboard for monitoring DCE
+
 ## v0.26.0
 
 - **BREAKING CHANGE** Change `GET /leases` to always return a list
