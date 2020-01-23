@@ -424,6 +424,72 @@ func TestApi(t *testing.T) {
 
 		})
 
+		t.Run("Should be able to create and destroy and lease by ID", func(t *testing.T) {
+			defer truncateAccountTable(t, dbSvc)
+			defer truncateLeaseTable(t, dbSvc)
+
+			// Create an Account Entry
+			acctID := "123"
+			principalID := "user"
+			timeNow := time.Now().Unix()
+			err := dbSvc.PutAccount(db.Account{
+				ID:             acctID,
+				AccountStatus:  db.Ready,
+				LastModifiedOn: timeNow,
+			})
+			require.Nil(t, err)
+
+			// Create the Provision Request Body
+			body := leaseRequest{
+				PrincipalID: principalID,
+			}
+
+			// Send an API request
+			resp := apiRequest(t, &apiRequestInput{
+				method: "POST",
+				url:    apiURL + "/leases",
+				json:   body,
+			})
+
+			// Verify response code
+			require.Equal(t, http.StatusCreated, resp.StatusCode)
+
+			// Parse response json
+			data := parseResponseJSON(t, resp)
+
+			// Verify provisioned response json
+			require.Equal(t, principalID, data["principalId"].(string))
+			require.Equal(t, acctID, data["accountId"].(string))
+			require.Equal(t, string(db.Active),
+				data["leaseStatus"].(string))
+			require.NotNil(t, data["createdOn"])
+			require.NotNil(t, data["lastModifiedOn"])
+			require.NotNil(t, data["leaseStatusModifiedOn"])
+
+			// Send an API request
+			resp = apiRequest(t, &apiRequestInput{
+				method: "DELETE",
+				url:    apiURL + fmt.Sprintf("/leases/%s", data["id"]),
+				f: func(r *testutil.R, apiResp *apiResponse) {
+					// Verify response code
+					assert.Equal(r, http.StatusOK, apiResp.StatusCode)
+				},
+			})
+
+			// Parse response json
+			data = parseResponseJSON(t, resp)
+
+			// Verify provisioned response json
+			assert.Equal(t, principalID, data["principalId"].(string))
+			assert.Equal(t, acctID, data["accountId"].(string))
+			assert.Equal(t, string(db.Inactive),
+				data["leaseStatus"].(string))
+			assert.NotNil(t, data["createdOn"])
+			assert.NotNil(t, data["lastModifiedOn"])
+			assert.NotNil(t, data["leaseStatusModifiedOn"])
+
+		})
+
 		t.Run("Should not be able to create lease with empty json", func(t *testing.T) {
 			// Send an API request
 			apiRequest(t, &apiRequestInput{
@@ -580,7 +646,7 @@ func TestApi(t *testing.T) {
 					// Get nested json in response json
 					err := data["error"].(map[string]interface{})
 					assert.Equal(r, "ClientError", err["code"].(string))
-					assert.Equal(r, "No leases found for user",
+					assert.Equal(r, fmt.Sprintf("No leases found for Principal %q and Account ID %q", principalID, acctID),
 						err["message"].(string))
 				},
 			})
@@ -634,7 +700,7 @@ func TestApi(t *testing.T) {
 					// Get nested json in response json
 					errResp := data["error"].(map[string]interface{})
 					assert.Equal(r, "ClientError", errResp["code"].(string))
-					assert.Equal(r, "No active account leases found for user",
+					assert.Equal(r, fmt.Sprintf("No leases found for Principal %q and Account ID %q", principalID, wrongAcctID),
 						errResp["message"].(string))
 				},
 			})
@@ -687,8 +753,7 @@ func TestApi(t *testing.T) {
 					// Get nested json in response json
 					errResp := data["error"].(map[string]interface{})
 					assert.Equal(r, "ClientError", errResp["code"].(string))
-					assert.Equal(r, "Lease is not active for user - 123",
-						errResp["message"].(string))
+					assert.Regexp(t, "Lease is not active for .*$", errResp["message"].(string))
 				},
 			})
 

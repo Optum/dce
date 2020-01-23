@@ -1,6 +1,7 @@
 ## vNext
 
 - Add CloudWatch Dashboard for monitoring DCE
+- Support deleting a lease by ID at `GET /leases/{ID}` endpoint
 
 ## v0.26.0
 
