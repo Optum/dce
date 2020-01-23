@@ -23,39 +23,40 @@ The DCE CLI is the easiest way to quickly deploy and use DCE. For more advanced 
 1. Test the dce command by typing `dce`
     ```
     $ dce
-    Disposable Cloud Environment (DCE)
+    Disposable Cloud Environment (DCE) 
 
-      The DCE cli allows:
+    The DCE cli allows:
 
-      - Admins to provision DCE to a master account and administer said account
-      - Users to lease accounts and execute commands against them
+    - Admins to provision DCE to a master account and administer said account
+    - Users to lease accounts and execute commands against them
 
     Usage:
-      dce [command]
+    dce [command]
 
     Available Commands:
-      accounts    Manage dce accounts
-      auth        Login to dce
-      help        Help about any command
-      init        First time DCE cli setup. Creates config file at ~/.dce.yaml
-      leases      Manage dce leases
-      system      Deploy and configure the DCE system
+    accounts    Manage dce accounts
+    auth        Login to dce
+    help        Help about any command
+    init        First time DCE cli setup. Creates config file at "$HOME/.dce/config.yaml" (by default) or at the location specifief by "--config"
+    leases      Manage dce leases
+    system      Deploy and configure the DCE system
+    usage       View lease budget information
 
     Flags:
-          --config string   config file (default is $HOME/.dce.yaml)
-      -h, --help            help for dce
+        --config string   config file (default is "$HOME/.dce/config.yaml")
+    -h, --help            help for dce
 
     Use "dce [command] --help" for more information about a command.
     ```
 
-1. Type `dce init` to generate a new config file at ~/.dce.yaml. Leave everything blank for now.
+1. Type `dce init` to generate a new configuration file. Leave everything blank for now.
 
 ### Configuring AWS Credentials
 
 The DCE CLI needs AWS IAM credentials any time it interacts with an AWS account. Below is a list of places where the DCE CLI
 will look for credentials, ordered by precedence.
 
-1. An API Token in the `api.token` field of the `.dce.yaml` config file. You may obtain an API Token by:
+1. An API Token in the `api.token` field in the configuration file. You may obtain an API Token by:
     - Running the `dce auth` command
     - Base64 encoding the following JSON string. Note that `expireTime` is a Unix epoch timestamp and the string should
     not contain spaces or newline characters.
