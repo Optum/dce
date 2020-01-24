@@ -20,6 +20,11 @@ func ptrString(s string) *string {
 	return &ptrS
 }
 
+func ptr64(i int64) *int64 {
+	ptrI := i
+	return &ptrI
+}
+
 func TestUpdateAccountByID(t *testing.T) {
 
 	now := time.Now().Unix()

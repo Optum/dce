@@ -59,6 +59,21 @@ paths:
           required: false
           description: Status of the account.
         - in: query
+          name: adminRoleArn
+          type: string
+          required: false
+          description: The Admin Role ARN for the account.
+        - in: query
+          name: principalRoleArn
+          type: string
+          required: false
+          description: The Principal Role ARN for the account.
+        - in: query
+          name: principalPolicyHash
+          type: string
+          required: false
+          description: The Principal Policy version for the account.
+        - in: query
           name: nextId
           type: string
           required: false

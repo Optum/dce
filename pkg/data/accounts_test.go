@@ -28,6 +28,7 @@ func TestGetAccountsScan(t *testing.T) {
 			sInput: &dynamodb.ScanInput{
 				ConsistentRead: aws.Bool(false),
 				TableName:      aws.String("Accounts"),
+				Limit:          aws.Int64(5),
 			},
 			sOutputRec: &dynamodb.ScanOutput{
 				Items: []map[string]*dynamodb.AttributeValue{},
@@ -40,6 +41,7 @@ func TestGetAccountsScan(t *testing.T) {
 			sInput: &dynamodb.ScanInput{
 				ConsistentRead: aws.Bool(false),
 				TableName:      aws.String("Accounts"),
+				Limit:          aws.Int64(5),
 			},
 			sOutputRec: &dynamodb.ScanOutput{
 				Items: []map[string]*dynamodb.AttributeValue{
@@ -52,7 +54,7 @@ func TestGetAccountsScan(t *testing.T) {
 			},
 			expAccounts: &account.Accounts{
 				{
-					ID: aws.String("1"),
+					ID: ptrString("1"),
 				},
 			},
 		},
@@ -73,6 +75,7 @@ func TestGetAccountsScan(t *testing.T) {
 						S: aws.String("test:arn"),
 					},
 				},
+				Limit: aws.Int64(5),
 			},
 			sOutputRec: &dynamodb.ScanOutput{
 				Items: []map[string]*dynamodb.AttributeValue{
@@ -85,7 +88,7 @@ func TestGetAccountsScan(t *testing.T) {
 			},
 			expAccounts: &account.Accounts{
 				{
-					ID: aws.String("1"),
+					ID: ptrString("1"),
 				},
 			},
 		},
@@ -95,6 +98,7 @@ func TestGetAccountsScan(t *testing.T) {
 			sInput: &dynamodb.ScanInput{
 				ConsistentRead: aws.Bool(false),
 				TableName:      aws.String("Accounts"),
+				Limit:          aws.Int64(5),
 			},
 			sOutputRec:  nil,
 			sOutputErr:  fmt.Errorf("failure"),
@@ -116,6 +120,7 @@ func TestGetAccountsScan(t *testing.T) {
 			accountData := &Account{
 				DynamoDB:  &mockDynamo,
 				TableName: "Accounts",
+				Limit:     5,
 			}
 			accounts, err := accountData.List(tt.query)
 			assert.True(t, errors.Is(err, tt.expErr))
@@ -153,6 +158,7 @@ func TestGetAccountsQuery(t *testing.T) {
 					},
 				},
 				KeyConditionExpression: aws.String("#0 = :0"),
+				Limit:                  aws.Int64(5),
 			},
 			qOutputRec: &dynamodb.QueryOutput{
 				Items: []map[string]*dynamodb.AttributeValue{
@@ -165,7 +171,7 @@ func TestGetAccountsQuery(t *testing.T) {
 			},
 			expAccounts: &account.Accounts{
 				{
-					ID: aws.String("1"),
+					ID: ptrString("1"),
 				},
 			},
 		},
@@ -193,6 +199,7 @@ func TestGetAccountsQuery(t *testing.T) {
 				},
 				KeyConditionExpression: aws.String("#1 = :1"),
 				FilterExpression:       aws.String("#0 = :0"),
+				Limit:                  aws.Int64(5),
 			},
 			qOutputRec: &dynamodb.QueryOutput{
 				Items: []map[string]*dynamodb.AttributeValue{
@@ -205,7 +212,7 @@ func TestGetAccountsQuery(t *testing.T) {
 			},
 			expAccounts: &account.Accounts{
 				{
-					ID: aws.String("1"),
+					ID: ptrString("1"),
 				},
 			},
 		},
@@ -233,6 +240,7 @@ func TestGetAccountsQuery(t *testing.T) {
 				},
 				KeyConditionExpression: aws.String("#1 = :1"),
 				FilterExpression:       aws.String("#0 = :0"),
+				Limit:                  aws.Int64(5),
 			},
 			qOutputRec:  nil,
 			qOutputErr:  fmt.Errorf("failure"),
@@ -254,6 +262,7 @@ func TestGetAccountsQuery(t *testing.T) {
 			accountData := &Account{
 				DynamoDB:  &mockDynamo,
 				TableName: "Accounts",
+				Limit:     5,
 			}
 			accounts, err := accountData.List(tt.query)
 			assert.True(t, errors.Is(err, tt.expErr))
