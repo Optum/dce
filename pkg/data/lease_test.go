@@ -378,7 +378,7 @@ func TestGetLeaseByID(t *testing.T) {
 				TableName: "Leases",
 			}
 
-			lease, err := leaseData.GetByID(tt.leaseID)
+			lease, err := leaseData.Get(tt.leaseID)
 			assert.Equal(t, tt.expectedLease, lease)
 			assert.True(t, errors.Is(err, tt.expectedErr))
 		})
