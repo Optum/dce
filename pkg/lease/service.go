@@ -52,12 +52,14 @@ type Eventer interface {
 
 // Manager manages all the actions against a lease
 type Manager interface {
-	Setup(adminRole string) error
+	Setup() error
 }
 
 // Service is a type corresponding to a Lease table record
 type Service struct {
-	dataSvc ReaderWriterDeleter
+	dataSvc    ReaderWriterDeleter
+	managerSvc Manager
+	eventSvc   Eventer
 }
 
 // Get returns a lease from ID
@@ -126,12 +128,16 @@ func (a *Service) List(query *Lease) (*Leases, error) {
 
 // NewServiceInput Input for creating a new Service
 type NewServiceInput struct {
-	DataSvc ReaderWriterDeleter
+	DataSvc    ReaderWriterDeleter
+	ManagerSvc Manager
+	EventSvc   Eventer
 }
 
 // NewService creates a new instance of the Service
 func NewService(input NewServiceInput) *Service {
 	return &Service{
-		dataSvc: input.DataSvc,
+		dataSvc:    input.DataSvc,
+		eventSvc:   input.EventSvc,
+		managerSvc: input.ManagerSvc,
 	}
 }

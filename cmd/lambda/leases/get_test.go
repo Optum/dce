@@ -1,66 +1,96 @@
 package main
 
 import (
-	"context"
-	"encoding/json"
-	"errors"
-	"net/http"
 	"testing"
 
-	"github.com/Optum/dce/pkg/api/response"
-	"github.com/Optum/dce/pkg/db"
-	"github.com/Optum/dce/pkg/db/mocks"
-	"github.com/aws/aws-lambda-go/events"
-	"github.com/stretchr/testify/require"
+	"fmt"
+	"github.com/Optum/dce/pkg/config"
+	"github.com/Optum/dce/pkg/lease"
+	"github.com/Optum/dce/pkg/lease/leaseiface/mocks"
+	"github.com/gorilla/mux"
+	"github.com/stretchr/testify/assert"
+	"io/ioutil"
+	"net/http/httptest"
 )
 
 func TestGetLeaseByID(t *testing.T) {
 
-	t.Run("When the invoking Call and there are no errors", func(t *testing.T) {
-		expectdLease := &db.Lease{
-			ID:             "unique-id",
-			AccountID:      "123456789",
-			PrincipalID:    "test",
-			LeaseStatus:    db.Active,
-			LastModifiedOn: 1561149393,
-		}
-		expectedLeaseResponse := &response.LeaseResponse{
-			ID:             "unique-id",
-			AccountID:      "123456789",
-			PrincipalID:    "test",
-			LeaseStatus:    db.Active,
-			LastModifiedOn: 1561149393,
-		}
-		mockDb := mocks.DBer{}
-		mockDb.On("GetLeaseByID", "unique-id").Return(expectdLease, nil)
-		mockRequest := events.APIGatewayProxyRequest{HTTPMethod: http.MethodGet, Path: "/leases/unique-id"}
+	type response struct {
+		StatusCode int
+		Body       string
+	}
+	tests := []struct {
+		name     string
+		expResp  response
+		leaseID  string
+		retLease *lease.Lease
+		retErr   error
+	}{
+		{
+			name:    "success",
+			leaseID: "abc123",
+			expResp: response{
+				StatusCode: 200,
+				Body:       "{}\n",
+			},
+			retLease: &lease.Lease{},
+			retErr:   nil,
+		},
+		{
+			name:    "failure",
+			leaseID: "abc123",
+			expResp: response{
+				StatusCode: 500,
+				Body:       "{\"error\":{\"message\":\"unknown error\",\"code\":\"ServerError\"}}\n",
+			},
+			retLease: nil,
+			retErr:   fmt.Errorf("failure"),
+		},
+		{
+			name:    "found more than one",
+			leaseID: "abc123",
+			expResp: response{
+				StatusCode: 500,
+				Body:       "{\"error\":{\"message\":\"unknown error\",\"code\":\"ServerError\"}}\n",
+			},
+			retLease: nil,
+			retErr:   fmt.Errorf("failure"),
+		},
+	}
 
-		dao = &mockDb
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := httptest.NewRequest("GET", fmt.Sprintf("http://example.com/lease/%s", tt.leaseID), nil)
 
-		actualResponse, err := Handler(context.TODO(), mockRequest)
-		require.Nil(t, err)
+			r = mux.SetURLVars(r, map[string]string{
+				"leaseID": tt.leaseID,
+			})
+			w := httptest.NewRecorder()
 
-		parsedResponse := &response.LeaseResponse{}
-		err = json.Unmarshal([]byte(actualResponse.Body), parsedResponse)
-		require.Nil(t, err)
+			cfgBldr := &config.ConfigurationBuilder{}
+			svcBldr := &config.ServiceBuilder{Config: cfgBldr}
 
-		require.Equal(t, expectedLeaseResponse, parsedResponse, "Returns a single lease.")
-		require.Equal(t, actualResponse.StatusCode, 200, "Returns a 200.")
-	})
+			leaseSvc := mocks.Servicer{}
+			leaseSvc.On("Get", tt.leaseID).Return(
+				tt.retLease, tt.retErr,
+			)
+			svcBldr.Config.WithService(&leaseSvc)
+			_, err := svcBldr.Build()
 
-	t.Run("When the query fails", func(t *testing.T) {
-		expectedError := errors.New("Error")
-		mockDb := mocks.DBer{}
-		mockDb.On("GetLeaseByID", "unique-id").Return(nil, expectedError)
-		mockRequest := events.APIGatewayProxyRequest{HTTPMethod: http.MethodGet, Path: "/leases/unique-id"}
+			assert.Nil(t, err)
+			if err == nil {
+				Services = svcBldr
+			}
 
-		dao = &mockDb
+			GetLeaseByID(w, r)
 
-		actualResponse, err := Handler(context.TODO(), mockRequest)
-		require.Nil(t, err)
+			resp := w.Result()
+			body, err := ioutil.ReadAll(resp.Body)
 
-		require.Equal(t, actualResponse.StatusCode, 500, "Returns a 500.")
-		require.Equal(t, actualResponse.Body, "{\"error\":{\"code\":\"ServerError\",\"message\":\"Failed Get on Lease unique-id\"}}", "Returns an error response.")
-	})
+			assert.Nil(t, err)
+			assert.Equal(t, tt.expResp.StatusCode, resp.StatusCode)
+			assert.Equal(t, tt.expResp.Body, string(body))
+		})
+	}
 
 }

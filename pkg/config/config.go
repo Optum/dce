@@ -10,6 +10,7 @@ import (
 	"reflect"
 
 	"github.com/Optum/dce/pkg/account/accountiface"
+	"github.com/Optum/dce/pkg/lease/leaseiface"
 	"github.com/caarlos0/env"
 	"github.com/mitchellh/mapstructure"
 )
@@ -267,4 +268,15 @@ func (config *ConfigurationBuilder) AccountSvc() accountiface.Servicer {
 	}
 
 	return accountSvc
+}
+
+// LeaseSvc returns the lease Service for you
+func (config *ConfigurationBuilder) LeaseSvc() leaseiface.Servicer {
+
+	var leaseSvc leaseiface.Servicer
+	if err := config.GetService(&leaseSvc); err != nil {
+		panic(err)
+	}
+
+	return leaseSvc
 }

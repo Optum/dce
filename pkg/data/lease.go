@@ -145,7 +145,7 @@ func (a *Lease) GetByAccountIDAndPrincipalID(accountID string, principalID strin
 }
 
 // GetByID gets the Lease record by ID
-func (a *Lease) GetByID(leaseID string) (*lease.Lease, error) {
+func (a *Lease) Get(leaseID string) (*lease.Lease, error) {
 
 	input := &dynamodb.QueryInput{
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
@@ -186,5 +186,6 @@ func (a *Lease) GetByID(leaseID string) (*lease.Lease, error) {
 			err,
 		)
 	}
+
 	return &lease, nil
 }

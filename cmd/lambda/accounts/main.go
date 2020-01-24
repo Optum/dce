@@ -169,7 +169,7 @@ func initConfig() {
 		WithSQS().
 		// DCE services...
 		WithStorageService().
-		WithDataService().
+		WithAccountDataService().
 		WithAccountManager().
 		WithAccountService().
 		Build()

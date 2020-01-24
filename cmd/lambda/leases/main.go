@@ -22,17 +22,17 @@ import (
 )
 
 type leaseControllerConfiguration struct {
-	Debug                       string   `env:"DEBUG" defaultEnv:"false"`
-	ResetQueueURL            string   `env:"RESET_SQS_URL" defaultEnv:"DefaultResetSQSUrl"`
-	LeaseAddedTopicARN       string `env:"LEASE_ADDED_TOPIC", defaultEnv:"DCEDefaultProvisionTopic"`
-	DecommissionTopicARN     string `env:"DECOMMISSION_TOPIC", defaultEnv:"DefaultDecommissionTopicArn"`
-	CognitoUserPoolId        string `env:"COGNITO_USER_POOL_ID", defaultEnv:"DefaultCognitoUserPoolId"`
-	CognitoAdminName         string `env:"COGNITO_ROLES_ATTRIBUTE_ADMIN_NAME", "DefaultCognitoAdminName"`
+	Debug                    string  `env:"DEBUG" defaultEnv:"false"`
+	ResetQueueURL            string  `env:"RESET_SQS_URL" defaultEnv:"DefaultResetSQSUrl"`
+	LeaseAddedTopicARN       string  `env:"LEASE_ADDED_TOPIC", defaultEnv:"DCEDefaultProvisionTopic"`
+	DecommissionTopicARN     string  `env:"DECOMMISSION_TOPIC", defaultEnv:"DefaultDecommissionTopicArn"`
+	CognitoUserPoolId        string  `env:"COGNITO_USER_POOL_ID", defaultEnv:"DefaultCognitoUserPoolId"`
+	CognitoAdminName         string  `env:"COGNITO_ROLES_ATTRIBUTE_ADMIN_NAME", "DefaultCognitoAdminName"`
 	PrincipalBudgetAmount    float64 `env:"PRINCIPAL_BUDGET_AMOUNT", defaultEnv:"1000.00"`
-	PrincipalBudgetPeriod    string `env:"PRINCIPAL_BUDGET_PERIOD", defaultEnv:"Weekly"`
+	PrincipalBudgetPeriod    string  `env:"PRINCIPAL_BUDGET_PERIOD", defaultEnv:"Weekly"`
 	MaxLeaseBudgetAmount     float64 `env:"MAX_LEASE_BUDGET_AMOUNT", defaultEnv:"1000.00"`
-	MaxLeasePeriod           int64 `env:"MAX_LEASE_PERIOD", defaultEnv:"704800"`
-	DefaultLeaseLengthInDays int `env:"DEFAULT_LEASE_LENGTH_IN_DAYS", defaultEnv:"7"`
+	MaxLeasePeriod           int64   `env:"MAX_LEASE_PERIOD", defaultEnv:"704800"`
+	DefaultLeaseLengthInDays int     `env:"DEFAULT_LEASE_LENGTH_IN_DAYS", defaultEnv:"7"`
 }
 
 const (
@@ -173,9 +173,9 @@ func initConfig() {
 		WithSQS().
 		// DCE services...
 		WithStorageService().
-		WithDataService().
-		WithAccountManager().
-		WithAccountService().
+		WithLeaseDataService().
+		WithLeaseManager().
+		WithLeaseService().
 		Build()
 	if err != nil {
 		panic(err)

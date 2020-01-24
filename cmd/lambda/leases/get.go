@@ -8,33 +8,24 @@ import (
 
 	"github.com/gorilla/mux"
 
+	"github.com/Optum/dce/pkg/api"
 	"github.com/Optum/dce/pkg/api/response"
 	"github.com/Optum/dce/pkg/db"
 )
 
-// GetLeaseByID - Returns a list of leases by principal and account
+// GetLeaseByID - Returns the single lease by ID
 func GetLeaseByID(w http.ResponseWriter, r *http.Request) {
-	// Fetch the account.
+
 	leaseID := mux.Vars(r)["leaseID"]
-	lease, err := dao.GetLeaseByID(leaseID)
+
+	lease, err := Services.Config.LeaseSvc().Get(leaseID)
+
 	if err != nil {
-		log.Printf("Error Getting Lease for Id: %s", leaseID)
-		response.WriteServerErrorWithResponse(w, fmt.Sprintf("Failed Get on Lease %s", leaseID))
-		return
-	}
-	if lease == nil {
-		log.Printf("Error Getting Lease for Id: %s", err)
-		response.WriteNotFoundError(w)
+		api.WriteAPIErrorResponse(w, err)
 		return
 	}
 
-	leaseResponse := response.LeaseResponse(*lease)
-	err = json.NewEncoder(w).Encode(leaseResponse)
-	if err != nil {
-		log.Printf("Error Getting Lease for Id: %s", leaseID)
-		response.WriteServerErrorWithResponse(w, fmt.Sprintf("Failed Get on Lease %s", leaseID))
-		return
-	}
+	api.WriteAPIResponse(w, http.StatusOK, lease)
 }
 
 // GetLeasesByPrincipcalIDAndAccountID - Returns a list of leases by principal and account
