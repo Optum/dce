@@ -27,7 +27,7 @@ type leaseControllerConfiguration struct {
 	LeaseAddedTopicARN       string  `env:"LEASE_ADDED_TOPIC" defaultEnv:"DCEDefaultProvisionTopic"`
 	DecommissionTopicARN     string  `env:"DECOMMISSION_TOPIC" defaultEnv:"DefaultDecommissionTopicArn"`
 	CognitoUserPoolId        string  `env:"COGNITO_USER_POOL_ID" defaultEnv:"DefaultCognitoUserPoolId"`
-	CognitoAdminName         string  `env:"COGNITO_ROLES_ATTRIBUTE_ADMIN_NAME" "DefaultCognitoAdminName"`
+	CognitoAdminName         string  `env:"COGNITO_ROLES_ATTRIBUTE_ADMIN_NAME" defaultEnv:"DefaultCognitoAdminName"`
 	PrincipalBudgetAmount    float64 `env:"PRINCIPAL_BUDGET_AMOUNT" defaultEnv:"1000.00"`
 	PrincipalBudgetPeriod    string  `env:"PRINCIPAL_BUDGET_PERIOD" defaultEnv:"Weekly"`
 	MaxLeaseBudgetAmount     float64 `env:"MAX_LEASE_BUDGET_AMOUNT" defaultEnv:"1000.00"`
@@ -48,7 +48,6 @@ const (
 var (
 	muxLambda *gorillamux.GorillaMuxAdapter
 	//CurrentAccountID is the ID where the request is being created
-	CurrentAccountID *string
 	// Services handles the configuration of the AWS services
 	Services *config.ServiceBuilder
 	// Settings - the configuration settings for the controller
