@@ -122,20 +122,17 @@ func TestGetLeaseByID(t *testing.T) {
 	})
 
 	t.Run("When the handler invoking get and get fails", func(t *testing.T) {
-		expectedLease1 := &lease.Lease{
+		expectedLease := &lease.Lease{
 			ID: ptrString("unique-id"),
 		}
-		expectedLease2 := &lease.Lease{
-			ID: ptrString("unique-id"),
-		}
-		expectedLeases := &lease.Leases{*expectedLease1, *expectedLease2}
+
 		expectedError := gErrors.New("error")
 		cfgBuilder := &config.ConfigurationBuilder{}
 		svcBuilder := &config.ServiceBuilder{Config: cfgBuilder}
 
 		leaseSvc := mocks.Servicer{}
-		leaseSvc.On("Get", *expectedLease1.ID).Return(
-			expectedLeases, expectedError,
+		leaseSvc.On("Get", *expectedLease.ID).Return(
+			expectedLease, expectedError,
 		)
 		svcBuilder.Config.WithService(&leaseSvc)
 		_, err := svcBuilder.Build()
