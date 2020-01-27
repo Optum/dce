@@ -63,6 +63,7 @@ func TestApi(t *testing.T) {
 		tfOut["leases_table_name"].(string),
 		7,
 	)
+	dbSvc.ConsistentRead = true
 
 	// Configure the usage service
 	usageSvc := usage.New(

@@ -24,7 +24,7 @@ func TestValidate(t *testing.T) {
 			account: account.Account{
 				ID:             ptrString("123456789012"),
 				Status:         account.StatusReady.StatusPtr(),
-				AdminRoleArn:   arn.New("aws", "iam", "", "123456789012", "role/AdminRoleArn"),
+				AdminRoleArn:   arn.New("aws", "iam", "", "123456789012", "role/AdminRole"),
 				CreatedOn:      &now,
 				LastModifiedOn: &now,
 			},

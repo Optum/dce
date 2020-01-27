@@ -29,19 +29,19 @@ import (
 )
 
 type accountControllerConfiguration struct {
-	Debug                       string   `env:"DEBUG" defaultEnv:"false"`
-	PolicyName                  string   `env:"PRINCIPAL_POLICY_NAME" defaultEnv:"DCEPrincipalDefaultPolicy"`
-	AccountCreatedTopicArn      string   `env:"ACCOUNT_CREATED_TOPIC_ARN" defaultEnv:"DefaultAccountCreatedTopicArn"`
+	Debug                       string   `env:"DEBUG" envDefault:"false"`
+	PolicyName                  string   `env:"PRINCIPAL_POLICY_NAME" envDefault:"DCEPrincipalDefaultPolicy"`
+	AccountCreatedTopicArn      string   `env:"ACCOUNT_CREATED_TOPIC_ARN" envDefault:"DefaultAccountCreatedTopicArn"`
 	AccountDeletedTopicArn      string   `env:"ACCOUNT_DELETED_TOPIC_ARN"`
-	ArtifactsBucket             string   `env:"ARTIFACTS_BUCKET" defaultEnv:"DefaultArtifactBucket"`
-	PrincipalPolicyS3Key        string   `env:"PRINCIPAL_POLICY_S3_KEY" defaultEnv:"DefaultPrincipalPolicyS3Key"`
-	PrincipalRoleName           string   `env:"PRINCIPAL_ROLE_NAME" defaultEnv:"DCEPrincipal"`
+	ArtifactsBucket             string   `env:"ARTIFACTS_BUCKET" envDefault:"DefaultArtifactBucket"`
+	PrincipalPolicyS3Key        string   `env:"PRINCIPAL_POLICY_S3_KEY" envDefault:"DefaultPrincipalPolicyS3Key"`
+	PrincipalRoleName           string   `env:"PRINCIPAL_ROLE_NAME" envDefault:"DCEPrincipal"`
 	PrincipalPolicyName         string   `env:"PRINCIPAL_POLICY_NAME"`
-	PrincipalIAMDenyTags        []string `env:"PRINCIPAL_IAM_DENY_TAGS" defaultEnv:"DefaultPrincipalIamDenyTags"`
-	PrincipalMaxSessionDuration int64    `env:"PRINCIPAL_MAX_SESSION_DURATION" defaultEnv:"100"`
+	PrincipalIAMDenyTags        []string `env:"PRINCIPAL_IAM_DENY_TAGS" envDefault:"DefaultPrincipalIamDenyTags"`
+	PrincipalMaxSessionDuration int64    `env:"PRINCIPAL_MAX_SESSION_DURATION" envDefault:"100"`
 	Tags                        []*iam.Tag
-	ResetQueueURL               string   `env:"RESET_SQS_URL" defaultEnv:"DefaultResetSQSUrl"`
-	AllowedRegions              []string `env:"ALLOWED_REGIONS" defaultEnv:"us-east-1"`
+	ResetQueueURL               string   `env:"RESET_SQS_URL" envDefault:"DefaultResetSQSUrl"`
+	AllowedRegions              []string `env:"ALLOWED_REGIONS" envDefault:"us-east-1"`
 }
 
 var (
@@ -153,6 +153,7 @@ func initConfig() {
 		// DCE services...
 		WithStorageService().
 		WithAccountDataService().
+		WithEventService().
 		WithAccountManagerService().
 		WithAccountService().
 		Build()

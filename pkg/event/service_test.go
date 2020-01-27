@@ -4,6 +4,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/Optum/dce/pkg/account"
 	awsMocks "github.com/Optum/dce/pkg/awsiface/mocks"
 	"github.com/Optum/dce/pkg/event/mocks"
 	"github.com/aws/aws-sdk-go/aws/arn"
@@ -21,7 +22,7 @@ func TestNewEvent(t *testing.T) {
 		leaseAddedTopicArn, _ := arn.Parse("arn:aws:sns:us-east-1:123456789012:createLease")
 		accountResetQueueURL := "http://sqs.com/queue"
 
-		eventer, err := NewEventer(NewHubInput{
+		eventer, err := NewService(NewServiceInput{
 			SnsClient:              mockSns,
 			SqsClient:              mockSqs,
 			AccountCreatedTopicArn: accountCreatedTopicArn.String(),
@@ -57,7 +58,7 @@ func TestNewEvent(t *testing.T) {
 
 }
 
-func TestEventPublishers(t *testing.T) {
+func TestEventAccountPublishers(t *testing.T) {
 
 	type data struct {
 		Key string `json:"key"`
@@ -65,7 +66,7 @@ func TestEventPublishers(t *testing.T) {
 
 	tests := []struct {
 		name                            string
-		event                           interface{}
+		event                           *account.Account
 		expectedAccountCreatePublishErr error
 		expectedAccountDeletePublishErr error
 		expectedAccountUpdatePublishErr error
@@ -76,8 +77,8 @@ func TestEventPublishers(t *testing.T) {
 	}{
 		{
 			name: "publish events",
-			event: data{
-				Key: "value",
+			event: &account.Account{
+				Status: account.StatusReady.StatusPtr(),
 			},
 			expectedAccountCreatePublishErr: nil,
 			expectedAccountDeletePublishErr: nil,
@@ -89,8 +90,8 @@ func TestEventPublishers(t *testing.T) {
 		},
 		{
 			name: "publish event with errors",
-			event: data{
-				Key: "value",
+			event: &account.Account{
+				Status: account.StatusReady.StatusPtr(),
 			},
 			expectedAccountCreatePublishErr: errors.New("failure"),
 			expectedAccountDeletePublishErr: errors.New("failure"),
@@ -119,7 +120,7 @@ func TestEventPublishers(t *testing.T) {
 			mockResetAccountPublisher := mocks.Publisher{}
 			mockResetAccountPublisher.On("Publish", tt.event).Return(tt.expectedAccountResetPublishErr)
 
-			eventSvc := Hub{
+			eventSvc := Service{
 				accountCreate: []Publisher{&mockCreateAccountPublisher},
 				accountDelete: []Publisher{&mockDeleteAccountPublisher},
 				accountUpdate: []Publisher{&mockUpdateAccountPublisher},
@@ -217,7 +218,7 @@ func TestPublishingWithRange(t *testing.T) {
 			mockPublisher3 := mocks.Publisher{}
 			mockPublisher3.On("Publish", tt.event).Return(tt.returnErr3)
 
-			eventSvc := Hub{}
+			eventSvc := Service{}
 
 			publishers := []Publisher{
 				&mockPublisher1,

@@ -3,6 +3,7 @@ package account
 import (
 	"time"
 
+	"github.com/Optum/dce/pkg/arn"
 	"github.com/Optum/dce/pkg/errors"
 	validation "github.com/go-ozzo/ozzo-validation"
 )
@@ -49,21 +50,22 @@ type ReaderWriterDeleter interface {
 type Eventer interface {
 	AccountCreate(account *Account) error
 	AccountDelete(account *Account) error
-	AccountUpdated(account *Account) error
+	AccountUpdate(account *Account) error
 	AccountReset(account *Account) error
 }
 
 // Manager manages all the actions against an account
 type Manager interface {
-	ValidateAccess(role string) error
+	ValidateAccess(role *arn.ARN) error
 	MergePrincipalAccess(account *Account) error
 }
 
 // Service is a type corresponding to a Account table record
 type Service struct {
-	dataSvc    ReaderWriterDeleter
-	managerSvc Manager
-	eventSvc   Eventer
+	dataSvc           ReaderWriterDeleter
+	managerSvc        Manager
+	eventSvc          Eventer
+	principalRoleName string
 }
 
 // Get returns an account from ID
@@ -138,8 +140,6 @@ func (a *Service) Update(ID string, data *Account) (*Account, error) {
 
 // Create creates a new account using the data provided. Returns the account record
 func (a *Service) Create(data *Account) (*Account, error) {
-	var newAccount *Account
-
 	// Validate the incoming record doesn't have unneeded fields
 	err := validation.ValidateStruct(data,
 		// This may be considered double validation but we are going to need the ID
@@ -158,34 +158,41 @@ func (a *Service) Create(data *Account) (*Account, error) {
 
 	// Check if account already exists
 	existingAccount, err := a.Get(*data.ID)
-	if err != nil {
-		return nil, err
-	}
 	if existingAccount != nil {
 		return nil, errors.NewAlreadyExists("account", *data.ID)
 	}
+	if err != nil {
+		if !errors.Is(err, errors.NewNotFound("account", *data.ID)) {
+			return nil, err
+		}
+	}
 
-	err = a.managerSvc.MergePrincipalAccess(data)
+	new, err := NewAccount(*data.ID, *data.AdminRoleArn, data.Metadata)
 	if err != nil {
 		return nil, err
 	}
 
-	err = a.Save(data)
+	err = a.managerSvc.MergePrincipalAccess(new)
 	if err != nil {
 		return nil, err
 	}
 
-	err = a.eventSvc.AccountCreate(data)
+	err = a.Save(new)
 	if err != nil {
 		return nil, err
 	}
 
-	err = a.eventSvc.AccountReset(data)
+	err = a.eventSvc.AccountCreate(new)
 	if err != nil {
 		return nil, err
 	}
 
-	return newAccount, nil
+	err = a.eventSvc.AccountReset(new)
+	if err != nil {
+		return nil, err
+	}
+
+	return new, nil
 }
 
 // Delete finds a given account and deletes it if it is not of status `Leased`. Returns the account.
@@ -219,16 +226,18 @@ func (a *Service) List(query *Account) (*Accounts, error) {
 
 // NewServiceInput Input for creating a new Service
 type NewServiceInput struct {
-	DataSvc    ReaderWriterDeleter
-	ManagerSvc Manager
-	EventSvc   Eventer
+	PrincipalRoleName string `env:"PRINCIPAL_ROLE_NAME" envDefault:"DCEPrincipal"`
+	DataSvc           ReaderWriterDeleter
+	ManagerSvc        Manager
+	EventSvc          Eventer
 }
 
 // NewService creates a new instance of the Service
 func NewService(input NewServiceInput) *Service {
 	return &Service{
-		dataSvc:    input.DataSvc,
-		eventSvc:   input.EventSvc,
-		managerSvc: input.ManagerSvc,
+		dataSvc:           input.DataSvc,
+		eventSvc:          input.EventSvc,
+		managerSvc:        input.ManagerSvc,
+		principalRoleName: input.PrincipalRoleName,
 	}
 }

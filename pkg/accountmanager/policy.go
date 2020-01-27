@@ -3,7 +3,6 @@ package accountmanager
 import (
 	"fmt"
 	"log"
-	"strings"
 
 	"github.com/Optum/dce/pkg/errors"
 	"github.com/aws/aws-sdk-go/aws"
@@ -23,7 +22,7 @@ type mergePolicyInput struct {
 func mergePolicy(input *mergePolicyInput) error {
 
 	policy, err := input.iam.CreatePolicy(&iam.CreatePolicyInput{
-		PolicyName:     aws.String(strings.Split(input.policyArn.String(), "/")[1]),
+		PolicyName:     aws.String(iamResourceNameFromArn(input.policyArn)),
 		Description:    input.description,
 		PolicyDocument: input.document,
 	})
@@ -47,7 +46,7 @@ func mergePolicy(input *mergePolicyInput) error {
 
 	// Create a new Policy Version and set as default
 	_, err = input.iam.CreatePolicyVersion(&iam.CreatePolicyVersionInput{
-		PolicyArn:      policy.Policy.Arn,
+		PolicyArn:      aws.String(input.policyArn.String()),
 		PolicyDocument: input.document,
 		SetAsDefault:   aws.Bool(true),
 	})
@@ -81,9 +80,14 @@ func prunePolicyVersions(iamAPI iamiface.IAMAPI, policyArn arn.ARN) error {
 			version.CreateDate.Before(*oldestVersion.CreateDate) {
 			oldestVersion = version
 		}
+
 	}
 
-	return deletePolicyVersion(iamAPI, policyArn, oldestVersion)
+	if oldestVersion != nil {
+		return deletePolicyVersion(iamAPI, policyArn, oldestVersion)
+	}
+
+	return nil
 }
 
 // DeletePolicyVersion delete a version of a template

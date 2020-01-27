@@ -3,30 +3,19 @@ package accountmanager
 import (
 	"fmt"
 
-	"github.com/aws/aws-sdk-go/aws/arn"
-	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/Optum/dce/pkg/arn"
 	validation "github.com/go-ozzo/ozzo-validation"
 )
 
-func isArn(value interface{}) error {
-	s, ok := value.(*string)
-	if !ok {
-		return fmt.Errorf("must be a string")
-	}
-	_, err := arn.Parse(*s)
-	return err
-}
-
-func isAssumable(session *session.Session) validation.RuleFunc {
+func isAssumable(client clienter) validation.RuleFunc {
 	return func(value interface{}) error {
-		s, ok := value.(string)
+		a, ok := value.(*arn.ARN)
 		if !ok {
-			return fmt.Errorf("value is not a string")
+			return fmt.Errorf("value is not an ARN")
 		}
 		// Create the credentials from AssumeRoleProvider to assume the role
-		creds := stscreds.NewCredentials(session, s)
-		_, err := creds.Get()
+		config := client.Config(a)
+		_, err := config.Credentials.Get()
 		if err != nil {
 			return err
 		}

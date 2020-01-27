@@ -11,18 +11,18 @@ type Publisher interface {
 	Publish(i interface{}) error
 }
 
-// NewHubInput are the items required to create a new Eventer service
-type NewHubInput struct {
+// NewServiceInput are the items required to create a new Eventer service
+type NewServiceInput struct {
 	SnsClient              snsiface.SNSAPI
 	SqsClient              sqsiface.SQSAPI
-	AccountCreatedTopicArn string `env:"ACCOUNT_CREATED_TOPIC_ARN" defaultEnv:"DefaultAccountCreatedTopicArn"`
-	AccountDeletedTopicArn string `env:"ACCOUNT_DELETED_TOPIC_ARN" defaultEnv:"DefaultAccountDeletedTopicArn"`
-	AccountResetQueueURL   string `env:"RESET_SQS_URL" defaultEnv:"DefaultResetSQSUrl"`
-	LeaseAddedTopicArn     string `env:"LEASE_ADDED_TOPIC" defaultEnv:"DefaultLeaseAddedTopicArn"`
+	AccountCreatedTopicArn string `env:"ACCOUNT_CREATED_TOPIC_ARN" envDefault:"arn:aws:sns:us-east-1:123456789012:account-create"`
+	AccountDeletedTopicArn string `env:"ACCOUNT_DELETED_TOPIC_ARN" envDefault:"arn:aws:sns:us-east-1:123456789012:account-delete"`
+	AccountResetQueueURL   string `env:"RESET_SQS_URL" envDefault:"DefaultResetSQSUrl"`
+	LeaseAddedTopicArn     string `env:"LEASE_ADDED_TOPIC" envDefault:"arn:aws:sns:us-east-1:123456789012:lease-added"`
 }
 
-// Hub is the public interface for publishing events
-type Hub struct {
+// Service is the public interface for publishing events
+type Service struct {
 	accountCreate []Publisher
 	accountDelete []Publisher
 	accountUpdate []Publisher
@@ -32,7 +32,7 @@ type Hub struct {
 	leaseUpdate   []Publisher
 }
 
-func (e *Hub) publish(i interface{}, p ...Publisher) error {
+func (e *Service) publish(i interface{}, p ...Publisher) error {
 	for _, n := range p {
 		err := n.Publish(i)
 		if err != nil {
@@ -43,43 +43,43 @@ func (e *Hub) publish(i interface{}, p ...Publisher) error {
 }
 
 // AccountCreate publish events
-func (e *Hub) AccountCreate(data *account.Account) error {
+func (e *Service) AccountCreate(data *account.Account) error {
 	return e.publish(data, e.accountCreate...)
 }
 
 // AccountDelete publish events
-func (e *Hub) AccountDelete(data *account.Account) error {
+func (e *Service) AccountDelete(data *account.Account) error {
 	return e.publish(data, e.accountDelete...)
 }
 
 // AccountUpdate publish events
-func (e *Hub) AccountUpdate(data *account.Account) error {
+func (e *Service) AccountUpdate(data *account.Account) error {
 	return e.publish(data, e.accountUpdate...)
 }
 
 // AccountReset publish events
-func (e *Hub) AccountReset(data *account.Account) error {
+func (e *Service) AccountReset(data *account.Account) error {
 	return e.publish(data, e.accountReset...)
 }
 
 // LeaseCreate publish events
-func (e *Hub) LeaseCreate(i interface{}) error {
+func (e *Service) LeaseCreate(i interface{}) error {
 	return e.publish(i, e.leaseCreate...)
 }
 
 // LeaseEnd publish events
-func (e *Hub) LeaseEnd(i interface{}) error {
+func (e *Service) LeaseEnd(i interface{}) error {
 	return e.publish(i, e.leaseEnd...)
 }
 
 // LeaseUpdate publish events
-func (e *Hub) LeaseUpdate(i interface{}) error {
+func (e *Service) LeaseUpdate(i interface{}) error {
 	return e.publish(i, e.leaseUpdate...)
 }
 
-// NewEventer creates a new instance of Eventer
-func NewEventer(input NewHubInput) (*Hub, error) {
-	newEventer := &Hub{}
+// NewService creates a new instance of Eventer
+func NewService(input NewServiceInput) (*Service, error) {
+	newEventer := &Service{}
 
 	//////////////////////////////////////////////////////////////////////
 	// Account Eventing
