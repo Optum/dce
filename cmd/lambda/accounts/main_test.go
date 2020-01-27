@@ -1,11 +1,9 @@
 package main
 
 import (
-	"encoding/json"
 	"os"
 	"testing"
 
-	"github.com/Optum/dce/pkg/api/response"
 	"github.com/aws/aws-lambda-go/events"
 )
 
@@ -30,19 +28,5 @@ func MockAPIResponse(status int, body string) events.APIGatewayProxyResponse {
 			"Access-Control-Allow-Origin": []string{"*"},
 		},
 		Body: body,
-	}
-}
-
-func MockAPIErrorResponse(status int, errorCode string, message string) events.APIGatewayProxyResponse {
-
-	errorJSON, _ := json.Marshal(response.CreateErrorResponse(errorCode, message))
-
-	return events.APIGatewayProxyResponse{
-		StatusCode: status,
-		MultiValueHeaders: map[string][]string{
-			"Content-Type":                []string{"application/json"},
-			"Access-Control-Allow-Origin": []string{"*"},
-		},
-		Body: string(errorJSON),
 	}
 }

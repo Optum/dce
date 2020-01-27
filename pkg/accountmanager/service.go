@@ -74,7 +74,6 @@ func init() {
 // Service manages account resources
 type Service struct {
 	client   clienter
-	sts      stsiface.STSAPI
 	storager common.Storager
 }
 

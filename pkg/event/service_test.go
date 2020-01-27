@@ -60,10 +60,6 @@ func TestNewEvent(t *testing.T) {
 
 func TestEventAccountPublishers(t *testing.T) {
 
-	type data struct {
-		Key string `json:"key"`
-	}
-
 	tests := []struct {
 		name                            string
 		event                           *account.Account

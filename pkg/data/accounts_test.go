@@ -62,7 +62,7 @@ func TestGetAccountsScan(t *testing.T) {
 		{
 			name: "scan get all accounts with admin role arn",
 			query: &account.Account{
-				AdminRoleArn: arn.New("aws", "iam", "", "123456789012", "role/AdminRoleArn"),
+				AdminRoleArn: arn.New("aws", "iam", "", "123456789012", "role/AdminRole"),
 			},
 			sInput: &dynamodb.ScanInput{
 				ConsistentRead:   aws.Bool(false),
@@ -73,7 +73,7 @@ func TestGetAccountsScan(t *testing.T) {
 				},
 				ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
 					":0": {
-						S: aws.String("arn:aws:iam::123456789012:role/AdminRoleArn"),
+						S: aws.String("arn:aws:iam::123456789012:role/AdminRole"),
 					},
 				},
 				Limit: aws.Int64(5),
@@ -180,7 +180,7 @@ func TestGetAccountsQuery(t *testing.T) {
 			name: "query all accounts by status with filter",
 			query: &account.Account{
 				Status:       account.StatusReady.StatusPtr(),
-				AdminRoleArn: arn.New("aws", "iam", "", "123456789012", "role/AdminRoleArn"),
+				AdminRoleArn: arn.New("aws", "iam", "", "123456789012", "role/AdminRole"),
 			},
 			qInput: &dynamodb.QueryInput{
 				ConsistentRead: aws.Bool(false),
@@ -192,7 +192,7 @@ func TestGetAccountsQuery(t *testing.T) {
 				},
 				ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
 					":0": {
-						S: aws.String("arn:aws:iam::123456789012:role/AdminRoleArn"),
+						S: aws.String("arn:aws:iam::123456789012:role/AdminRole"),
 					},
 					":1": {
 						S: aws.String("Ready"),
@@ -221,7 +221,7 @@ func TestGetAccountsQuery(t *testing.T) {
 			name: "query internal error",
 			query: &account.Account{
 				Status:       account.StatusReady.StatusPtr(),
-				AdminRoleArn: arn.New("aws", "iam", "", "123456789012", "role/AdminRoleArn"),
+				AdminRoleArn: arn.New("aws", "iam", "", "123456789012", "role/AdminRole"),
 			},
 			qInput: &dynamodb.QueryInput{
 				ConsistentRead: aws.Bool(false),
@@ -233,7 +233,7 @@ func TestGetAccountsQuery(t *testing.T) {
 				},
 				ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
 					":0": {
-						S: aws.String("arn:aws:iam::123456789012:role/AdminRoleArn"),
+						S: aws.String("arn:aws:iam::123456789012:role/AdminRole"),
 					},
 					":1": {
 						S: aws.String("Ready"),

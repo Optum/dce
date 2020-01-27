@@ -5,12 +5,8 @@ import (
 	"fmt"
 	"log"
 	"net/url"
-	"strings"
 
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iam"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/sts"
@@ -46,8 +42,6 @@ type accountControllerConfiguration struct {
 
 var (
 	muxLambda *gorillamux.GorillaMuxAdapter
-	//CurrentAccountID is the ID where the request is being created
-	CurrentAccountID *string
 	// Services handles the configuration of the AWS services
 	Services *config.ServiceBuilder
 	// Settings - the configuration settings for the controller
@@ -61,23 +55,9 @@ var (
 	SnsSvc      common.Notificationer
 	Queue       common.Queue
 	TokenSvc    common.TokenService
-	StorageSvc  common.Storager
 	RoleManager rolemanager.RoleManager
 	baseRequest url.URL
 	Config      common.DefaultEnvConfig
-)
-
-var (
-	accountCreatedTopicArn      string
-	policyName                  string
-	artifactsBucket             string
-	principalPolicyS3Key        string
-	principalRoleName           string
-	principalIAMDenyTags        []string
-	principalMaxSessionDuration int64
-	tags                        []*iam.Tag
-	resetQueueURL               string
-	allowedRegions              []string
 )
 
 func init() {
@@ -163,27 +143,10 @@ func initConfig() {
 
 	Services = svcBldr
 
-	policyName = Config.GetEnvVar("PRINCIPAL_POLICY_NAME", "DCEPrincipalDefaultPolicy")
-	artifactsBucket = Config.GetEnvVar("ARTIFACTS_BUCKET", "DefaultArtifactBucket")
-	principalPolicyS3Key = Config.GetEnvVar("PRINCIPAL_POLICY_S3_KEY", "DefaultPrincipalPolicyS3Key")
-	principalRoleName = Config.GetEnvVar("PRINCIPAL_ROLE_NAME", "DCEPrincipal")
-	principalIAMDenyTags = strings.Split(Config.GetEnvVar("PRINCIPAL_IAM_DENY_TAGS", "DefaultPrincipalIamDenyTags"), ",")
-	principalMaxSessionDuration = int64(Config.GetEnvIntVar("PRINCIPAL_MAX_SESSION_DURATION", 100))
-	tags = []*iam.Tag{
-		{Key: aws.String("Terraform"), Value: aws.String("False")},
-		{Key: aws.String("Source"), Value: aws.String("github.com/Optum/dce//cmd/lambda/accounts")},
-		{Key: aws.String("Environment"), Value: aws.String(Config.GetEnvVar("TAG_ENVIRONMENT", "DefaultTagEnvironment"))},
-		{Key: aws.String("Contact"), Value: aws.String(Config.GetEnvVar("TAG_CONTACT", "DefaultTagContact"))},
-		{Key: aws.String("AppName"), Value: aws.String(Config.GetEnvVar("TAG_APP_NAME", "DefaultTagAppName"))},
-	}
-	accountCreatedTopicArn = Config.GetEnvVar("ACCOUNT_CREATED_TOPIC_ARN", "DefaultAccountCreatedTopicArn")
-	resetQueueURL = Config.GetEnvVar("RESET_SQS_URL", "DefaultResetSQSUrl")
-	allowedRegions = strings.Split(Config.GetEnvVar("ALLOWED_REGIONS", "us-east-1"), ",")
 }
 
 // Handler - Handle the lambda function
 func Handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	CurrentAccountID = &req.RequestContext.AccountID
 
 	// Set baseRequest information lost by integration with gorilla mux
 	baseRequest = url.URL{}
@@ -201,11 +164,6 @@ func main() {
 	Queue = common.SQSQueue{Client: sqs.New(AWSSession)}
 	SnsSvc = &common.SNS{Client: sns.New(AWSSession)}
 	TokenSvc = common.STS{Client: sts.New(AWSSession)}
-
-	StorageSvc = common.S3{
-		Client:  s3.New(AWSSession),
-		Manager: s3manager.NewDownloader(AWSSession),
-	}
 
 	RoleManager = &rolemanager.IAMRoleManager{}
 	// Send Lambda requests to the router
