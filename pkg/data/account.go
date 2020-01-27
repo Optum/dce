@@ -19,6 +19,7 @@ type Account struct {
 	DynamoDB       dynamodbiface.DynamoDBAPI
 	TableName      string `env:"ACCOUNT_DB"`
 	ConsistentRead bool   `env:"USE_CONSISTENT_READS" envDefault:"false"`
+	Limit          int64  `env:"LIMIT" envDefault:"25"`
 }
 
 // Write the Account record in DynamoDB

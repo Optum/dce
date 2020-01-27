@@ -258,13 +258,13 @@ func getKeyPtrs(aMap map[string]ParameterStoreVal) []*string {
 	return keys
 }
 
-// AccountSvc returns the account Service for you
-func (config *ConfigurationBuilder) AccountSvc() accountiface.Servicer {
+// AccountService returns the account Service for you
+func (config *ConfigurationBuilder) AccountService() accountiface.Servicer {
 
-	var accountSvc accountiface.Servicer
-	if err := config.GetService(&accountSvc); err != nil {
+	var accountService accountiface.Servicer
+	if err := config.GetService(&accountService); err != nil {
 		panic(err)
 	}
 
-	return accountSvc
+	return accountService
 }

@@ -13,12 +13,12 @@ import (
 // NukeAccountInput is the container used for the TokenService and the
 // NukeService to execute a Nuke for an AWS Account
 type NukeAccountInput struct {
-	AccountID  string
-	RoleName   string
-	ConfigPath string
-	NoDryRun   bool
-	Token      common.TokenService
-	Nuke       Nuker
+	ChildAccountID string
+	RoleName       string
+	ConfigPath     string
+	NoDryRun       bool
+	Token          common.TokenService
+	Nuke           Nuker
 }
 
 // NukeAccount directly triggers aws-nuke to be called on the
@@ -37,8 +37,8 @@ func NukeAccount(input *NukeAccountInput) error {
 	}
 
 	// Get the Credentials of the Role to be assumed into for the Nuke
-	roleArn := "arn:aws:iam::" + input.AccountID + ":role/" + input.RoleName
-	roleSessionName := "DCENuke" + input.AccountID
+	roleArn := "arn:aws:iam::" + input.ChildAccountID + ":role/" + input.RoleName
+	roleSessionName := "DCENuke" + input.ChildAccountID
 	assumeRoleInputs := sts.AssumeRoleInput{
 		RoleArn:         &roleArn,
 		RoleSessionName: &roleSessionName,
@@ -48,7 +48,7 @@ func NukeAccount(input *NukeAccountInput) error {
 	)
 	if err != nil {
 		return errors.Wrapf(err, "Failed to assume role for nuking account %s as %s",
-			input.AccountID, roleArn)
+			input.ChildAccountID, roleArn)
 	}
 
 	// Create a Credentials based on the aws credentials stored
@@ -64,7 +64,7 @@ func NukeAccount(input *NukeAccountInput) error {
 	account, err := input.Nuke.NewAccount(creds)
 	if err != nil {
 		return errors.Wrapf(err, "Failed to configure account %s for aws-nuke as %s",
-			input.AccountID, roleArn)
+			input.ChildAccountID, roleArn)
 	}
 	nuke := cmd.NewNuke(params, *account)
 
@@ -82,7 +82,7 @@ func NukeAccount(input *NukeAccountInput) error {
 	case err := <-c:
 		if err != nil {
 			return errors.Wrapf(err, "Failed to run nuke for account %s as %s",
-				input.AccountID, roleArn)
+				input.ChildAccountID, roleArn)
 		}
 		return nil
 	case <-time.After(time.Minute * 60):

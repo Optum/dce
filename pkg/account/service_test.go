@@ -398,20 +398,6 @@ func TestGetAccounts(t *testing.T) {
 				err:  errors.NewInternalServer("failure", fmt.Errorf("original error")),
 			},
 		},
-		{
-			name: "validation error",
-			inputData: account.Account{
-				ID: ptrString("123456789012"),
-			},
-			ret: response{
-				data: nil,
-				err:  nil,
-			},
-			exp: response{
-				data: nil,
-				err:  errors.NewValidation("account", fmt.Errorf("id: must be empty.")),
-			},
-		},
 	}
 
 	for _, tt := range tests {

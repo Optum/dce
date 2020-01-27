@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
+	"net/http/httptest"
 	"reflect"
 	"testing"
 
@@ -16,6 +18,8 @@ import (
 	"github.com/Optum/dce/pkg/rolemanager"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/gorilla/mux"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -45,6 +49,7 @@ func TestDeleteController_Call(t *testing.T) {
 		AccountID:   "123456789",
 		PrincipalID: "12345",
 		LeaseStatus: db.Inactive,
+		ID:          "abc",
 	}
 
 	// Set up the mocks...
@@ -57,17 +62,17 @@ func TestDeleteController_Call(t *testing.T) {
 	// Another bad request. There are no accounts for the principal that is in the lease
 	// request
 	noAccountsForLeaseArgs := &args{ctx: context.Background(), req: createNoAccountsForLeaseRequest()}
-	mockDB.On("FindLeasesByPrincipal", "23456").Return(nil, nil)
-	noAccountsForLeaseResponse := response.CreateMultiValueHeaderAPIErrorResponse(http.StatusBadRequest, "ClientError", "No leases found for 23456")
+	mockDB.On("GetLease", "987654321", "23456").Return(nil, nil)
+	noAccountsForLeaseResponse := response.CreateMultiValueHeaderAPIErrorResponse(http.StatusBadRequest, "ClientError", "No leases found for Principal \"23456\" and Account ID \"987654321\"")
 
 	// A client error, because there is no active account for the principal ID
 	noActiveAccountForLeaseArgs := &args{ctx: context.Background(), req: createNoActiveAccountForLeaseRequest()}
-	mockDB.On("FindLeasesByPrincipal", "67890").Return(createNonMatchingAccountListDBResponse(), nil)
-	noActiveAccountForLeaseResponse := response.CreateMultiValueHeaderAPIErrorResponse(http.StatusBadRequest, "ClientError", "Lease is not active for 67890 - 987654321")
+	mockDB.On("GetLease", "987654321", "67890").Return(createNonMatchingAccountListDBResponse(), nil)
+	noActiveAccountForLeaseResponse := response.CreateMultiValueHeaderAPIErrorResponse(http.StatusBadRequest, "ClientError", "Lease is not active for \"abc\"")
 
 	// Successful delete
 	successfulDeleteArgs := &args{ctx: context.Background(), req: createSuccessfulDeleteRequest()}
-	mockDB.On("FindLeasesByPrincipal", "12345").Return(createSuccessfulDeleteDBResponse(), nil)
+	mockDB.On("GetLease", "123456789", "12345").Return(createSuccessfulDeleteDBResponse(), nil)
 	mockDB.On("TransitionLeaseStatus", "123456789", "12345", db.Active, db.Inactive, db.LeaseDestroyed).Return(lease, nil)
 	mockDB.On("TransitionAccountStatus", "123456789", db.Leased, db.NotReady).Return(nil, nil)
 	mockSNS.On("PublishMessage", &leaseTopicARN, mock.Anything, true).Return(&messageID, nil)
@@ -103,6 +108,102 @@ func TestDeleteController_Call(t *testing.T) {
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("DeleteController.Call() = %v, want %v", got, tt.want)
 			}
+		})
+	}
+
+}
+
+func TestDeleteByID(t *testing.T) {
+
+	type response struct {
+		StatusCode int
+		Body       string
+	}
+	tests := []struct {
+		name               string
+		expResp            response
+		leaseID            string
+		getLease           *db.Lease
+		getErr             error
+		transitiionedLease *db.Lease
+		transitionErr      error
+	}{
+		{
+			name:    "successful delete",
+			leaseID: "abc123",
+			expResp: response{
+				StatusCode: 200,
+				Body:       "{\"accountId\":\"123456789012\",\"principalId\":\"principal\",\"id\":\"abc123\",\"leaseStatus\":\"Inactive\",\"leaseStatusReason\":\"\",\"createdOn\":0,\"lastModifiedOn\":0,\"budgetAmount\":0,\"budgetCurrency\":\"\",\"budgetNotificationEmails\":null,\"leaseStatusModifiedOn\":0,\"expiresOn\":0,\"metadata\":null}\n",
+			},
+			getLease: &db.Lease{
+				ID:          "abc123",
+				LeaseStatus: db.Active,
+				PrincipalID: "principal",
+				AccountID:   "123456789012",
+			},
+			transitiionedLease: &db.Lease{
+				ID:          "abc123",
+				LeaseStatus: db.Inactive,
+				PrincipalID: "principal",
+				AccountID:   "123456789012",
+			},
+			getErr: nil,
+		},
+		{
+			name:    "failure no lease by that ID",
+			leaseID: "abc123",
+			expResp: response{
+				StatusCode: 500,
+				Body:       "{\"error\":{\"code\":\"ServerError\",\"message\":\"Cannot verify if Lease ID \\\"abc123\\\" exists\"}}",
+			},
+			getLease: &db.Lease{
+				ID:          "abc123",
+				LeaseStatus: db.Active,
+				PrincipalID: "principal",
+				AccountID:   "123456789012",
+			},
+			transitiionedLease: &db.Lease{
+				ID:          "abc123",
+				LeaseStatus: db.Inactive,
+				PrincipalID: "principal",
+				AccountID:   "123456789012",
+			},
+			getErr: fmt.Errorf("failure"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := httptest.NewRequest("DELETE", fmt.Sprintf("http://example.com/lease/%s", tt.leaseID), nil)
+
+			r = mux.SetURLVars(r, map[string]string{
+				"leaseID": tt.leaseID,
+			})
+			w := httptest.NewRecorder()
+
+			mockDB := &mockDB.DBer{}
+			mockDB.On("GetLeaseByID", tt.leaseID).Return(tt.getLease, tt.getErr)
+			mockDB.On("TransitionLeaseStatus",
+				tt.getLease.AccountID,
+				tt.getLease.PrincipalID, db.Active,
+				db.Inactive, db.LeaseDestroyed).
+				Return(tt.transitiionedLease, nil)
+			mockDB.On("TransitionAccountStatus",
+				tt.getLease.AccountID,
+				db.Leased, db.NotReady).
+				Return(nil, nil)
+			mockSNS := &commonMock.Notificationer{}
+
+			dao = mockDB
+			snsSvc = mockSNS
+			DeleteLeaseByID(w, r)
+
+			resp := w.Result()
+			body, err := ioutil.ReadAll(resp.Body)
+
+			assert.Nil(t, err)
+			assert.Equal(t, tt.expResp.StatusCode, resp.StatusCode)
+			assert.Equal(t, tt.expResp.Body, string(body))
 		})
 	}
 
@@ -154,26 +255,22 @@ func createSuccessfulDeleteRequest() *events.APIGatewayProxyRequest {
 	}
 }
 
-func createNonMatchingAccountListDBResponse() []*db.Lease {
-	leases := []*db.Lease{
-		{
-			AccountID:   "987654321",
-			PrincipalID: "67890",
-			LeaseStatus: db.Inactive,
-		},
+func createNonMatchingAccountListDBResponse() *db.Lease {
+	return &db.Lease{
+		AccountID:   "987654321",
+		PrincipalID: "67890",
+		LeaseStatus: db.Inactive,
+		ID:          "abc",
 	}
-	return leases
 }
 
-func createSuccessfulDeleteDBResponse() []*db.Lease {
-	leases := []*db.Lease{
-		{
-			AccountID:   "123456789",
-			PrincipalID: "12345",
-			LeaseStatus: db.Active,
-		},
+func createSuccessfulDeleteDBResponse() *db.Lease {
+	return &db.Lease{
+		AccountID:   "123456789",
+		PrincipalID: "12345",
+		LeaseStatus: db.Active,
+		ID:          "abc",
 	}
-	return leases
 }
 
 func createSuccessDeleteResponse() events.APIGatewayProxyResponse {
@@ -181,6 +278,7 @@ func createSuccessDeleteResponse() events.APIGatewayProxyResponse {
 		PrincipalID: "12345",
 		AccountID:   "123456789",
 		LeaseStatus: db.Inactive,
+		ID:          "abc",
 	}
 	leaseResponse := response.LeaseResponse(*lease)
 	return response.CreateMultiValueHeaderJSONResponse(http.StatusOK, leaseResponse)

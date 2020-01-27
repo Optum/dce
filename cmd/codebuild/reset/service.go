@@ -32,7 +32,8 @@ type service struct {
 }
 
 type serviceConfig struct {
-	accountID                  string
+	parentAccountID            string
+	childAccountID             string
 	accountPrincipalRoleName   string
 	accountPrincipalPolicyName string
 	accountAdminRoleName       string
@@ -50,13 +51,13 @@ func (svc *service) config() *serviceConfig {
 		return _config
 	}
 	accountAdminRoleName := common.RequireEnv("RESET_ACCOUNT_ADMIN_ROLE_NAME")
-	accountID := common.RequireEnv("RESET_ACCOUNT")
+	childAccountID := common.RequireEnv("RESET_ACCOUNT")
 	_config = &serviceConfig{
-		accountID:                  accountID,
+		childAccountID:             childAccountID,
 		accountPrincipalRoleName:   common.RequireEnv("RESET_ACCOUNT_PRINCIPAL_ROLE_NAME"),
 		accountPrincipalPolicyName: common.RequireEnv("RESET_ACCOUNT_PRINCIPAL_POLICY_NAME"),
 		accountAdminRoleName:       accountAdminRoleName,
-		accountAdminRoleARN:        "arn:aws:iam::" + accountID + ":role/" + accountAdminRoleName,
+		accountAdminRoleARN:        "arn:aws:iam::" + childAccountID + ":role/" + accountAdminRoleName,
 
 		isNukeEnabled:       os.Getenv("RESET_NUKE_TOGGLE") != "false",
 		nukeTemplateDefault: common.RequireEnv("RESET_NUKE_TEMPLATE_DEFAULT"),
@@ -64,6 +65,7 @@ func (svc *service) config() *serviceConfig {
 		nukeTemplateKey:     common.RequireEnv("RESET_NUKE_TEMPLATE_KEY"),
 		nukeRegions:         common.RequireEnvStringSlice("RESET_NUKE_REGIONS", ","),
 	}
+
 	return _config
 }
 

@@ -24,7 +24,7 @@ func UpdateAccountByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	account, err := Services.Config.AccountSvc().Update(accountID, newAccount)
+	account, err := Services.Config.AccountService().Update(accountID, newAccount)
 	if err != nil {
 		api.WriteAPIErrorResponse(w, err)
 		return

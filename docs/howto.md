@@ -748,7 +748,16 @@ See [AWS guide for backing up DynamoDB tables](https://docs.aws.amazon.com/amazo
 
 ## Monitor DCE
 
-DCE comes prebuilt with a number of CloudWatch alarms, which will trigger when DCE systems encounter errors or behaves abnormally.
+DCE comes with a prebuilt CloudWatch dashboard for monitoring things like API calls, account resets, and errors. To enable
+the DCE CloudWatch Dashboard, set the `cloudwatch_dashboard_toggle` terraform variable to `true` during deployment. e.g.
+
+```
+terraform apply -var cloudwatch_dashboard_toggle=true
+```
+
+The DCE CloudWatch Dashboard is disabled by default.
+
+DCE also comes prebuilt with a number of CloudWatch alarms, which will trigger when DCE systems encounter errors or behave abnormally.
 
 These CloudWatch alarms are delivered to an SNS topic. The ARN of this SNS topic is available as `a Terraform output <terraform.html#accessing-terraform-outputs>`_:
 
