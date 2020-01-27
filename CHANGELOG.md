@@ -3,6 +3,7 @@
 - Add CloudWatch Dashboard for monitoring DCE
 - Support deleting a lease by ID at `GET /leases/{ID}` endpoint
 - Update `GET /accounts` to allow for querying with `adminRoleArn`, `principalRoleArn`, and `principalPolicyHash`
+- Add `sts:*` to principal IAM policy, and to documented SCP
 
 ## v0.26.0
 

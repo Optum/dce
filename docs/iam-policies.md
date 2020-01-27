@@ -164,6 +164,7 @@ Implementing DCE in an AWS Organization provides the ability to use SCPs, which 
                 "ssm:*",
                 "states:*",
                 "storagegateway:*",
+                "sts:*",
                 "waf-regional:*",
                 "waf:*",
                 "workspaces:*"
