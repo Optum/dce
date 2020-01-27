@@ -52,16 +52,6 @@ func TestGetLeaseByID(t *testing.T) {
 			retLease: nil,
 			retErr:   fmt.Errorf("failure"),
 		},
-		{
-			name:    "found more than one",
-			leaseID: "abc123",
-			expResp: response{
-				StatusCode: 500,
-				Body:       "{\"error\":{\"message\":\"unknown error\",\"code\":\"ServerError\"}}\n",
-			},
-			retLease: nil,
-			retErr:   fmt.Errorf("failure"),
-		},
 	}
 
 	for _, tt := range tests {
@@ -132,16 +122,20 @@ func TestGetLeaseByID(t *testing.T) {
 	})
 
 	t.Run("When the handler invoking get and get fails", func(t *testing.T) {
-		expectedLease := &lease.Lease{
+		expectedLease1 := &lease.Lease{
 			ID: ptrString("unique-id"),
 		}
+		expectedLease2 := &lease.Lease{
+			ID: ptrString("unique-id"),
+		}
+		expectedLeases := &lease.Leases{*expectedLease1, *expectedLease2}
 		expectedError := gErrors.New("error")
 		cfgBuilder := &config.ConfigurationBuilder{}
 		svcBuilder := &config.ServiceBuilder{Config: cfgBuilder}
 
 		leaseSvc := mocks.Servicer{}
-		leaseSvc.On("Get", *expectedLease.ID).Return(
-			expectedLease, expectedError,
+		leaseSvc.On("Get", *expectedLease1.ID).Return(
+			expectedLeases, expectedError,
 		)
 		svcBuilder.Config.WithService(&leaseSvc)
 		_, err := svcBuilder.Build()
