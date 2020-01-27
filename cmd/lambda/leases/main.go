@@ -56,22 +56,22 @@ var (
 
 var (
 	// Soon to be deprecated - Legacy support
-	Config                   common.DefaultEnvConfig
-	awsSession               *session.Session
-	dao                      db.DBer
-	snsSvc                   common.Notificationer
-	usageSvc                 usage.Service
-	leaseAddedTopicARN       string
-	decommissionTopicARN     string
-	resetQueueURL            string
+	Config             common.DefaultEnvConfig
+	awsSession         *session.Session
+	dao                db.DBer
+	snsSvc             common.Notificationer
+	usageSvc           usage.Service
+	leaseAddedTopicARN string
+	//decommissionTopicARN     string
+	//resetQueueURL            string
 	principalBudgetAmount    float64
 	principalBudgetPeriod    string
 	maxLeaseBudgetAmount     float64
 	maxLeasePeriod           int64
 	defaultLeaseLengthInDays int
 	baseRequest              url.URL
-	cognitoUserPoolId        string
-	cognitoAdminName         string
+	//cognitoUserPoolId        string
+	//cognitoAdminName         string
 )
 
 // messageBody is the structured object of the JSON Message to send
@@ -182,11 +182,11 @@ func initConfig() {
 
 	Services = svcBldr
 
-	resetQueueURL = Config.GetEnvVar("RESET_SQS_URL", "DefaultResetSQSUrl")
+	//resetQueueURL = Config.GetEnvVar("RESET_SQS_URL", "DefaultResetSQSUrl")
 	leaseAddedTopicARN = Config.GetEnvVar("LEASE_ADDED_TOPIC", "DCEDefaultProvisionTopic")
-	decommissionTopicARN = Config.GetEnvVar("DECOMMISSION_TOPIC", "DefaultDecommissionTopicArn")
-	cognitoUserPoolId = Config.GetEnvVar("COGNITO_USER_POOL_ID", "DefaultCognitoUserPoolId")
-	cognitoAdminName = Config.GetEnvVar("COGNITO_ROLES_ATTRIBUTE_ADMIN_NAME", "DefaultCognitoAdminName")
+	//decommissionTopicARN = Config.GetEnvVar("DECOMMISSION_TOPIC", "DefaultDecommissionTopicArn")
+	//cognitoUserPoolId = Config.GetEnvVar("COGNITO_USER_POOL_ID", "DefaultCognitoUserPoolId")
+	//cognitoAdminName = Config.GetEnvVar("COGNITO_ROLES_ATTRIBUTE_ADMIN_NAME", "DefaultCognitoAdminName")
 	principalBudgetAmount = Config.GetEnvFloatVar("PRINCIPAL_BUDGET_AMOUNT", 1000.00)
 	principalBudgetPeriod = Config.GetEnvVar("PRINCIPAL_BUDGET_PERIOD", Weekly)
 	maxLeaseBudgetAmount = Config.GetEnvFloatVar("MAX_LEASE_BUDGET_AMOUNT", 1000.00)
