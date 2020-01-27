@@ -2,7 +2,6 @@ package leasemanager
 
 // LeaseManager manages lease resources
 type LeaseManager struct {
-
 }
 
 // Setup creates a new session manager struct
@@ -19,8 +18,7 @@ type NewInput struct {
 
 // New creates a new lease manager struct
 func New(input NewInput) (*LeaseManager, error) {
-	new := &LeaseManager{
-	}
+	new := &LeaseManager{}
 
 	return new, nil
 }
