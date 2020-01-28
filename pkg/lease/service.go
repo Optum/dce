@@ -52,8 +52,8 @@ type Eventer interface {
 
 // Service is a type corresponding to a Lease table record
 type Service struct {
-	dataSvc    ReaderWriterDeleter
-	eventSvc   Eventer
+	dataSvc  ReaderWriterDeleter
+	eventSvc Eventer
 }
 
 // Get returns a lease from ID
@@ -122,14 +122,14 @@ func (a *Service) List(query *Lease) (*Leases, error) {
 
 // NewServiceInput Input for creating a new Service
 type NewServiceInput struct {
-	DataSvc    ReaderWriterDeleter
-	EventSvc   Eventer
+	DataSvc  ReaderWriterDeleter
+	EventSvc Eventer
 }
 
 // NewService creates a new instance of the Service
 func NewService(input NewServiceInput) *Service {
 	return &Service{
-		dataSvc:    input.DataSvc,
-		eventSvc:   input.EventSvc,
+		dataSvc:  input.DataSvc,
+		eventSvc: input.EventSvc,
 	}
 }

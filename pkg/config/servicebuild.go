@@ -334,7 +334,7 @@ func (bldr *ServiceBuilder) createLeaseService(config ConfigurationServiceBuilde
 
 	leaseSvc := lease.NewService(
 		lease.NewServiceInput{
-			DataSvc:    dataSvc,
+			DataSvc: dataSvc,
 		},
 	)
 
