@@ -50,15 +50,9 @@ type Eventer interface {
 	Publish() error
 }
 
-// Manager manages all the actions against a lease
-type Manager interface {
-	Setup() error
-}
-
 // Service is a type corresponding to a Lease table record
 type Service struct {
 	dataSvc    ReaderWriterDeleter
-	managerSvc Manager
 	eventSvc   Eventer
 }
 
@@ -129,7 +123,6 @@ func (a *Service) List(query *Lease) (*Leases, error) {
 // NewServiceInput Input for creating a new Service
 type NewServiceInput struct {
 	DataSvc    ReaderWriterDeleter
-	ManagerSvc Manager
 	EventSvc   Eventer
 }
 
@@ -138,6 +131,5 @@ func NewService(input NewServiceInput) *Service {
 	return &Service{
 		dataSvc:    input.DataSvc,
 		eventSvc:   input.EventSvc,
-		managerSvc: input.ManagerSvc,
 	}
 }
