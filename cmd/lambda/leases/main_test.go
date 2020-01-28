@@ -8,15 +8,6 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	os.Setenv("LEASE_ADDED_TOPIC", "mock-lease-added-topic")
-	os.Setenv("DECOMMISSION_TOPIC", "mock-decommission-topic")
-	os.Setenv("COGNITO_USER_POOL_ID", "mock-cognito-user-pool-id")
-	os.Setenv("COGNITO_ROLES_ATTRIBUTE_ADMIN_NAME", "mock-cognito-admin-name")
-	os.Setenv("PRINCIPAL_BUDGET_AMOUNT", "1000.00")
-	os.Setenv("PRINCIPAL_BUDGET_PERIOD", "Weekly")
-	os.Setenv("MAX_LEASE_BUDGET_AMOUNT", "1000.00")
-	os.Setenv("MAX_LEASE_PERIOD", "704800")
-	os.Setenv("DEFAULT_LEASE_LENGTH_IN_DAYS", "7")
 	os.Exit(m.Run())
 }
 

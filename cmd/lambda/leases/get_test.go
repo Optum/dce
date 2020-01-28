@@ -33,7 +33,7 @@ func TestGetLeaseByID(t *testing.T) {
 		retErr   error
 	}{
 		{
-			name:    "success",
+			name:    "When Get lease service returns a success",
 			leaseID: "abc123",
 			expResp: response{
 				StatusCode: 200,
@@ -43,7 +43,7 @@ func TestGetLeaseByID(t *testing.T) {
 			retErr:   nil,
 		},
 		{
-			name:    "failure",
+			name:    "When Get lease service returns a failure",
 			leaseID: "abc123",
 			expResp: response{
 				StatusCode: 500,

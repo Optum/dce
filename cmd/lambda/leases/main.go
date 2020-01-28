@@ -173,7 +173,6 @@ func initConfig() {
 		// DCE services...
 		WithStorageService().
 		WithLeaseDataService().
-		WithLeaseManager().
 		WithLeaseService().
 		Build()
 	if err != nil {

@@ -12,9 +12,6 @@ import (
 	"github.com/Optum/dce/pkg/data"
 	"github.com/Optum/dce/pkg/data/dataiface"
 	"github.com/Optum/dce/pkg/lease"
-	"github.com/Optum/dce/pkg/leasemanager"
-	"github.com/Optum/dce/pkg/leasemanager/leasemanageriface"
-
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 	"github.com/aws/aws-sdk-go/service/ssm"
 
@@ -131,12 +128,6 @@ func (bldr *ServiceBuilder) WithAccountManager() *ServiceBuilder {
 // WithAccountService tells the builder to add the Account service to the `ConfigurationBuilder`
 func (bldr *ServiceBuilder) WithAccountService() *ServiceBuilder {
 	bldr.handlers = append(bldr.handlers, bldr.createAccountService)
-	return bldr
-}
-
-// WithLeaseManager tells the builder to add the Data service to the `ConfigurationBuilder`
-func (bldr *ServiceBuilder) WithLeaseManager() *ServiceBuilder {
-	bldr.handlers = append(bldr.handlers, bldr.createLeaseManager)
 	return bldr
 }
 
@@ -334,22 +325,6 @@ func (bldr *ServiceBuilder) createLeaseDataService(config ConfigurationServiceBu
 	return nil
 }
 
-func (bldr *ServiceBuilder) createLeaseManager(config ConfigurationServiceBuilder) error {
-	amSvcInput := leasemanager.NewInput{}
-	err := bldr.Config.Unmarshal(&amSvcInput)
-	if err != nil {
-		return err
-	}
-
-	amSvcImpl, err := leasemanager.New(amSvcInput)
-	if err != nil {
-		return err
-	}
-
-	config.WithService(amSvcImpl)
-	return nil
-}
-
 func (bldr *ServiceBuilder) createLeaseService(config ConfigurationServiceBuilder) error {
 	var dataSvc dataiface.LeaseData
 	err := bldr.Config.GetService(&dataSvc)
@@ -357,16 +332,9 @@ func (bldr *ServiceBuilder) createLeaseService(config ConfigurationServiceBuilde
 		return err
 	}
 
-	var managerSvc leasemanageriface.LeaseManagerAPI
-	err = bldr.Config.GetService(&managerSvc)
-	if err != nil {
-		return err
-	}
-
 	leaseSvc := lease.NewService(
 		lease.NewServiceInput{
 			DataSvc:    dataSvc,
-			ManagerSvc: managerSvc,
 		},
 	)
 
