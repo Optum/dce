@@ -11,7 +11,7 @@ import (
 	"github.com/Optum/dce/pkg/common"
 	"github.com/Optum/dce/pkg/data"
 	"github.com/Optum/dce/pkg/data/dataiface"
-
+	"github.com/Optum/dce/pkg/lease"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 	"github.com/aws/aws-sdk-go/service/ssm"
 
@@ -107,9 +107,15 @@ func (bldr *ServiceBuilder) WithStorageService() *ServiceBuilder {
 	return bldr
 }
 
-// WithDataService tells the builder to add the Data service to the `ConfigurationBuilder`
-func (bldr *ServiceBuilder) WithDataService() *ServiceBuilder {
-	bldr.handlers = append(bldr.handlers, bldr.createDataService)
+// WithAccountDataService tells the builder to add the Data service to the `ConfigurationBuilder`
+func (bldr *ServiceBuilder) WithAccountDataService() *ServiceBuilder {
+	bldr.handlers = append(bldr.handlers, bldr.createAccountDataService)
+	return bldr
+}
+
+// WithLeaseDataService tells the builder to add the Data service to the `ConfigurationBuilder`
+func (bldr *ServiceBuilder) WithLeaseDataService() *ServiceBuilder {
+	bldr.handlers = append(bldr.handlers, bldr.createLeaseDataService)
 	return bldr
 }
 
@@ -122,6 +128,12 @@ func (bldr *ServiceBuilder) WithAccountManager() *ServiceBuilder {
 // WithAccountService tells the builder to add the Account service to the `ConfigurationBuilder`
 func (bldr *ServiceBuilder) WithAccountService() *ServiceBuilder {
 	bldr.handlers = append(bldr.handlers, bldr.createAccountService)
+	return bldr
+}
+
+// WithLeaseService tells the builder to add the Account service to the `ConfigurationBuilder`
+func (bldr *ServiceBuilder) WithLeaseService() *ServiceBuilder {
+	bldr.handlers = append(bldr.handlers, bldr.createLeaseService)
 	return bldr
 }
 
@@ -231,7 +243,7 @@ func (bldr *ServiceBuilder) createStorageService(config ConfigurationServiceBuil
 	return nil
 }
 
-func (bldr *ServiceBuilder) createDataService(config ConfigurationServiceBuilder) error {
+func (bldr *ServiceBuilder) createAccountDataService(config ConfigurationServiceBuilder) error {
 	var dynamodbSvc dynamodbiface.DynamoDBAPI
 	err := bldr.Config.GetService(&dynamodbSvc)
 
@@ -289,5 +301,43 @@ func (bldr *ServiceBuilder) createAccountService(config ConfigurationServiceBuil
 	)
 
 	config.WithService(accountSvc)
+	return nil
+}
+
+func (bldr *ServiceBuilder) createLeaseDataService(config ConfigurationServiceBuilder) error {
+	var dynamodbSvc dynamodbiface.DynamoDBAPI
+	err := bldr.Config.GetService(&dynamodbSvc)
+
+	if err != nil {
+		return err
+	}
+
+	dataSvcImpl := &data.Lease{}
+
+	err = bldr.Config.Unmarshal(dataSvcImpl)
+	if err != nil {
+		return err
+	}
+
+	dataSvcImpl.DynamoDB = dynamodbSvc
+
+	config.WithService(dataSvcImpl)
+	return nil
+}
+
+func (bldr *ServiceBuilder) createLeaseService(config ConfigurationServiceBuilder) error {
+	var dataSvc dataiface.LeaseData
+	err := bldr.Config.GetService(&dataSvc)
+	if err != nil {
+		return err
+	}
+
+	leaseSvc := lease.NewService(
+		lease.NewServiceInput{
+			DataSvc: dataSvc,
+		},
+	)
+
+	config.WithService(leaseSvc)
 	return nil
 }

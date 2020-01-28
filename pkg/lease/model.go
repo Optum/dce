@@ -26,7 +26,7 @@ type Lease struct {
 	Metadata                 map[string]interface{} `json:"metadata,omitempty" dynamodbav:"Metadata,omitempty"`                                 // Arbitrary key-value metadata to store with lease object
 }
 
-// Validate the account data
+// Validate the lease data
 func (l *Lease) Validate() error {
 	err := validation.ValidateStruct(l,
 		validation.Field(&l.ID, validateID...),
@@ -42,7 +42,7 @@ func (l *Lease) Validate() error {
 	return nil
 }
 
-// Leases is a list of type Account
+// Leases is a list of type Lease
 type Leases []Lease
 
 // Status is a lease status type

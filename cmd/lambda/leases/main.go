@@ -11,15 +11,29 @@ import (
 	"github.com/Optum/dce/pkg/common"
 	"github.com/Optum/dce/pkg/db"
 	"github.com/Optum/dce/pkg/usage"
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sns"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 
+	"github.com/Optum/dce/pkg/config"
 	"github.com/awslabs/aws-lambda-go-api-proxy/gorillamux"
 )
+
+type leaseControllerConfiguration struct {
+	Debug                    string  `env:"DEBUG" defaultEnv:"false"`
+	ResetQueueURL            string  `env:"RESET_SQS_URL" defaultEnv:"DefaultResetSQSUrl"`
+	LeaseAddedTopicARN       string  `env:"LEASE_ADDED_TOPIC" defaultEnv:"DCEDefaultProvisionTopic"`
+	DecommissionTopicARN     string  `env:"DECOMMISSION_TOPIC" defaultEnv:"DefaultDecommissionTopicArn"`
+	CognitoUserPoolID        string  `env:"COGNITO_USER_POOL_ID" defaultEnv:"DefaultCognitoUserPoolId"`
+	CognitoAdminName         string  `env:"COGNITO_ROLES_ATTRIBUTE_ADMIN_NAME" defaultEnv:"DefaultCognitoAdminName"`
+	PrincipalBudgetAmount    float64 `env:"PRINCIPAL_BUDGET_AMOUNT" defaultEnv:"1000.00"`
+	PrincipalBudgetPeriod    string  `env:"PRINCIPAL_BUDGET_PERIOD" defaultEnv:"Weekly"`
+	MaxLeaseBudgetAmount     float64 `env:"MAX_LEASE_BUDGET_AMOUNT" defaultEnv:"1000.00"`
+	MaxLeasePeriod           int64   `env:"MAX_LEASE_PERIOD" defaultEnv:"704800"`
+	DefaultLeaseLengthInDays int     `env:"DEFAULT_LEASE_LENGTH_IN_DAYS" defaultEnv:"7"`
+}
 
 const (
 	PrincipalIDParam     = "principalId"
@@ -31,21 +45,33 @@ const (
 	Weekly               = "WEEKLY"
 )
 
-var muxLambda *gorillamux.GorillaMuxAdapter
+var (
+	muxLambda *gorillamux.GorillaMuxAdapter
+	//CurrentAccountID is the ID where the request is being created
+	// Services handles the configuration of the AWS services
+	Services *config.ServiceBuilder
+	// Settings - the configuration settings for the controller
+	Settings *leaseControllerConfiguration
+)
 
 var (
-	config                   common.DefaultEnvConfig
-	awsSession               *session.Session
-	dao                      db.DBer
-	snsSvc                   common.Notificationer
-	usageSvc                 usage.Service
-	leaseAddedTopicARN       *string
-	principalBudgetAmount    *float64
-	principalBudgetPeriod    *string
-	maxLeaseBudgetAmount     *float64
-	maxLeasePeriod           *int64
-	defaultLeaseLengthInDays *int
+	// Soon to be deprecated - Legacy support
+	Config             common.DefaultEnvConfig
+	awsSession         *session.Session
+	dao                db.DBer
+	snsSvc             common.Notificationer
+	usageSvc           usage.Service
+	leaseAddedTopicARN string
+	//decommissionTopicARN     string
+	//resetQueueURL            string
+	principalBudgetAmount    float64
+	principalBudgetPeriod    string
+	maxLeaseBudgetAmount     float64
+	maxLeasePeriod           int64
+	defaultLeaseLengthInDays int
 	baseRequest              url.URL
+	//cognitoUserPoolId        string
+	//cognitoAdminName         string
 )
 
 // messageBody is the structured object of the JSON Message to send
@@ -56,14 +82,8 @@ type messageBody struct {
 }
 
 func init() {
+	initConfig()
 	log.Println("Cold start; creating router for /leases")
-
-	leaseAddedTopicARN = aws.String(config.GetEnvVar("LEASE_ADDED_TOPIC", "DCEDefaultProvisionTopic"))
-	principalBudgetAmount = aws.Float64(config.GetEnvFloatVar("PRINCIPAL_BUDGET_AMOUNT", 1000.00))
-	principalBudgetPeriod = aws.String(config.GetEnvVar("PRINCIPAL_BUDGET_PERIOD", Weekly))
-	maxLeaseBudgetAmount = aws.Float64(config.GetEnvFloatVar("MAX_LEASE_BUDGET_AMOUNT", 1000.00))
-	maxLeasePeriod = aws.Int64(int64(config.GetEnvIntVar("MAX_LEASE_PERIOD", 704800)))
-	defaultLeaseLengthInDays = aws.Int(config.GetEnvIntVar("DEFAULT_LEASE_LENGTH_IN_DAYS", 7))
 
 	leasesRoutes := api.Routes{
 		api.Route{
@@ -132,6 +152,51 @@ func init() {
 	}
 	r := api.NewRouter(leasesRoutes)
 	muxLambda = gorillamux.New(r)
+}
+
+// initConfig configures package-level variables
+// loaded from env vars.
+func initConfig() {
+	cfgBldr := &config.ConfigurationBuilder{}
+	Settings = &leaseControllerConfiguration{}
+	if err := cfgBldr.Unmarshal(Settings); err != nil {
+		log.Fatalf("Could not load configuration: %s", err.Error())
+	}
+
+	// load up the values into the various settings...
+	err := cfgBldr.WithEnv("AWS_CURRENT_REGION", "AWS_CURRENT_REGION", "us-east-1").Build()
+	if err != nil {
+		log.Printf("Error: %+v", err)
+	}
+	svcBldr := &config.ServiceBuilder{Config: cfgBldr}
+
+	_, err = svcBldr.
+		// AWS services...
+		WithDynamoDB().
+		WithSTS().
+		WithS3().
+		WithSNS().
+		WithSQS().
+		// DCE services...
+		WithLeaseDataService().
+		WithLeaseService().
+		Build()
+	if err != nil {
+		panic(err)
+	}
+
+	Services = svcBldr
+
+	//resetQueueURL = Config.GetEnvVar("RESET_SQS_URL", "DefaultResetSQSUrl")
+	leaseAddedTopicARN = Config.GetEnvVar("LEASE_ADDED_TOPIC", "DCEDefaultProvisionTopic")
+	//decommissionTopicARN = Config.GetEnvVar("DECOMMISSION_TOPIC", "DefaultDecommissionTopicArn")
+	//cognitoUserPoolId = Config.GetEnvVar("COGNITO_USER_POOL_ID", "DefaultCognitoUserPoolId")
+	//cognitoAdminName = Config.GetEnvVar("COGNITO_ROLES_ATTRIBUTE_ADMIN_NAME", "DefaultCognitoAdminName")
+	principalBudgetAmount = Config.GetEnvFloatVar("PRINCIPAL_BUDGET_AMOUNT", 1000.00)
+	principalBudgetPeriod = Config.GetEnvVar("PRINCIPAL_BUDGET_PERIOD", Weekly)
+	maxLeaseBudgetAmount = Config.GetEnvFloatVar("MAX_LEASE_BUDGET_AMOUNT", 1000.00)
+	maxLeasePeriod = int64(Config.GetEnvIntVar("MAX_LEASE_PERIOD", 704800))
+	defaultLeaseLengthInDays = Config.GetEnvIntVar("DEFAULT_LEASE_LENGTH_IN_DAYS", 7)
 }
 
 // Handler - Handle the lambda function
