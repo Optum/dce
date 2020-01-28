@@ -1,58 +1,73 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"io/ioutil"
-	"net/http/httptest"
-	"strings"
+	"net/http"
 	"testing"
 
 	"github.com/Optum/dce/pkg/account"
 	"github.com/Optum/dce/pkg/account/accountiface/mocks"
 	"github.com/Optum/dce/pkg/config"
+	"github.com/aws/aws-lambda-go/events"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
-func TestCreate(t *testing.T) {
-
-	type response struct {
-		StatusCode int
-		Body       string
+func TestWhenCreate(t *testing.T) {
+	standardHeaders := map[string][]string{
+		"Access-Control-Allow-Origin": []string{"*"},
+		"Content-Type":                []string{"application/json"},
 	}
+
 	tests := []struct {
 		name       string
-		expResp    response
-		reqBody    string
+		expResp    events.APIGatewayProxyResponse
+		request    events.APIGatewayProxyRequest
 		retAccount *account.Account
 		retErr     error
 	}{
 		{
-			name: "success",
-			expResp: response{
-				StatusCode: 201,
-				Body:       "{}\n",
+			name: "When given good values. Then success is returned.",
+			expResp: events.APIGatewayProxyResponse{
+				StatusCode:        http.StatusCreated,
+				Body:              "{}\n",
+				MultiValueHeaders: standardHeaders,
 			},
-			reqBody:    "{ \"id\": \"123456789012\", \"adminRoleArn\": \"arn:aws:iam::123456789012:role/AdminRoleArn\" }",
+			request: events.APIGatewayProxyRequest{
+				HTTPMethod: http.MethodPost,
+				Path:       "/accounts",
+				Body:       "{ \"id\": \"123456789012\", \"adminRoleArn\": \"arn:aws:iam::123456789012:role/AdminRoleArn\" }",
+			},
 			retAccount: &account.Account{},
 			retErr:     nil,
 		},
 		{
-			name: "failure on bad syntax",
-			expResp: response{
-				StatusCode: 400,
-				Body:       "{\"error\":{\"message\":\"invalid request parameters\",\"code\":\"ClientError\"}}\n",
+			name: "When given bad values. Then a syntax error is returned.",
+			expResp: events.APIGatewayProxyResponse{
+				StatusCode:        http.StatusBadRequest,
+				Body:              "{\"error\":{\"message\":\"invalid request parameters\",\"code\":\"ClientError\"}}\n",
+				MultiValueHeaders: standardHeaders,
 			},
-			reqBody:    "{ \"id: \"123456789012\", \"adminRoleArn\": \"arn:aws:iam::123456789012:role/AdminRoleArn\" }",
+			request: events.APIGatewayProxyRequest{
+				HTTPMethod: http.MethodPost,
+				Path:       "/accounts",
+				Body:       "{ \"id: \"123456789012\", \"adminRoleArn\": \"arn:aws:iam::123456789012:role/AdminRoleArn\" }",
+			},
 			retAccount: &account.Account{},
 			retErr:     nil,
 		},
 		{
-			name:    "failure",
-			reqBody: "{ \"id\": \"123456789012\", \"adminRoleArn\": \"arn:aws:iam::123456789012:role/AdminRoleArn\" }",
-			expResp: response{
-				StatusCode: 500,
-				Body:       "{\"error\":{\"message\":\"unknown error\",\"code\":\"ServerError\"}}\n",
+			name: "Given internal failure. Then an internal server error is returned.",
+			request: events.APIGatewayProxyRequest{
+				HTTPMethod: http.MethodPost,
+				Path:       "/accounts",
+				Body:       "{ \"id\": \"123456789012\", \"adminRoleArn\": \"arn:aws:iam::123456789012:role/AdminRoleArn\" }",
+			},
+			expResp: events.APIGatewayProxyResponse{
+				StatusCode:        http.StatusInternalServerError,
+				Body:              "{\"error\":{\"message\":\"unknown error\",\"code\":\"ServerError\"}}\n",
+				MultiValueHeaders: standardHeaders,
 			},
 			retAccount: nil,
 			retErr:     fmt.Errorf("failure"),
@@ -61,11 +76,6 @@ func TestCreate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			bodyReader := strings.NewReader(tt.reqBody)
-			r := httptest.NewRequest("POST", "http://example.com/accounts", bodyReader)
-
-			w := httptest.NewRecorder()
-
 			cfgBldr := &config.ConfigurationBuilder{}
 			svcBldr := &config.ServiceBuilder{Config: cfgBldr}
 
@@ -81,14 +91,10 @@ func TestCreate(t *testing.T) {
 				Services = svcBldr
 			}
 
-			CreateAccount(w, r)
-
-			resp := w.Result()
-			body, err := ioutil.ReadAll(resp.Body)
+			resp, err := Handler(context.TODO(), tt.request)
 
 			assert.Nil(t, err)
-			assert.Equal(t, tt.expResp.StatusCode, resp.StatusCode)
-			assert.Equal(t, tt.expResp.Body, string(body))
+			assert.Equal(t, tt.expResp, resp)
 		})
 	}
 

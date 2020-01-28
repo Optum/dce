@@ -57,7 +57,7 @@ type Eventer interface {
 // Manager manages all the actions against an account
 type Manager interface {
 	ValidateAccess(role *arn.ARN) error
-	MergePrincipalAccess(account *Account) error
+	UpsertPrincipalAccess(account *Account) error
 }
 
 // Service is a type corresponding to a Account table record
@@ -167,12 +167,17 @@ func (a *Service) Create(data *Account) (*Account, error) {
 		}
 	}
 
-	new, err := NewAccount(*data.ID, *data.AdminRoleArn, data.Metadata)
+	new, err := NewAccount(NewAccountInput{
+		ID:                *data.ID,
+		AdminRoleArn:      *data.AdminRoleArn,
+		Metadata:          data.Metadata,
+		PrincipalRoleName: a.principalRoleName,
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	err = a.managerSvc.MergePrincipalAccess(new)
+	err = a.managerSvc.UpsertPrincipalAccess(new)
 	if err != nil {
 		return nil, err
 	}

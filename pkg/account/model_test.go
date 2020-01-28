@@ -31,7 +31,6 @@ func TestAccountUnmarshalJSON(t *testing.T) {
 				ID:                 ptrString("123456789012"),
 				PrincipalPolicyArn: arn.New("aws", "iam", "", "123456789012", "policy/DCEPrincipalDefaultPolicy"),
 				PrincipalRoleArn:   arn.New("aws", "iam", "", "123456789012", "role/DCEPrincipal"),
-				PrincipalRoleName:  ptrString("DCEPrincipal"),
 			},
 		},
 	}
@@ -69,7 +68,6 @@ func TestAccountMarshalJSON(t *testing.T) {
 				ID:                 ptrString("123456789012"),
 				PrincipalPolicyArn: arn.New("aws", "iam", "", "123456789012", "policy/DCEPrincipalDefaultPolicy"),
 				PrincipalRoleArn:   arn.New("aws", "iam", "", "123456789012", "role/DCEPrincipal"),
-				PrincipalRoleName:  ptrString("DCEPrincipal"),
 			},
 		},
 	}
