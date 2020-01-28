@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"testing"
 
 	gErrors "errors"
@@ -119,14 +118,7 @@ func TestGetLeaseByID(t *testing.T) {
 		assert.Nil(t, err)
 
 		expectedResponse := MockAPIResponse(http.StatusOK, "{\"accountId\":\"123456789\",\"principalId\":\"test\",\"id\":\"unique-id\",\"leaseStatus\":\"Active\",\"lastModifiedOn\":1561149393}\n")
-
-		expectedOutput, err := json.Marshal(expectedResponse)
-		assert.Nil(t, err)
-
-		actualOutput, err := json.Marshal(actualResponse)
-		assert.Nil(t, err)
-
-		assert.JSONEq(t, string(expectedOutput), string(actualOutput))
+		assert.Equal(t, expectedResponse, actualResponse)
 	})
 
 	t.Run("When the handler invoking get and get fails", func(t *testing.T) {
@@ -156,14 +148,7 @@ func TestGetLeaseByID(t *testing.T) {
 		assert.Nil(t, err)
 
 		expectedResponse := MockAPIErrorResponse(http.StatusInternalServerError, "{\"error\":{\"message\":\"unknown error\",\"code\":\"ServerError\"}}\n")
-
-		expectedOutput, err := json.Marshal(expectedResponse)
-		assert.Nil(t, err)
-
-		actualOutput, err := json.Marshal(actualResponse)
-		assert.Nil(t, err)
-
-		assert.JSONEq(t, string(expectedOutput), string(actualOutput))
+		assert.Equal(t, expectedResponse, actualResponse)
 	})
 }
 
