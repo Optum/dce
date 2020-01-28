@@ -171,7 +171,6 @@ func initConfig() {
 		WithSNS().
 		WithSQS().
 		// DCE services...
-		WithStorageService().
 		WithLeaseDataService().
 		WithLeaseService().
 		Build()

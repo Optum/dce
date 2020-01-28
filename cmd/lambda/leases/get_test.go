@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"testing"
 
 	gErrors "errors"
@@ -15,7 +16,6 @@ import (
 
 	"context"
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/stretchr/testify/require"
 	"net/http"
 )
 
@@ -116,9 +116,17 @@ func TestGetLeaseByID(t *testing.T) {
 		mockRequest := events.APIGatewayProxyRequest{HTTPMethod: http.MethodGet, Path: "/leases/unique-id"}
 
 		actualResponse, err := Handler(context.TODO(), mockRequest)
-		require.Nil(t, err)
+		assert.Nil(t, err)
 
-		require.Equal(t, MockAPIResponse(http.StatusOK, "{\"accountId\":\"123456789\",\"principalId\":\"test\",\"id\":\"unique-id\",\"leaseStatus\":\"Active\",\"lastModifiedOn\":1561149393}\n"), actualResponse, "Returns a single lease.")
+		expectedResponse := MockAPIResponse(http.StatusOK, "{\"accountId\":\"123456789\",\"principalId\":\"test\",\"id\":\"unique-id\",\"leaseStatus\":\"Active\",\"lastModifiedOn\":1561149393}\n")
+
+		expectedOutput, err := json.Marshal(expectedResponse)
+		assert.Nil(t, err)
+
+		actualOutput, err := json.Marshal(actualResponse)
+		assert.Nil(t, err)
+
+		assert.JSONEq(t, string(expectedOutput), string(actualOutput))
 	})
 
 	t.Run("When the handler invoking get and get fails", func(t *testing.T) {
@@ -145,10 +153,17 @@ func TestGetLeaseByID(t *testing.T) {
 		mockRequest := events.APIGatewayProxyRequest{HTTPMethod: http.MethodGet, Path: "/leases/unique-id"}
 
 		actualResponse, err := Handler(context.TODO(), mockRequest)
-		require.Nil(t, err)
+		assert.Nil(t, err)
 
-		require.Equal(t, actualResponse.StatusCode, 500, "Returns a 500.")
-		require.Equal(t, MockAPIErrorResponse(http.StatusInternalServerError, "{\"error\":{\"message\":\"unknown error\",\"code\":\"ServerError\"}}\n"), actualResponse, "Returns an error response.")
+		expectedResponse := MockAPIErrorResponse(http.StatusInternalServerError, "{\"error\":{\"message\":\"unknown error\",\"code\":\"ServerError\"}}\n")
+
+		expectedOutput, err := json.Marshal(expectedResponse)
+		assert.Nil(t, err)
+
+		actualOutput, err := json.Marshal(actualResponse)
+		assert.Nil(t, err)
+
+		assert.JSONEq(t, string(expectedOutput), string(actualOutput))
 	})
 }
 
