@@ -211,7 +211,7 @@ func generateNukeConfig(svc *service, f io.Writer) error {
 
 	type templateParams struct {
 		ParentAccountID string
-		ChildAccountID  string
+		ID              string
 		AdminRole       string
 		PrincipalRole   string
 		PrincipalPolicy string
@@ -220,7 +220,7 @@ func generateNukeConfig(svc *service, f io.Writer) error {
 
 	err = template.ExecuteTemplate(f, templateFile, &templateParams{
 		ParentAccountID: config.parentAccountID,
-		ChildAccountID:  config.childAccountID,
+		ID:              config.childAccountID,
 		AdminRole:       config.accountAdminRoleName,
 		PrincipalRole:   config.accountPrincipalRoleName,
 		PrincipalPolicy: config.accountPrincipalPolicyName,
