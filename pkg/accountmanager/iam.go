@@ -3,7 +3,6 @@ package accountmanager
 import (
 	"fmt"
 	"log"
-	"strings"
 
 	"github.com/Optum/dce/pkg/account"
 	"github.com/Optum/dce/pkg/common"
@@ -11,77 +10,23 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/iam/iamiface"
-	"github.com/caarlos0/env"
 )
-
-type serviceConfig struct {
-	AccountID                   string   `env:"ACCOUNT_ID" envDefault:"111111111111"`
-	S3BucketName                string   `env:"ARTIFACTS_BUCKET" envDefault:"DefaultArtifactBucket"`
-	S3PolicyKey                 string   `env:"PRINCIPAL_POLICY_S3_KEY" envDefault:"DefaultPrincipalPolicyS3Key"`
-	PrincipalIAMDenyTags        []string `env:"PRINCIPAL_IAM_DENY_TAGS" envDefault:"DefaultPrincipalIamDenyTags"`
-	PrincipalMaxSessionDuration int64    `env:"PRINCIPAL_MAX_SESSION_DURATION" envDefault:"3600"` // 3600 is the default minimum value
-	AllowedRegions              []string `env:"ALLOWED_REGIONS" envDefault:"us-east-1"`
-	TagEnvironment              string   `env:"TAG_ENVIRONMENT" envDefault:"DefaultTagEnvironment"`
-	TagContact                  string   `env:"TAG_CONTACT" envDefault:"DefaultTagContact"`
-	TagAppName                  string   `env:"TAG_APP_NAME" envDefault:"DefaultTagAppName"`
-	PrincipalRoleDescription    string   `env:"PRINCIPAL_ROLE_DESCRIPTION" envDefault:"Role for principal users of DCE"`
-	PrincipalPolicyDescription  string   `env:"PRINCIPAL_POLICY_DESCRIPTION" envDefault:"Policy for principal users of DCE"`
-}
-
-var (
-	// Config holds static configuration values
-	Config serviceConfig
-	// Tags has the default IAM Tags
-	Tags []*iam.Tag
-	// AssumeRolePolicy Default Assume Role Policy
-	AssumeRolePolicy string
-)
-
-func init() {
-	if err := env.Parse(&Config); err != nil {
-		panic(err)
-	}
-
-	Tags = []*iam.Tag{
-		{Key: aws.String("Terraform"), Value: aws.String("False")},
-		{Key: aws.String("Source"), Value: aws.String("github.com/Optum/dce//cmd/lambda/accounts")},
-		{Key: aws.String("Environment"), Value: aws.String(Config.TagEnvironment)},
-		{Key: aws.String("Contact"), Value: aws.String(Config.TagContact)},
-		{Key: aws.String("AppName"), Value: aws.String(Config.TagAppName)},
-	}
-
-	AssumeRolePolicy = strings.TrimSpace(fmt.Sprintf(`
-		{
-			"Version": "2012-10-17",
-			"Statement": [
-				{
-					"Effect": "Allow",
-					"Principal": {
-						"AWS": "arn:aws:iam::%s:root"
-					},
-					"Action": "sts:AssumeRole",
-					"Condition": {}
-				}
-			]
-		}
-	`, Config.AccountID))
-
-}
 
 type principalService struct {
 	iamSvc   iamiface.IAMAPI
 	storager common.Storager
 	account  *account.Account
+	config   ServiceConfig
 }
 
 func (p *principalService) MergeRole() error {
 
 	_, err := p.iamSvc.CreateRole(&iam.CreateRoleInput{
-		RoleName:                 aws.String(*p.account.PrincipalRoleName),
-		AssumeRolePolicyDocument: aws.String(AssumeRolePolicy),
-		Description:              aws.String("Role to be assumed by principal users of DCE"),
-		MaxSessionDuration:       aws.Int64(Config.PrincipalMaxSessionDuration),
-		Tags: append(Tags,
+		RoleName:                 p.account.PrincipalRoleArn.IAMResourceName(),
+		AssumeRolePolicyDocument: aws.String(p.config.assumeRolePolicy),
+		Description:              aws.String(p.config.PrincipalRoleDescription),
+		MaxSessionDuration:       aws.Int64(p.config.PrincipalMaxSessionDuration),
+		Tags: append(p.config.tags,
 			&iam.Tag{Key: aws.String("Name"), Value: aws.String("DCEPrincipal")},
 		),
 	})
@@ -109,8 +54,8 @@ func (p *principalService) MergePolicy() error {
 	}
 
 	_, err = p.iamSvc.CreatePolicy(&iam.CreatePolicyInput{
-		PolicyName:     aws.String(iamResourceNameFromArn(*p.account.PrincipalPolicyArn)),
-		Description:    aws.String(Config.PrincipalRoleDescription),
+		PolicyName:     p.account.PrincipalPolicyArn.IAMResourceName(),
+		Description:    aws.String(p.config.PrincipalPolicyDescription),
 		PolicyDocument: policy,
 	})
 
@@ -149,7 +94,7 @@ func (p *principalService) AttachRoleWithPolicy() error {
 	// Attach the policy to the role
 	_, err := p.iamSvc.AttachRolePolicy(&iam.AttachRolePolicyInput{
 		PolicyArn: aws.String(p.account.PrincipalPolicyArn.String()),
-		RoleName:  aws.String(*p.account.PrincipalRoleName),
+		RoleName:  p.account.PrincipalRoleArn.IAMResourceName(),
 	})
 	if err != nil {
 		if isAWSAlreadyExistsError(err) {
@@ -174,13 +119,13 @@ func (p *principalService) buildPolicy() (*string, *string, error) {
 		Regions              []string
 	}
 
-	policy, policyHash, err := p.storager.GetTemplateObject(Config.S3BucketName, Config.S3PolicyKey,
+	policy, policyHash, err := p.storager.GetTemplateObject(p.config.S3BucketName, p.config.S3PolicyKey,
 		principalPolicyInput{
 			PrincipalPolicyArn:   p.account.PrincipalPolicyArn.String(),
 			PrincipalRoleArn:     p.account.PrincipalRoleArn.String(),
-			PrincipalIAMDenyTags: Config.PrincipalIAMDenyTags,
+			PrincipalIAMDenyTags: p.config.PrincipalIAMDenyTags,
 			AdminRoleArn:         p.account.AdminRoleArn.String(),
-			Regions:              Config.AllowedRegions,
+			Regions:              p.config.AllowedRegions,
 		})
 	if err != nil {
 		return nil, nil, err

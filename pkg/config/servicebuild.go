@@ -1,7 +1,6 @@
 package config
 
 import (
-	"fmt"
 	"log"
 	"reflect"
 	"runtime"
@@ -282,7 +281,6 @@ func (bldr *ServiceBuilder) createEventService(config ConfigurationServiceBuilde
 		return err
 	}
 
-	fmt.Printf("%+v\n", eventSvcInput)
 	eventSvcInput.SqsClient = sqsService
 	eventSvcInput.SnsClient = snsService
 	eventSvc, err := event.NewService(eventSvcInput)
@@ -315,8 +313,8 @@ func (bldr *ServiceBuilder) createAccountDataService(config ConfigurationService
 }
 
 func (bldr *ServiceBuilder) createAccountManagerService(config ConfigurationServiceBuilder) error {
-	amSvcInput := accountmanager.NewServiceInput{}
-	err := bldr.Config.Unmarshal(&amSvcInput)
+	amSvcConfig := accountmanager.ServiceConfig{}
+	err := bldr.Config.Unmarshal(&amSvcConfig)
 	if err != nil {
 		return err
 	}
@@ -327,15 +325,18 @@ func (bldr *ServiceBuilder) createAccountManagerService(config ConfigurationServ
 		return err
 	}
 
-	amSvcInput.Sts = stsSvc
-
 	var storagerSvc common.Storager
 	err = bldr.Config.GetService(&storagerSvc)
 	if err != nil {
 		return err
 	}
-	amSvcInput.Storager = storagerSvc
-	amSvcInput.Session = bldr.awsSession
+
+	amSvcInput := accountmanager.NewServiceInput{
+		Storager: storagerSvc,
+		Session:  bldr.awsSession,
+		Sts:      stsSvc,
+		Config:   amSvcConfig,
+	}
 
 	amSvc, err := accountmanager.NewService(amSvcInput)
 	if err != nil {

@@ -76,7 +76,7 @@ func TestValidateAccess(t *testing.T) {
 	}
 }
 
-func TestMergePrincipalAccess(t *testing.T) {
+func TestUpsertPrincipalAccess(t *testing.T) {
 
 	type assumeRoleOutput struct {
 		output *sts.AssumeRoleOutput
@@ -112,7 +112,6 @@ func TestMergePrincipalAccess(t *testing.T) {
 			input: &account.Account{
 				ID:                 aws.String("123456789012"),
 				PrincipalRoleArn:   arn.New("aws", "iam", "", "123456789012", "role/DCEPrincipal"),
-				PrincipalRoleName:  aws.String("DCEPrincipal"),
 				AdminRoleArn:       arn.New("aws", "iam", "", "123456789012", "role/AdminAccess"),
 				PrincipalPolicyArn: arn.New("aws", "iam", "", "123456789012", "policy/DCEPrincipalDefaultPolicy"),
 			},
@@ -146,7 +145,6 @@ func TestMergePrincipalAccess(t *testing.T) {
 				ID:                 aws.String("123456789012"),
 				PrincipalRoleArn:   arn.New("aws", "iam", "", "123456789012", "role/DCEPrincipal"),
 				PrincipalPolicyArn: arn.New("aws", "iam", "", "123456789012", "policy/DCEPrincipalDefaultPolicy"),
-				PrincipalRoleName:  aws.String("DCEPrincipal"),
 				AdminRoleArn:       arn.New("aws", "iam", "", "123456789012", "role/AdminAccess"),
 			},
 			exp: errors.NewInternalServer("unexpected error creating role \"arn:aws:iam::123456789012:role/DCEPrincipal\"", awserr.New(iam.ErrCodeInvalidInputException, "Conflict", nil)),
@@ -185,12 +183,13 @@ func TestMergePrincipalAccess(t *testing.T) {
 				Session:  session.Must(session.NewSession()),
 				Sts:      stsSvc,
 				Storager: storagerSvc,
+				Config:   testConfig,
 			})
 			amSvc.client = clientSvc
 
 			assert.Nil(t, err)
 
-			err = amSvc.MergePrincipalAccess(tt.input)
+			err = amSvc.UpsertPrincipalAccess(tt.input)
 			assert.True(t, errors.Is(err, tt.exp), "actual error %+v doesn't match expected error %+v", err, tt.exp)
 		})
 	}

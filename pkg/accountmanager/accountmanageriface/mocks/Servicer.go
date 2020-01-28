@@ -12,8 +12,8 @@ type Servicer struct {
 	mock.Mock
 }
 
-// MergePrincipalAccess provides a mock function with given fields: _a0
-func (_m *Servicer) MergePrincipalAccess(_a0 *account.Account) error {
+// UpsertPrincipalAccess provides a mock function with given fields: _a0
+func (_m *Servicer) UpsertPrincipalAccess(_a0 *account.Account) error {
 	ret := _m.Called(_a0)
 
 	var r0 error

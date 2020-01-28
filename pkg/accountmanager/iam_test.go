@@ -16,6 +16,19 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+var testConfig = ServiceConfig{
+	S3BucketName:                "DefaultArtifactBucket",
+	S3PolicyKey:                 "DefaultPrincipalPolicyS3Key",
+	PrincipalIAMDenyTags:        []string{"DefaultPrincipalIamDenyTags"},
+	PrincipalMaxSessionDuration: 3600,
+	AllowedRegions:              []string{"us-east-1"},
+	TagEnvironment:              "DefaultTagEnvironment",
+	TagContact:                  "DefaultTagContact",
+	TagAppName:                  "DefaultTagAppName",
+	PrincipalRoleDescription:    "Role for principal users of DCE",
+	PrincipalPolicyDescription:  "Policy for principal users of DCE",
+}
+
 func TestPrincipalMergePolicyAccess(t *testing.T) {
 
 	type createPolicyOutput struct {
@@ -51,7 +64,6 @@ func TestPrincipalMergePolicyAccess(t *testing.T) {
 			account: &account.Account{
 				ID:                 aws.String("123456789012"),
 				PrincipalRoleArn:   arn.New("aws", "iam", "", "123456789012", "role/DCEPrincipal"),
-				PrincipalRoleName:  aws.String("DCEPrincipal"),
 				AdminRoleArn:       arn.New("aws", "iam", "", "123456789012", "role/AdminAccess"),
 				PrincipalPolicyArn: arn.New("aws", "iam", "", "123456789012", "policy/DCEPrincipalDefaultPolicy"),
 			},
@@ -71,7 +83,6 @@ func TestPrincipalMergePolicyAccess(t *testing.T) {
 				ID:                 aws.String("123456789012"),
 				PrincipalRoleArn:   arn.New("aws", "iam", "", "123456789012", "role/DCEPrincipal"),
 				PrincipalPolicyArn: arn.New("aws", "iam", "", "123456789012", "policy/DCEPrincipalDefaultPolicy"),
-				PrincipalRoleName:  aws.String("DCEPrincipal"),
 				AdminRoleArn:       arn.New("aws", "iam", "", "123456789012", "role/AdminAccess"),
 			},
 			exp: nil,
@@ -118,6 +129,7 @@ func TestPrincipalMergePolicyAccess(t *testing.T) {
 				iamSvc:   iamSvc,
 				storager: storagerSvc,
 				account:  tt.account,
+				config:   testConfig,
 			}
 
 			err := principalSvc.MergePolicy()

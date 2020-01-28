@@ -155,12 +155,12 @@ func TestUpdate(t *testing.T) {
 			origAccount: account.Account{
 				ID:             ptrString("123456789012"),
 				Status:         account.StatusReady.StatusPtr(),
-				AdminRoleArn:   arn.New("aws", "iam", "", "123456789012", "role/AdminRole"),
+				AdminRoleArn:   arn.New("aws", "iam", "", "123456789012", "role/AdminRoleArn"),
 				CreatedOn:      &now,
 				LastModifiedOn: &now,
 			},
 			updAccount: account.Account{
-				AdminRoleArn: arn.New("aws", "iam", "", "123456789012", "role/NewAdminRole"),
+				AdminRoleArn: arn.New("aws", "iam", "", "123456789012", "role/AdminRoleArn"),
 				Metadata: map[string]interface{}{
 					"key": "value",
 				},
@@ -169,7 +169,7 @@ func TestUpdate(t *testing.T) {
 				data: &account.Account{
 					ID:           ptrString("123456789012"),
 					Status:       account.StatusReady.StatusPtr(),
-					AdminRoleArn: arn.New("aws", "iam", "", "123456789012", "role/NewAdminRole"),
+					AdminRoleArn: arn.New("aws", "iam", "", "123456789012", "role/AdminRoleArn"),
 					Metadata: map[string]interface{}{
 						"key": "value",
 					},
@@ -200,7 +200,7 @@ func TestUpdate(t *testing.T) {
 			origAccount: account.Account{
 				ID:           ptrString("123456789012"),
 				Status:       account.StatusReady.StatusPtr(),
-				AdminRoleArn: arn.New("aws", "iam", "", "123456789012", "role/AdminRole"),
+				AdminRoleArn: arn.New("aws", "iam", "", "123456789012", "role/AdminRoleArn"),
 			},
 			updAccount: account.Account{
 				Metadata: map[string]interface{}{
@@ -260,7 +260,7 @@ func TestSave(t *testing.T) {
 			account: &account.Account{
 				ID:             ptrString("123456789012"),
 				Status:         account.StatusReady.StatusPtr(),
-				AdminRoleArn:   arn.New("aws", "iam", "", "123456789012", "role/AdminRole"),
+				AdminRoleArn:   arn.New("aws", "iam", "", "123456789012", "role/AdminRoleArn"),
 				CreatedOn:      &now,
 				LastModifiedOn: &now,
 			},
@@ -268,7 +268,7 @@ func TestSave(t *testing.T) {
 				data: &account.Account{
 					ID:             ptrString("123456789012"),
 					Status:         account.StatusReady.StatusPtr(),
-					AdminRoleArn:   arn.New("aws", "iam", "", "123456789012", "role/AdminRole"),
+					AdminRoleArn:   arn.New("aws", "iam", "", "123456789012", "role/AdminRoleArn"),
 					LastModifiedOn: &now,
 					CreatedOn:      &now,
 				},
@@ -281,13 +281,13 @@ func TestSave(t *testing.T) {
 			account: &account.Account{
 				ID:           ptrString("123456789012"),
 				Status:       account.StatusReady.StatusPtr(),
-				AdminRoleArn: arn.New("aws", "iam", "", "123456789012", "role/AdminRole"),
+				AdminRoleArn: arn.New("aws", "iam", "", "123456789012", "role/AdminRoleArn"),
 			},
 			exp: response{
 				data: &account.Account{
 					ID:             ptrString("123456789012"),
 					Status:         account.StatusReady.StatusPtr(),
-					AdminRoleArn:   arn.New("aws", "iam", "", "123456789012", "role/AdminRole"),
+					AdminRoleArn:   arn.New("aws", "iam", "", "123456789012", "role/AdminRoleArn"),
 					LastModifiedOn: &now,
 					CreatedOn:      &now,
 				},
@@ -300,13 +300,13 @@ func TestSave(t *testing.T) {
 			account: &account.Account{
 				ID:           ptrString("123456789012"),
 				Status:       account.StatusReady.StatusPtr(),
-				AdminRoleArn: arn.New("aws", "iam", "", "123456789012", "role/AdminRole"),
+				AdminRoleArn: arn.New("aws", "iam", "", "123456789012", "role/AdminRoleArn"),
 			},
 			exp: response{
 				data: &account.Account{
 					ID:             ptrString("123456789012"),
 					Status:         account.StatusReady.StatusPtr(),
-					AdminRoleArn:   arn.New("aws", "iam", "", "123456789012", "role/AdminRole"),
+					AdminRoleArn:   arn.New("aws", "iam", "", "123456789012", "role/AdminRoleArn"),
 					LastModifiedOn: &now,
 					CreatedOn:      &now,
 				},
@@ -429,14 +429,13 @@ func TestCreate(t *testing.T) {
 	}
 
 	tests := []struct {
-		name                    string
-		req                     *account.Account
-		exp                     response
-		getResponse             response
-		mergePrincipalAccessErr error
-		writeErr                error
-		accountCreateErr        error
-		accountResetErr         error
+		name             string
+		req              *account.Account
+		exp              response
+		getResponse      response
+		writeErr         error
+		accountCreateErr error
+		accountResetErr  error
 	}{
 		{
 			name: "should create",
@@ -452,7 +451,6 @@ func TestCreate(t *testing.T) {
 					LastModifiedOn:     &now,
 					CreatedOn:          &now,
 					PrincipalRoleArn:   arn.New("aws", "iam", "", "123456789012", "role/DCEPrincipal"),
-					PrincipalRoleName:  ptrString("DCEPrincipal"),
 					PrincipalPolicyArn: arn.New("aws", "iam", "", "123456789012", "policy/DCEPrincipalDefaultPolicy"),
 				},
 				err: nil,
@@ -559,7 +557,7 @@ func TestCreate(t *testing.T) {
 
 			mocksRwd.On("Get", *tt.req.ID).Return(tt.getResponse.data, tt.getResponse.err)
 			mocksRwd.On("Write", mock.AnythingOfType("*account.Account"), mock.AnythingOfType("*int64")).Return(tt.writeErr)
-			mocksManager.On("MergePrincipalAccess", mock.AnythingOfType("*account.Account")).Return(nil)
+			mocksManager.On("UpsertPrincipalAccess", mock.AnythingOfType("*account.Account")).Return(nil)
 			mocksEventer.On("AccountCreate", mock.AnythingOfType("*account.Account")).Return(tt.accountCreateErr)
 			mocksEventer.On("AccountReset", mock.AnythingOfType("*account.Account")).Return(tt.accountResetErr)
 

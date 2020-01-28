@@ -11,6 +11,6 @@ import (
 type Servicer interface {
 	// ValidateAccess creates a new Account instance
 	ValidateAccess(role *arn.ARN) error
-	// MergePrincipalAccess creates roles, policies and update them as needed
-	MergePrincipalAccess(account *account.Account) error
+	// UpsertPrincipalAccess creates roles, policies and update them as needed
+	UpsertPrincipalAccess(account *account.Account) error
 }

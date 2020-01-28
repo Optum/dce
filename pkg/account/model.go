@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/Optum/dce/pkg/arn"
 	"github.com/Optum/dce/pkg/errors"
@@ -12,30 +11,24 @@ import (
 )
 
 var (
-	// PrincipalRoleName default principal role Name
-	PrincipalRoleName string
 	// PrincipalPolicyName default principal policy Name
 	PrincipalPolicyName string
-	// ValidStatuses has the valid status options
-	ValidStatuses []Status
 )
+
+// ValidStatuses has the valid status options
+var ValidStatuses = [5]Status{
+	StatusNone,
+	StatusLeased,
+	StatusNotReady,
+	StatusOrphaned,
+	StatusReady,
+}
 
 func init() {
 	var ok bool
-	PrincipalRoleName, ok = os.LookupEnv("PRINCIPAL_ROLE_NAME")
-	if !ok {
-		PrincipalRoleName = "DCEPrincipal"
-	}
 	PrincipalPolicyName, ok = os.LookupEnv("PRINCIPAL_POLICY_NAME")
 	if !ok {
 		PrincipalPolicyName = "DCEPrincipalDefaultPolicy"
-	}
-	ValidStatuses = []Status{
-		StatusNone,
-		StatusLeased,
-		StatusNotReady,
-		StatusOrphaned,
-		StatusReady,
 	}
 }
 
@@ -51,7 +44,6 @@ type Account struct {
 	Metadata            map[string]interface{} `json:"metadata,omitempty"  dynamodbav:"Metadata,omitempty" schema:"-"`                                                  // Any org specific metadata pertaining to the account
 	Limit               *int64                 `json:"-" dynamodbav:"-" schema:"limit,omitempty"`
 	NextID              *string                `json:"-" dynamodbav:"-" schema:"nextId,omitempty"`
-	PrincipalRoleName   *string                `json:"-"  dynamodbav:"-" schema:"-"`
 	PrincipalPolicyArn  *arn.ARN               `json:"-"  dynamodbav:"-" schema:"-"`
 }
 
@@ -95,28 +87,30 @@ func (a *Account) UnmarshalJSON(data []byte) error {
 		a.PrincipalPolicyArn = principalPolicyArn
 	}
 
-	if alias.PrincipalRoleArn != nil {
-		roleName := strings.Split(alias.PrincipalRoleArn.Resource, "/")[1]
-		a.PrincipalRoleName = &roleName
-	}
-
 	return nil
 }
 
+// NewAccountInput contains all the data for creating a new Account
+type NewAccountInput struct {
+	ID                string
+	AdminRoleArn      arn.ARN
+	Metadata          map[string]interface{}
+	PrincipalRoleName string
+}
+
 // NewAccount creates a new instance of account
-func NewAccount(accountID string, adminRoleArn arn.ARN, metadata map[string]interface{}) (*Account, error) {
+func NewAccount(input NewAccountInput) (*Account, error) {
 
 	// we don't set last modified on and created on.  That will get set when there is a save
-	policyArn := arn.New("aws", "iam", "", accountID, fmt.Sprintf("policy/%s", PrincipalPolicyName))
-	roleArn := arn.New("aws", "iam", "", accountID, fmt.Sprintf("role/%s", PrincipalRoleName))
+	policyArn := arn.New("aws", "iam", "", input.ID, fmt.Sprintf("policy/%s", PrincipalPolicyName))
+	roleArn := arn.New("aws", "iam", "", input.ID, fmt.Sprintf("role/%s", input.PrincipalRoleName))
 
 	return &Account{
-		ID:                 &accountID,
-		AdminRoleArn:       &adminRoleArn,
-		PrincipalRoleName:  &PrincipalRoleName,
+		ID:                 &input.ID,
+		AdminRoleArn:       &input.AdminRoleArn,
 		PrincipalRoleArn:   roleArn,
 		PrincipalPolicyArn: policyArn,
-		Metadata:           metadata,
+		Metadata:           input.Metadata,
 		Status:             StatusNotReady.StatusPtr(),
 	}, nil
 }
