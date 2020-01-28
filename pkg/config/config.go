@@ -271,7 +271,7 @@ func (config *ConfigurationBuilder) AccountSvc() accountiface.Servicer {
 }
 
 // LeaseSvc returns the lease Service for you
-func (config *ConfigurationBuilder) LeaseSvc() leaseiface.Servicer {
+func (config *ConfigurationBuilder) LeaseService() leaseiface.Servicer {
 
 	var leaseSvc leaseiface.Servicer
 	if err := config.GetService(&leaseSvc); err != nil {

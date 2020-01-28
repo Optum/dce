@@ -18,7 +18,7 @@ func GetLeaseByID(w http.ResponseWriter, r *http.Request) {
 
 	leaseID := mux.Vars(r)["leaseID"]
 
-	lease, err := Services.Config.LeaseSvc().Get(leaseID)
+	lease, err := Services.Config.LeaseService().Get(leaseID)
 
 	if err != nil {
 		api.WriteAPIErrorResponse(w, err)
