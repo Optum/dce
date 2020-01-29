@@ -23,7 +23,9 @@ type Lease struct {
 	BudgetNotificationEmails *[]string              `json:"budgetNotificationEmails,omitempty" dynamodbav:"BudgetNotificationEmails,omitempty"` // Budget notification emails
 	StatusModifiedOn         *int64                 `json:"leaseStatusModifiedOn,omitempty" dynamodbav:"LeaseStatusModifiedOn,omitempty"`       // Last Modified Epoch Timestamp
 	ExpiresOn                *int64                 `json:"expiresOn,omitempty" dynamodbav:"ExpiresOn,omitempty"`                               // Lease expiration time as Epoch
-	Metadata                 map[string]interface{} `json:"metadata,omitempty" dynamodbav:"Metadata,omitempty"`                                 // Arbitrary key-value metadata to store with lease object
+	Metadata                 map[string]interface{} `json:"metadata,omitempty" dynamodbav:"Metadata,omitempty"`
+	NextAccountID            *string                `json:"-" dynamodbav:"-" schema:"nextAccountId,omitempty"`
+	NextPrincipalID          *string                `json:"-" dynamodbav:"-" schema:"nextPrincipalId,omitempty"`
 }
 
 // Validate the lease data
