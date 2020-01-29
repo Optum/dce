@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/Optum/dce/pkg/account"
+	"github.com/Optum/dce/pkg/arn"
 	awsmocks "github.com/Optum/dce/pkg/awsiface/mocks"
 	"github.com/Optum/dce/pkg/errors"
 	"github.com/aws/aws-sdk-go/aws"
@@ -61,7 +62,7 @@ func TestGetAccountsScan(t *testing.T) {
 		{
 			name: "scan get all accounts with admin role arn",
 			query: &account.Account{
-				AdminRoleArn: ptrString("test:arn"),
+				AdminRoleArn: arn.New("aws", "iam", "", "123456789012", "role/AdminRoleArn"),
 			},
 			sInput: &dynamodb.ScanInput{
 				ConsistentRead:   aws.Bool(false),
@@ -72,7 +73,7 @@ func TestGetAccountsScan(t *testing.T) {
 				},
 				ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
 					":0": {
-						S: aws.String("test:arn"),
+						S: aws.String("arn:aws:iam::123456789012:role/AdminRoleArn"),
 					},
 				},
 				Limit: aws.Int64(5),
@@ -179,7 +180,7 @@ func TestGetAccountsQuery(t *testing.T) {
 			name: "query all accounts by status with filter",
 			query: &account.Account{
 				Status:       account.StatusReady.StatusPtr(),
-				AdminRoleArn: aws.String("test:arn"),
+				AdminRoleArn: arn.New("aws", "iam", "", "123456789012", "role/AdminRoleArn"),
 			},
 			qInput: &dynamodb.QueryInput{
 				ConsistentRead: aws.Bool(false),
@@ -191,7 +192,7 @@ func TestGetAccountsQuery(t *testing.T) {
 				},
 				ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
 					":0": {
-						S: aws.String("test:arn"),
+						S: aws.String("arn:aws:iam::123456789012:role/AdminRoleArn"),
 					},
 					":1": {
 						S: aws.String("Ready"),
@@ -220,7 +221,7 @@ func TestGetAccountsQuery(t *testing.T) {
 			name: "query internal error",
 			query: &account.Account{
 				Status:       account.StatusReady.StatusPtr(),
-				AdminRoleArn: aws.String("test:arn"),
+				AdminRoleArn: arn.New("aws", "iam", "", "123456789012", "role/AdminRoleArn"),
 			},
 			qInput: &dynamodb.QueryInput{
 				ConsistentRead: aws.Bool(false),
@@ -232,7 +233,7 @@ func TestGetAccountsQuery(t *testing.T) {
 				},
 				ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
 					":0": {
-						S: aws.String("test:arn"),
+						S: aws.String("arn:aws:iam::123456789012:role/AdminRoleArn"),
 					},
 					":1": {
 						S: aws.String("Ready"),

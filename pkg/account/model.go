@@ -1,6 +1,7 @@
 package account
 
 import (
+	"github.com/Optum/dce/pkg/arn"
 	"github.com/Optum/dce/pkg/errors"
 	validation "github.com/go-ozzo/ozzo-validation"
 )
@@ -11,8 +12,8 @@ type Account struct {
 	Status              *Status                `json:"accountStatus,omitempty" dynamodbav:"AccountStatus,omitempty" schema:"status,omitempty"`                          // Status of the AWS Account
 	LastModifiedOn      *int64                 `json:"lastModifiedOn,omitempty" dynamodbav:"LastModifiedOn" schema:"lastModifiedOn,omitempty"`                          // Last Modified Epoch Timestamp
 	CreatedOn           *int64                 `json:"createdOn,omitempty"  dynamodbav:"CreatedOn,omitempty" schema:"createdOn,omitempty"`                              // Account CreatedOn
-	AdminRoleArn        *string                `json:"adminRoleArn,omitempty"  dynamodbav:"AdminRoleArn" schema:"adminRoleArn,omitempty"`                               // Assumed by the master account, to manage this user account
-	PrincipalRoleArn    *string                `json:"principalRoleArn,omitempty"  dynamodbav:"PrincipalRoleArn,omitempty" schema:"principalRoleArn,omitempty"`         // Assumed by principal users
+	AdminRoleArn        *arn.ARN               `json:"adminRoleArn,omitempty"  dynamodbav:"AdminRoleArn" schema:"adminRoleArn,omitempty"`                               // Assumed by the master account, to manage this user account
+	PrincipalRoleArn    *arn.ARN               `json:"principalRoleArn,omitempty"  dynamodbav:"PrincipalRoleArn,omitempty" schema:"principalRoleArn,omitempty"`         // Assumed by principal users
 	PrincipalPolicyHash *string                `json:"principalPolicyHash,omitempty" dynamodbav:"PrincipalPolicyHash,omitempty" schema:"principalPolicyHash,omitempty"` // The the hash of the policy version deployed
 	Metadata            map[string]interface{} `json:"metadata,omitempty"  dynamodbav:"Metadata,omitempty" schema:"-"`                                                  // Any org specific metadata pertaining to the account
 	Limit               *int64                 `json:"-" dynamodbav:"-" schema:"limit,omitempty"`

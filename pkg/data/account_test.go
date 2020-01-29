@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/Optum/dce/pkg/account"
+	"github.com/Optum/dce/pkg/arn"
 	awsmocks "github.com/Optum/dce/pkg/awsiface/mocks"
 	"github.com/Optum/dce/pkg/errors"
 	"github.com/aws/aws-sdk-go/aws"
@@ -33,7 +34,7 @@ func TestGetAccountByID(t *testing.T) {
 				Status:         account.StatusReady.StatusPtr(),
 				LastModifiedOn: ptrInt64(1573592058),
 				CreatedOn:      ptrInt64(1573592058),
-				AdminRoleArn:   ptrString("test:arn"),
+				AdminRoleArn:   arn.New("aws", "iam", "", "123456789012", "role/AdminRoleArn"),
 			},
 			dynamoErr: nil,
 			dynamoOutput: &dynamodb.GetItemOutput{
@@ -51,7 +52,7 @@ func TestGetAccountByID(t *testing.T) {
 						N: aws.String(strconv.Itoa(1573592058)),
 					},
 					"AdminRoleArn": {
-						S: aws.String("test:arn"),
+						S: aws.String("arn:aws:iam::123456789012:role/AdminRoleArn"),
 					},
 				},
 			},
@@ -118,7 +119,7 @@ func TestDelete(t *testing.T) {
 				ID:             ptrString("123456789012"),
 				Status:         account.StatusReady.StatusPtr(),
 				LastModifiedOn: ptrInt64(1573592058),
-				AdminRoleArn:   ptrString("test:Arn"),
+				AdminRoleArn:   arn.New("aws", "iam", "", "123456789012", "role/AdminRoleArn"),
 			},
 			dynamoErr: nil,
 			dynamoOutput: &dynamodb.DeleteItemOutput{
@@ -132,7 +133,7 @@ func TestDelete(t *testing.T) {
 				ID:             ptrString("123456789012"),
 				Status:         account.StatusReady.StatusPtr(),
 				LastModifiedOn: ptrInt64(1573592058),
-				AdminRoleArn:   ptrString("test:Arn"),
+				AdminRoleArn:   arn.New("aws", "iam", "", "123456789012", "role/AdminRoleArn"),
 			},
 			dynamoErr: gErrors.New("failure"),
 			dynamoOutput: &dynamodb.DeleteItemOutput{
@@ -178,7 +179,7 @@ func TestUpdate(t *testing.T) {
 				ID:             ptrString("123456789012"),
 				Status:         account.StatusReady.StatusPtr(),
 				LastModifiedOn: ptrInt64(1573592058),
-				AdminRoleArn:   ptrString("test:Arn"),
+				AdminRoleArn:   arn.New("aws", "iam", "", "123456789012", "role/AdminRoleArn"),
 			},
 			oldLastModifiedOn: ptrInt64(1573592057),
 			dynamoErr:         nil,
@@ -190,7 +191,7 @@ func TestUpdate(t *testing.T) {
 				ID:             ptrString("123456789012"),
 				Status:         account.StatusReady.StatusPtr(),
 				LastModifiedOn: ptrInt64(1573592058),
-				AdminRoleArn:   ptrString("test:Arn"),
+				AdminRoleArn:   arn.New("aws", "iam", "", "123456789012", "role/AdminRoleArn"),
 			},
 			dynamoErr:   nil,
 			expectedErr: nil,
@@ -201,7 +202,7 @@ func TestUpdate(t *testing.T) {
 				ID:             ptrString("123456789012"),
 				Status:         account.StatusReady.StatusPtr(),
 				LastModifiedOn: ptrInt64(1573592058),
-				AdminRoleArn:   ptrString("test:Arn"),
+				AdminRoleArn:   arn.New("aws", "iam", "", "123456789012", "role/AdminRoleArn"),
 			},
 			oldLastModifiedOn: ptrInt64(1573592057),
 			dynamoErr:         awserr.New("ConditionalCheckFailedException", "Message", fmt.Errorf("Bad")),
@@ -216,7 +217,7 @@ func TestUpdate(t *testing.T) {
 				ID:             ptrString("123456789012"),
 				Status:         account.StatusReady.StatusPtr(),
 				LastModifiedOn: ptrInt64(1573592058),
-				AdminRoleArn:   ptrString("test:Arn"),
+				AdminRoleArn:   arn.New("aws", "iam", "", "123456789012", "role/AdminRoleArn"),
 			},
 			oldLastModifiedOn: ptrInt64(1573592057),
 			dynamoErr:         gErrors.New("failure"),
@@ -236,14 +237,14 @@ func TestUpdate(t *testing.T) {
 						*input.Item["Id"].S == *tt.account.ID &&
 						*input.Item["AccountStatus"].S == string(*tt.account.Status) &&
 						*input.Item["LastModifiedOn"].N == strconv.FormatInt(*tt.account.LastModifiedOn, 10) &&
-						*input.Item["AdminRoleArn"].S == string(*tt.account.AdminRoleArn) &&
+						*input.Item["AdminRoleArn"].S == tt.account.AdminRoleArn.String() &&
 						*input.ConditionExpression == "attribute_not_exists (#0)")
 				}
 				return (*input.TableName == "Accounts" &&
 					*input.Item["Id"].S == *tt.account.ID &&
 					*input.Item["AccountStatus"].S == string(*tt.account.Status) &&
 					*input.Item["LastModifiedOn"].N == strconv.FormatInt(*tt.account.LastModifiedOn, 10) &&
-					*input.Item["AdminRoleArn"].S == string(*tt.account.AdminRoleArn) &&
+					*input.Item["AdminRoleArn"].S == tt.account.AdminRoleArn.String() &&
 					*input.ExpressionAttributeValues[":0"].N == strconv.FormatInt(*tt.oldLastModifiedOn, 10))
 			})).Return(
 				&dynamodb.PutItemOutput{}, tt.dynamoErr,

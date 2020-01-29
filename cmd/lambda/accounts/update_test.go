@@ -10,6 +10,7 @@ import (
 
 	"github.com/Optum/dce/pkg/account"
 	"github.com/Optum/dce/pkg/account/accountiface/mocks"
+	"github.com/Optum/dce/pkg/arn"
 	"github.com/Optum/dce/pkg/config"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
@@ -59,7 +60,7 @@ func TestUpdateAccountByID(t *testing.T) {
 			retAccount: &account.Account{
 				ID:           ptrString("123456789012"),
 				Status:       account.StatusReady.StatusPtr(),
-				AdminRoleArn: ptrString("arn:aws:iam::123456789012:role/test"),
+				AdminRoleArn: arn.New("aws", "iam", "", "123456789012", "role/test"),
 				Metadata: map[string]interface{}{
 					"key": "value",
 				},
