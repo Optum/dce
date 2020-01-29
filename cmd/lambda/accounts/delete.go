@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -47,7 +48,7 @@ func DeleteAccount(w http.ResponseWriter, r *http.Request) {
 	sendSNS(deletedAccount)
 
 	// Push the account to the Reset Queue, so it gets cleaned up
-	sendToResetQueue(deletedAccount.ID)
+	sendToResetQueue(deletedAccount)
 
 	// json.NewEncoder(w).Encode(response.CreateAPIGatewayResponse(http.StatusNoContent, ""))
 	response.WriteAPIResponse(w, http.StatusNoContent, "")
@@ -73,11 +74,16 @@ func sendSNS(account *db.Account) {
 }
 
 // sendToResetQueue sends the account to the reset queue
-func sendToResetQueue(accountID string) {
-	resetQueueURL := Config.RequireEnvVar("RESET_SQS_URL")
-	err := Queue.SendMessage(&resetQueueURL, &accountID)
+func sendToResetQueue(acct *db.Account) {
+	body, err := json.Marshal(acct)
 	if err != nil {
-		log.Printf("Failed to add account %s to reset Queue: %s", accountID, err)
+		log.Printf("Failed to add account %s to reset Queue: %s", acct.ID, err)
+	}
+	sBody := string(body)
+	resetQueueURL := Config.RequireEnvVar("RESET_SQS_URL")
+	err = Queue.SendMessage(&resetQueueURL, &sBody)
+	if err != nil {
+		log.Printf("Failed to add account %s to reset Queue: %s", acct.ID, err)
 	}
 }
 

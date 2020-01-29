@@ -164,14 +164,17 @@ func TestDeleteController_Call(t *testing.T) {
 
 	t.Run("Sending the accountID to the queue", func(t *testing.T) {
 		expectedResetQueueURL := "mock.queue.url"
-		expectedAccountID := "123456789012"
+		expectedAccount := db.Account{
+			ID: "123456789012",
+		}
+		expectedMessage := "{\"Id\":\"123456789012\",\"AccountStatus\":\"\",\"LastModifiedOn\":0,\"CreatedOn\":0,\"AdminRoleArn\":\"\",\"PrincipalRoleArn\":\"\",\"PrincipalPolicyHash\":\"\",\"Metadata\":null}"
 		stub := &commonMocks.Queue{}
-		stub.On("SendMessage", &expectedResetQueueURL, &expectedAccountID).Return(nil)
+		stub.On("SendMessage", &expectedResetQueueURL, &expectedMessage).Return(nil)
 
 		Queue = stub
 
-		sendToResetQueue(expectedAccountID)
-		stub.AssertCalled(t, "SendMessage", &expectedResetQueueURL, &expectedAccountID)
+		sendToResetQueue(&expectedAccount)
+		stub.AssertCalled(t, "SendMessage", &expectedResetQueueURL, &expectedMessage)
 	})
 
 	t.Run("Sending the send SNS", func(t *testing.T) {

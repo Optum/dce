@@ -105,7 +105,12 @@ func CreateAccount(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Add Account to Reset Queue
-	err = Queue.SendMessage(&resetQueueURL, &account.ID)
+	body, err := json.Marshal(&account)
+	if err != nil {
+		log.Printf("Failed to add account %s to reset Queue: %s", account.ID, err)
+	}
+	sBody := string(body)
+	err = Queue.SendMessage(&resetQueueURL, &sBody)
 	if err != nil {
 		log.Printf("Failed to add account %s to reset Queue: %s", account.ID, err)
 		response.WriteServerErrorWithResponse(w, "Internal server error")

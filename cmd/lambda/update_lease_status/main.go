@@ -62,7 +62,6 @@ func main() {
 			budgetSvc:                              &budget.AWSBudgetService{},
 			usageSvc:                               usageSvc,
 			sqsSvc:                                 sqs.New(awsSession),
-			resetQueueURL:                          common.RequireEnv("RESET_QUEUE_URL"),
 			snsSvc:                                 &common.SNS{Client: sns.New(awsSession)},
 			leaseLockedTopicArn:                    common.RequireEnv("LEASE_LOCKED_TOPIC_ARN"),
 			emailSvc:                               &email.SESEmailService{SES: ses.New(awsSession)},
@@ -109,7 +108,6 @@ type lambdaHandlerInput struct {
 	snsSvc                                 common.Notificationer
 	leaseLockedTopicArn                    string
 	sqsSvc                                 awsiface.SQSAPI
-	resetQueueURL                          string
 	emailSvc                               email.Service
 	budgetNotificationFromEmail            string
 	budgetNotificationBCCEmails            []string

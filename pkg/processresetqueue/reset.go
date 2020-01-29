@@ -6,7 +6,6 @@ import (
 	"log"
 
 	"github.com/Optum/dce/pkg/account"
-	"github.com/Optum/dce/pkg/db"
 
 	"github.com/Optum/dce/pkg/common"
 	"github.com/aws/aws-sdk-go/aws"
@@ -20,7 +19,6 @@ type ResetInput struct {
 	ResetQueueURL *string
 	ResetBuild    common.Builder
 	BuildName     *string
-	DbSvc         db.DBer
 }
 
 // ResetResult is the individual results of a Reset trigger for an AWS
@@ -76,6 +74,7 @@ func Reset(input *ResetInput) (*ResetOutput, error) {
 
 			acct := &account.Account{}
 			if err := json.Unmarshal([]byte(aws.StringValue(message.Body)), &acct); err != nil {
+				log.Printf("failure unmarshaling message: %q: %+v\n", *message.Body, err)
 				failTriggerResetOnAccount(&output, result, "",
 					err.Error())
 				continue
@@ -88,8 +87,8 @@ func Reset(input *ResetInput) (*ResetOutput, error) {
 			// Set Reset Build Env Vars
 			resetBuildEnvironment := map[string]string{
 				"RESET_ACCOUNT":                     accountID,
-				"RESET_ACCOUNT_ADMIN_ROLE_NAME":     acct.AdminRoleArn.IAMResourceName(),
-				"RESET_ACCOUNT_PRINCIPAL_ROLE_NAME": acct.PrincipalRoleArn.IAMResourceName(),
+				"RESET_ACCOUNT_ADMIN_ROLE_NAME":     *acct.AdminRoleArn.IAMResourceName(),
+				"RESET_ACCOUNT_PRINCIPAL_ROLE_NAME": *acct.PrincipalRoleArn.IAMResourceName(),
 			}
 
 			// Trigger Code Pipeline
