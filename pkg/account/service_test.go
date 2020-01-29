@@ -7,6 +7,7 @@ import (
 
 	"github.com/Optum/dce/pkg/account"
 	"github.com/Optum/dce/pkg/account/mocks"
+	"github.com/Optum/dce/pkg/arn"
 	"github.com/Optum/dce/pkg/errors"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/stretchr/testify/assert"
@@ -154,12 +155,12 @@ func TestUpdate(t *testing.T) {
 			origAccount: account.Account{
 				ID:             ptrString("123456789012"),
 				Status:         account.StatusReady.StatusPtr(),
-				AdminRoleArn:   ptrString("test:arn"),
+				AdminRoleArn:   arn.New("aws", "iam", "", "123456789012", "role/AdminRoleArn"),
 				CreatedOn:      &now,
 				LastModifiedOn: &now,
 			},
 			updAccount: account.Account{
-				AdminRoleArn: ptrString("test:arn:new"),
+				AdminRoleArn: arn.New("aws", "iam", "", "123456789012", "role/AdminRoleArn"),
 				Metadata: map[string]interface{}{
 					"key": "value",
 				},
@@ -168,7 +169,7 @@ func TestUpdate(t *testing.T) {
 				data: &account.Account{
 					ID:           ptrString("123456789012"),
 					Status:       account.StatusReady.StatusPtr(),
-					AdminRoleArn: ptrString("test:arn:new"),
+					AdminRoleArn: arn.New("aws", "iam", "", "123456789012", "role/AdminRoleArn"),
 					Metadata: map[string]interface{}{
 						"key": "value",
 					},
@@ -199,7 +200,7 @@ func TestUpdate(t *testing.T) {
 			origAccount: account.Account{
 				ID:           ptrString("123456789012"),
 				Status:       account.StatusReady.StatusPtr(),
-				AdminRoleArn: ptrString("test:arn"),
+				AdminRoleArn: arn.New("aws", "iam", "", "123456789012", "role/AdminRoleArn"),
 			},
 			updAccount: account.Account{
 				Metadata: map[string]interface{}{
@@ -259,7 +260,7 @@ func TestSave(t *testing.T) {
 			account: &account.Account{
 				ID:             ptrString("123456789012"),
 				Status:         account.StatusReady.StatusPtr(),
-				AdminRoleArn:   ptrString("test:arn"),
+				AdminRoleArn:   arn.New("aws", "iam", "", "123456789012", "role/AdminRoleArn"),
 				CreatedOn:      &now,
 				LastModifiedOn: &now,
 			},
@@ -267,7 +268,7 @@ func TestSave(t *testing.T) {
 				data: &account.Account{
 					ID:             ptrString("123456789012"),
 					Status:         account.StatusReady.StatusPtr(),
-					AdminRoleArn:   ptrString("test:arn"),
+					AdminRoleArn:   arn.New("aws", "iam", "", "123456789012", "role/AdminRoleArn"),
 					LastModifiedOn: &now,
 					CreatedOn:      &now,
 				},
@@ -280,13 +281,13 @@ func TestSave(t *testing.T) {
 			account: &account.Account{
 				ID:           ptrString("123456789012"),
 				Status:       account.StatusReady.StatusPtr(),
-				AdminRoleArn: ptrString("test:arn"),
+				AdminRoleArn: arn.New("aws", "iam", "", "123456789012", "role/AdminRoleArn"),
 			},
 			exp: response{
 				data: &account.Account{
 					ID:             ptrString("123456789012"),
 					Status:         account.StatusReady.StatusPtr(),
-					AdminRoleArn:   ptrString("test:arn"),
+					AdminRoleArn:   arn.New("aws", "iam", "", "123456789012", "role/AdminRoleArn"),
 					LastModifiedOn: &now,
 					CreatedOn:      &now,
 				},
@@ -299,13 +300,13 @@ func TestSave(t *testing.T) {
 			account: &account.Account{
 				ID:           ptrString("123456789012"),
 				Status:       account.StatusReady.StatusPtr(),
-				AdminRoleArn: ptrString("test:arn"),
+				AdminRoleArn: arn.New("aws", "iam", "", "123456789012", "role/AdminRoleArn"),
 			},
 			exp: response{
 				data: &account.Account{
 					ID:             ptrString("123456789012"),
 					Status:         account.StatusReady.StatusPtr(),
-					AdminRoleArn:   ptrString("test:arn"),
+					AdminRoleArn:   arn.New("aws", "iam", "", "123456789012", "role/AdminRoleArn"),
 					LastModifiedOn: &now,
 					CreatedOn:      &now,
 				},

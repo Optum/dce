@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/Optum/dce/pkg/account"
+	"github.com/Optum/dce/pkg/arn"
 	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
 	"github.com/stretchr/testify/assert"
 )
@@ -38,11 +39,11 @@ func TestHelpersBuildFilter(t *testing.T) {
 			name: "multipleFilters",
 			i: &account.Account{
 				ID:           ptrString("1"),
-				AdminRoleArn: ptrString("admin:arn"),
+				AdminRoleArn: arn.New("aws", "iam", "", "123456789012", "role/AdminRoleArn"),
 			},
 			result: expression.And(
 				expression.Name("Id").Equal(expression.Value("1")),
-				expression.Name("AdminRoleArn").Equal(expression.Value("admin:arn")),
+				expression.Name("AdminRoleArn").Equal(expression.Value("arn:aws:iam::123456789012:role/AdminRoleArn")),
 			),
 		},
 	}
