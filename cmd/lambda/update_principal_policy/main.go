@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"strings"
 
 	"github.com/Optum/dce/pkg/api/response"
 	"github.com/Optum/dce/pkg/awsiface"
@@ -52,18 +51,16 @@ func handler(ctx context.Context, snsEvent events.SNSEvent) error {
 		}
 
 		err = processRecord(processRecordInput{
-			AccountID:            lease.AccountID,
-			DbSvc:                dbSvc,
-			StoragerSvc:          s3Svc,
-			TokenSvc:             tokenSvc,
-			AwsSession:           awsSession,
-			RoleManager:          roleManagerSvc,
-			PrincipalRoleName:    common.RequireEnv("PRINCIPAL_ROLE_NAME"),
-			PrincipalPolicyName:  common.RequireEnv("PRINCIPAL_POLICY_NAME"),
-			PrincipalIAMDenyTags: strings.Split(common.RequireEnv("PRINCIPAL_IAM_DENY_TAGS"), ","),
-			Regions:              strings.Split(common.RequireEnv("ALLOWED_REGIONS"), ","),
-			PolicyBucket:         common.RequireEnv("ARTIFACTS_BUCKET"),
-			PolicyBucketKey:      common.RequireEnv("PRINCIPAL_POLICY_S3_KEY"),
+			AccountID:           lease.AccountID,
+			DbSvc:               dbSvc,
+			StoragerSvc:         s3Svc,
+			TokenSvc:            tokenSvc,
+			AwsSession:          awsSession,
+			RoleManager:         roleManagerSvc,
+			PrincipalRoleName:   common.RequireEnv("PRINCIPAL_ROLE_NAME"),
+			PrincipalPolicyName: common.RequireEnv("PRINCIPAL_POLICY_NAME"),
+			PolicyBucket:        common.RequireEnv("ARTIFACTS_BUCKET"),
+			PolicyBucketKey:     common.RequireEnv("PRINCIPAL_POLICY_S3_KEY"),
 		})
 		if err != nil {
 			return err
@@ -73,18 +70,16 @@ func handler(ctx context.Context, snsEvent events.SNSEvent) error {
 }
 
 type processRecordInput struct {
-	AccountID            string
-	DbSvc                db.DBer
-	StoragerSvc          common.Storager
-	TokenSvc             common.TokenService
-	AwsSession           awsiface.AwsSession
-	RoleManager          rolemanager.PolicyManager
-	PrincipalRoleName    string
-	PrincipalPolicyName  string
-	PrincipalIAMDenyTags []string
-	Regions              []string
-	PolicyBucket         string
-	PolicyBucketKey      string
+	AccountID           string
+	DbSvc               db.DBer
+	StoragerSvc         common.Storager
+	TokenSvc            common.TokenService
+	AwsSession          awsiface.AwsSession
+	RoleManager         rolemanager.PolicyManager
+	PrincipalRoleName   string
+	PrincipalPolicyName string
+	PolicyBucket        string
+	PolicyBucketKey     string
 }
 
 func processRecord(input processRecordInput) error {
@@ -105,11 +100,9 @@ func processRecord(input processRecordInput) error {
 	}
 
 	policy, policyHash, err := input.StoragerSvc.GetTemplateObject(input.PolicyBucket, input.PolicyBucketKey, getPolicyInput{
-		PrincipalPolicyArn:   principalPolicyArn.String(),
-		PrincipalRoleArn:     fmt.Sprintf("arn:aws:iam::%s:role/%s", input.AccountID, input.PrincipalRoleName),
-		PrincipalIAMDenyTags: input.PrincipalIAMDenyTags,
-		AdminRoleArn:         accountRes.AdminRoleArn,
-		Regions:              input.Regions,
+		PrincipalPolicyArn: principalPolicyArn.String(),
+		PrincipalRoleArn:   fmt.Sprintf("arn:aws:iam::%s:role/%s", input.AccountID, input.PrincipalRoleName),
+		AdminRoleArn:       accountRes.AdminRoleArn,
 	})
 	if err != nil {
 		return err
@@ -151,9 +144,7 @@ func processRecord(input processRecordInput) error {
 }
 
 type getPolicyInput struct {
-	PrincipalPolicyArn   string
-	PrincipalRoleArn     string
-	PrincipalIAMDenyTags []string
-	AdminRoleArn         string
-	Regions              []string
+	PrincipalPolicyArn string
+	PrincipalRoleArn   string
+	AdminRoleArn       string
 }

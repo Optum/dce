@@ -30,11 +30,9 @@
       "Action": "*",
       "Resource": "*",
       "Condition": {
-        "StringEquals": {
-          "aws:ResourceTag/AppName": [
-            "{{ StringsJoin .PrincipalIAMDenyTags "\", \""}}"
-          ]
-        }
+        "StringEquals": ${jsonencode({
+          "aws:ResourceTag/AppName": [for tag in principal_iam_deny_tags : "${tag}"],
+        })}
       }
     },
     {
@@ -156,11 +154,9 @@
       ],
       "Resource": "*",
       "Condition": {
-        "StringEquals": {
-          "aws:RequestedRegion": [
-            {{$first := true}}{{range .Regions}}{{if $first}}{{$first = false}}{{else}},{{end}}"{{.}}"{{end}}
-          ]
-        }
+        "StringEquals": ${jsonencode({
+          "aws:RequestedRegion": [for region in regions : "${region}"],
+        })}
       }
     }
   ]

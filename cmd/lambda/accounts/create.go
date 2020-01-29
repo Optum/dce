@@ -203,11 +203,9 @@ func createPrincipalRole(childAccount db.Account, masterAccountID string) (*role
 
 	policy, policyHash, err := StorageSvc.GetTemplateObject(artifactsBucket, principalPolicyS3Key,
 		principalPolicyInput{
-			PrincipalPolicyArn:   fmt.Sprintf("arn:aws:iam::%s:policy/%s", childAccount.ID, policyName),
-			PrincipalRoleArn:     fmt.Sprintf("arn:aws:iam::%s:role/%s", childAccount.ID, principalRoleName),
-			PrincipalIAMDenyTags: principalIAMDenyTags,
-			AdminRoleArn:         childAccount.AdminRoleArn,
-			Regions:              allowedRegions,
+			PrincipalPolicyArn: fmt.Sprintf("arn:aws:iam::%s:policy/%s", childAccount.ID, policyName),
+			PrincipalRoleArn:   fmt.Sprintf("arn:aws:iam::%s:role/%s", childAccount.ID, principalRoleName),
+			AdminRoleArn:       childAccount.AdminRoleArn,
 		})
 	if err != nil {
 		return nil, "", err
@@ -239,9 +237,7 @@ func createPrincipalRole(childAccount db.Account, masterAccountID string) (*role
 }
 
 type principalPolicyInput struct {
-	PrincipalPolicyArn   string
-	PrincipalRoleArn     string
-	PrincipalIAMDenyTags []string
-	AdminRoleArn         string
-	Regions              []string
+	PrincipalPolicyArn string
+	PrincipalRoleArn   string
+	AdminRoleArn       string
 }

@@ -81,8 +81,7 @@ POLICY
 }
 
 resource "aws_s3_bucket_object" "principal_policy" {
-  bucket = aws_s3_bucket.artifacts.id
-  key    = "fixtures/policies/principal_policy.tmpl"
-  source = local.principal_policy
-  etag   = filemd5(local.principal_policy)
+  bucket  = aws_s3_bucket.artifacts.id
+  key     = "fixtures/policies/principal_policy.tmpl"
+  content = templatefile(local.principal_policy, { principal_iam_deny_tags = var.principal_iam_deny_tags, regions = var.allowed_regions })
 }

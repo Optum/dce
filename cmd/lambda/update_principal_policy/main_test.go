@@ -77,10 +77,9 @@ func TestUpdatePrincipalPolicy(t *testing.T) {
 		).Return(nil, nil)
 		mockS3 := &commonmock.Storager{}
 		mockS3.On("GetTemplateObject", mock.Anything, mock.Anything, getPolicyInput{
-			PrincipalPolicyArn:   fmt.Sprintf("arn:aws:iam::%s:policy/%s", test.GetAccountResult.ID, test.PrincipalPolicyName),
-			PrincipalRoleArn:     fmt.Sprintf("arn:aws:iam::%s:role/%s", test.GetAccountResult.ID, test.PrincipalRoleName),
-			PrincipalIAMDenyTags: test.PrincipalIAMDenyTags,
-			AdminRoleArn:         test.GetAccountResult.AdminRoleArn,
+			PrincipalPolicyArn: fmt.Sprintf("arn:aws:iam::%s:policy/%s", test.GetAccountResult.ID, test.PrincipalPolicyName),
+			PrincipalRoleArn:   fmt.Sprintf("arn:aws:iam::%s:role/%s", test.GetAccountResult.ID, test.PrincipalRoleName),
+			AdminRoleArn:       test.GetAccountResult.AdminRoleArn,
 		}).Return(
 			test.StoragerPolicy,
 			test.PrincipalPolicyHash,
@@ -111,15 +110,14 @@ func TestUpdatePrincipalPolicy(t *testing.T) {
 
 		// Call transitionFinanceLock
 		err := processRecord(processRecordInput{
-			AccountID:            test.GetAccountResult.ID,
-			DbSvc:                &mockDB,
-			StoragerSvc:          mockS3,
-			TokenSvc:             mockToken,
-			AwsSession:           mockSession,
-			RoleManager:          mockRoleManager,
-			PrincipalRoleName:    test.PrincipalRoleName,
-			PrincipalPolicyName:  test.PrincipalPolicyName,
-			PrincipalIAMDenyTags: test.PrincipalIAMDenyTags,
+			AccountID:           test.GetAccountResult.ID,
+			DbSvc:               &mockDB,
+			StoragerSvc:         mockS3,
+			TokenSvc:            mockToken,
+			AwsSession:          mockSession,
+			RoleManager:         mockRoleManager,
+			PrincipalRoleName:   test.PrincipalRoleName,
+			PrincipalPolicyName: test.PrincipalPolicyName,
 		})
 
 		// Assert expectations

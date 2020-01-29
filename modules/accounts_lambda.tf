@@ -24,8 +24,6 @@ module "accounts_lambda" {
     ACCOUNT_DELETED_TOPIC_ARN      = aws_sns_topic.account_deleted.arn
     PRINCIPAL_ROLE_NAME            = local.principal_role_name
     PRINCIPAL_POLICY_NAME          = local.principal_policy_name
-    PRINCIPAL_IAM_DENY_TAGS        = join(",", var.principal_iam_deny_tags)
-    ALLOWED_REGIONS                = join(",", var.allowed_regions)
     PRINCIPAL_MAX_SESSION_DURATION = 14400
     TAG_ENVIRONMENT                = var.namespace == "prod" ? "PROD" : "NON-PROD"
     TAG_APP_NAME                   = lookup(var.global_tags, "AppName")

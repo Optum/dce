@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net/url"
-	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/iam"
@@ -29,19 +28,17 @@ import (
 )
 
 type accountControllerConfiguration struct {
-	Debug                       string   `env:"DEBUG" defaultEnv:"false"`
-	PolicyName                  string   `env:"PRINCIPAL_POLICY_NAME" defaultEnv:"DCEPrincipalDefaultPolicy"`
-	AccountCreatedTopicArn      string   `env:"ACCOUNT_CREATED_TOPIC_ARN" defaultEnv:"DefaultAccountCreatedTopicArn"`
-	AccountDeletedTopicArn      string   `env:"ACCOUNT_DELETED_TOPIC_ARN"`
-	ArtifactsBucket             string   `env:"ARTIFACTS_BUCKET" defaultEnv:"DefaultArtifactBucket"`
-	PrincipalPolicyS3Key        string   `env:"PRINCIPAL_POLICY_S3_KEY" defaultEnv:"DefaultPrincipalPolicyS3Key"`
-	PrincipalRoleName           string   `env:"PRINCIPAL_ROLE_NAME" defaultEnv:"DCEPrincipal"`
-	PrincipalPolicyName         string   `env:"PRINCIPAL_POLICY_NAME"`
-	PrincipalIAMDenyTags        []string `env:"PRINCIPAL_IAM_DENY_TAGS" defaultEnv:"DefaultPrincipalIamDenyTags"`
-	PrincipalMaxSessionDuration int64    `env:"PRINCIPAL_MAX_SESSION_DURATION" defaultEnv:"100"`
+	Debug                       string `env:"DEBUG" defaultEnv:"false"`
+	PolicyName                  string `env:"PRINCIPAL_POLICY_NAME" defaultEnv:"DCEPrincipalDefaultPolicy"`
+	AccountCreatedTopicArn      string `env:"ACCOUNT_CREATED_TOPIC_ARN" defaultEnv:"DefaultAccountCreatedTopicArn"`
+	AccountDeletedTopicArn      string `env:"ACCOUNT_DELETED_TOPIC_ARN"`
+	ArtifactsBucket             string `env:"ARTIFACTS_BUCKET" defaultEnv:"DefaultArtifactBucket"`
+	PrincipalPolicyS3Key        string `env:"PRINCIPAL_POLICY_S3_KEY" defaultEnv:"DefaultPrincipalPolicyS3Key"`
+	PrincipalRoleName           string `env:"PRINCIPAL_ROLE_NAME" defaultEnv:"DCEPrincipal"`
+	PrincipalPolicyName         string `env:"PRINCIPAL_POLICY_NAME"`
+	PrincipalMaxSessionDuration int64  `env:"PRINCIPAL_MAX_SESSION_DURATION" defaultEnv:"100"`
 	Tags                        []*iam.Tag
-	ResetQueueURL               string   `env:"RESET_SQS_URL" defaultEnv:"DefaultResetSQSUrl"`
-	AllowedRegions              []string `env:"ALLOWED_REGIONS" defaultEnv:"us-east-1"`
+	ResetQueueURL               string `env:"RESET_SQS_URL" defaultEnv:"DefaultResetSQSUrl"`
 }
 
 var (
@@ -73,11 +70,9 @@ var (
 	artifactsBucket             string
 	principalPolicyS3Key        string
 	principalRoleName           string
-	principalIAMDenyTags        []string
 	principalMaxSessionDuration int64
 	tags                        []*iam.Tag
 	resetQueueURL               string
-	allowedRegions              []string
 )
 
 func init() {
@@ -166,7 +161,6 @@ func initConfig() {
 	artifactsBucket = Config.GetEnvVar("ARTIFACTS_BUCKET", "DefaultArtifactBucket")
 	principalPolicyS3Key = Config.GetEnvVar("PRINCIPAL_POLICY_S3_KEY", "DefaultPrincipalPolicyS3Key")
 	principalRoleName = Config.GetEnvVar("PRINCIPAL_ROLE_NAME", "DCEPrincipal")
-	principalIAMDenyTags = strings.Split(Config.GetEnvVar("PRINCIPAL_IAM_DENY_TAGS", "DefaultPrincipalIamDenyTags"), ",")
 	principalMaxSessionDuration = int64(Config.GetEnvIntVar("PRINCIPAL_MAX_SESSION_DURATION", 100))
 	tags = []*iam.Tag{
 		{Key: aws.String("Terraform"), Value: aws.String("False")},
@@ -177,7 +171,6 @@ func initConfig() {
 	}
 	accountCreatedTopicArn = Config.GetEnvVar("ACCOUNT_CREATED_TOPIC_ARN", "DefaultAccountCreatedTopicArn")
 	resetQueueURL = Config.GetEnvVar("RESET_SQS_URL", "DefaultResetSQSUrl")
-	allowedRegions = strings.Split(Config.GetEnvVar("ALLOWED_REGIONS", "us-east-1"), ",")
 }
 
 // Handler - Handle the lambda function
