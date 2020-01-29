@@ -1,14 +1,15 @@
 package processresetqueue
 
 import (
+	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
-	"regexp"
 
+	"github.com/Optum/dce/pkg/account"
 	"github.com/Optum/dce/pkg/db"
 
 	"github.com/Optum/dce/pkg/common"
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sqs"
 )
 
@@ -68,51 +69,27 @@ func Reset(input *ResetInput) (*ResetOutput, error) {
 		// result and move on to the next account.
 		for _, message := range messages.Messages {
 			// Assumes the Message's Body to just contain the Account's ID to Reset
-			accountID := *message.Body
 			result := ResetResult{
 				BuildTrigger:    false,
 				MessageDeletion: false,
 			}
 
-			// Get the Account from the Database
-			account, err := input.DbSvc.GetAccount(accountID)
-			if err != nil {
-				failTriggerResetOnAccount(&output, result, accountID,
+			acct := &account.Account{}
+			if err := json.Unmarshal([]byte(aws.StringValue(message.Body)), &acct); err != nil {
+				failTriggerResetOnAccount(&output, result, "",
 					err.Error())
 				continue
 			}
-			if account == nil {
-				failTriggerResetOnAccount(&output, result, accountID,
-					fmt.Sprintf("Account %s doesn't exist", accountID))
-				continue
-			}
 
-			// Lookup the Account's AdminRoleArn
-			accountAdminRoleName, err := extractRoleNameFromARN(account.AdminRoleArn)
-			if err != nil {
-				failTriggerResetOnAccount(&output, result, accountID,
-					fmt.Sprintf("Cannot extract Admin Role Name from %s",
-						account.AdminRoleArn))
-				continue
-			}
-
-			// Lookup the account's PrincipalRoleArn
-			accountPrincipalRoleName, err := extractRoleNameFromARN(
-				account.PrincipalRoleArn)
-			if err != nil {
-				failTriggerResetOnAccount(&output, result, accountID,
-					fmt.Sprintf("Cannot extract Principal Role Name from %s",
-						account.PrincipalRoleArn))
-				continue
-			}
+			accountID := *acct.ID
 			log.Printf("Start Account: %s\nMessage ID: %s\n", accountID,
 				*message.MessageId)
 
 			// Set Reset Build Env Vars
 			resetBuildEnvironment := map[string]string{
-				"RESET_ACCOUNT":                     account.ID,
-				"RESET_ACCOUNT_ADMIN_ROLE_NAME":     accountAdminRoleName,
-				"RESET_ACCOUNT_PRINCIPAL_ROLE_NAME": accountPrincipalRoleName,
+				"RESET_ACCOUNT":                     accountID,
+				"RESET_ACCOUNT_ADMIN_ROLE_NAME":     acct.AdminRoleArn.IAMResourceName(),
+				"RESET_ACCOUNT_PRINCIPAL_ROLE_NAME": acct.PrincipalRoleArn.IAMResourceName(),
 			}
 
 			// Trigger Code Pipeline
@@ -165,16 +142,6 @@ func Reset(input *ResetInput) (*ResetOutput, error) {
 			"reset on all accounts")
 	}
 	return &output, nil
-}
-
-// extractRoleNameFromARN returns the name of the role from its arn
-func extractRoleNameFromARN(arn string) (string, error) {
-	reg := regexp.MustCompile(`arn:aws:iam::\d{12}:role/(.+)`)
-	result := reg.FindStringSubmatch(arn)
-	if len(result) != 2 {
-		return "", fmt.Errorf("Invalid Role ARN: %s", arn)
-	}
-	return result[1], nil
 }
 
 // failTriggerResetOnAccount will update the ResetOutput with the failed results

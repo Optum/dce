@@ -7,7 +7,6 @@ import (
 	"log"
 
 	"github.com/Optum/dce/pkg/common"
-	"github.com/Optum/dce/pkg/db"
 	"github.com/Optum/dce/pkg/processresetqueue"
 
 	"github.com/aws/aws-lambda-go/lambda"
