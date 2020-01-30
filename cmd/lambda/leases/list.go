@@ -28,7 +28,7 @@ func GetLeases(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if query.NextAccountID != nil || query.NextPrincipalID != nil {
+	if query.NextAccountID != nil && query.NextPrincipalID != nil {
 		nextURL, err := api.BuildNextURL(baseRequest, query)
 		if err != nil {
 			api.WriteAPIErrorResponse(w, err)
