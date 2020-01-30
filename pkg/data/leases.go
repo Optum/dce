@@ -38,7 +38,7 @@ func (a *Lease) queryLeases(query *lease.Lease, keyName string, index string) (*
 	}
 
 	queryInput.SetLimit(*query.Limit)
-	if query.NextAccountID != nil && query.NextPrincipalID != nil{
+	if query.NextAccountID != nil && query.NextPrincipalID != nil {
 		// Should be more dynamic
 		queryInput.SetExclusiveStartKey(map[string]*dynamodb.AttributeValue{
 			"AccountId": &dynamodb.AttributeValue{
@@ -110,7 +110,6 @@ func (a *Lease) scanLeases(query *lease.Lease) (*queryScanOutput, error) {
 		lastEvaluatedKey: res.LastEvaluatedKey,
 	}, nil
 }
-
 
 // List Get a list of leases
 func (a *Lease) List(query *lease.Lease) (*lease.Leases, error) {
