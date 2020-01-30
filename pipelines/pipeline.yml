@@ -358,6 +358,34 @@ stages:
                       -var="budget_notification_from_email=$(NOTIFY_EMAIL)"
                   displayName: "Terraform destroy"
 
+                # End the DCE lease
+                - task: AWSShellScript@1
+                  displayName: "DCE Lease End"
+                  inputs:
+                    awsCredentials: "AWS_DCE_API_NONPROD"
+                    regionName: "us-east-1"
+                    scriptType: "inline"
+                    inlineScript: |
+                      set -ex
+                      lease_id=$(cat ./lease_id.txt)
+                      namespace=$(cat ./namespace.txt)
+
+                      leases=$(
+                        ./dce --config=dce.yml leases list -s Active \
+                        2>&1 >/dev/null)
+                      account_id=$(
+                        echo $leases | \
+                        jq -r \
+                          --arg Id "${lease_id}" \
+                          '.[] | select( .id==$Id ) | .Id'
+                      )
+
+                      echo "Ending lease ${lease_id}"
+
+                      ./dce --config=./dce.yml leases end \
+                        -p ${namespace} \
+                        -a ${account_id}
+
   - stage: Release
     dependsOn: Cleanup
     jobs:
