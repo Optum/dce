@@ -28,6 +28,7 @@ func TestGetLeasesScan(t *testing.T) {
 			sInput: &dynamodb.ScanInput{
 				ConsistentRead: aws.Bool(false),
 				TableName:      aws.String("Leases"),
+				Limit:          ptrInt64(25),
 			},
 			sOutputRec: &dynamodb.ScanOutput{
 				Items: []map[string]*dynamodb.AttributeValue{},
@@ -40,6 +41,7 @@ func TestGetLeasesScan(t *testing.T) {
 			sInput: &dynamodb.ScanInput{
 				ConsistentRead: aws.Bool(false),
 				TableName:      aws.String("Leases"),
+				Limit:          ptrInt64(25),
 			},
 			sOutputRec: &dynamodb.ScanOutput{
 				Items: []map[string]*dynamodb.AttributeValue{
@@ -77,6 +79,7 @@ func TestGetLeasesScan(t *testing.T) {
 						S: aws.String("User1"),
 					},
 				},
+				Limit: ptrInt64(25),
 			},
 			sOutputRec: &dynamodb.ScanOutput{
 				Items: []map[string]*dynamodb.AttributeValue{
@@ -103,6 +106,7 @@ func TestGetLeasesScan(t *testing.T) {
 			sInput: &dynamodb.ScanInput{
 				ConsistentRead: aws.Bool(false),
 				TableName:      aws.String("Leases"),
+				Limit:          ptrInt64(25),
 			},
 			sOutputRec: nil,
 			sOutputErr: fmt.Errorf("failure"),
@@ -124,6 +128,7 @@ func TestGetLeasesScan(t *testing.T) {
 			leaseData := &Lease{
 				DynamoDB:  &mockDynamo,
 				TableName: "Leases",
+				Limit:     25,
 			}
 			leases, err := leaseData.List(tt.query)
 			assert.True(t, errors.Is(err, tt.expErr))
@@ -161,6 +166,7 @@ func TestGetLeasesQuery(t *testing.T) {
 					},
 				},
 				KeyConditionExpression: aws.String("#0 = :0"),
+				Limit:                  ptrInt64(25),
 			},
 			qOutputRec: &dynamodb.QueryOutput{
 				Items: []map[string]*dynamodb.AttributeValue{
@@ -205,6 +211,7 @@ func TestGetLeasesQuery(t *testing.T) {
 				},
 				KeyConditionExpression: aws.String("#1 = :1"),
 				FilterExpression:       aws.String("#0 = :0"),
+				Limit:                  ptrInt64(25),
 			},
 			qOutputRec: &dynamodb.QueryOutput{
 				Items: []map[string]*dynamodb.AttributeValue{
@@ -249,6 +256,7 @@ func TestGetLeasesQuery(t *testing.T) {
 				},
 				KeyConditionExpression: aws.String("#1 = :1"),
 				FilterExpression:       aws.String("#0 = :0"),
+				Limit:                  ptrInt64(25),
 			},
 			qOutputRec: nil,
 			qOutputErr: fmt.Errorf("failure"),
@@ -270,6 +278,7 @@ func TestGetLeasesQuery(t *testing.T) {
 			leaseData := &Lease{
 				DynamoDB:  &mockDynamo,
 				TableName: "Leases",
+				Limit:     25,
 			}
 			leases, err := leaseData.List(tt.query)
 			assert.True(t, errors.Is(err, tt.expErr))
