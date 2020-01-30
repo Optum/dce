@@ -105,7 +105,6 @@ has exceeded its budget of $100. Actual spend is $150
 			snsSvc:                                 snsSvc,
 			leaseLockedTopicArn:                    "lease-locked",
 			sqsSvc:                                 sqsSvc,
-			resetQueueURL:                          "reset-queue-url",
 			emailSvc:                               emailSvc,
 			budgetNotificationFromEmail:            "from@example.com",
 			budgetNotificationBCCEmails:            []string{"bcc@example.com"},

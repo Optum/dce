@@ -7,7 +7,6 @@ import (
 	"log"
 
 	"github.com/Optum/dce/pkg/common"
-	"github.com/Optum/dce/pkg/db"
 	"github.com/Optum/dce/pkg/processresetqueue"
 
 	"github.com/aws/aws-lambda-go/lambda"
@@ -43,17 +42,11 @@ func handler(ctx context.Context) (bool, error) {
 		Client: codeBuildClient,
 	}
 
-	// Construct the ResetInput
-	dbSvc, err := db.NewFromEnv()
-	if err != nil {
-		log.Fatal(err)
-	}
 	resetInput := processresetqueue.ResetInput{
 		ResetQueue:    queue,
 		ResetQueueURL: &queueURL,
 		ResetBuild:    &build,
 		BuildName:     &buildName,
-		DbSvc:         dbSvc,
 	}
 
 	// Call the Reset and return its values

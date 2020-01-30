@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -302,12 +304,13 @@ func TestCreate(t *testing.T) {
 		Queue = mockQueue
 
 		queueName := "DefaultResetSQSUrl"
-		accountID := "1234567890"
-
+		now := time.Now().Unix()
+		expectedMessage :=
+			fmt.Sprintf("{\"Id\":\"1234567890\",\"AccountStatus\":\"NotReady\",\"LastModifiedOn\":%d,\"CreatedOn\":%d,\"AdminRoleArn\":\"arn:mock\",\"PrincipalRoleArn\":\"arn:aws:iam::1234567890:role/DCEPrincipal\",\"PrincipalPolicyHash\":\"PolicyHash\",\"Metadata\":{}}", now, now)
 		// Should add account to Queue
 		mockQueue.On("SendMessage",
 			&queueName,
-			&accountID,
+			&expectedMessage,
 		).Return(nil)
 		defer mockQueue.AssertExpectations(t)
 

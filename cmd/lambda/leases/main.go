@@ -23,7 +23,6 @@ import (
 
 type leaseControllerConfiguration struct {
 	Debug                    string  `env:"DEBUG" defaultEnv:"false"`
-	ResetQueueURL            string  `env:"RESET_SQS_URL" defaultEnv:"DefaultResetSQSUrl"`
 	LeaseAddedTopicARN       string  `env:"LEASE_ADDED_TOPIC" defaultEnv:"DCEDefaultProvisionTopic"`
 	DecommissionTopicARN     string  `env:"DECOMMISSION_TOPIC" defaultEnv:"DefaultDecommissionTopicArn"`
 	CognitoUserPoolID        string  `env:"COGNITO_USER_POOL_ID" defaultEnv:"DefaultCognitoUserPoolId"`
@@ -63,7 +62,6 @@ var (
 	usageSvc           usage.Service
 	leaseAddedTopicARN string
 	//decommissionTopicARN     string
-	//resetQueueURL            string
 	principalBudgetAmount    float64
 	principalBudgetPeriod    string
 	maxLeaseBudgetAmount     float64
@@ -187,7 +185,6 @@ func initConfig() {
 
 	Services = svcBldr
 
-	//resetQueueURL = Config.GetEnvVar("RESET_SQS_URL", "DefaultResetSQSUrl")
 	leaseAddedTopicARN = Config.GetEnvVar("LEASE_ADDED_TOPIC", "DCEDefaultProvisionTopic")
 	//decommissionTopicARN = Config.GetEnvVar("DECOMMISSION_TOPIC", "DefaultDecommissionTopicArn")
 	//cognitoUserPoolId = Config.GetEnvVar("COGNITO_USER_POOL_ID", "DefaultCognitoUserPoolId")
