@@ -9,14 +9,14 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
 )
 
-// query for doing a query against dynamodb
-func (a *Lease) query(q *lease.Lease, keyName string, index string) (*lease.Leases, error) {
+// queryLeases for doing a query against dynamodb
+func (a *Lease) queryLeases(query *lease.Lease, keyName string, index string) (*queryScanOutput, error) {
 	var expr expression.Expression
 	var bldr expression.Builder
 	var err error
 	var res *dynamodb.QueryOutput
 
-	keyCondition, filters := getFiltersFromStruct(q, &keyName)
+	keyCondition, filters := getFiltersFromStruct(query, &keyName)
 	bldr = expression.NewBuilder().WithKeyCondition(*keyCondition)
 	if filters != nil {
 		bldr = bldr.WithFilter(*filters)
@@ -27,7 +27,7 @@ func (a *Lease) query(q *lease.Lease, keyName string, index string) (*lease.Leas
 		return nil, errors.NewInternalServer("unable to build query", err)
 	}
 
-	input := &dynamodb.QueryInput{
+	queryInput := &dynamodb.QueryInput{
 		TableName:                 aws.String(a.TableName),
 		IndexName:                 aws.String(index),
 		KeyConditionExpression:    expr.KeyCondition(),
@@ -36,8 +36,21 @@ func (a *Lease) query(q *lease.Lease, keyName string, index string) (*lease.Leas
 		ExpressionAttributeNames:  expr.Names(),
 		ExpressionAttributeValues: expr.Values(),
 	}
-	res, err = query(input, a.DynamoDB)
 
+	queryInput.SetLimit(*query.Limit)
+	if query.NextAccountID != nil && query.NextPrincipalID != nil{
+		// Should be more dynamic
+		queryInput.SetExclusiveStartKey(map[string]*dynamodb.AttributeValue{
+			"AccountId": &dynamodb.AttributeValue{
+				S: query.NextAccountID,
+			},
+			"PrincipalId": &dynamodb.AttributeValue{
+				S: query.NextPrincipalID,
+			},
+		})
+	}
+
+	res, err = a.DynamoDB.Query(queryInput)
 	if err != nil {
 		return nil, errors.NewInternalServer(
 			"failed to query leases",
@@ -45,52 +58,89 @@ func (a *Lease) query(q *lease.Lease, keyName string, index string) (*lease.Leas
 		)
 	}
 
-	leases := &lease.Leases{}
-	err = dynamodbattribute.UnmarshalListOfMaps(res.Items, leases)
-	if err != nil {
-		return nil, errors.NewInternalServer("failed unmarshaling of leases", err)
-	}
-	return leases, nil
+	return &queryScanOutput{
+		items:            res.Items,
+		lastEvaluatedKey: res.LastEvaluatedKey,
+	}, nil
 }
 
-// scan for doing a scan against dynamodb
-func (a *Lease) scan(q *lease.Lease) (*lease.Leases, error) {
+// scanLeases for doing a scan against dynamodb
+func (a *Lease) scanLeases(query *lease.Lease) (*queryScanOutput, error) {
 	var expr expression.Expression
 	var err error
 	var res *dynamodb.ScanOutput
 
-	_, filters := getFiltersFromStruct(q, nil)
+	_, filters := getFiltersFromStruct(query, nil)
 	if filters != nil {
 		expr, err = expression.NewBuilder().WithFilter(*filters).Build()
 		if err != nil {
 			return nil, errors.NewInternalServer("unable to build query", err)
 		}
 	}
-	input := &dynamodb.ScanInput{
+
+	scanInput := &dynamodb.ScanInput{
 		TableName:                 aws.String(a.TableName),
 		ConsistentRead:            aws.Bool(a.ConsistentRead),
 		FilterExpression:          expr.Filter(),
 		ExpressionAttributeNames:  expr.Names(),
 		ExpressionAttributeValues: expr.Values(),
 	}
-	res, err = scan(input, a.DynamoDB)
+
+	scanInput.SetLimit(*query.Limit)
+	if query.NextAccountID != nil {
+		// Should be more dynamic
+		scanInput.SetExclusiveStartKey(map[string]*dynamodb.AttributeValue{
+			"AccountId": &dynamodb.AttributeValue{
+				S: query.NextAccountID,
+			},
+			"PrincipalId": &dynamodb.AttributeValue{
+				S: query.NextPrincipalID,
+			},
+		})
+	}
+
+	res, err = a.DynamoDB.Scan(scanInput)
+
 	if err != nil {
 		return nil, errors.NewInternalServer("error getting leases", err)
 	}
 
-	leases := &lease.Leases{}
-	err = dynamodbattribute.UnmarshalListOfMaps(res.Items, leases)
-	if err != nil {
-		return nil, errors.NewInternalServer("failed unmarshaling of leases", err)
-	}
-	return leases, err
+	return &queryScanOutput{
+		items:            res.Items,
+		lastEvaluatedKey: res.LastEvaluatedKey,
+	}, nil
 }
+
 
 // List Get a list of leases
 func (a *Lease) List(query *lease.Lease) (*lease.Leases, error) {
 
-	if query.Status != nil {
-		return a.query(query, "LeaseStatus", "LeaseStatus")
+	var outputs *queryScanOutput
+	var err error
+
+	if query.Limit == nil {
+		query.Limit = &a.Limit
 	}
-	return a.scan(query)
+
+	if query.Status != nil {
+		outputs, err = a.queryLeases(query, "LeaseStatus", "LeaseStatus")
+	} else {
+		outputs, err = a.scanLeases(query)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	query.NextAccountID = nil
+	for _, v := range outputs.lastEvaluatedKey {
+		query.NextAccountID = v.S
+	}
+
+	leases := &lease.Leases{}
+	err = dynamodbattribute.UnmarshalListOfMaps(outputs.items, leases)
+	if err != nil {
+		return nil, errors.NewInternalServer("failed unmarshal of leases", err)
+	}
+
+	return leases, nil
 }

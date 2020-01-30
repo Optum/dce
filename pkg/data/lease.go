@@ -18,6 +18,7 @@ type Lease struct {
 	DynamoDB       dynamodbiface.DynamoDBAPI
 	TableName      string `env:"LEASE_DB"`
 	ConsistentRead bool   `env:"USE_CONSISTENT_READS" envDefault:"false"`
+	Limit          int64  `env:"LIMIT" envDefault:"25"`
 }
 
 // Write the Lease record in DynamoDB
