@@ -86,6 +86,42 @@ func (s *Service) UpsertPrincipalAccess(account *account.Account) error {
 	return nil
 }
 
+// DeletePrincipalAccess removes all the principal roles and policies
+func (s *Service) DeletePrincipalAccess(account *account.Account) error {
+	err := validation.ValidateStruct(account,
+		validation.Field(&account.AdminRoleArn, validation.NotNil),
+		validation.Field(&account.PrincipalRoleArn, validation.NotNil),
+	)
+	if err != nil {
+		return errors.NewValidation("account", err)
+	}
+
+	iamSvc := s.client.IAM(account.AdminRoleArn)
+
+	principalSvc := principalService{
+		iamSvc:   iamSvc,
+		storager: s.storager,
+		account:  account,
+		config:   s.config,
+	}
+
+	err = principalSvc.DetachRoleWithPolicy()
+	if err != nil {
+		return err
+	}
+	err = principalSvc.DeletePolicy()
+	if err != nil {
+		return err
+	}
+
+	err = principalSvc.DeleteRole()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // NewServiceInput are the items needed to create a new service
 type NewServiceInput struct {
 	Session  *session.Session

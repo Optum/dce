@@ -48,14 +48,15 @@ func TestGetAccountsScan(t *testing.T) {
 				Items: []map[string]*dynamodb.AttributeValue{
 					map[string]*dynamodb.AttributeValue{
 						"Id": {
-							S: aws.String("1"),
+							S: aws.String("123456789012"),
 						},
 					},
 				},
 			},
 			expAccounts: &account.Accounts{
 				{
-					ID: ptrString("1"),
+					ID:                 ptrString("123456789012"),
+					PrincipalPolicyArn: arn.New("aws", "iam", "", "123456789012", "policy/DCEPrincipalDefaultPolicy"),
 				},
 			},
 		},
@@ -82,14 +83,15 @@ func TestGetAccountsScan(t *testing.T) {
 				Items: []map[string]*dynamodb.AttributeValue{
 					map[string]*dynamodb.AttributeValue{
 						"Id": {
-							S: aws.String("1"),
+							S: aws.String("123456789012"),
 						},
 					},
 				},
 			},
 			expAccounts: &account.Accounts{
 				{
-					ID: ptrString("1"),
+					ID:                 ptrString("123456789012"),
+					PrincipalPolicyArn: arn.New("aws", "iam", "", "123456789012", "policy/DCEPrincipalDefaultPolicy"),
 				},
 			},
 		},
@@ -165,14 +167,15 @@ func TestGetAccountsQuery(t *testing.T) {
 				Items: []map[string]*dynamodb.AttributeValue{
 					map[string]*dynamodb.AttributeValue{
 						"Id": {
-							S: aws.String("1"),
+							S: aws.String("123456789012"),
 						},
 					},
 				},
 			},
 			expAccounts: &account.Accounts{
 				{
-					ID: ptrString("1"),
+					ID:                 ptrString("123456789012"),
+					PrincipalPolicyArn: arn.New("aws", "iam", "", "123456789012", "policy/DCEPrincipalDefaultPolicy"),
 				},
 			},
 		},
@@ -206,14 +209,15 @@ func TestGetAccountsQuery(t *testing.T) {
 				Items: []map[string]*dynamodb.AttributeValue{
 					map[string]*dynamodb.AttributeValue{
 						"Id": {
-							S: aws.String("1"),
+							S: aws.String("123456789012"),
 						},
 					},
 				},
 			},
 			expAccounts: &account.Accounts{
 				{
-					ID: ptrString("1"),
+					ID:                 ptrString("123456789012"),
+					PrincipalPolicyArn: arn.New("aws", "iam", "", "123456789012", "policy/DCEPrincipalDefaultPolicy"),
 				},
 			},
 		},

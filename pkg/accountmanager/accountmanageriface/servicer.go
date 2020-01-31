@@ -13,4 +13,6 @@ type Servicer interface {
 	ValidateAccess(role *arn.ARN) error
 	// UpsertPrincipalAccess creates roles, policies and update them as needed
 	UpsertPrincipalAccess(account *account.Account) error
+	// DeletePrincipalAccess removes all the principal roles and policies
+	DeletePrincipalAccess(account *account.Account) error
 }

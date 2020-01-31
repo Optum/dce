@@ -58,6 +58,7 @@ type Eventer interface {
 type Manager interface {
 	ValidateAccess(role *arn.ARN) error
 	UpsertPrincipalAccess(account *Account) error
+	DeletePrincipalAccess(account *Account) error
 }
 
 // Service is a type corresponding to a Account table record
@@ -205,12 +206,29 @@ func (a *Service) Delete(data *Account) error {
 
 	err := validation.ValidateStruct(data,
 		validation.Field(&data.Status, validation.NotNil, validation.By(isAccountNotLeased)),
+		validation.Field(&data.AdminRoleArn, validation.NotNil),
+		validation.Field(&data.PrincipalRoleArn, validation.NotNil),
 	)
 	if err != nil {
 		return errors.NewConflict("account", *data.ID, err)
 	}
 
 	err = a.dataSvc.Delete(data)
+	if err != nil {
+		return err
+	}
+
+	err = a.managerSvc.DeletePrincipalAccess(data)
+	if err != nil {
+		return err
+	}
+
+	err = a.eventSvc.AccountDelete(data)
+	if err != nil {
+		return err
+	}
+
+	err = a.eventSvc.AccountReset(data)
 	if err != nil {
 		return err
 	}
