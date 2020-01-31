@@ -1,4 +1,4 @@
-# Disposable Cloud Environment (DCE)
+# Disposable Cloud Environment (DCE)<sup>TM</sup>
 
 The Disposable Cloud Environment (DCE) provides temporary, limited Amazon Web Services (AWS) accounts. Accounts can be "leased" for a period of time or up to a pre-determined budget amount. When the period of time is reached or the maximum budgeted amount is exceeded, the lease is expired. The leased account is _reset_ and returned to a pool of accounts to be leased again.
 
