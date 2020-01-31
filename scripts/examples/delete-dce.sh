@@ -4,7 +4,7 @@
 # resource group, it deletes additional resources using substring matching on arns and resource names for the                 #
 # namespace provided as the second parameter to the script.                                                                   #
 #                                                                                                                             #
-# It is important to exercise caution any time you are deleting AWS resource in bulk. Please either read this script          #
+# It is important to exercise caution any time you are deleting AWS resources in bulk. Please either read this script         #
 # thoroughly or use it as a guide if you have concerns about accidentally deleting other AWS resources.                       #
 ###############################################################################################################################
 
