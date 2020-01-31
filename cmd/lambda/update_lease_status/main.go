@@ -73,6 +73,7 @@ func main() {
 			budgetNotificationThresholdPercentiles: common.RequireEnvFloatSlice("BUDGET_NOTIFICATION_THRESHOLD_PERCENTILES", ","),
 			principalBudgetAmount:                  common.RequireEnvFloat("PRINCIPAL_BUDGET_AMOUNT"),
 			principalBudgetPeriod:                  common.RequireEnv("PRINCIPAL_BUDGET_PERIOD"),
+			usageTTL:                               common.RequireEnvInt("USAGE_TTL"),
 		})
 		if err != nil {
 			log.Fatalf("Failed check budget: %s", err)
@@ -117,6 +118,7 @@ type lambdaHandlerInput struct {
 	budgetNotificationThresholdPercentiles []float64
 	principalBudgetAmount                  float64
 	principalBudgetPeriod                  string
+	usageTTL                               int // TTL in seconds for Usage DynamoDB records
 }
 
 func lambdaHandler(input *lambdaHandlerInput) error {
@@ -143,6 +145,7 @@ func lambdaHandler(input *lambdaHandlerInput) error {
 		usageSvc:              input.usageSvc,
 		awsSession:            input.awsSession,
 		principalBudgetPeriod: input.principalBudgetPeriod,
+		usageTTL:              input.usageTTL,
 	})
 	if err != nil {
 		return errors.Wrapf(err, "Failed to calculate spend for lease %s", leaseLogID)
