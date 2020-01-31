@@ -1,5 +1,5 @@
 ###############################################################################################################################
-# This script may be used as an example for deleting resources deployed by dce-cli previous to dce-cli version 0.4.0          #
+# This script may be used as an example for deleting resources deployed by dce-cli previous to version 0.4.0.                 #
 # It uses AWS Resource Groups to query for resources tagged AppName=DCE. After deleting these resources and the               #
 # resource group, it deletes additional resources using substring matching on arns and resource names for the                 #
 # namespace provided as the second parameter to the script.                                                                   #
