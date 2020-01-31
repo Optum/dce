@@ -3,6 +3,7 @@ package account
 import (
 	"time"
 
+	"github.com/Optum/dce/pkg/arn"
 	"github.com/Optum/dce/pkg/errors"
 	validation "github.com/go-ozzo/ozzo-validation"
 )
@@ -47,19 +48,24 @@ type ReaderWriterDeleter interface {
 
 // Eventer for publishing events
 type Eventer interface {
-	Publish() error
+	AccountCreate(account *Account) error
+	AccountDelete(account *Account) error
+	AccountUpdate(account *Account) error
+	AccountReset(account *Account) error
 }
 
 // Manager manages all the actions against an account
 type Manager interface {
-	Setup(adminRole string) error
+	ValidateAccess(role *arn.ARN) error
+	UpsertPrincipalAccess(account *Account) error
 }
 
 // Service is a type corresponding to a Account table record
 type Service struct {
-	dataSvc    ReaderWriterDeleter
-	managerSvc Manager
-	eventSvc   Eventer
+	dataSvc           ReaderWriterDeleter
+	managerSvc        Manager
+	eventSvc          Eventer
+	principalRoleName string
 }
 
 // Get returns an account from ID
@@ -103,7 +109,6 @@ func (a *Service) Update(ID string, data *Account) (*Account, error) {
 		// ID has to be empty
 		validation.Field(&data.ID, validation.NilOrNotEmpty, validation.In(ID)),
 		validation.Field(&data.AdminRoleArn, validation.By(isNilOrUsableAdminRole(a.managerSvc))),
-		validation.Field(&data.ID, validation.By(isNil)),
 		validation.Field(&data.LastModifiedOn, validation.By(isNil)),
 		validation.Field(&data.Status, validation.By(isNil)),
 		validation.Field(&data.CreatedOn, validation.By(isNil)),
@@ -131,6 +136,68 @@ func (a *Service) Update(ID string, data *Account) (*Account, error) {
 		return nil, err
 	}
 	return account, nil
+}
+
+// Create creates a new account using the data provided. Returns the account record
+func (a *Service) Create(data *Account) (*Account, error) {
+	// Validate the incoming record doesn't have unneeded fields
+	err := validation.ValidateStruct(data,
+		// This may be considered double validation but we are going to need the ID
+		// so need to make sure its set
+		validation.Field(&data.ID, validateID...),
+		validation.Field(&data.AdminRoleArn, validateAdminRoleArn...),
+		validation.Field(&data.LastModifiedOn, validation.By(isNil)),
+		validation.Field(&data.Status, validation.By(isNil)),
+		validation.Field(&data.CreatedOn, validation.By(isNil)),
+		validation.Field(&data.PrincipalRoleArn, validation.By(isNil)),
+		validation.Field(&data.PrincipalPolicyHash, validation.By(isNil)),
+	)
+	if err != nil {
+		return nil, errors.NewValidation("account", err)
+	}
+
+	// Check if account already exists
+	existingAccount, err := a.Get(*data.ID)
+	if existingAccount != nil {
+		return nil, errors.NewAlreadyExists("account", *data.ID)
+	}
+	if err != nil {
+		if !errors.Is(err, errors.NewNotFound("account", *data.ID)) {
+			return nil, err
+		}
+	}
+
+	new, err := NewAccount(NewAccountInput{
+		ID:                *data.ID,
+		AdminRoleArn:      *data.AdminRoleArn,
+		Metadata:          data.Metadata,
+		PrincipalRoleName: a.principalRoleName,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	err = a.managerSvc.UpsertPrincipalAccess(new)
+	if err != nil {
+		return nil, err
+	}
+
+	err = a.Save(new)
+	if err != nil {
+		return nil, err
+	}
+
+	err = a.eventSvc.AccountCreate(new)
+	if err != nil {
+		return nil, err
+	}
+
+	err = a.eventSvc.AccountReset(new)
+	if err != nil {
+		return nil, err
+	}
+
+	return new, nil
 }
 
 // Delete finds a given account and deletes it if it is not of status `Leased`. Returns the account.
@@ -164,16 +231,18 @@ func (a *Service) List(query *Account) (*Accounts, error) {
 
 // NewServiceInput Input for creating a new Service
 type NewServiceInput struct {
-	DataSvc    ReaderWriterDeleter
-	ManagerSvc Manager
-	EventSvc   Eventer
+	PrincipalRoleName string `env:"PRINCIPAL_ROLE_NAME" envDefault:"DCEPrincipal"`
+	DataSvc           ReaderWriterDeleter
+	ManagerSvc        Manager
+	EventSvc          Eventer
 }
 
 // NewService creates a new instance of the Service
 func NewService(input NewServiceInput) *Service {
 	return &Service{
-		dataSvc:    input.DataSvc,
-		eventSvc:   input.EventSvc,
-		managerSvc: input.ManagerSvc,
+		dataSvc:           input.DataSvc,
+		eventSvc:          input.EventSvc,
+		managerSvc:        input.ManagerSvc,
+		principalRoleName: input.PrincipalRoleName,
 	}
 }

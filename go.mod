@@ -22,7 +22,7 @@ require (
 	github.com/pkg/errors v0.8.1
 	github.com/pquerna/otp v1.2.0 // indirect
 	github.com/rebuy-de/aws-nuke v2.11.0+incompatible
-	github.com/stretchr/testify v1.3.0
+	github.com/stretchr/testify v1.4.0
 	golang.org/x/crypto v0.0.0-20190418165655-df01cb2cc480 // indirect
 	golang.org/x/net v0.0.0-20190628185345-da137c7871d7 // indirect
 	golang.org/x/text v0.3.2 // indirect

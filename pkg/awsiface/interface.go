@@ -22,6 +22,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ses/sesiface"
 	"github.com/aws/aws-sdk-go/service/sns/snsiface"
 	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
+	"github.com/aws/aws-sdk-go/service/sts/stsiface"
 )
 
 type LambdaAPI interface {
@@ -50,6 +51,10 @@ type EventBridgeAPI interface {
 
 type S3API interface {
 	s3iface.S3API
+}
+
+type STSAPI interface {
+	stsiface.STSAPI
 }
 
 type AwsSession interface {

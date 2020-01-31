@@ -11,9 +11,16 @@ import (
 	"github.com/Optum/dce/pkg/common"
 	"github.com/Optum/dce/pkg/data"
 	"github.com/Optum/dce/pkg/data/dataiface"
+	"github.com/Optum/dce/pkg/event"
+	"github.com/Optum/dce/pkg/event/eventiface"
 	"github.com/Optum/dce/pkg/lease"
+
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/aws/aws-sdk-go/service/sns/snsiface"
+	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
 	"github.com/aws/aws-sdk-go/service/ssm"
+	"github.com/aws/aws-sdk-go/service/sts/stsiface"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -119,9 +126,9 @@ func (bldr *ServiceBuilder) WithLeaseDataService() *ServiceBuilder {
 	return bldr
 }
 
-// WithAccountManager tells the builder to add the Data service to the `ConfigurationBuilder`
-func (bldr *ServiceBuilder) WithAccountManager() *ServiceBuilder {
-	bldr.handlers = append(bldr.handlers, bldr.createAccountManager)
+// WithAccountManagerService tells the builder to add the Data service to the `ConfigurationBuilder`
+func (bldr *ServiceBuilder) WithAccountManagerService() *ServiceBuilder {
+	bldr.handlers = append(bldr.handlers, bldr.createAccountManagerService)
 	return bldr
 }
 
@@ -134,6 +141,12 @@ func (bldr *ServiceBuilder) WithAccountService() *ServiceBuilder {
 // WithLeaseService tells the builder to add the Account service to the `ConfigurationBuilder`
 func (bldr *ServiceBuilder) WithLeaseService() *ServiceBuilder {
 	bldr.handlers = append(bldr.handlers, bldr.createLeaseService)
+	return bldr
+}
+
+// WithEventService tells the builder to add the Account service to the `ConfigurationBuilder`
+func (bldr *ServiceBuilder) WithEventService() *ServiceBuilder {
+	bldr.handlers = append(bldr.handlers, bldr.createEventService)
 	return bldr
 }
 
@@ -238,15 +251,50 @@ func (bldr *ServiceBuilder) createSSM(config ConfigurationServiceBuilder) error 
 }
 
 func (bldr *ServiceBuilder) createStorageService(config ConfigurationServiceBuilder) error {
-	storageService := &common.S3{}
+
+	storageService := &common.S3{
+		Client:  s3.New(bldr.awsSession),
+		Manager: s3manager.NewDownloader(bldr.awsSession),
+	}
+
 	config.WithService(storageService)
+	return nil
+}
+
+func (bldr *ServiceBuilder) createEventService(config ConfigurationServiceBuilder) error {
+
+	var sqsService sqsiface.SQSAPI
+	err := bldr.Config.GetService(&sqsService)
+	if err != nil {
+		return err
+	}
+
+	var snsService snsiface.SNSAPI
+	err = bldr.Config.GetService(&snsService)
+	if err != nil {
+		return err
+	}
+
+	eventSvcInput := event.NewServiceInput{}
+	err = bldr.Config.Unmarshal(&eventSvcInput)
+	if err != nil {
+		return err
+	}
+
+	eventSvcInput.SqsClient = sqsService
+	eventSvcInput.SnsClient = snsService
+	eventSvc, err := event.NewService(eventSvcInput)
+	if err != nil {
+		return err
+	}
+
+	config.WithService(eventSvc)
 	return nil
 }
 
 func (bldr *ServiceBuilder) createAccountDataService(config ConfigurationServiceBuilder) error {
 	var dynamodbSvc dynamodbiface.DynamoDBAPI
 	err := bldr.Config.GetService(&dynamodbSvc)
-
 	if err != nil {
 		return err
 	}
@@ -264,19 +312,37 @@ func (bldr *ServiceBuilder) createAccountDataService(config ConfigurationService
 	return nil
 }
 
-func (bldr *ServiceBuilder) createAccountManager(config ConfigurationServiceBuilder) error {
-	amSvcInput := accountmanager.NewInput{}
-	err := bldr.Config.Unmarshal(&amSvcInput)
+func (bldr *ServiceBuilder) createAccountManagerService(config ConfigurationServiceBuilder) error {
+	amSvcConfig := accountmanager.ServiceConfig{}
+	err := bldr.Config.Unmarshal(&amSvcConfig)
 	if err != nil {
 		return err
 	}
 
-	amSvcImpl, err := accountmanager.New(amSvcInput)
+	var stsSvc stsiface.STSAPI
+	err = bldr.Config.GetService(&stsSvc)
 	if err != nil {
 		return err
 	}
 
-	config.WithService(amSvcImpl)
+	var storagerSvc common.Storager
+	err = bldr.Config.GetService(&storagerSvc)
+	if err != nil {
+		return err
+	}
+
+	amSvcInput := accountmanager.NewServiceInput{
+		Storager: storagerSvc,
+		Session:  bldr.awsSession,
+		Sts:      stsSvc,
+		Config:   amSvcConfig,
+	}
+
+	amSvc, err := accountmanager.NewService(amSvcInput)
+	if err != nil {
+		return err
+	}
+	config.WithService(amSvc)
 	return nil
 }
 
@@ -287,18 +353,29 @@ func (bldr *ServiceBuilder) createAccountService(config ConfigurationServiceBuil
 		return err
 	}
 
-	var managerSvc accountmanageriface.AccountManagerAPI
+	var managerSvc accountmanageriface.Servicer
 	err = bldr.Config.GetService(&managerSvc)
 	if err != nil {
 		return err
 	}
 
-	accountSvc := account.NewService(
-		account.NewServiceInput{
-			DataSvc:    dataSvc,
-			ManagerSvc: managerSvc,
-		},
-	)
+	var eventSvc eventiface.Servicer
+	err = bldr.Config.GetService(&eventSvc)
+	if err != nil {
+		return err
+	}
+
+	accountSvcInput := account.NewServiceInput{}
+	err = bldr.Config.Unmarshal(&accountSvcInput)
+	if err != nil {
+		return err
+	}
+
+	accountSvcInput.DataSvc = dataSvc
+	accountSvcInput.ManagerSvc = managerSvc
+	accountSvcInput.EventSvc = eventSvc
+
+	accountSvc := account.NewService(accountSvcInput)
 
 	config.WithService(accountSvc)
 	return nil

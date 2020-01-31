@@ -48,7 +48,7 @@ func isNilOrUsableAdminRole(am Manager) validation.RuleFunc {
 	return func(value interface{}) error {
 		if !reflect.ValueOf(value).IsNil() {
 			a, _ := value.(*arn.ARN)
-			err := am.Setup(a.String())
+			err := am.ValidateAccess(a)
 			if err != nil {
 				return errors.New("must be an admin role arn that can be assumed")
 			}

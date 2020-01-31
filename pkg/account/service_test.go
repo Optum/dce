@@ -191,7 +191,7 @@ func TestUpdate(t *testing.T) {
 			},
 			exp: response{
 				data: nil,
-				err:  errors.NewValidation("account", fmt.Errorf("id: must be empty.")), //nolint golint
+				err:  errors.NewValidation("account", fmt.Errorf("id: must be a valid value.")), //nolint golint
 			},
 			returnErr: nil,
 		},
@@ -223,7 +223,7 @@ func TestUpdate(t *testing.T) {
 			mocksRwd.On("Get", *tt.origAccount.ID).Return(&tt.origAccount, tt.returnErr)
 			mocksRwd.On("Write", mock.AnythingOfType("*account.Account"), mock.AnythingOfType("*int64")).Return(tt.returnErr)
 
-			mocksManager.On("Setup", mock.AnythingOfType("string")).Return(tt.amReturnErr)
+			mocksManager.On("ValidateAccess", mock.AnythingOfType("*arn.ARN")).Return(tt.amReturnErr)
 
 			accountSvc := account.NewService(
 				account.NewServiceInput{
@@ -418,4 +418,163 @@ func TestGetAccounts(t *testing.T) {
 		})
 	}
 
+}
+
+func TestCreate(t *testing.T) {
+	now := time.Now().Unix()
+
+	type response struct {
+		data *account.Account
+		err  error
+	}
+
+	tests := []struct {
+		name             string
+		req              *account.Account
+		exp              response
+		getResponse      response
+		writeErr         error
+		accountCreateErr error
+		accountResetErr  error
+	}{
+		{
+			name: "should create",
+			req: &account.Account{
+				ID:           ptrString("123456789012"),
+				AdminRoleArn: arn.New("aws", "iam", "", "123456789012", "role/AdminRole"),
+			},
+			exp: response{
+				data: &account.Account{
+					ID:                 ptrString("123456789012"),
+					Status:             account.StatusNotReady.StatusPtr(),
+					AdminRoleArn:       arn.New("aws", "iam", "", "123456789012", "role/AdminRole"),
+					LastModifiedOn:     &now,
+					CreatedOn:          &now,
+					PrincipalRoleArn:   arn.New("aws", "iam", "", "123456789012", "role/DCEPrincipal"),
+					PrincipalPolicyArn: arn.New("aws", "iam", "", "123456789012", "policy/DCEPrincipalDefaultPolicy"),
+				},
+				err: nil,
+			},
+			getResponse: response{
+				data: nil,
+				err:  errors.NewNotFound("account", "123456789012"),
+			},
+			writeErr:         nil,
+			accountCreateErr: nil,
+			accountResetErr:  nil,
+		},
+		{
+			name: "should fail on account already exists",
+			req: &account.Account{
+				ID:           ptrString("123456789012"),
+				AdminRoleArn: arn.New("aws", "iam", "", "123456789012", "role/AdminRole"),
+			},
+			exp: response{
+				data: nil,
+				err:  errors.NewAlreadyExists("account", "123456789012"),
+			},
+			getResponse: response{
+				data: &account.Account{
+					ID:             ptrString("123456789012"),
+					Status:         account.StatusNotReady.StatusPtr(),
+					AdminRoleArn:   arn.New("aws", "iam", "", "123456789012", "role/AdminRole"),
+					LastModifiedOn: &now,
+					CreatedOn:      &now,
+				},
+				err: nil,
+			},
+		},
+		{
+			name: "should fail on get error",
+			req: &account.Account{
+				ID:           ptrString("123456789012"),
+				AdminRoleArn: arn.New("aws", "iam", "", "123456789012", "role/AdminRole"),
+			},
+			exp: response{
+				data: nil,
+				err:  errors.NewInternalServer("error", nil),
+			},
+			getResponse: response{
+				data: nil,
+				err:  errors.NewInternalServer("error", nil),
+			},
+		},
+		{
+			name: "should fail on save",
+			req: &account.Account{
+				ID:           ptrString("123456789012"),
+				AdminRoleArn: arn.New("aws", "iam", "", "123456789012", "role/AdminRole"),
+			},
+			exp: response{
+				data: nil,
+				err:  errors.NewInternalServer("error", nil),
+			},
+			getResponse: response{
+				data: nil,
+				err:  errors.NewNotFound("account", "123456789012"),
+			},
+			writeErr: errors.NewInternalServer("error", nil),
+		},
+		{
+			name: "should fail on publish AccountCreate event error",
+			req: &account.Account{
+				ID:           ptrString("123456789012"),
+				AdminRoleArn: arn.New("aws", "iam", "", "123456789012", "role/AdminRole"),
+			},
+			exp: response{
+				data: nil,
+				err:  errors.NewInternalServer("error", nil),
+			},
+			getResponse: response{
+				data: nil,
+				err:  errors.NewNotFound("account", "123456789012"),
+			},
+			accountCreateErr: errors.NewInternalServer("error", nil),
+		},
+		{
+			name: "should fail on publish AccountReset event error",
+			req: &account.Account{
+				ID:           ptrString("123456789012"),
+				AdminRoleArn: arn.New("aws", "iam", "", "123456789012", "role/AdminRole"),
+			},
+			exp: response{
+				data: nil,
+				err:  errors.NewInternalServer("error", nil),
+			},
+			getResponse: response{
+				data: nil,
+				err:  errors.NewNotFound("account", "123456789012"),
+			},
+			accountResetErr: errors.NewInternalServer("error", nil),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mocksRwd := &mocks.ReaderWriterDeleter{}
+			mocksManager := &mocks.Manager{}
+			mocksEventer := &mocks.Eventer{}
+
+			mocksRwd.On("Get", *tt.req.ID).Return(tt.getResponse.data, tt.getResponse.err)
+			mocksRwd.On("Write", mock.AnythingOfType("*account.Account"), mock.AnythingOfType("*int64")).Return(tt.writeErr)
+			mocksManager.On("UpsertPrincipalAccess", mock.AnythingOfType("*account.Account")).Return(nil)
+			mocksEventer.On("AccountCreate", mock.AnythingOfType("*account.Account")).Return(tt.accountCreateErr)
+			mocksEventer.On("AccountReset", mock.AnythingOfType("*account.Account")).Return(tt.accountResetErr)
+
+			accountSvc := account.NewService(
+				account.NewServiceInput{
+					DataSvc:           mocksRwd,
+					ManagerSvc:        mocksManager,
+					EventSvc:          mocksEventer,
+					PrincipalRoleName: "DCEPrincipal",
+				},
+			)
+
+			result, err := accountSvc.Create(tt.req)
+
+			assert.Truef(t, errors.Is(err, tt.exp.err), "actual error %q doesn't match expected error %q", err, tt.exp.err)
+			assert.Equal(t, tt.exp.data, result)
+
+		})
+	}
 }
