@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
+	"strings"
 )
 
 // queryLeases for doing a query against dynamodb
@@ -131,8 +132,14 @@ func (a *Lease) List(query *lease.Lease) (*lease.Leases, error) {
 	}
 
 	query.NextAccountID = nil
-	for _, v := range outputs.lastEvaluatedKey {
-		query.NextAccountID = v.S
+	query.NextPrincipalID = nil
+	for k, v := range outputs.lastEvaluatedKey {
+		if strings.Contains(k, "Account") {
+			query.NextAccountID = v.S
+		}
+		if strings.Contains(k, "Principal") {
+			query.NextPrincipalID = v.S
+		}
 	}
 
 	leases := &lease.Leases{}
