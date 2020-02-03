@@ -36,10 +36,7 @@ type leaseControllerConfiguration struct {
 }
 
 const (
-	PrincipalIDParam = "principalId"
-	AccountIDParam   = "accountId"
-	StatusParam      = "status"
-	Weekly           = "WEEKLY"
+	Weekly = "WEEKLY"
 )
 
 var (
