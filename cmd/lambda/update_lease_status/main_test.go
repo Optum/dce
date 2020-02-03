@@ -113,6 +113,7 @@ has exceeded its budget of $100. Actual spend is $150
 			budgetNotificationTemplateSubject:      emailTemplateSubject,
 			budgetNotificationThresholdPercentiles: []float64{75, 100},
 			principalBudgetAmount:                  1000,
+			usageTTL:                               3600,
 		}
 
 		// Should grab the account from the DB, to get it's adminRoleArn
@@ -137,7 +138,7 @@ has exceeded its budget of $100. Actual spend is $150
 			endDate,
 		).Return(test.actualSpend, nil)
 
-		// Mock Usage service
+		// Expected Usage DB entry
 		inputUsage := usage.Usage{
 			PrincipalID:  "test-user",
 			AccountID:    "",
@@ -145,7 +146,7 @@ has exceeded its budget of $100. Actual spend is $150
 			EndDate:      usageEndDate.Unix(),
 			CostAmount:   test.actualSpend,
 			CostCurrency: "USD",
-			TimeToLive:   startDate.AddDate(0, 1, 0).Unix(),
+			TimeToLive:   startDate.Add(time.Duration(3600) * time.Second).Unix(),
 		}
 
 		budgetStartTime := time.Unix(input.lease.LeaseStatusModifiedOn, 0)
