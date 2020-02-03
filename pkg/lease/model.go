@@ -15,7 +15,7 @@ type Lease struct {
 	PrincipalID              *string       `json:"principalId,omitempty" dynamodbav:"PrincipalId" schema:"principalId,omitempty"`                                                  // Azure User Principal ID
 	ID                       *string       `json:"id,omitempty" dynamodbav:"Id,omitempty" schema:"id,omitempty"`                                                                   // Lease ID
 	Status                   *Status       `json:"leaseStatus,omitempty" dynamodbav:"LeaseStatus,omitempty" schema:"status,omitempty"`                                             // Status of the Lease
-	StatusReason             *StatusReason `json:"leaseStatusReason,omitempty" dynamodbav:"LeaseStatusReason,omitempty" schema:"leaseStatusReason,omitempty"`                      // Reason for the status of the lease
+	StatusReason             *StatusReason `json:"leaseStatusReason,omitempty" dynamodbav:"LeaseStatusReason,omitempty" schema:"-"`                                                // Reason for the status of the lease
 	CreatedOn                *int64        `json:"createdOn,omitempty" dynamodbav:"CreatedOn,omitempty" schema:"createdOn,omitempty"`                                              // Created Epoch Timestamp
 	LastModifiedOn           *int64        `json:"lastModifiedOn,omitempty" dynamodbav:"LastModifiedOn,omitempty" schema:"lastModifiedOn,omitempty"`                               // Last Modified Epoch Timestamp
 	BudgetAmount             *float64      `json:"budgetAmount,omitempty" dynamodbav:"BudgetAmount,omitempty" schema:"budgetAmount,omitempty"`                                     // Budget Amount allocated for this lease
