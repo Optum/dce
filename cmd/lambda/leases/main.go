@@ -84,32 +84,11 @@ func init() {
 
 	leasesRoutes := api.Routes{
 		api.Route{
-			"GetLeasesByPrincipalIdAndAccountId",
+			"GetLeases",
 			"GET",
 			"/leases",
-			[]string{PrincipalIDParam, AccountIDParam},
-			GetLeasesByPrincipcalIDAndAccountID,
-		},
-		api.Route{
-			"GetLeasesByPrincipalID",
-			"GET",
-			"/leases",
-			[]string{PrincipalIDParam},
-			GetLeasesByPrincipalID,
-		},
-		api.Route{
-			"GetLeasesByAccountID",
-			"GET",
-			"/leases",
-			[]string{AccountIDParam},
-			GetLeasesByAccountID,
-		},
-		api.Route{
-			"GetLeasesByStatus",
-			"GET",
-			"/leases",
-			[]string{StatusParam},
-			GetLeasesByStatus,
+			api.EmptyQueryString,
+			GetLeases,
 		},
 		api.Route{
 			"GetLeaseByID",
@@ -124,13 +103,6 @@ func init() {
 			"/leases/{leaseID}",
 			api.EmptyQueryString,
 			DeleteLeaseByID,
-		},
-		api.Route{
-			"GetLeases",
-			"GET",
-			"/leases",
-			api.EmptyQueryString,
-			GetLeases,
 		},
 		api.Route{
 			"DeleteLease",
@@ -207,7 +179,7 @@ func Handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 	baseRequest = url.URL{}
 	baseRequest.Scheme = req.Headers["X-Forwarded-Proto"]
 	baseRequest.Host = req.Headers["Host"]
-	baseRequest.Path = req.RequestContext.Stage
+	baseRequest.Path = fmt.Sprintf("%s%s", req.RequestContext.Stage, req.Path)
 
 	return muxLambda.ProxyWithContext(ctx, req)
 }
