@@ -376,9 +376,9 @@ stages:
                         2>&1 >/dev/null)
                       account_id=$(
                         echo $leases | \
-                        jq -r \
-                          --arg Id "${lease_id}" \
-                          '.[] | select( .id==$Id ) | .Id'
+                          jq -r \
+                            --arg Id "${lease_id}" \
+                            '.[] | select( .id==$Id ) | .accountId'
                       )
 
                       echo "Ending lease ${lease_id}"
