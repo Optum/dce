@@ -45,6 +45,40 @@ func MockAPIErrorResponse(status int, body string) events.APIGatewayProxyRespons
 }
 
 func TestList(t *testing.T) {
+	t.Run("When the handler invoking lease controller - list by status and there are no errors", func(t *testing.T) {
+		lease1 := &lease.Lease{
+			ID:             ptrString("unique-id"),
+			AccountID:      ptrString("123456789"),
+			PrincipalID:    ptrString("test"),
+			Status:         lease.StatusActive.StatusPtr(),
+			LastModifiedOn: ptrInt64(1561149393),
+		}
+
+		expectedLeases := &lease.Leases{*lease1}
+
+		cfgBuilder := &config.ConfigurationBuilder{}
+		svcBuilder := &config.ServiceBuilder{Config: cfgBuilder}
+
+		leaseSvc := mocks.Servicer{}
+		leaseSvc.On("List", mock.Anything).Return(
+			expectedLeases, nil,
+		)
+		svcBuilder.Config.WithService(&leaseSvc)
+		_, err := svcBuilder.Build()
+
+		assert.Nil(t, err)
+		if err == nil {
+			Services = svcBuilder
+		}
+
+		mockRequest := events.APIGatewayProxyRequest{HTTPMethod: http.MethodGet, Path: "/leases?status=active"}
+
+		actualResponse, err := Handler(context.TODO(), mockRequest)
+		assert.Nil(t, err)
+
+		expectedResponse := MockAPIResponse(http.StatusOK, "[{\"accountId\":\"123456789\",\"principalId\":\"test\",\"id\":\"unique-id\",\"leaseStatus\":\"Active\",\"lastModifiedOn\":1561149393}]\n")
+		assert.Equal(t, expectedResponse, actualResponse)
+	})
 
 	t.Run("When the handler invoking lease controller - list and there are no errors", func(t *testing.T) {
 		lease1 := &lease.Lease{
