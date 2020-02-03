@@ -122,7 +122,11 @@ func (a *Lease) List(query *lease.Lease) (*lease.Leases, error) {
 		query.Limit = &a.Limit
 	}
 
-	if query.Status != nil {
+	if query.ID != nil {
+		outputs, err = a.queryLeases(query, "Id", "LeaseId")
+	} else if query.PrincipalID != nil {
+		outputs, err = a.queryLeases(query, "PrincipalId", "PrincipalId")
+	} else if query.Status != nil {
 		outputs, err = a.queryLeases(query, "LeaseStatus", "LeaseStatus")
 	} else {
 		outputs, err = a.scanLeases(query)
