@@ -115,7 +115,8 @@ func handleRecord(input *handleRecordInput) error {
 			// updated to NotReady state.
 			acct, err := input.dbSvc.TransitionAccountStatus(lease.AccountID, db.Leased, db.NotReady)
 			if err != nil {
-				return err
+				log.Printf("ERROR: Failed to mark AccountStatus=NotReady for %s, after lease for %s became inactive",
+					lease.AccountID, lease.PrincipalID)
 			}
 
 			// Put the message on the SQS queue ONLY IF the status has gone
