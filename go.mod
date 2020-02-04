@@ -16,6 +16,7 @@ require (
 	github.com/gorilla/mux v1.7.3
 	github.com/gorilla/schema v1.1.0
 	github.com/gruntwork-io/terratest v0.15.13
+	github.com/imdario/mergo v0.3.8
 	github.com/mitchellh/mapstructure v1.1.2
 	github.com/oleiade/reflections v1.0.0 // indirect
 	github.com/pkg/errors v0.8.1
