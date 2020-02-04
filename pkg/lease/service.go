@@ -28,7 +28,6 @@ type Reader interface {
 	MultipleReader
 }
 
-
 // ReaderWriterDeleter includes Reader and Writer interfaces
 type ReaderWriter interface {
 	Reader

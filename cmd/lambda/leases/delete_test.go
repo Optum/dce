@@ -20,12 +20,12 @@ func TestDeleteLease(t *testing.T) {
 		Body       string
 	}
 	tests := []struct {
-		name               string
-		expResp            response
-		leaseID            string
-		getErr             error
-		expLease *lease.Lease
-		transitionErr      error
+		name          string
+		expResp       response
+		leaseID       string
+		getErr        error
+		expLease      *lease.Lease
+		transitionErr error
 	}{
 		{
 			name:    "successful delete",
@@ -35,11 +35,11 @@ func TestDeleteLease(t *testing.T) {
 				Body:       "{\"accountId\":\"123456789012\",\"principalId\":\"principal\",\"id\":\"abc123\",\"leaseStatus\":\"Inactive\",\"leaseStatusReason\":\"Expired\"}\n",
 			},
 			expLease: &lease.Lease{
-				ID:          ptrString("abc123"),
-				Status:      lease.StatusInactive.StatusPtr(),
+				ID:           ptrString("abc123"),
+				Status:       lease.StatusInactive.StatusPtr(),
 				StatusReason: lease.StatusReasonExpired.StatusReasonPtr(),
-				PrincipalID: ptrString("principal"),
-				AccountID:   ptrString("123456789012"),
+				PrincipalID:  ptrString("principal"),
+				AccountID:    ptrString("123456789012"),
 			},
 			getErr: nil,
 		},
@@ -51,11 +51,11 @@ func TestDeleteLease(t *testing.T) {
 				Body:       "{\"error\":{\"message\":\"unknown error\",\"code\":\"ServerError\"}}\n",
 			},
 			expLease: &lease.Lease{
-				ID:          ptrString("abc123"),
-				Status:      lease.StatusInactive.StatusPtr(),
+				ID:           ptrString("abc123"),
+				Status:       lease.StatusInactive.StatusPtr(),
 				StatusReason: lease.StatusReasonExpired.StatusReasonPtr(),
-				PrincipalID: ptrString("principal"),
-				AccountID:   ptrString("123456789012"),
+				PrincipalID:  ptrString("principal"),
+				AccountID:    ptrString("123456789012"),
 			},
 			getErr: fmt.Errorf("failure"),
 		},
