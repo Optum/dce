@@ -19,5 +19,5 @@ func DeleteLease(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	api.WriteAPIResponse(w, http.StatusNoContent, lease)
+	api.WriteAPIResponse(w, http.StatusOK, lease)
 }
