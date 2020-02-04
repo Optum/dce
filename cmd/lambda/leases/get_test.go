@@ -161,3 +161,8 @@ func ptrInt64(i int64) *int64 {
 	ptrI := i
 	return &ptrI
 }
+
+func ptr64(i int64) *int64 {
+	ptrI := i
+	return &ptrI
+}
