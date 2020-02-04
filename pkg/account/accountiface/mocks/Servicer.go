@@ -94,6 +94,20 @@ func (_m *Servicer) List(query *account.Account) (*account.Accounts, error) {
 	return r0, r1
 }
 
+// Reset provides a mock function with given fields: data
+func (_m *Servicer) Reset(data *account.Account) error {
+	ret := _m.Called(data)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(*account.Account) error); ok {
+		r0 = rf(data)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // Save provides a mock function with given fields: data
 func (_m *Servicer) Save(data *account.Account) error {
 	ret := _m.Called(data)

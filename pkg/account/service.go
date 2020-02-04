@@ -1,6 +1,7 @@
 package account
 
 import (
+	"log"
 	"time"
 
 	"github.com/Optum/dce/pkg/arn"
@@ -227,6 +228,27 @@ func (a *Service) List(query *Account) (*Accounts, error) {
 	}
 
 	return accounts, nil
+}
+
+// Reset initiates the Reset account process.  It will not change the status as there may
+// be many reasons why a reset is called.  Delete, Lease Ending, etc.
+func (a *Service) Reset(data *Account) error {
+	err := validation.ValidateStruct(data,
+		validation.Field(&data.Status, validation.NotNil, validation.By(isAccountNotLeased)),
+		validation.Field(&data.AdminRoleArn, validation.NotNil),
+		validation.Field(&data.PrincipalRoleArn, validation.NotNil),
+	)
+	if err != nil {
+		return errors.NewConflict("account", *data.ID, err)
+	}
+
+	err = a.eventSvc.AccountReset(data)
+	if err != nil {
+		return err
+	}
+	log.Printf("Added account %q to Reset Queue\n", *data.ID)
+
+	return nil
 }
 
 // NewServiceInput Input for creating a new Service
