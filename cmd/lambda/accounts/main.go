@@ -124,17 +124,6 @@ func initConfig() {
 	svcBldr := &config.ServiceBuilder{Config: cfgBldr}
 
 	_, err = svcBldr.
-		// AWS services...
-		WithDynamoDB().
-		WithSTS().
-		WithS3().
-		WithSNS().
-		WithSQS().
-		// DCE services...
-		WithStorageService().
-		WithAccountDataService().
-		WithEventService().
-		WithAccountManagerService().
 		WithAccountService().
 		Build()
 	if err != nil {
