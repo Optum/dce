@@ -31,7 +31,7 @@ func TestDeleteLease(t *testing.T) {
 			name:    "successful delete",
 			leaseID: "abc123",
 			expResp: response{
-				StatusCode: 204,
+				StatusCode: 200,
 				Body:       "{\"accountId\":\"123456789012\",\"principalId\":\"principal\",\"id\":\"abc123\",\"leaseStatus\":\"Inactive\",\"leaseStatusReason\":\"Expired\"}\n",
 			},
 			expLease: &lease.Lease{
