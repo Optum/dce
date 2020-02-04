@@ -31,4 +31,4 @@ require (
 	gopkg.in/oleiade/reflections.v1 v1.0.0
 )
 
-replace github.com/rebuy-de/aws-nuke => github.com/Optum/aws-nuke v1.0.2
+replace github.com/rebuy-de/aws-nuke => github.com/Optum/aws-nuke v1.1.0
