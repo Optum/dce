@@ -61,11 +61,6 @@ func query(input *dynamodb.QueryInput, dataInterface dynamodbiface.DynamoDBAPI) 
 	return output, err
 }
 
-func scan(input *dynamodb.ScanInput, dataInterface dynamodbiface.DynamoDBAPI) (*dynamodb.ScanOutput, error) {
-	output, err := dataInterface.Scan(input)
-	return output, err
-}
-
 func getItem(input *dynamodb.GetItemInput, dataInterface dynamodbiface.DynamoDBAPI) (*dynamodb.GetItemOutput, error) {
 	output, err := dataInterface.GetItem(input)
 	return output, err
