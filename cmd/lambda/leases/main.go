@@ -120,11 +120,11 @@ func init() {
 			GetLeaseByID,
 		},
 		api.Route{
-			"DeleteLeaseByID",
+			"DeleteLease",
 			"DELETE",
 			"/leases/{leaseID}",
 			api.EmptyQueryString,
-			DeleteLeaseByID,
+			DeleteLease,
 		},
 		api.Route{
 			"GetLeases",
@@ -132,13 +132,6 @@ func init() {
 			"/leases",
 			api.EmptyQueryString,
 			GetLeases,
-		},
-		api.Route{
-			"DeleteLease",
-			"DELETE",
-			"/leases",
-			api.EmptyQueryString,
-			DeleteLease,
 		},
 		api.Route{
 			"CreateLease",

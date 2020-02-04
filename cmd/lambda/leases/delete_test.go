@@ -13,8 +13,10 @@ import (
 	"github.com/Optum/dce/pkg/api/response"
 	"github.com/Optum/dce/pkg/common"
 	commonMock "github.com/Optum/dce/pkg/common/mocks"
+	"github.com/Optum/dce/pkg/config"
 	"github.com/Optum/dce/pkg/db"
 	mockDB "github.com/Optum/dce/pkg/db/mocks"
+	"github.com/Optum/dce/pkg/lease/leaseiface/mocks"
 	"github.com/Optum/dce/pkg/rolemanager"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -113,7 +115,7 @@ func TestDeleteController_Call(t *testing.T) {
 
 }
 
-func TestDeleteByID(t *testing.T) {
+func TestDeleteLease(t *testing.T) {
 
 	type response struct {
 		StatusCode int
@@ -154,7 +156,7 @@ func TestDeleteByID(t *testing.T) {
 			leaseID: "abc123",
 			expResp: response{
 				StatusCode: 500,
-				Body:       "{\"error\":{\"code\":\"ServerError\",\"message\":\"Cannot verify if Lease ID \\\"abc123\\\" exists\"}}",
+				Body:       "{\"error\":{\"message\":\"get lease failed for id \\\"abc123\\\"\",\"code\":\"ServerError\"}}\n",
 			},
 			getLease: &db.Lease{
 				ID:          "abc123",
@@ -180,6 +182,20 @@ func TestDeleteByID(t *testing.T) {
 				"leaseID": tt.leaseID,
 			})
 			w := httptest.NewRecorder()
+			cfgBldr := &config.ConfigurationBuilder{}
+			svcBldr := &config.ServiceBuilder{Config: cfgBldr}
+
+			leaseSvc := mocks.Servicer{}
+			leaseSvc.On("Get", tt.leaseID).Return(
+				tt.getLease, tt.getErr,
+			)
+			svcBldr.Config.WithService(&leaseSvc)
+			_, err := svcBldr.Build()
+
+			assert.Nil(t, err)
+			if err == nil {
+				Services = svcBldr
+			}
 
 			mockDB := &mockDB.DBer{}
 			mockDB.On("GetLeaseByID", tt.leaseID).Return(tt.getLease, tt.getErr)
@@ -196,7 +212,7 @@ func TestDeleteByID(t *testing.T) {
 
 			dao = mockDB
 			snsSvc = mockSNS
-			DeleteLeaseByID(w, r)
+			DeleteLease(w, r)
 
 			resp := w.Result()
 			body, err := ioutil.ReadAll(resp.Body)
