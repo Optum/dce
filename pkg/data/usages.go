@@ -13,7 +13,7 @@ import (
 )
 
 // query for doing a query against dynamodb
-func (a *Usage) query(query *usage.Usage, keyName string, index string) (*queryScanOutput, error) {
+func (a *Usage) query(query *usage.Usage, keyName string, index *string) (*queryScanOutput, error) {
 	var expr expression.Expression
 	var bldr expression.Builder
 	var err error
@@ -32,7 +32,7 @@ func (a *Usage) query(query *usage.Usage, keyName string, index string) (*queryS
 
 	queryInput := &dynamodb.QueryInput{
 		TableName:                 aws.String(a.TableName),
-		IndexName:                 aws.String(index),
+		IndexName:                 index,
 		KeyConditionExpression:    expr.KeyCondition(),
 		ConsistentRead:            aws.Bool(a.ConsistentRead),
 		FilterExpression:          expr.Filter(),
@@ -124,7 +124,11 @@ func (a *Usage) List(query *usage.Usage) (*usage.Usages, error) {
 		query.Limit = &a.Limit
 	}
 
-	outputs, err = a.scan(query)
+	if query.StartDate != nil {
+		outputs, err = a.query(query, "StartDate", nil)
+	} else {
+		outputs, err = a.scan(query)
+	}
 	if err != nil {
 		return nil, err
 	}

@@ -44,7 +44,7 @@ func (a *Usage) Write(usg *usage.Usage) error {
 
 	if err != nil {
 		return errors.NewInternalServer(
-			fmt.Sprintf("update failed for usage with Start Date %q and PrincipalID %q", *usg.StartDate, *usg.PrincipalID),
+			fmt.Sprintf("update failed for usage with Start Date \"%d\" and PrincipalID %q", *usg.StartDate, *usg.PrincipalID),
 			err,
 		)
 	}
@@ -74,7 +74,7 @@ func (a *Usage) GetByStartDateAndPrincipalID(startDate int64, principalID string
 
 	if err != nil {
 		return nil, errors.NewInternalServer(
-			fmt.Sprintf("get usage failed for start date %q and principal %q", startDate, principalID),
+			fmt.Sprintf("get usage failed for start date \"%d\" and principal %q", startDate, principalID),
 			err,
 		)
 	}
@@ -87,7 +87,7 @@ func (a *Usage) GetByStartDateAndPrincipalID(startDate int64, principalID string
 	err = dynamodbattribute.UnmarshalMap(res.Item, usg)
 	if err != nil {
 		return nil, errors.NewInternalServer(
-			fmt.Sprintf("failure unmarshaling usage with start date %q and princiapl %q", startDate, principalID),
+			fmt.Sprintf("failure unmarshaling usage with start date \"%d\" and princiapl %q", startDate, principalID),
 			err,
 		)
 	}

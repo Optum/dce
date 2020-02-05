@@ -61,6 +61,9 @@ func calculateLeaseSpend(input *calculateSpendInput) (float64, error) {
 		CostCurrency: "USD",
 		TimeToLive:   usageStartTime.Add(time.Duration(input.usageTTL) * time.Second).Unix(),
 	})
+	if err != nil {
+		return 0, nil
+	}
 
 	err = input.usageSvc.PutUsage(*usageItem)
 	if err != nil {

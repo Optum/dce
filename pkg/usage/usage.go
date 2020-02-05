@@ -43,7 +43,7 @@ type Service interface {
 func (db *DB) PutUsage(input Usage) error {
 	item, err := dynamodbattribute.MarshalMap(input)
 	if err != nil {
-		errorMessage := fmt.Sprintf("Failed to add usage record for start date \"%d\" and PrincipalID \"%s\": %s.", input.StartDate, input.PrincipalID, err)
+		errorMessage := fmt.Sprintf("Failed to add usage record for start date \"%d\" and PrincipalID \"%s\": %s.", *input.StartDate, *input.PrincipalID, err)
 		log.Print(errorMessage)
 		return err
 	}
@@ -137,7 +137,6 @@ func (db *DB) GetUsageByPrincipal(startDate time.Time, principalID string) ([]*U
 	}
 
 	for {
-		fmt.Printf("Query: %+v", getInputForGetUsageByPrincipalID(db, usageStartDate, principalID, db.ConsistentRead))
 		var resp, err = db.Client.GetItem(getInputForGetUsageByPrincipalID(db, usageStartDate, principalID, db.ConsistentRead))
 		if err != nil {
 			errorMessage := fmt.Sprintf("Failed to query usage record for start date \"%s\": %s.", startDate, err)
@@ -149,7 +148,6 @@ func (db *DB) GetUsageByPrincipal(startDate time.Time, principalID string) ([]*U
 		if len(resp.Item) > 0 {
 			item := Usage{}
 
-			fmt.Printf("Response Item: %+v\n", resp.Item)
 			err = dynamodbattribute.UnmarshalMap(resp.Item, &item)
 			if err != nil {
 				errorMessage := fmt.Sprintf("Failed to unmarshal Record, %v", err)
@@ -157,7 +155,6 @@ func (db *DB) GetUsageByPrincipal(startDate time.Time, principalID string) ([]*U
 				return nil, err
 			}
 
-			fmt.Printf("Item: %+v\n", item)
 			output = append(output, &item)
 		}
 
@@ -247,14 +244,11 @@ func (db *DB) GetUsage(input GetUsageInput) (GetUsageOutput, error) {
 
 	var results []*Usage
 
-	fmt.Printf("List: %+v", output.Items)
 	if len(output.Items) > 0 {
 		err = dynamodbattribute.UnmarshalListOfMaps(output.Items, &results)
 		if err != nil {
-			fmt.Printf("Log: %+v", err)
 			return GetUsageOutput{}, err
 		}
-		fmt.Printf("Results: %+v", results)
 	}
 
 	nextKey := make(map[string]string)
