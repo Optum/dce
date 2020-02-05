@@ -14,6 +14,10 @@ variable "name" {
 variable "description" {
   type = string
 }
+variable "timeout" {
+  type    = number
+  default = 300
+}
 variable "handler" {
   type = string
 }

@@ -4,55 +4,109 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 
-	"github.com/Optum/dce/pkg/common"
-	"github.com/Optum/dce/pkg/processresetqueue"
+	"github.com/Optum/dce/pkg/account"
+	"github.com/Optum/dce/pkg/config"
+	"github.com/Optum/dce/pkg/errors"
 
+	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/codebuild"
-	"github.com/aws/aws-sdk-go/service/sqs"
+	"github.com/aws/aws-sdk-go/service/codebuild/codebuildiface"
 )
 
-// Handler will processes the available entries within the available Reset
-// Queue and trigger the respective Code Pipeline builds
-func handler(ctx context.Context) (bool, error) {
-	// Extract the build project name
-	buildName := common.RequireEnv("RESET_BUILD_NAME")
+type configuration struct {
+	Debug     string `env:"DEBUG" envDefault:"false"`
+	BuildName string `env:"RESET_BUILD_NAME" envDefault:"ResetCodeBuild"`
+}
 
-	// Extract the Reset SQS Queue URL, if not provided, exit with failure
-	queueURL := common.RequireEnv("RESET_SQS_URL")
+var (
+	services *config.ServiceBuilder
+	// Settings - the configuration settings for the controller
+	settings *configuration
+)
 
-	// Set up the AWS Session
-	awsSession, err := session.NewSession()
+func init() {
+	cfgBldr := &config.ConfigurationBuilder{}
+	settings = &configuration{}
+	if err := cfgBldr.Unmarshal(settings); err != nil {
+		log.Fatalf("Could not load configuration: %s", err.Error())
+	}
+
+	// load up the values into the various settings...
+	err := cfgBldr.WithEnv("AWS_CURRENT_REGION", "AWS_CURRENT_REGION", "us-east-1").Build()
 	if err != nil {
-		return false, err
+		log.Printf("Error: %+v", err)
+	}
+	svcBldr := &config.ServiceBuilder{Config: cfgBldr}
+
+	_, err = svcBldr.
+		// DCE services...
+		WithCodeBuild().
+		Build()
+	if err != nil {
+		panic(err)
 	}
 
-	// Construct a Queue
-	sqsClient := sqs.New(awsSession)
-	queue := common.SQSQueue{
-		Client: sqsClient,
+	services = svcBldr
+
+}
+
+func handler(ctx context.Context, sqsEvent events.SQSEvent) error {
+
+	var codeBuildSvc codebuildiface.CodeBuildAPI
+	if err := services.Config.GetService(&codeBuildSvc); err != nil {
+		panic(err)
 	}
 
-	// Construct a Pipeline
-	codeBuildClient := codebuild.New(awsSession)
-	build := common.CodeBuild{
-		Client: codeBuildClient,
+	for _, message := range sqsEvent.Records {
+		err := processMessage(codeBuildSvc, message)
+		if err != nil {
+			return err
+		}
 	}
 
-	resetInput := processresetqueue.ResetInput{
-		ResetQueue:    queue,
-		ResetQueueURL: &queueURL,
-		ResetBuild:    &build,
-		BuildName:     &buildName,
+	return nil
+}
+
+func processMessage(codeBuildSvc codebuildiface.CodeBuildAPI, event events.SQSMessage) error {
+
+	acct := &account.Account{}
+	if err := json.Unmarshal([]byte(event.Body), &acct); err != nil {
+		return errors.NewInternalServer("unexpected error unmarshaling sqs message", err)
 	}
 
-	// Call the Reset and return its values
-	resetOutput, err := processresetqueue.Reset(&resetInput)
-	log.Printf("\nOverall Reset Results: \n%+v\n", *resetOutput)
-	return resetOutput.Success, err
+	log.Printf("Start Account: %s\nMessage ID: %s\n", *acct.ID, event.MessageId)
+
+	buildEnvironmentVars := []*codebuild.EnvironmentVariable{
+		{
+			Name:  aws.String("RESET_ACCOUNT"),
+			Value: acct.ID,
+		},
+		{
+			Name:  aws.String("RESET_ACCOUNT_ADMIN_ROLE_NAME"),
+			Value: acct.AdminRoleArn.IAMResourceName(),
+		},
+		{
+			Name:  aws.String("RESET_ACCOUNT_PRINCIPAL_ROLE_NAME"),
+			Value: acct.PrincipalRoleArn.IAMResourceName(),
+		},
+	}
+
+	// Trigger Code Pipeline
+	log.Printf("Triggering Reset Build %s for Account %s\n", settings.BuildName, *acct.ID)
+	_, err := codeBuildSvc.StartBuild(&codebuild.StartBuildInput{
+		EnvironmentVariablesOverride: buildEnvironmentVars,
+		ProjectName:                  aws.String(settings.BuildName),
+	})
+	if err != nil {
+		return errors.NewInternalServer("unexpected error starting code build", err)
+	}
+
+	return nil
 }
 
 // Start the Lambda Handler
