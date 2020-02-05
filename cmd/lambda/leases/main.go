@@ -93,9 +93,16 @@ func init() {
 			GetLeaseByID,
 		},
 		api.Route{
-			"DeleteLease",
+			"DeleteLeaseByID",
 			"DELETE",
 			"/leases/{leaseID}",
+			api.EmptyQueryString,
+			DeleteLeaseByID,
+		},
+		api.Route{
+			"DeleteLease",
+			"DELETE",
+			"/leases",
 			api.EmptyQueryString,
 			DeleteLease,
 		},

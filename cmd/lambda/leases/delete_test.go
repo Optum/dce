@@ -85,7 +85,7 @@ func TestDeleteLease(t *testing.T) {
 				Services = svcBldr
 			}
 
-			DeleteLease(w, r)
+			DeleteLeaseByID(w, r)
 
 			resp := w.Result()
 			body, err := ioutil.ReadAll(resp.Body)
