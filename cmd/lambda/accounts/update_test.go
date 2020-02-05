@@ -70,6 +70,18 @@ func TestUpdateAccountByID(t *testing.T) {
 			retErr: nil,
 		},
 		{
+			name:       "failure validation",
+			accountID:  "123456789012",
+			reqBody:    fmt.Sprintf("{\"accountStatus\": \"NotReady\""),
+			reqAccount: &account.Account{},
+			expResp: response{
+				StatusCode: 400,
+				Body:       "{\"error\":{\"message\":\"invalid request parameters\",\"code\":\"ClientError\"}}\n",
+			},
+			retAccount: nil,
+			retErr:     nil,
+		},
+		{
 			name:      "failure db",
 			accountID: "123456789012",
 			reqBody:   fmt.Sprintf("{\"metadata\": {\"key\": \"value\"}}"),

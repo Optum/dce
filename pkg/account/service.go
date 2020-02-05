@@ -6,6 +6,7 @@ import (
 	"github.com/Optum/dce/pkg/arn"
 	"github.com/Optum/dce/pkg/errors"
 	validation "github.com/go-ozzo/ozzo-validation"
+	"github.com/imdario/mergo"
 )
 
 // Writer put an item into the data store
@@ -111,10 +112,7 @@ func (a *Service) Update(ID string, data *Account) (*Account, error) {
 		validation.Field(&data.ID, validation.NilOrNotEmpty, validation.In(ID)),
 		validation.Field(&data.AdminRoleArn, validation.By(isNilOrUsableAdminRole(a.managerSvc))),
 		validation.Field(&data.LastModifiedOn, validation.By(isNil)),
-		validation.Field(&data.Status, validation.By(isNil)),
 		validation.Field(&data.CreatedOn, validation.By(isNil)),
-		validation.Field(&data.PrincipalRoleArn, validation.By(isNil)),
-		validation.Field(&data.PrincipalPolicyHash, validation.By(isNil)),
 	)
 	if err != nil {
 		return nil, errors.NewValidation("account", err)
@@ -125,11 +123,9 @@ func (a *Service) Update(ID string, data *Account) (*Account, error) {
 		return nil, err
 	}
 
-	if data.AdminRoleArn != nil {
-		account.AdminRoleArn = data.AdminRoleArn
-	}
-	if data.Metadata != nil {
-		account.Metadata = data.Metadata
+	err = mergo.Merge(account, *data)
+	if err != nil {
+		return nil, errors.NewInternalServer("unexpected error updating account", err)
 	}
 
 	err = a.Save(account)
