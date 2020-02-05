@@ -98,6 +98,8 @@ func (p *principalService) MergePolicy() error {
 		PolicyDocument: policy,
 		SetAsDefault:   aws.Bool(true),
 	})
+
+	p.account.PrincipalPolicyHash = policyHash
 	if err != nil {
 		return errors.NewInternalServer(fmt.Sprintf("unexpected error creating policy version %q", p.account.PrincipalPolicyArn.String()), err)
 	}
