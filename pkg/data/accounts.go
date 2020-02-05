@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
+	"log"
 )
 
 type queryScanOutput struct {
@@ -54,6 +55,7 @@ func (a *Account) queryAccounts(query *account.Account, keyName string, index st
 
 	res, err = a.DynamoDB.Query(queryInput)
 	if err != nil {
+		log.Println("err: ", err)
 		return nil, errors.NewInternalServer(
 			"failed to query accounts",
 			err,
