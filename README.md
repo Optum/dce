@@ -1,8 +1,8 @@
-# Disposable Cloud Environment (DCE)
+# Disposable Cloud Environment<sup>TM</sup>
 
-> **DCE is your playground in the cloud**
+> **DCE<sup>TM</sup> is your playground in the cloud**
 
-Disposable Cloud Environment (DCE) manages ephemeral AWS accounts for easy and secure access to the cloud. 
+Disposable Cloud Environment (aka DCE) manages ephemeral AWS accounts for easy and secure access to the cloud. 
 
 DCE users can "lease" an AWS account for a defined period of time and with a limited budget. 
 

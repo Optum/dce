@@ -11,6 +11,29 @@ type Servicer struct {
 	mock.Mock
 }
 
+// Create provides a mock function with given fields: data
+func (_m *Servicer) Create(data *account.Account) (*account.Account, error) {
+	ret := _m.Called(data)
+
+	var r0 *account.Account
+	if rf, ok := ret.Get(0).(func(*account.Account) *account.Account); ok {
+		r0 = rf(data)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*account.Account)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*account.Account) error); ok {
+		r1 = rf(data)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // Delete provides a mock function with given fields: data
 func (_m *Servicer) Delete(data *account.Account) error {
 	ret := _m.Called(data)

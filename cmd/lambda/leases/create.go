@@ -28,11 +28,11 @@ type createLeaseRequest struct {
 func CreateLease(w http.ResponseWriter, r *http.Request) {
 
 	c := leaseValidationContext{
-		maxLeaseBudgetAmount:     *maxLeaseBudgetAmount,
-		maxLeasePeriod:           *maxLeasePeriod,
-		defaultLeaseLengthInDays: *defaultLeaseLengthInDays,
-		principalBudgetPeriod:    *principalBudgetPeriod,
-		principalBudgetAmount:    *principalBudgetAmount,
+		maxLeaseBudgetAmount:     maxLeaseBudgetAmount,
+		maxLeasePeriod:           maxLeasePeriod,
+		defaultLeaseLengthInDays: defaultLeaseLengthInDays,
+		principalBudgetPeriod:    principalBudgetPeriod,
+		principalBudgetAmount:    principalBudgetAmount,
 	}
 
 	// Extract the Body from the Request
@@ -131,7 +131,7 @@ func CreateLease(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Publish Lease to the topic
-	message, err := publishLease(snsSvc, lease, leaseAddedTopicARN)
+	message, err := publishLease(snsSvc, lease, &leaseAddedTopicARN)
 	if err != nil {
 		log.Print(err.Error())
 

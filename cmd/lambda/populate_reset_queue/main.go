@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"log"
 
 	"github.com/pkg/errors"
@@ -21,7 +22,12 @@ func addAccountToQueue(accounts []*db.Account, queueURL *string,
 	// FinanceLock Lease status if necessary
 	for _, acct := range accounts {
 		// Send Message
-		err := queue.SendMessage(queueURL, &acct.ID)
+		body, err := json.Marshal(acct)
+		if err != nil {
+			return errors.Wrapf(err, "Failed to add account %s to queue accounts", acct.ID)
+		}
+		sBody := string(body)
+		err = queue.SendMessage(queueURL, &sBody)
 		if err != nil {
 			return errors.Wrapf(err, "Failed to add account %s to queue accounts", acct.ID)
 		}

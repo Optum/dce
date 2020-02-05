@@ -7,6 +7,7 @@ import (
 	"github.com/Optum/dce/pkg/account"
 	"github.com/Optum/dce/pkg/api"
 	"github.com/Optum/dce/pkg/errors"
+	validation "github.com/go-ozzo/ozzo-validation"
 	"github.com/gorilla/mux"
 )
 
@@ -21,6 +22,21 @@ func UpdateAccountByID(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		api.WriteAPIErrorResponse(w,
 			errors.NewBadRequest("invalid request parameters"))
+		return
+	}
+
+	err = validation.ValidateStruct(newAccount,
+		// ID has to be empty
+		validation.Field(&newAccount.ID, validation.NilOrNotEmpty, validation.In(accountID)),
+		validation.Field(&newAccount.LastModifiedOn, validation.By(isNil)),
+		validation.Field(&newAccount.Status, validation.By(isNil)),
+		validation.Field(&newAccount.CreatedOn, validation.By(isNil)),
+		validation.Field(&newAccount.PrincipalRoleArn, validation.By(isNil)),
+		validation.Field(&newAccount.PrincipalPolicyHash, validation.By(isNil)),
+	)
+	if err != nil {
+		api.WriteAPIErrorResponse(w,
+			errors.NewValidation("account", err))
 		return
 	}
 

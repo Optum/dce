@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"regexp"
 
+	"github.com/Optum/dce/pkg/arn"
 	validation "github.com/go-ozzo/ozzo-validation"
 )
 
@@ -46,8 +47,8 @@ func isNil(value interface{}) error {
 func isNilOrUsableAdminRole(am Manager) validation.RuleFunc {
 	return func(value interface{}) error {
 		if !reflect.ValueOf(value).IsNil() {
-			s, _ := value.(*string)
-			err := am.Setup(*s)
+			a, _ := value.(*arn.ARN)
+			err := am.ValidateAccess(a)
 			if err != nil {
 				return errors.New("must be an admin role arn that can be assumed")
 			}

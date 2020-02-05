@@ -208,3 +208,10 @@ variable "allowed_regions" {
   ]
   description = "List of AWS regions which DCE Principals have access to. These regions will also be targeted for reset in nuke.yml."
 }
+
+variable "usage_ttl" {
+  type = number
+  # 30 days
+  default     = 2592000
+  description = "TTL in seconds for records in the Usage DynamoDB table. Records older than this TTL will be automatically deleted."
+}

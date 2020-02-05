@@ -40,25 +40,6 @@ func TestArtifactsBucket(t *testing.T) {
 		)
 	})
 
-	t.Run("should log to itself", func(t *testing.T) {
-		loggingOutput, err := s3Client.GetBucketLogging(
-			&s3.GetBucketLoggingInput{
-				Bucket: &bucketName,
-			},
-		)
-		require.Nil(t, err)
-		require.Equal(t,
-			*loggingOutput.LoggingEnabled.TargetBucket,
-			bucketName,
-			"Target log bucket should be itself",
-		)
-		require.Equal(t,
-			*loggingOutput.LoggingEnabled.TargetPrefix,
-			"logs/",
-			"Should log to the /logs prefix",
-		)
-	})
-
 	t.Run("should have versioning enabled", func(t *testing.T) {
 		versioningOutput, err := s3Client.GetBucketVersioning(
 			&s3.GetBucketVersioningInput{

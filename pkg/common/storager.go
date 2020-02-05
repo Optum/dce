@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/Optum/dce/pkg/errors"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
@@ -81,7 +82,7 @@ func (stor S3) GetTemplateObject(bucket string, key string, input interface{}) (
 	// Retrieve the S3 Object
 	templateString, templateETag, err := stor.GetObjectWithETag(bucket, key)
 	if err != nil {
-		return "", "", err
+		return "", "", errors.NewInternalServer("unexpected failure getting template", err)
 	}
 
 	tmpl := template.New(key)
@@ -92,7 +93,7 @@ func (stor S3) GetTemplateObject(bucket string, key string, input interface{}) (
 
 	templParsed, err := tmpl.Parse(templateString)
 	if err != nil {
-		return "", "", err
+		return "", "", errors.NewInternalServer("unexpected failure parsing template", err)
 	}
 
 	// Render template

@@ -1,5 +1,9 @@
 ## vNext
 
+- Add `usage_ttl` Terraform var, to configure Usage DB record TTLs.
+
+## v0.27.0
+
 - Add CloudWatch Dashboard for monitoring DCE
 - Support deleting a lease by ID at `GET /leases/{ID}` endpoint
 - Update `GET /accounts` to allow for querying with `adminRoleArn`, `principalRoleArn`, and `principalPolicyHash`
