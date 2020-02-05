@@ -7,13 +7,16 @@ import (
 
 // Usage item
 type Usage struct {
-	PrincipalID  *string  `json:"principalId,omitempty" dynamodbav:"PrincipalId" schema:"principalId,omitempty"`              // User Principal ID
-	AccountID    *string  `json:"accountId,omitempty" dynamodbav:"AccountId,omitempty" schema:"accountId,omitempty"`          // AWS Account ID
-	StartDate    *int64   `json:"startDate,omitempty" dynamodbav:"StartDate" schema:"startDate,omitempty"`                    // Usage start date Epoch Timestamp
-	EndDate      *int64   `json:"endDate,omitempty" dynamodbav:"EndDate,omitempty" schema:"endDate,omitempty"`                // Usage ends date Epoch Timestamp
-	CostAmount   *float64 `json:"costAmount,omitempty" dynamodbav:"CostAmount,omitempty" schema:"costAmount,omitempty"`       // Cost Amount for given period
-	CostCurrency *string  `json:"costCurrency,omitempty" dynamodbav:"CostCurrency,omitempty" schema:"costCurrency,omitempty"` // Cost currency
-	TimeToLive   *int64   `json:"timeToLive,omitempty" dynamodbav:"TimeToLive,omitempty" schema:"timeToLive,omitempty"`       // ttl attribute
+	PrincipalID     *string  `json:"principalId,omitempty" dynamodbav:"PrincipalId" schema:"principalId,omitempty"`              // User Principal ID
+	AccountID       *string  `json:"accountId,omitempty" dynamodbav:"AccountId,omitempty" schema:"accountId,omitempty"`          // AWS Account ID
+	StartDate       *int64   `json:"startDate,omitempty" dynamodbav:"StartDate" schema:"startDate,omitempty"`                    // Usage start date Epoch Timestamp
+	EndDate         *int64   `json:"endDate,omitempty" dynamodbav:"EndDate,omitempty" schema:"endDate,omitempty"`                // Usage ends date Epoch Timestamp
+	CostAmount      *float64 `json:"costAmount,omitempty" dynamodbav:"CostAmount,omitempty" schema:"costAmount,omitempty"`       // Cost Amount for given period
+	CostCurrency    *string  `json:"costCurrency,omitempty" dynamodbav:"CostCurrency,omitempty" schema:"costCurrency,omitempty"` // Cost currency
+	TimeToLive      *int64   `json:"timeToLive,omitempty" dynamodbav:"TimeToLive,omitempty" schema:"timeToLive,omitempty"`       // ttl attribute
+	Limit           *int64   `json:"-" dynamodbav:"-" schema:"limit,omitempty"`
+	NextStartDate   *int64   `json:"-" dynamodbav:"-" schema:"nextStartDate,omitempty"`
+	NextPrincipalID *string  `json:"-" dynamodbav:"-" schema:"nextPrincipalId,omitempty"`
 }
 
 // Validate the account data
