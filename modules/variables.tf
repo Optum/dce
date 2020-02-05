@@ -3,6 +3,16 @@ variable "aws_region" {
   default     = "us-east-1"
 }
 
+variable "account_pool_metrics_toggle" {
+  description = "Set to 'true' to enable periodic scanning of the Accounts table for account status metrics. Defaults to 'false."
+  default     = "false"
+}
+
+variable "account_pool_metrics_collection_rate_expression" {
+  description = "The rate at which the Accounts table will be scanned for Account status metrics. e.g. rate(1 hour). See https://docs.aws.amazon.com/AmazonCloudWatch/latest/events/ScheduledEvents.html"
+  default     = "30"
+}
+
 variable "global_tags" {
   description = "The tags to apply to all resources that support tags"
   type        = map(string)
