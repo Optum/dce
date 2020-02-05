@@ -2,6 +2,25 @@
   "widgets": [
     {
       "type": "metric",
+      "width": 6,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          [ "DCE/AccountPool", "LeasedAccounts" ],
+          [ ".", "NotReadyAccounts" ],
+          [ ".", "OrphanedAccounts" ],
+          [ ".", "ReadyAccounts" ]
+        ],
+        "view": "timeSeries",
+        "stacked": false,
+        "title" : "Account Pool Metrics",
+        "region": "us-east-1",
+        "stat": "Average",
+        "period": 300
+      }
+    },
+    {
+      "type": "metric",
       "x": 0,
       "y": 0,
       "width": 24,
