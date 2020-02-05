@@ -1,62 +1,137 @@
 package main
 
 import (
+	"fmt"
 	"testing"
 
-	"github.com/pkg/errors"
+	"github.com/Optum/dce/pkg/account"
+	"github.com/Optum/dce/pkg/account/mocks"
+	"github.com/Optum/dce/pkg/arn"
+	"github.com/Optum/dce/pkg/config"
+	"github.com/Optum/dce/pkg/errors"
+	eventMocks "github.com/Optum/dce/pkg/event/eventiface/mocks"
 
-	commock "github.com/Optum/dce/pkg/common/mocks"
-	"github.com/Optum/dce/pkg/db"
-	dbmock "github.com/Optum/dce/pkg/db/mocks"
+	"github.com/aws/aws-lambda-go/events"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
 )
 
-// testAddAccountToQueueInput is the structured input for testing the function
-type testAddAccountToQueueInput struct {
-	ExpectedError            error
-	SendMessageError         error
-	FindLeasesByAccountError error
+func ptrString(s string) *string {
+	ptrS := s
+	return &ptrS
 }
 
-// TestAddAccountToQueue tests and verifies the flow of adding all accounts
+// TestPopulateResetQeue tests and verifies the flow of adding all accounts
 // provided into the reset queue and transition the finance lock if necessary
-func TestAddAccountToQueue(t *testing.T) {
-	// Construct test scenarios
-	tests := []testAddAccountToQueueInput{
-		// Happy Path
-		{},
-		// SendMessage Failure
+func TestPopulateResetQeue(t *testing.T) {
+	tests := []struct {
+		name         string
+		expErr       error
+		listAccounts *account.Accounts
+		listErr      error
+		alertErr     error
+		nextID       *string
+	}{
 		{
-			ExpectedError: errors.Wrap(errors.New("Send Message Fail"),
-				"Failed to add account 123 to queue accounts"),
-			SendMessageError: errors.New("Send Message Fail"),
+			name: "should send accounts to reset queue",
+			listAccounts: &account.Accounts{
+				{
+					ID:               ptrString("123456789012"),
+					Status:           account.StatusNotReady.StatusPtr(),
+					AdminRoleArn:     arn.New("aws", "iam", "", "123456789012", "role/AdminRole"),
+					PrincipalRoleArn: arn.New("aws", "iam", "", "123456789012", "role/AdminRole"),
+				},
+			},
+			listErr: nil,
+		},
+		{
+			name: "should send accounts to reset queue with pagination",
+			listAccounts: &account.Accounts{
+				{
+					ID:               ptrString("123456789012"),
+					Status:           account.StatusNotReady.StatusPtr(),
+					AdminRoleArn:     arn.New("aws", "iam", "", "123456789012", "role/AdminRole"),
+					PrincipalRoleArn: arn.New("aws", "iam", "", "123456789012", "role/AdminRole"),
+				},
+			},
+			nextID:  ptrString("123456789013"),
+			listErr: nil,
+		},
+		{
+			name: "should fail on list err",
+			listAccounts: &account.Accounts{
+				{
+					ID:               ptrString("123456789012"),
+					Status:           account.StatusNotReady.StatusPtr(),
+					AdminRoleArn:     arn.New("aws", "iam", "", "123456789012", "role/AdminRole"),
+					PrincipalRoleArn: arn.New("aws", "iam", "", "123456789012", "role/AdminRole"),
+				},
+			},
+			listErr: errors.NewInternalServer("error", fmt.Errorf("error")),
+			expErr:  errors.NewInternalServer("error", fmt.Errorf("error")),
+		},
+		{
+			name: "should fail on alert err",
+			listAccounts: &account.Accounts{
+				{
+					ID:               ptrString("123456789012"),
+					Status:           account.StatusNotReady.StatusPtr(),
+					AdminRoleArn:     arn.New("aws", "iam", "", "123456789012", "role/AdminRole"),
+					PrincipalRoleArn: arn.New("aws", "iam", "", "123456789012", "role/AdminRole"),
+				},
+			},
+			alertErr: errors.NewInternalServer("error", fmt.Errorf("error")),
+			expErr:   errors.NewInternalServer("error", fmt.Errorf("error")),
 		},
 	}
 
-	// Iterate through each test in the list
-	accounts := []*db.Account{
-		{
-			ID:            "123",
-			AccountStatus: "Leased",
-		},
-	}
-	queueURL := "url"
-	for _, test := range tests {
-		// Setup mocks
-		mockQueue := commock.Queue{}
-		mockQueue.On("SendMessage", mock.Anything, mock.Anything).Return(
-			test.SendMessageError)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfgBldr := &config.ConfigurationBuilder{}
+			svcBldr := &config.ServiceBuilder{Config: cfgBldr}
 
-		mockDB := dbmock.DBer{}
-		// Call addAccountToQueue
-		err := addAccountToQueue(accounts, &queueURL, &mockQueue, &mockDB)
+			mocksRwd := &mocks.ReaderWriterDeleter{}
+			mocksRwd.On("List", mock.MatchedBy(func(input *account.Account) bool {
+				if input.Status.String() == "NotReady" {
+					if input.NextID == nil {
+						input.NextID = tt.nextID
+						return true
+					}
+				}
+				return false
+			})).Return(tt.listAccounts, tt.listErr)
+			mocksRwd.On("List", mock.MatchedBy(func(input *account.Account) bool {
+				if input.Status.String() == "NotReady" {
+					if input.NextID == tt.nextID {
+						input.NextID = nil
+						return true
+					}
+				}
+				return false
+			})).Return(tt.listAccounts, tt.listErr)
 
-		// Assert expectations
-		if test.ExpectedError != nil {
-			require.Equal(t, test.ExpectedError.Error(), err.Error())
-		} else {
-			require.Nil(t, err)
-		}
+			mocksEvent := &eventMocks.Servicer{}
+			mocksEvent.On("AccountReset", mock.AnythingOfType("*account.Account")).
+				Return(tt.alertErr)
+
+			accountSvc := account.NewService(
+				account.NewServiceInput{
+					DataSvc:  mocksRwd,
+					EventSvc: mocksEvent,
+				},
+			)
+
+			svcBldr.Config.WithService(accountSvc)
+			_, err := svcBldr.Build()
+
+			assert.Nil(t, err)
+			if err == nil {
+				services = svcBldr
+			}
+
+			err = Handler(events.CloudWatchEvent{})
+			assert.True(t, errors.Is(err, tt.expErr), "actual error %q doesn't match expected error %q", err, tt.expErr)
+
+		})
 	}
 }
