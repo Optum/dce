@@ -754,7 +754,7 @@ func TestApi(t *testing.T) {
 					// Get nested json in response json
 					errResp := data["error"].(map[string]interface{})
 					assert.Equal(r, "ClientError", errResp["code"].(string))
-					assert.Regexp(t, "Lease is not active for .*$", errResp["message"].(string))
+					assert.Regexp(t, "leaseStatus: must be active lease", errResp["message"].(string))
 				},
 			})
 
