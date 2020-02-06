@@ -700,7 +700,7 @@ func TestApi(t *testing.T) {
 					// Verify error response json
 					// Get nested json in response json
 					errResp := data["error"].(map[string]interface{})
-					assert.Equal(r, "ClientError", errResp["code"].(string))
+					assert.Equal(r, "RequestValidationError", errResp["code"].(string))
 					assert.Equal(r, fmt.Sprintf("No leases found for Principal %q and Account ID %q", principalID, wrongAcctID),
 						errResp["message"].(string))
 				},
