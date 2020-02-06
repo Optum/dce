@@ -42,3 +42,16 @@ resource "aws_lambda_permission" "allow_cloudwatch_to_call_account_pool_metrics_
   principal       = "events.amazonaws.com"
   source_arn      = aws_cloudwatch_event_rule.every_x_minutes[0].arn
 }
+
+resource "aws_cloudwatch_metric_alarm" "orphaned_accounts" {
+  alarm_name                = "orphaned-accounts"
+  comparison_operator       = "GreaterThanOrEqualToThreshold"
+  evaluation_periods        = "2"
+  metric_name               = "OrphanedAccounts"
+  namespace                 = local.metrics_namespace
+  period                    = "3600"
+  statistic                 = "Average"
+  threshold                 = var.orphaned_accounts_alarm_threshold
+  alarm_description         = "Alarm for orphaned accounts"
+  insufficient_data_actions = []
+}

@@ -218,3 +218,9 @@ variable "allowed_regions" {
   ]
   description = "List of AWS regions which DCE Principals have access to. These regions will also be targeted for reset in nuke.yml."
 }
+
+variable "orphaned_accounts_alarm_threshold" {
+  type        = string
+  description = "Alarm when number of orphaned accounts exceeds this threshold."
+  default     = "1"
+}
