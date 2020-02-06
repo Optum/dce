@@ -10,7 +10,7 @@ variable "account_pool_metrics_toggle" {
 
 variable "account_pool_metrics_collection_rate_expression" {
   description = "The rate at which the Accounts table will be scanned for Account status metrics. e.g. rate(1 hour). See https://docs.aws.amazon.com/AmazonCloudWatch/latest/events/ScheduledEvents.html"
-  default     = "30"
+  default     = "rate(30 minutes)"
 }
 
 variable "global_tags" {

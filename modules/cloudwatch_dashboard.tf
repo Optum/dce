@@ -21,5 +21,5 @@ locals {
 resource "aws_cloudwatch_dashboard" "main" {
   count          = var.cloudwatch_dashboard_toggle == "true" ? 1 : 0
   dashboard_name = "DCE-${var.namespace}"
-  dashboard_body = templatefile("${path.module}/fixtures/dashboards/cloudwatch_dashboard.json", local.vars)
+  dashboard_body = replace(templatefile("${path.module}/fixtures/dashboards/cloudwatch_dashboard.json", local.vars), "$$$$", "$")
 }
