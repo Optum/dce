@@ -975,7 +975,7 @@ func TestApi(t *testing.T) {
 					t.Run("STEP: Recreate lease against same account", func(t *testing.T) {
 						// Account is being reset, so it's not marked as "Ready".
 						// Update the DB to be ready, so we can create a lease
-						_, err := dbSvc.TransitionAccountStatus(accountID, db.NotReady, db.Ready)
+						_, err := dbSvc.TransitionAccountStatus(accountID, db.Leased, db.Ready)
 						require.Nil(t, err)
 
 						// Request a lease
