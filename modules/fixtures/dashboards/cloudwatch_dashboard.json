@@ -6,14 +6,32 @@
       "height": 6,
       "properties": {
         "metrics": [
-          [ "DCE/AccountPool", "LeasedAccounts" ],
-          [ ".", "NotReadyAccounts" ],
-          [ ".", "OrphanedAccounts" ],
-          [ ".", "ReadyAccounts" ]
+          [ "DCE/AccountPool", "LeasedAccounts", { "color": "#2ca02c" } ],
+          [ ".", "ReadyAccounts", { "color": "#1f77b4" } ],
+          [ ".", "NotReadyAccounts", { "color": "#ff7f0e" } ],
+          [ ".", "OrphanedAccounts", { "color": "#d62728" } ]
+        ],
+        "view": "singleValue",
+        "region": "us-east-1",
+        "stat": "Average",
+        "period": 300,
+        "title": "Account Pool"
+      }
+    },
+    {
+      "type": "metric",
+      "width": 18,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          [ "DCE/AccountPool", "LeasedAccounts", { "color": "#2ca02c" } ],
+          [ ".", "ReadyAccounts", { "color": "#1f77b4" } ],
+          [ ".", "NotReadyAccounts", { "color": "#ff7f0e" } ],
+          [ ".", "OrphanedAccounts", { "color": "#d62728" } ]
         ],
         "view": "timeSeries",
         "stacked": false,
-        "title" : "Account Pool Metrics",
+        "title" : "Account Pool",
         "region": "us-east-1",
         "stat": "Average",
         "period": 300
@@ -21,8 +39,6 @@
     },
     {
       "type": "metric",
-      "x": 0,
-      "y": 0,
       "width": 24,
       "height": 6,
       "properties": {
@@ -44,8 +60,6 @@
     },
     {
       "type": "metric",
-      "x": 0,
-      "y": 6,
       "width": 12,
       "height": 6,
       "properties": {
@@ -63,8 +77,6 @@
     },
     {
       "type": "log",
-      "x": 12,
-      "y": 6,
       "width": 6,
       "height": 6,
       "properties": {
@@ -77,8 +89,6 @@
     },
     {
       "type": "log",
-      "x": 18,
-      "y": 6,
       "width": 6,
       "height": 6,
       "properties": {
@@ -91,8 +101,6 @@
     },
     {
       "type": "log",
-      "x": 0,
-      "y": 12,
       "width": 24,
       "height": 6,
       "properties": {
@@ -105,8 +113,6 @@
     },
     {
       "type": "metric",
-      "x": 0,
-      "y": 18,
       "width": 12,
       "height": 6,
       "properties": {
@@ -124,8 +130,6 @@
     },
     {
       "type": "log",
-      "x": 12,
-      "y": 18,
       "width": 12,
       "height": 6,
       "properties": {
@@ -138,8 +142,6 @@
     },
     {
       "type": "metric",
-      "x": 0,
-      "y": 24,
       "width": 12,
       "height": 6,
       "properties": {
@@ -157,8 +159,6 @@
     },
     {
       "type": "log",
-      "x": 12,
-      "y": 24,
       "width": 12,
       "height": 6,
       "properties": {
@@ -171,8 +171,6 @@
     },
     {
       "type": "metric",
-      "x": 0,
-      "y": 30,
       "width": 12,
       "height": 6,
       "properties": {
@@ -190,8 +188,6 @@
     },
     {
       "type": "log",
-      "x": 12,
-      "y": 30,
       "width": 12,
       "height": 6,
       "properties": {
@@ -204,8 +200,6 @@
     },
     {
       "type": "metric",
-      "x": 0,
-      "y": 36,
       "width": 12,
       "height": 6,
       "properties": {
@@ -223,8 +217,6 @@
     },
     {
       "type": "log",
-      "x": 12,
-      "y": 36,
       "width": 12,
       "height": 6,
       "properties": {
@@ -237,8 +229,6 @@
     },
     {
       "type": "metric",
-      "x": 0,
-      "y": 42,
       "width": 12,
       "height": 6,
       "properties": {
@@ -255,8 +245,6 @@
     },
     {
       "type": "log",
-      "x": 12,
-      "y": 42,
       "width": 12,
       "height": 6,
       "properties": {
@@ -269,8 +257,6 @@
     },
     {
       "type": "metric",
-      "x": 0,
-      "y": 48,
       "width": 12,
       "height": 6,
       "properties": {
@@ -287,8 +273,6 @@
     },
     {
       "type": "log",
-      "x": 12,
-      "y": 48,
       "width": 12,
       "height": 6,
       "properties": {
@@ -301,8 +285,6 @@
     },
     {
       "type": "metric",
-      "x": 0,
-      "y": 54,
       "width": 12,
       "height": 6,
       "properties": {
@@ -319,8 +301,6 @@
     },
     {
       "type": "log",
-      "x": 12,
-      "y": 54,
       "width": 12,
       "height": 6,
       "properties": {
@@ -333,8 +313,6 @@
     },
     {
       "type": "metric",
-      "x": 0,
-      "y": 60,
       "width": 12,
       "height": 6,
       "properties": {
@@ -351,8 +329,6 @@
     },
     {
       "type": "log",
-      "x": 12,
-      "y": 60,
       "width": 12,
       "height": 6,
       "properties": {
@@ -365,8 +341,6 @@
     },
     {
       "type": "metric",
-      "x": 0,
-      "y": 66,
       "width": 12,
       "height": 6,
       "properties": {
@@ -383,8 +357,6 @@
     },
     {
       "type": "log",
-      "x": 12,
-      "y": 66,
       "width": 12,
       "height": 6,
       "properties": {
@@ -397,8 +369,6 @@
     },
     {
       "type": "metric",
-      "x": 0,
-      "y": 78,
       "width": 12,
       "height": 6,
       "properties": {
@@ -415,8 +385,6 @@
     },
     {
       "type": "log",
-      "x": 12,
-      "y": 78,
       "width": 12,
       "height": 6,
       "properties": {
