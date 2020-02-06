@@ -753,7 +753,7 @@ func TestApi(t *testing.T) {
 					// Verify error response json
 					// Get nested json in response json
 					errResp := data["error"].(map[string]interface{})
-					assert.Equal(r, "ClientError", errResp["code"].(string))
+					assert.Equal(r, "ConflictError", errResp["code"].(string))
 					assert.Regexp(t, "leaseStatus: must be active lease", errResp["message"].(string))
 				},
 			})
@@ -961,10 +961,16 @@ func TestApi(t *testing.T) {
 					})
 
 					// Check the lease is decommissioned
-					// (since we dont' yet have a GET /leases endpoint
-					lease, err := dbSvc.GetLease(accountID, "test-user")
-					require.Nil(t, err)
-					require.Equal(t, db.Inactive, lease.LeaseStatus)
+					resp := apiRequest(t, &apiRequestInput{
+						method: "GET",
+						url:    apiURL + fmt.Sprintf("/leases?principalId=test-user&accountId=%s", accountID),
+						json:   nil,
+					})
+
+					results := parseResponseArrayJSON(t, resp)
+					assert.Equal(t, 200, resp.StatusCode)
+					assert.Equal(t, 1, len(results), "one lease should be returned")
+					assert.Equal(t, "Inactive", results[0]["status"])
 
 					t.Run("STEP: Recreate lease against same account", func(t *testing.T) {
 						// Account is being reset, so it's not marked as "Ready".
@@ -1644,7 +1650,7 @@ func TestApi(t *testing.T) {
 			})
 
 			results := parseResponseArrayJSON(t, resp)
-			assert.Equal(t, 0, len(results), "only one lease should be returned")
+			assert.Equal(t, 0, len(results), "no lease should be returned")
 		})
 
 		t.Run("When there is a limit parameter", func(t *testing.T) {
