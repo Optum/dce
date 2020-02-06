@@ -167,7 +167,9 @@ func TestDeleteLease(t *testing.T) {
 			r := httptest.NewRequest("DELETE", "http://example.com/leases", nil)
 
 			b := new(bytes.Buffer)
-			json.NewEncoder(b).Encode(tt.inputLease)
+			err := json.NewEncoder(b).Encode(tt.inputLease)
+			assert.Nil(t, err)
+
 			r.Body = ioutil.NopCloser(b)
 
 			w := httptest.NewRecorder()
@@ -185,7 +187,7 @@ func TestDeleteLease(t *testing.T) {
 			)
 
 			svcBldr.Config.WithService(&leaseSvc)
-			_, err := svcBldr.Build()
+			_, err = svcBldr.Build()
 
 			assert.Nil(t, err)
 			if err == nil {
