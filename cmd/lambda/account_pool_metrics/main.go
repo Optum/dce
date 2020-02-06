@@ -8,11 +8,8 @@ import (
 	"log"
 )
 
-type lambdaConfig struct {}
-
-var(
+var (
 	Services *config.ServiceBuilder
-	// Settings - the lambdaConfig settings for the controller
 )
 
 func initConfig() {
