@@ -10,16 +10,16 @@ import (
 )
 
 type MetricCount struct {
-	status    account.Status
-	count     int
+	status account.Status
+	count  int
 }
 
 type AccountPoolMetrics struct {
-	accountSvc   accountiface.Servicer
-	Ready        MetricCount
-	NotReady     MetricCount
-	Leased       MetricCount
-	Orphaned     MetricCount
+	accountSvc accountiface.Servicer
+	Ready      MetricCount
+	NotReady   MetricCount
+	Leased     MetricCount
+	Orphaned   MetricCount
 }
 
 // Hardcoding until pagination function is implemented
@@ -103,7 +103,6 @@ func (m *AccountPoolMetrics) Refresh() {
 	}
 	m.Orphaned.count = len(*orphanedAccounts)
 
-
 	log.Println("Found ", m.Ready.count, m.Ready.status, " accounts")
 	log.Println("Found ", m.NotReady.count, m.NotReady.status, " accounts")
 	log.Println("Found ", m.Leased.count, m.Leased.status, " accounts")
@@ -112,7 +111,6 @@ func (m *AccountPoolMetrics) Refresh() {
 
 func (m *AccountPoolMetrics) Publish() {
 	log.Println("Publishing metrics to cloudwatch")
-
 
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
@@ -158,8 +156,8 @@ func (m *AccountPoolMetrics) Publish() {
 func NewAccountPoolMetrics(accountSvc accountiface.Servicer) *AccountPoolMetrics {
 	return &AccountPoolMetrics{
 		accountSvc: accountSvc,
-		Ready:        MetricCount{status:account.StatusReady, count:0},
-		NotReady:     MetricCount{status:account.StatusNotReady, count:0},
-		Leased:       MetricCount{status:account.StatusLeased, count:0},
-		Orphaned:     MetricCount{status:account.StatusOrphaned, count:0}}
+		Ready:      MetricCount{status: account.StatusReady, count: 0},
+		NotReady:   MetricCount{status: account.StatusNotReady, count: 0},
+		Leased:     MetricCount{status: account.StatusLeased, count: 0},
+		Orphaned:   MetricCount{status: account.StatusOrphaned, count: 0}}
 }
