@@ -12,11 +12,11 @@ module "account_pool_metrics_lambda" {
   alarm_topic_arn = aws_sns_topic.alarms_topic.arn
 
   environment = {
-    DEBUG               = "false"
-    ACCOUNT_ID          = local.account_id
-    NAMESPACE           = var.namespace
-    AWS_CURRENT_REGION  = var.aws_region
-    ACCOUNT_DB          = aws_dynamodb_table.accounts.id
+    DEBUG              = "false"
+    ACCOUNT_ID         = local.account_id
+    NAMESPACE          = var.namespace
+    AWS_CURRENT_REGION = var.aws_region
+    ACCOUNT_DB         = aws_dynamodb_table.accounts.id
   }
 }
 
@@ -28,19 +28,19 @@ resource "aws_cloudwatch_event_rule" "every_x_minutes" {
 }
 
 resource "aws_cloudwatch_event_target" "check_account_pool_metrics_at_scheduled_rate" {
-  count       = local.account_pool_metrics_count
-  rule        = aws_cloudwatch_event_rule.every_x_minutes[0].name
-  target_id   = "account_pool_metrics_lambda"
-  arn         = module.account_pool_metrics_lambda.arn
+  count     = local.account_pool_metrics_count
+  rule      = aws_cloudwatch_event_rule.every_x_minutes[0].name
+  target_id = "account_pool_metrics_lambda"
+  arn       = module.account_pool_metrics_lambda.arn
 }
 
 resource "aws_lambda_permission" "allow_cloudwatch_to_call_account_pool_metrics_lambda" {
-  count           = local.account_pool_metrics_count
-  statement_id    = "AllowExecutionFromCloudWatch"
-  action          = "lambda:InvokeFunction"
-  function_name   = module.account_pool_metrics_lambda.name
-  principal       = "events.amazonaws.com"
-  source_arn      = aws_cloudwatch_event_rule.every_x_minutes[0].arn
+  count         = local.account_pool_metrics_count
+  statement_id  = "AllowExecutionFromCloudWatch"
+  action        = "lambda:InvokeFunction"
+  function_name = module.account_pool_metrics_lambda.name
+  principal     = "events.amazonaws.com"
+  source_arn    = aws_cloudwatch_event_rule.every_x_minutes[0].arn
 }
 
 resource "aws_cloudwatch_metric_alarm" "orphaned_accounts" {

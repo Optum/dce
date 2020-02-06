@@ -226,11 +226,11 @@ variable "orphaned_accounts_alarm_threshold" {
 }
 
 variable "ready_accounts_alarm_threshold" {
-  type = string
+  type        = string
   description = "Alarm when number of ready accounts is less than or equal to this threshold."
-  default = "20"
+  default     = "20"
 }
-  
+
 variable "usage_ttl" {
   type = number
   # 30 days
