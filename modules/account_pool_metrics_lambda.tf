@@ -55,3 +55,16 @@ resource "aws_cloudwatch_metric_alarm" "orphaned_accounts" {
   alarm_description         = "Alarm for orphaned accounts"
   insufficient_data_actions = []
 }
+
+resource "aws_cloudwatch_metric_alarm" "too_few_ready_accounts" {
+  alarm_name                = "ready-accounts"
+  comparison_operator       = "LessThanOrEqualToThreshold"
+  evaluation_periods        = "2"
+  metric_name               = "ReadyAccounts"
+  namespace                 = local.metrics_namespace
+  period                    = "3600"
+  statistic                 = "Average"
+  threshold                 = var.ready_accounts_alarm_threshold
+  alarm_description         = "Alarm for too few ready accounts"
+  insufficient_data_actions = []
+}

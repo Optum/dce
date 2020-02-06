@@ -221,6 +221,12 @@ variable "allowed_regions" {
 
 variable "orphaned_accounts_alarm_threshold" {
   type        = string
-  description = "Alarm when number of orphaned accounts exceeds this threshold."
+  description = "Alarm when number of orphaned accounts is greater than or equal to this threshold."
   default     = "1"
+}
+
+variable "ready_accounts_alarm_threshold" {
+  type        = string
+  description = "Alarm when number of ready accounts is less than or equal to this threshold."
+  default     = "20"
 }
