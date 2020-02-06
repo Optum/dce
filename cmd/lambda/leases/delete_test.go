@@ -15,7 +15,6 @@ import (
 	commonMock "github.com/Optum/dce/pkg/common/mocks"
 	"github.com/Optum/dce/pkg/db"
 	mockDB "github.com/Optum/dce/pkg/db/mocks"
-	"github.com/Optum/dce/pkg/rolemanager"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/gorilla/mux"
@@ -30,7 +29,6 @@ func TestDeleteController_Call(t *testing.T) {
 		SNS                 common.Notificationer
 		AWSSession          session.Session
 		TokenService        common.TokenService
-		RoleManager         rolemanager.RoleManager
 		PrincipalRoleName   string
 		PrincipalPolicyName string
 	}
