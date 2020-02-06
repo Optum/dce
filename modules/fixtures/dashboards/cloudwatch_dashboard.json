@@ -12,7 +12,7 @@
           [ ".", "OrphanedAccounts", { "color": "#d62728" ,"label": "[last: $${LAST}] OrphanedAccounts" } ]
         ],
         "view": "timeSeries",
-        "stacked": false,
+        "stacked": true,
         "title" : "Account Pool",
         "region": "us-east-1",
         "stat": "Average",
