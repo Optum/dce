@@ -83,6 +83,7 @@ func (p *principalService) MergePolicy() error {
 		}
 	} else {
 		// no error means we create the policy without issue moving on
+		p.account.PrincipalPolicyHash = policyHash
 		return nil
 	}
 

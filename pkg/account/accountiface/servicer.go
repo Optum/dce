@@ -22,4 +22,6 @@ type Servicer interface {
 	Create(data *account.Account) (*account.Account, error)
 	// Reset initiates the Reset account process.
 	Reset(data *account.Account) error
+	// UpsertPrincipalAccess merges principal access to make sure its
+	UpsertPrincipalAccess(data *account.Account) error
 }

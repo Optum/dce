@@ -271,7 +271,6 @@ func (a *Service) UpsertPrincipalAccess(data *Account) error {
 		validation.Field(&data.Status, validation.NotNil, validation.By(isAccountNotLeased)),
 		validation.Field(&data.AdminRoleArn, validation.NotNil),
 		validation.Field(&data.PrincipalRoleArn, validation.NotNil),
-		validation.Field(&data.PrincipalPolicyHash, validation.NotNil),
 	)
 	if err != nil {
 		return errors.NewConflict("account", *data.ID, err)
@@ -283,8 +282,11 @@ func (a *Service) UpsertPrincipalAccess(data *Account) error {
 	if err != nil {
 		return err
 	}
-	if oldHash == data.PrincipalPolicyHash {
-		a.Save(data)
+	if oldHash != data.PrincipalPolicyHash {
+		err = a.Save(data)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
