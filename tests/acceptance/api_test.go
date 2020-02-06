@@ -615,7 +615,7 @@ func TestApi(t *testing.T) {
 					// Get nested json in response json
 					err := data["error"].(map[string]interface{})
 					assert.Equal(r, "ClientError", err["code"].(string))
-					assert.Equal(r, "Failed to Parse Request Body: {}",
+					assert.Equal(r, "invalid request parameters",
 						err["message"].(string))
 				},
 			})
@@ -646,7 +646,7 @@ func TestApi(t *testing.T) {
 					// Verify error response json
 					// Get nested json in response json
 					err := data["error"].(map[string]interface{})
-					assert.Equal(r, "ClientError", err["code"].(string))
+					assert.Equal(r, "RequestValidationError", err["code"].(string))
 					assert.Equal(r, fmt.Sprintf("No leases found for Principal %q and Account ID %q", principalID, acctID),
 						err["message"].(string))
 				},
