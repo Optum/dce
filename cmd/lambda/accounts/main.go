@@ -7,16 +7,8 @@ import (
 	"net/url"
 
 	"github.com/aws/aws-sdk-go/service/iam"
-	"github.com/aws/aws-sdk-go/service/sns"
-	"github.com/aws/aws-sdk-go/service/sqs"
-	"github.com/aws/aws-sdk-go/service/sts"
-
-	"github.com/aws/aws-sdk-go/aws/session"
 
 	"github.com/Optum/dce/pkg/api"
-	"github.com/Optum/dce/pkg/common"
-	"github.com/Optum/dce/pkg/db"
-	"github.com/Optum/dce/pkg/rolemanager"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 
@@ -50,14 +42,7 @@ var (
 
 var (
 	// Soon to be deprecated - Legacy support
-	AWSSession  *session.Session
-	Dao         db.DBer
-	SnsSvc      common.Notificationer
-	Queue       common.Queue
-	TokenSvc    common.TokenService
-	RoleManager rolemanager.RoleManager
 	baseRequest url.URL
-	Config      common.DefaultEnvConfig
 )
 
 func init() {
@@ -124,17 +109,6 @@ func initConfig() {
 	svcBldr := &config.ServiceBuilder{Config: cfgBldr}
 
 	_, err = svcBldr.
-		// AWS services...
-		WithDynamoDB().
-		WithSTS().
-		WithS3().
-		WithSNS().
-		WithSQS().
-		// DCE services...
-		WithStorageService().
-		WithAccountDataService().
-		WithEventService().
-		WithAccountManagerService().
 		WithAccountService().
 		Build()
 	if err != nil {
@@ -159,32 +133,6 @@ func Handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 }
 
 func main() {
-	Dao = newDBer()
-	AWSSession = newAWSSession()
-	Queue = common.SQSQueue{Client: sqs.New(AWSSession)}
-	SnsSvc = &common.SNS{Client: sns.New(AWSSession)}
-	TokenSvc = common.STS{Client: sts.New(AWSSession)}
-
-	RoleManager = &rolemanager.IAMRoleManager{}
 	// Send Lambda requests to the router
 	lambda.Start(Handler)
-}
-
-func newDBer() db.DBer {
-	dao, err := db.NewFromEnv()
-	if err != nil {
-		errorMessage := fmt.Sprintf("Failed to initialize database: %s", err)
-		log.Fatal(errorMessage)
-	}
-
-	return dao
-}
-
-func newAWSSession() *session.Session {
-	awsSession, err := session.NewSession()
-	if err != nil {
-		errorMessage := fmt.Sprintf("Failed to create AWS session: %s", err)
-		log.Fatal(errorMessage)
-	}
-	return awsSession
 }

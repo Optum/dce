@@ -83,24 +83,30 @@ func TestGetAccountByID(t *testing.T) {
 
 func TestDelete(t *testing.T) {
 	tests := []struct {
-		name      string
-		expErr    error
-		returnErr error
-		account   account.Account
+		name              string
+		expErr            error
+		returnErr         error
+		accountDeletedErr error
+		accountResetErr   error
+		account           account.Account
 	}{
 		{
 			name: "should delete an account",
 			account: account.Account{
-				ID:     ptrString("123456789012"),
-				Status: account.StatusReady.StatusPtr(),
+				ID:               ptrString("123456789012"),
+				Status:           account.StatusReady.StatusPtr(),
+				AdminRoleArn:     arn.New("aws", "iam", "", "123456789012", "role/AdminRole"),
+				PrincipalRoleArn: arn.New("aws", "iam", "", "123456789012", "role/PrincipalRole"),
 			},
 			returnErr: nil,
 		},
 		{
 			name: "should error when account leased",
 			account: account.Account{
-				ID:     ptrString("123456789012"),
-				Status: account.StatusLeased.StatusPtr(),
+				ID:               ptrString("123456789012"),
+				Status:           account.StatusLeased.StatusPtr(),
+				AdminRoleArn:     arn.New("aws", "iam", "", "123456789012", "role/AdminRole"),
+				PrincipalRoleArn: arn.New("aws", "iam", "", "123456789012", "role/PrincipalRole"),
 			},
 			returnErr: nil,
 			expErr:    errors.NewConflict("account", "123456789012", fmt.Errorf("accountStatus: must not be leased.")), //nolint golint
@@ -108,8 +114,10 @@ func TestDelete(t *testing.T) {
 		{
 			name: "should error when delete fails",
 			account: account.Account{
-				ID:     ptrString("123456789012"),
-				Status: account.StatusReady.StatusPtr(),
+				ID:               ptrString("123456789012"),
+				Status:           account.StatusReady.StatusPtr(),
+				AdminRoleArn:     arn.New("aws", "iam", "", "123456789012", "role/AdminRole"),
+				PrincipalRoleArn: arn.New("aws", "iam", "", "123456789012", "role/PrincipalRole"),
 			},
 			returnErr: errors.NewInternalServer("failure", fmt.Errorf("original failure")),
 			expErr:    errors.NewInternalServer("failure", nil),
@@ -122,9 +130,18 @@ func TestDelete(t *testing.T) {
 			mocksRwd.On("Delete", mock.Anything).
 				Return(tt.returnErr)
 
+			mocksManager := &mocks.Manager{}
+			mocksEventer := &mocks.Eventer{}
+
+			mocksManager.On("DeletePrincipalAccess", mock.AnythingOfType("*account.Account")).Return(nil)
+			mocksEventer.On("AccountDelete", mock.AnythingOfType("*account.Account")).Return(tt.accountDeletedErr)
+			mocksEventer.On("AccountReset", mock.AnythingOfType("*account.Account")).Return(tt.accountResetErr)
+
 			accountSvc := account.NewService(
 				account.NewServiceInput{
-					DataSvc: mocksRwd,
+					DataSvc:    mocksRwd,
+					ManagerSvc: mocksManager,
+					EventSvc:   mocksEventer,
 				},
 			)
 			err := accountSvc.Delete(&tt.account)

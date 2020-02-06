@@ -20,4 +20,6 @@ type Servicer interface {
 	List(query *account.Account) (*account.Accounts, error)
 	// Create creates a new account using the data provided. Returns the account record
 	Create(data *account.Account) (*account.Account, error)
+	// Reset initiates the Reset account process.
+	Reset(data *account.Account) error
 }

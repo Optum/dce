@@ -56,7 +56,7 @@ func TestSqs(t *testing.T) {
 			mockSqs := &mocks.SQSAPI{}
 			eventer, _ := NewSqsEvent(mockSqs, "http://url.com")
 
-			// Mock StartBuild call
+			// Mock Publish call
 			mockSqs.On("SendMessage",
 				&sqs.SendMessageInput{
 					MessageBody: aws.String(tt.expectedMessageBody),

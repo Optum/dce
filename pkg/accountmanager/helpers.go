@@ -16,3 +16,15 @@ func isAWSAlreadyExistsError(err error) bool {
 
 	return false
 }
+
+func isAWSNoSuchEntityError(err error) bool {
+	aerr, ok := err.(awserr.Error)
+	if ok {
+		switch aerr.Code() {
+		case iam.ErrCodeNoSuchEntityException:
+			return true
+		}
+	}
+
+	return false
+}

@@ -4,7 +4,7 @@ resource "aws_lambda_function" "fn" {
   runtime       = "go1.x"
   handler       = var.handler
   role          = aws_iam_role.lambda_execution.arn
-  timeout       = 300
+  timeout       = var.timeout
 
   # Stub an application deployment
   # (deployments will be managed outside terraform)

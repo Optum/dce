@@ -21,6 +21,7 @@ type calculateSpendInput struct {
 	usageSvc              usage.Service
 	awsSession            awsiface.AwsSession
 	principalBudgetPeriod string
+	usageTTL              int // TTL in seconds for Usage DynamoDB records
 }
 
 // calculateLeaseSpend calculates amount spent by User principal for current lease
@@ -50,7 +51,7 @@ func calculateLeaseSpend(input *calculateSpendInput) (float64, error) {
 
 	log.Printf("usage for today: %f", todayCostAmount)
 
-	// Set Timetolive to one month from StartDate
+	// Write today's usage to DynamoDB
 	usageItem := usage.Usage{
 		StartDate:    usageStartTime.Unix(),
 		EndDate:      usageEndTime.Unix(),
@@ -58,7 +59,7 @@ func calculateLeaseSpend(input *calculateSpendInput) (float64, error) {
 		AccountID:    input.account.ID,
 		CostAmount:   todayCostAmount,
 		CostCurrency: "USD",
-		TimeToLive:   usageStartTime.AddDate(0, 1, 0).Unix(),
+		TimeToLive:   usageStartTime.Add(time.Duration(input.usageTTL) * time.Second).Unix(),
 	}
 
 	err = input.usageSvc.PutUsage(usageItem)
