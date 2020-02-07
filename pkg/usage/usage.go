@@ -31,17 +31,6 @@ type DB struct {
 	ConsistentRead bool
 }
 
-// Usage item
-type Usage struct {
-	PrincipalID  string  `json:"PrincipalId"`  // User Principal ID
-	AccountID    string  `json:"AccountId"`    // AWS Account ID
-	StartDate    int64   `json:"StartDate"`    // Usage start date Epoch Timestamp
-	EndDate      int64   `json:"EndDate"`      // Usage ends date Epoch Timestamp
-	CostAmount   float64 `json:"CostAmount"`   // Cost Amount for given period
-	CostCurrency string  `json:"CostCurrency"` // Cost currency
-	TimeToLive   int64   `json:"TimeToLive"`   // ttl attribute
-}
-
 // The Service interface includes all methods used by the DB struct to interact with
 // Usage DynamoDB. This is useful if we want to mock the DB service.
 type Service interface {
@@ -54,7 +43,7 @@ type Service interface {
 func (db *DB) PutUsage(input Usage) error {
 	item, err := dynamodbattribute.MarshalMap(input)
 	if err != nil {
-		errorMessage := fmt.Sprintf("Failed to add usage record for start date \"%d\" and PrincipalID \"%s\": %s.", input.StartDate, input.PrincipalID, err)
+		errorMessage := fmt.Sprintf("Failed to add usage record for start date \"%d\" and PrincipalID \"%s\": %s.", *input.StartDate, *input.PrincipalID, err)
 		log.Print(errorMessage)
 		return err
 	}
@@ -148,7 +137,6 @@ func (db *DB) GetUsageByPrincipal(startDate time.Time, principalID string) ([]*U
 	}
 
 	for {
-
 		var resp, err = db.Client.GetItem(getInputForGetUsageByPrincipalID(db, usageStartDate, principalID, db.ConsistentRead))
 		if err != nil {
 			errorMessage := fmt.Sprintf("Failed to query usage record for start date \"%s\": %s.", startDate, err)
@@ -156,16 +144,19 @@ func (db *DB) GetUsageByPrincipal(startDate time.Time, principalID string) ([]*U
 			return nil, err
 		}
 
-		item := Usage{}
+		// Don't append if the item is empty or doesn't exist
+		if len(resp.Item) > 0 {
+			item := Usage{}
 
-		err = dynamodbattribute.UnmarshalMap(resp.Item, &item)
-		if err != nil {
-			errorMessage := fmt.Sprintf("Failed to unmarshal Record, %v", err)
-			log.Print(errorMessage)
-			return nil, err
+			err = dynamodbattribute.UnmarshalMap(resp.Item, &item)
+			if err != nil {
+				errorMessage := fmt.Sprintf("Failed to unmarshal Record, %v", err)
+				log.Print(errorMessage)
+				return nil, err
+			}
+
+			output = append(output, &item)
 		}
-
-		output = append(output, &item)
 
 		// increment startdate by a day
 		usageStartDate = usageStartDate.AddDate(0, 0, 1)
@@ -251,14 +242,13 @@ func (db *DB) GetUsage(input GetUsageInput) (GetUsageOutput, error) {
 		return GetUsageOutput{}, err
 	}
 
-	results := make([]*Usage, 0)
+	var results []*Usage
 
-	for _, o := range output.Items {
-		usageItem, err := unmarshalUsageRecord(o)
+	if len(output.Items) > 0 {
+		err = dynamodbattribute.UnmarshalListOfMaps(output.Items, &results)
 		if err != nil {
 			return GetUsageOutput{}, err
 		}
-		results = append(results, usageItem)
 	}
 
 	nextKey := make(map[string]string)

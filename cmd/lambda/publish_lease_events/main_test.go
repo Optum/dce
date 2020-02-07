@@ -115,7 +115,7 @@ func Test_handleRecord(t *testing.T) {
 		shoudEnqueueReset    bool
 		shouldErrorOnEnqueue bool
 		expectedSnsTopic     string
-		transitionAccount    *db.Account
+		getAccount           *db.Account
 	}{
 		{
 			name: "Happy path...",
@@ -133,7 +133,7 @@ func Test_handleRecord(t *testing.T) {
 			wantErr:           false,
 			shoudEnqueueReset: true,
 			expectedSnsTopic:  LockedSnsTopic,
-			transitionAccount: &db.Account{
+			getAccount: &db.Account{
 				ID: "123456789012",
 			},
 		},
@@ -153,7 +153,7 @@ func Test_handleRecord(t *testing.T) {
 			wantErr:           false,
 			shoudEnqueueReset: false,
 			expectedSnsTopic:  UnlockedSnsTopic,
-			transitionAccount: &db.Account{
+			getAccount: &db.Account{
 				ID: "123456789012",
 			},
 		},
@@ -174,7 +174,7 @@ func Test_handleRecord(t *testing.T) {
 			shoudEnqueueReset:    true,
 			shouldErrorOnEnqueue: true,
 			expectedSnsTopic:     LockedSnsTopic,
-			transitionAccount: &db.Account{
+			getAccount: &db.Account{
 				ID: "123456789012",
 			},
 		},
@@ -189,7 +189,9 @@ func Test_handleRecord(t *testing.T) {
 					"123456789012",
 					db.Leased,
 					db.NotReady,
-				).Return(tt.transitionAccount, nil)
+				).Return(nil, nil)
+
+				dbSvc.On("GetAccount", "123456789012").Return(tt.getAccount, nil)
 
 				if tt.shouldErrorOnEnqueue {
 					sqsSvc.On("SendMessage", aws.String(tt.args.input.resetQueueURL), aws.String("{\"Id\":\"123456789012\",\"AccountStatus\":\"\",\"LastModifiedOn\":0,\"CreatedOn\":0,\"AdminRoleArn\":\"\",\"PrincipalRoleArn\":\"\",\"PrincipalPolicyHash\":\"\",\"Metadata\":null}")).Return(errors.New("error enqueuing message"))

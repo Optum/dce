@@ -12,11 +12,6 @@ type Writer interface {
 	Write(input *Lease, lastModifiedOn *int64) error
 }
 
-// Deleter Deletes an item from the data store
-type Deleter interface {
-	Delete(input *Lease) error
-}
-
 // SingleReader Reads an item information from the data store
 type SingleReader interface {
 	Get(leaseID string) (*Lease, error)
@@ -33,16 +28,10 @@ type Reader interface {
 	MultipleReader
 }
 
-// WriterDeleter data layer
-type WriterDeleter interface {
-	Writer
-	Deleter
-}
-
 // ReaderWriterDeleter includes Reader and Writer interfaces
-type ReaderWriterDeleter interface {
+type ReaderWriter interface {
 	Reader
-	WriterDeleter
+	Writer
 }
 
 // Eventer for publishing events
@@ -52,7 +41,7 @@ type Eventer interface {
 
 // Service is a type corresponding to a Lease table record
 type Service struct {
-	dataSvc  ReaderWriterDeleter
+	dataSvc  ReaderWriter
 	eventSvc Eventer
 }
 
@@ -91,15 +80,28 @@ func (a *Service) Save(data *Lease) error {
 	return nil
 }
 
-// Delete finds a given lease and deletes it if it is not of status `Active`. Returns the lease.
-func (a *Service) Delete(data *Lease) error {
+// Delete finds a given lease and checks if it's active and then updates it to status `Inactive`. Returns the lease.
+func (a *Service) Delete(ID string) (*Lease, error) {
 
-	err := a.dataSvc.Delete(data)
+	data, err := a.dataSvc.Get(ID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	err = validation.ValidateStruct(data,
+		validation.Field(&data.Status, validation.NotNil, validation.By(isLeaseActive)),
+	)
+	if err != nil {
+		return nil, errors.NewConflict("lease", *data.ID, err)
+	}
+
+	data.Status = StatusInactive.StatusPtr()
+	err = a.dataSvc.Write(data, data.LastModifiedOn)
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
 }
 
 // List Get a list of leases based on Principal ID
@@ -122,7 +124,7 @@ func (a *Service) List(query *Lease) (*Leases, error) {
 
 // NewServiceInput Input for creating a new Service
 type NewServiceInput struct {
-	DataSvc  ReaderWriterDeleter
+	DataSvc  ReaderWriter
 	EventSvc Eventer
 }
 
