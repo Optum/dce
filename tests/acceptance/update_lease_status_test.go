@@ -492,7 +492,7 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 
 }
 
-func createUsageForInputAmount(t *testing.T, apiURL string, accountID string, usageSvc usage.Service, costAmount float64) []*usage.Usage {
+func createUsageForInputAmount(t *testing.T, apiURL string, accountID string, usageSvc usage.DBer, costAmount float64) []*usage.Usage {
 	// Create usage
 	// Setup usage dates
 	const ttl int = 3

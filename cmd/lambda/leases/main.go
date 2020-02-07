@@ -53,7 +53,7 @@ var (
 	awsSession         *session.Session
 	dao                db.DBer
 	snsSvc             common.Notificationer
-	usageSvc           usage.Service
+	usageSvc           usage.DBer
 	leaseAddedTopicARN string
 	//decommissionTopicARN     string
 	principalBudgetAmount    float64

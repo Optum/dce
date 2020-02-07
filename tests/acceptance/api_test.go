@@ -2250,7 +2250,7 @@ func createAdminRole(t *testing.T, awsSession client.ConfigProvider, adminRoleNa
 	}
 }
 
-func createUsage(t *testing.T, apiURL string, usageSvc usage.Service) {
+func createUsage(t *testing.T, apiURL string, usageSvc usage.DBer) {
 	// Create usage
 	// Setup usage dates
 	const ttl int = 3

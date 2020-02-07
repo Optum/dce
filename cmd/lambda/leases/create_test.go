@@ -36,7 +36,7 @@ func TestCreateController_Call(t *testing.T) {
 				Dao                   db.DBer
 				SNS                   common.Notificationer
 				LeaseTopicARN         *string
-				UsageSvc              usage.Service
+				UsageSvc              usage.DBer
 				PrincipalBudgetAmount *float64
 				PrincipalBudgetPeriod *string
 				MaxLeaseBudgetAmount  *float64
@@ -62,7 +62,7 @@ func TestCreateController_Call(t *testing.T) {
 
 		dbMock := stubDb()
 		snsMock := &commonMock.Notificationer{}
-		usageMock := &mockUsage.Service{}
+		usageMock := &mockUsage.DBer{}
 		sevenDaysOut := time.Now().AddDate(0, 0, 7).Unix()
 
 		// Should create/update the lease record
