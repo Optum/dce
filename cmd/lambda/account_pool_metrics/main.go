@@ -43,17 +43,8 @@ var QUERY_LIMIT int64 = 20000
 
 func getMetric(status account.Status) CountMetric {
 	query := account.Account{
-		ID:                  nil,
 		Status:              &status,
-		LastModifiedOn:      nil,
-		CreatedOn:           nil,
-		AdminRoleArn:        nil,
-		PrincipalRoleArn:    nil,
-		PrincipalPolicyHash: nil,
-		Metadata:            nil,
 		Limit:               &QUERY_LIMIT,
-		NextID:              nil,
-		PrincipalPolicyArn:  nil,
 	}
 	accounts, err := Services.Config.AccountService().List(&query)
 	if err != nil {
