@@ -193,8 +193,8 @@ func TestDeleteLease(t *testing.T) {
 			},
 			getLeases: &lease.Leases{},
 			expResp: response{
-				StatusCode: 400,
-				Body:       "{\"error\":{\"code\":\"RequestValidationError\",\"message\":\"No leases found for Principal \\\"principal\\\" and Account ID \\\"123456789012\\\"\"}}",
+				StatusCode: 404,
+				Body:       "{\"error\":{\"message\":\"lease \\\"123456789012-principal\\\" not found\",\"code\":\"NotFoundError\"}}\n",
 			},
 			expLease: &lease.Lease{
 				ID:           ptrString("abc123"),

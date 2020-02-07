@@ -59,7 +59,8 @@ func DeleteLease(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(*leases) == 0 {
-		response.WriteRequestValidationError(w, fmt.Sprintf("No leases found for Principal %q and Account ID %q", *queryLease.PrincipalID, *queryLease.AccountID))
+		api.WriteAPIErrorResponse(w,
+			errors.NewNotFound("lease", fmt.Sprintf("%s-%s", *queryLease.AccountID, *queryLease.PrincipalID)))
 		return
 	}
 
