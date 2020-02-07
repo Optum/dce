@@ -11,6 +11,29 @@ type Servicer struct {
 	mock.Mock
 }
 
+// Delete provides a mock function with given fields: ID
+func (_m *Servicer) Delete(ID string) (*lease.Lease, error) {
+	ret := _m.Called(ID)
+
+	var r0 *lease.Lease
+	if rf, ok := ret.Get(0).(func(string) *lease.Lease); ok {
+		r0 = rf(ID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*lease.Lease)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(ID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // Get provides a mock function with given fields: ID
 func (_m *Servicer) Get(ID string) (*lease.Lease, error) {
 	ret := _m.Called(ID)
