@@ -16,7 +16,7 @@
         "title" : "Account Pool",
         "region": "us-east-1",
         "stat": "Average",
-        "period": 60
+        "period": ${account_pool_metrics_widget_period}
       }
     },
     {

@@ -4,13 +4,18 @@ variable "aws_region" {
 }
 
 variable "account_pool_metrics_toggle" {
-  description = "Set to 'true' to enable periodic scanning of the Accounts table for account status metrics. Defaults to 'false."
+  description = "Set to 'true' to enable periodic scanning of the Accounts table for account status metrics. Defaults to 'false'"
   default     = "false"
 }
 
 variable "account_pool_metrics_collection_rate_expression" {
-  description = "The rate at which the Accounts table will be scanned for Account status metrics. e.g. rate(1 hour). See https://docs.aws.amazon.com/AmazonCloudWatch/latest/events/ScheduledEvents.html"
+  description = "The rate at which the Accounts table will be scanned for Account status metrics. Defaults to rate(30 minutes). See https://docs.aws.amazon.com/AmazonCloudWatch/latest/events/ScheduledEvents.html"
   default     = "rate(30 minutes)"
+}
+
+variable "account_pool_metrics_widget_period" {
+  description = "The aggregation period used by the account pool metrics dashboard widget (in seconds). Must be less than the account_pool_metrics_collection_rate_expression. Defaults to 1200"
+  default     = "1200"
 }
 
 variable "global_tags" {
