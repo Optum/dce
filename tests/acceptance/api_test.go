@@ -638,7 +638,7 @@ func TestApi(t *testing.T) {
 				json:   body,
 				f: func(r *testutil.R, apiResp *apiResponse) {
 					// Verify response code
-					assert.Equal(r, http.StatusBadRequest, apiResp.StatusCode)
+					assert.Equal(r, http.StatusNotFound, apiResp.StatusCode)
 
 					// Parse response json
 					data := parseResponseJSON(t, apiResp)
@@ -646,8 +646,8 @@ func TestApi(t *testing.T) {
 					// Verify error response json
 					// Get nested json in response json
 					err := data["error"].(map[string]interface{})
-					assert.Equal(r, "RequestValidationError", err["code"].(string))
-					assert.Equal(r, fmt.Sprintf("No leases found for Principal %q and Account ID %q", principalID, acctID),
+					assert.Equal(r, "NotFoundError", err["code"].(string))
+					assert.Equal(r, fmt.Sprintf("lease \"with Principal ID %s and Account ID %s\" not found", principalID, acctID),
 						err["message"].(string))
 				},
 			})
@@ -692,7 +692,7 @@ func TestApi(t *testing.T) {
 				json:   body,
 				f: func(r *testutil.R, apiResp *apiResponse) {
 					// Verify response code
-					assert.Equal(r, http.StatusBadRequest, apiResp.StatusCode)
+					assert.Equal(r, http.StatusNotFound, apiResp.StatusCode)
 
 					// Parse response json
 					data := parseResponseJSON(t, apiResp)
@@ -700,8 +700,8 @@ func TestApi(t *testing.T) {
 					// Verify error response json
 					// Get nested json in response json
 					errResp := data["error"].(map[string]interface{})
-					assert.Equal(r, "RequestValidationError", errResp["code"].(string))
-					assert.Equal(r, fmt.Sprintf("No leases found for Principal %q and Account ID %q", principalID, wrongAcctID),
+					assert.Equal(r, "NotFoundError", errResp["code"].(string))
+					assert.Equal(r, fmt.Sprintf("lease \"with Principal ID %s and Account ID %s\" not found", principalID, wrongAcctID),
 						errResp["message"].(string))
 				},
 			})
@@ -745,7 +745,7 @@ func TestApi(t *testing.T) {
 				json:   body,
 				f: func(r *testutil.R, apiResp *apiResponse) {
 					// Verify response code
-					assert.Equal(r, http.StatusBadRequest, apiResp.StatusCode)
+					assert.Equal(r, http.StatusConflict, apiResp.StatusCode)
 
 					// Parse response json
 					data := parseResponseJSON(t, apiResp)
@@ -970,7 +970,7 @@ func TestApi(t *testing.T) {
 					results := parseResponseArrayJSON(t, resp)
 					assert.Equal(t, 200, resp.StatusCode)
 					assert.Equal(t, 1, len(results), "one lease should be returned")
-					assert.Equal(t, "Inactive", results[0]["status"])
+					assert.Equal(t, "Inactive", results[0]["leaseStatus"])
 
 					t.Run("STEP: Recreate lease against same account", func(t *testing.T) {
 						// Account is being reset, so it's not marked as "Ready".
