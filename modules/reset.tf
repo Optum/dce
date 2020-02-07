@@ -1,7 +1,8 @@
 # SQS Queue, for triggering account reset
 resource "aws_sqs_queue" "account_reset" {
-  name = "account-reset-${var.namespace}"
-  tags = var.global_tags
+  name                       = "account-reset-${var.namespace}"
+  tags                       = var.global_tags
+  visibility_timeout_seconds = 30
 }
 
 # Lambda function to add all NotReady accounts to the reset queue
@@ -58,6 +59,7 @@ module "process_reset_queue" {
   global_tags     = var.global_tags
   handler         = "process_reset_queue"
   alarm_topic_arn = aws_sns_topic.alarms_topic.arn
+  timeout         = 30
 
   environment = {
     DEBUG              = "false"
@@ -69,26 +71,11 @@ module "process_reset_queue" {
   }
 }
 
-# Trigger Execute Reset lambda function every few minutes
-# (to continuously poll SQS reset queue)
-resource "aws_cloudwatch_event_rule" "poll_sqs_reset" {
-  name                = "process-reset-queue-${var.namespace}"
-  description         = "Process records from the reset queue"
-  schedule_expression = "rate(3 minutes)"
-}
-
-resource "aws_cloudwatch_event_target" "poll_sqs_reset" {
-  rule      = aws_cloudwatch_event_rule.poll_sqs_reset.name
-  target_id = "process-reset-queue-${var.namespace}"
-  arn       = module.process_reset_queue.arn
-}
-
-resource "aws_lambda_permission" "allow_cloudwatch_poll_sqs_reset" {
-  statement_id  = "AllowCloudWatchPollSchedule${title(var.namespace)}"
-  action        = "lambda:InvokeFunction"
-  function_name = module.process_reset_queue.name
-  principal     = "events.amazonaws.com"
-  source_arn    = aws_cloudwatch_event_rule.poll_sqs_reset.arn
+resource "aws_lambda_event_source_mapping" "process_reset_events_from_sqs" {
+  event_source_arn = aws_sqs_queue.account_reset.arn
+  function_name    = module.process_reset_queue.arn
+  batch_size       = 1
+  enabled          = true
 }
 
 # Lambda code deployments are managed outside of Terraform,

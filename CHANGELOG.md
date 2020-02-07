@@ -1,6 +1,7 @@
 ## vNext
 
 - Add `usage_ttl` Terraform var, to configure Usage DB record TTLs.
+- Allow `athena:*` for DCE Principal IAM role
 
 ## v0.27.0
 

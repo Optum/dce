@@ -7,6 +7,8 @@ import (
 
 	"github.com/Optum/dce/pkg/arn"
 	"github.com/Optum/dce/pkg/errors"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	validation "github.com/go-ozzo/ozzo-validation"
 )
 
@@ -87,6 +89,32 @@ func (a *Account) UnmarshalJSON(data []byte) error {
 		a.PrincipalPolicyArn = principalPolicyArn
 	}
 
+	return nil
+}
+
+// UnmarshalDynamoDBAttributeValue handles custom unmarshaling of an ARN
+func (a *Account) UnmarshalDynamoDBAttributeValue(av *dynamodb.AttributeValue) error {
+
+	type Alias Account
+
+	var alias Alias
+	if err := dynamodbattribute.Unmarshal(av, &alias); err != nil {
+		return err
+	}
+
+	a.ID = alias.ID
+	a.Status = alias.Status
+	a.LastModifiedOn = alias.LastModifiedOn
+	a.CreatedOn = alias.CreatedOn
+	a.PrincipalRoleArn = alias.PrincipalRoleArn
+	a.AdminRoleArn = alias.AdminRoleArn
+	a.Metadata = alias.Metadata
+	a.PrincipalPolicyHash = alias.PrincipalPolicyHash
+
+	if a.ID != nil {
+		principalPolicyArn := arn.New("aws", "iam", "", *alias.ID, fmt.Sprintf("policy/%s", PrincipalPolicyName))
+		a.PrincipalPolicyArn = principalPolicyArn
+	}
 	return nil
 }
 
