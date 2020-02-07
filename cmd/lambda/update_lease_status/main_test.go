@@ -15,6 +15,7 @@ import (
 	emailMocks "github.com/Optum/dce/pkg/email/mocks"
 	"github.com/Optum/dce/pkg/usage"
 	usageMocks "github.com/Optum/dce/pkg/usage/mocks"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -139,18 +140,21 @@ has exceeded its budget of $100. Actual spend is $150
 		).Return(test.actualSpend, nil)
 
 		// Expected Usage DB entry
-		inputUsage := usage.Usage{
-			PrincipalID:  "test-user",
-			AccountID:    "",
-			StartDate:    startDate.Unix(),
-			EndDate:      usageEndDate.Unix(),
-			CostAmount:   test.actualSpend,
-			CostCurrency: "USD",
-			TimeToLive:   startDate.Add(time.Duration(3600) * time.Second).Unix(),
-		}
+		inputUsage, err := usage.NewUsage(
+			usage.NewUsageInput{
+				PrincipalID:  "test-user",
+				AccountID:    "",
+				StartDate:    startDate.Unix(),
+				EndDate:      usageEndDate.Unix(),
+				CostAmount:   test.actualSpend,
+				CostCurrency: "USD",
+				TimeToLive:   startDate.Add(time.Duration(3600) * time.Second).Unix(),
+			},
+		)
+		assert.Nil(t, err)
 
 		budgetStartTime := time.Unix(input.lease.LeaseStatusModifiedOn, 0)
-		usageSvc.On("PutUsage", inputUsage).Return(nil)
+		usageSvc.On("PutUsage", *inputUsage).Return(nil)
 		usageSvc.On("GetUsageByDateRange", budgetStartTime, usageEndDate.AddDate(0, 0, -1)).Return(nil, nil)
 		usageSvc.On("GetUsageByDateRange", mock.Anything, mock.Anything).Return(nil, nil)
 
@@ -180,7 +184,7 @@ has exceeded its budget of $100. Actual spend is $150
 		}
 
 		// Call Lambda handler
-		err := lambdaHandler(input)
+		err = lambdaHandler(input)
 		if test.expectedError == "" {
 			require.Nil(t, err)
 		} else {

@@ -1298,7 +1298,7 @@ func TestApi(t *testing.T) {
 			testStartDate := time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), 0, 0, 0, 0, time.UTC)
 			testEndDate := time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), 23, 59, 59, 59, time.UTC)
 			var testPrincipalID = "TestUser1"
-			var testAccount = "TestAccount1"
+			var testAccount = "123456789012"
 
 			t.Run("Should be able to get usage by start date and end date", func(t *testing.T) {
 				queryString := fmt.Sprintf("/usage?startDate=%d&endDate=%d", testStartDate.Unix(), testEndDate.Unix())
@@ -1322,7 +1322,7 @@ func TestApi(t *testing.T) {
 					if data[0] != nil {
 						usageJSON := data[0]
 						assert.Equal(r, "TestUser1", usageJSON["principalId"].(string))
-						assert.Equal(r, "TestAccount1", usageJSON["accountId"].(string))
+						assert.Equal(r, "123456789012", usageJSON["accountId"].(string))
 						assert.Equal(r, 2000.00, usageJSON["costAmount"].(float64))
 					}
 				})
@@ -1350,7 +1350,7 @@ func TestApi(t *testing.T) {
 					if data[0] != nil {
 						usageJSON := data[0]
 						assert.Equal(r, "TestUser1", usageJSON["principalId"].(string))
-						assert.Equal(r, "TestAccount1", usageJSON["accountId"].(string))
+						assert.Equal(r, "123456789012", usageJSON["accountId"].(string))
 						assert.Equal(r, 2000.00, usageJSON["costAmount"].(float64))
 					}
 				})
@@ -1378,7 +1378,7 @@ func TestApi(t *testing.T) {
 					if data[0] != nil {
 						usageJSON := data[0]
 						assert.Equal(r, "TestUser1", usageJSON["principalId"].(string))
-						assert.Equal(r, "TestAccount1", usageJSON["accountId"].(string))
+						assert.Equal(r, "123456789012", usageJSON["accountId"].(string))
 						assert.Equal(r, 2000.00, usageJSON["costAmount"].(float64))
 					}
 				})
@@ -2266,20 +2266,23 @@ func createUsage(t *testing.T, apiURL string, usageSvc usage.Service) {
 	timeToLive := startDate.AddDate(0, 0, ttl)
 
 	var testPrincipalID = "TestUser1"
-	var testAccountID = "TestAccount1"
+	var testAccountID = "123456789012"
 
 	for i := 1; i <= 5; i++ {
 
-		input := usage.Usage{
-			PrincipalID:  testPrincipalID,
-			AccountID:    testAccountID,
-			StartDate:    startDate.Unix(),
-			EndDate:      endDate.Unix(),
-			CostAmount:   2000.00,
-			CostCurrency: "USD",
-			TimeToLive:   timeToLive.Unix(),
-		}
-		err := usageSvc.PutUsage(input)
+		input, err := usage.NewUsage(
+			usage.NewUsageInput{
+				PrincipalID:  testPrincipalID,
+				AccountID:    testAccountID,
+				StartDate:    startDate.Unix(),
+				EndDate:      endDate.Unix(),
+				CostAmount:   2000.00,
+				CostCurrency: "USD",
+				TimeToLive:   timeToLive.Unix(),
+			},
+		)
+		require.Nil(t, err)
+		err = usageSvc.PutUsage(*input)
 		require.Nil(t, err)
 
 		usageEndDate = endDate
