@@ -40,3 +40,11 @@ func isNil(value interface{}) error {
 	}
 	return nil
 }
+
+func isLeaseActive(value interface{}) error {
+	s, _ := value.(*Status)
+	if s.String() != StatusActive.String() {
+		return errors.New("must be active lease")
+	}
+	return nil
+}

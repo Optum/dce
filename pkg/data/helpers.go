@@ -65,8 +65,3 @@ func getItem(input *dynamodb.GetItemInput, dataInterface dynamodbiface.DynamoDBA
 	output, err := dataInterface.GetItem(input)
 	return output, err
 }
-
-func deleteItem(input *dynamodb.DeleteItemInput, dataInterface dynamodbiface.DynamoDBAPI) (*dynamodb.DeleteItemOutput, error) {
-	output, err := dataInterface.DeleteItem(input)
-	return output, err
-}

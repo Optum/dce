@@ -109,3 +109,9 @@ const (
 	// which means the leases are also made Inactive
 	StatusReasonAccountOrphaned StatusReason = "LeaseAccountOrphaned"
 )
+
+// StatusReasonPtr returns a pointer to the string value of StatusReason
+func (c StatusReason) StatusReasonPtr() *StatusReason {
+	v := c
+	return &v
+}
