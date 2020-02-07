@@ -1,6 +1,7 @@
 package config
 
 import (
+	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"log"
 	"reflect"
 	"runtime"
@@ -93,6 +94,13 @@ func (bldr *ServiceBuilder) WithDynamoDB() *ServiceBuilder {
 // WithS3 tells the builder to add an AWS S3 service to the `DefaultConfigurater`
 func (bldr *ServiceBuilder) WithS3() *ServiceBuilder {
 	bldr.handlers = append(bldr.handlers, bldr.createS3)
+	return bldr
+}
+
+
+// WithCloudWatchService tells the builder to add an AWS Cognito service to the `DefaultConfigurater`
+func (bldr *ServiceBuilder) WithCloudWatchService() *ServiceBuilder {
+	bldr.handlers = append(bldr.handlers, bldr.createCloudWatch)
 	return bldr
 }
 
@@ -278,6 +286,20 @@ func (bldr *ServiceBuilder) createS3(config ConfigurationServiceBuilder) error {
 	}
 	s3Svc := s3.New(bldr.awsSession)
 	config.WithService(s3Svc)
+	return nil
+}
+
+func (bldr *ServiceBuilder) createCloudWatch(config ConfigurationServiceBuilder) error {
+	// Don't add the service twice
+	var api cloudwatch.CloudWatch
+	err := bldr.Config.GetService(&api)
+	if err == nil {
+		log.Printf("Already added CloudWatch service")
+		return nil
+	}
+
+	cloudWatchSvc := cloudwatch.New(bldr.awsSession)
+	config.WithService(cloudWatchSvc)
 	return nil
 }
 
