@@ -47,15 +47,11 @@ type DB struct {
 type DBer interface {
 	GetAccount(accountID string) (*Account, error)
 	GetReadyAccount() (*Account, error)
-	GetAccounts(input GetAccountsInput) (GetAccountsOutput, error)
 	GetLease(accountID string, principalID string) (*Lease, error)
 	GetLeases(input GetLeasesInput) (GetLeasesOutput, error)
 	GetLeaseByID(leaseID string) (*Lease, error)
 	FindAccountsByStatus(status AccountStatus) ([]*Account, error)
-	FindAccountsByPrincipalID(principalID string) ([]*Account, error)
 	PutAccount(account Account) error
-	UpdateAccount(account Account, fieldsToUpdate []string) (*Account, error)
-	DeleteAccount(accountID string) (*Account, error)
 	PutLease(lease Lease) (*Lease, error)
 	UpsertLease(lease Lease) (*Lease, error)
 	TransitionAccountStatus(accountID string, prevStatus AccountStatus, nextStatus AccountStatus) (*Account, error)
@@ -63,7 +59,6 @@ type DBer interface {
 	FindLeasesByAccount(accountID string) ([]*Lease, error)
 	FindLeasesByPrincipal(principalID string) ([]*Lease, error)
 	FindLeasesByStatus(status LeaseStatus) ([]*Lease, error)
-	UpdateMetadata(accountID string, metadata map[string]interface{}) error
 	UpdateAccountPrincipalPolicyHash(accountID string, prevHash string, nextHash string) (*Account, error)
 	OrphanAccount(accountID string) (*Account, error)
 }
@@ -93,90 +88,6 @@ func (db *DB) GetAccount(accountID string) (*Account, error) {
 	return unmarshalAccount(result.Item)
 }
 
-// GetAccountsInput contains filtering criteria for the GetAccountsInput scan.
-type GetAccountsInput struct {
-	StartKeys map[string]string
-	AccountID string
-	Status    AccountStatus
-	Limit     int64
-}
-
-// GetAccountsOutput contains scan results as well as keys for retrieve the next page of the result set.
-type GetAccountsOutput struct {
-	Results  []*Account
-	NextKeys map[string]string
-}
-
-// GetAccounts takes a set of filtering criteria and scans Accounts table for matching records.
-func (db *DB) GetAccounts(input GetAccountsInput) (GetAccountsOutput, error) {
-	limit := int64(25)
-	filters := make([]string, 0)
-	filterValues := make(map[string]*dynamodb.AttributeValue)
-
-	if input.Limit > 0 {
-		limit = input.Limit
-	}
-
-	scanInput := &dynamodb.ScanInput{
-		TableName:      aws.String(db.AccountTableName),
-		Limit:          &limit,
-		ConsistentRead: aws.Bool(db.ConsistentRead),
-	}
-
-	// Build the filter clauses.
-	if input.AccountID != "" {
-		filters = append(filters, "Id = :accountId")
-		filterValues[":accountId"] = &dynamodb.AttributeValue{S: aws.String(input.AccountID)}
-	}
-
-	if input.Status != "" {
-		filters = append(filters, "AccountStatus = :status")
-		filterValues[":status"] = &dynamodb.AttributeValue{S: aws.String(string(input.Status))}
-	}
-
-	// This exists in case if we add more filters in future
-	if len(filters) > 0 {
-		filterStatement := strings.Join(filters, " and ")
-		scanInput.FilterExpression = &filterStatement
-		scanInput.ExpressionAttributeValues = filterValues
-	}
-
-	if input.StartKeys != nil && len(input.StartKeys) > 0 {
-		scanInput.ExclusiveStartKey = make(map[string]*dynamodb.AttributeValue)
-		for k, v := range input.StartKeys {
-			scanInput.ExclusiveStartKey[k] = &dynamodb.AttributeValue{S: aws.String(v)}
-		}
-	}
-
-	output, err := db.Client.Scan(scanInput)
-
-	// Parse the results and build the next keys if necessary.
-	if err != nil {
-		return GetAccountsOutput{}, err
-	}
-
-	results := make([]*Account, 0)
-
-	for _, o := range output.Items {
-		account, err := unmarshalAccount(o)
-		if err != nil {
-			return GetAccountsOutput{}, err
-		}
-		results = append(results, account)
-	}
-
-	nextKey := make(map[string]string)
-
-	for k, v := range output.LastEvaluatedKey {
-		nextKey[k] = *v.S
-	}
-
-	return GetAccountsOutput{
-		Results:  results,
-		NextKeys: nextKey,
-	}, nil
-}
-
 // GetReadyAccount returns an available account record with a
 // corresponding status of 'Ready'
 func (db *DB) GetReadyAccount() (*Account, error) {
@@ -198,36 +109,6 @@ func (db *DB) FindAccountsByStatus(status AccountStatus) ([]*Account, error) {
 			},
 		},
 		KeyConditionExpression: aws.String("AccountStatus = :status"),
-	})
-
-	accounts := []*Account{}
-
-	if err != nil {
-		return accounts, err
-	}
-
-	for _, item := range res.Items {
-		acct, err := unmarshalAccount(item)
-		if err != nil {
-			return accounts, err
-		}
-		accounts = append(accounts, acct)
-	}
-
-	return accounts, nil
-}
-
-// FindAccountsByPrincipalID finds accounts by principalID
-func (db *DB) FindAccountsByPrincipalID(principalID string) ([]*Account, error) {
-	res, err := db.Client.Query(&dynamodb.QueryInput{
-		TableName: aws.String(db.AccountTableName),
-		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-			":pid": {
-				S: aws.String(string(principalID)),
-			},
-		},
-		KeyConditionExpression: aws.String("PrincipalId = :pid"),
-		ConsistentRead:         aws.Bool(db.ConsistentRead),
 	})
 
 	accounts := []*Account{}
@@ -446,61 +327,6 @@ func (db *DB) PutAccount(account Account) error {
 		},
 	)
 	return err
-}
-
-// UpdateAccount updates an existing account record.
-// fails if the account does not exist
-func (db *DB) UpdateAccount(account Account, fieldsToUpdate []string) (*Account, error) {
-	// Verify the account has an ID
-	if account.ID == "" {
-		return nil, errors.New("unable to update account: account has no ID")
-	}
-
-	// Update timestamps
-	account.LastModifiedOn = time.Now().Unix()
-	fieldsToUpdate = append(fieldsToUpdate, "LastModifiedOn")
-
-	// Create an update expression for the account object
-	expr, err := buildUpdateExpression(&buildUpdateExpressInput{
-		obj:           account,
-		includeFields: fieldsToUpdate,
-	})
-	if err != nil {
-		return nil, errors2.Wrapf(err, "Failed to update account %s", account.ID)
-	}
-
-	// Update the Account record
-	exprValues := expr.Values()
-	exprValues[":id"] = &dynamodb.AttributeValue{S: &account.ID}
-	res, err := db.Client.UpdateItem(&dynamodb.UpdateItemInput{
-		TableName: &db.AccountTableName,
-		Key: map[string]*dynamodb.AttributeValue{
-			"Id": {S: &account.ID},
-		},
-		// Make sure the record we're updating has an ID.
-		// This, in effect, enforces that the record already exists
-		ConditionExpression:       aws.String("Id = :id"),
-		ExpressionAttributeNames:  expr.Names(),
-		ExpressionAttributeValues: exprValues,
-		UpdateExpression:          expr.Update(),
-		ReturnValues:              aws.String("ALL_NEW"),
-	})
-	if err != nil {
-		// If our condition check fails, if means the account
-		// doesn't exist
-		if aerr, ok := err.(awserr.Error); ok {
-			if aerr.Code() == "ConditionalCheckFailedException" {
-				return nil, &NotFoundError{
-					fmt.Sprintf(
-						"Unable to update account %s: account does not exist", account.ID,
-					),
-				}
-			}
-		}
-		return nil, err
-	}
-
-	return unmarshalAccount(res.Attributes)
 }
 
 // PutLease writes an Lease to DynamoDB
@@ -779,41 +605,6 @@ func (db *DB) UpdateAccountPrincipalPolicyHash(accountID string, prevHash string
 	return unmarshalAccount(result.Attributes)
 }
 
-// DeleteAccount finds a given account and deletes it if it is not of status `Leased`. Returns the account.
-func (db *DB) DeleteAccount(accountID string) (*Account, error) {
-	account, err := db.GetAccount(accountID)
-
-	if err != nil {
-		errorMessage := fmt.Sprintf("Failed to query account \"%s\": %s.", accountID, err)
-		log.Print(errorMessage)
-		return nil, errors.New(errorMessage)
-	}
-
-	if account == nil {
-		errorMessage := fmt.Sprintf("No account found with ID \"%s\".", accountID)
-		log.Print(errorMessage)
-		return nil, &AccountNotFoundError{err: errorMessage}
-	}
-
-	if account.AccountStatus == Leased {
-		errorMessage := fmt.Sprintf("Unable to delete account \"%s\": account is leased.", accountID)
-		log.Print(errorMessage)
-		return account, &AccountLeasedError{err: errorMessage}
-	}
-
-	input := &dynamodb.DeleteItemInput{
-		TableName: &db.AccountTableName,
-		Key: map[string]*dynamodb.AttributeValue{
-			"Id": {
-				S: aws.String(accountID),
-			},
-		},
-	}
-
-	_, err = db.Client.DeleteItem(input)
-	return account, err
-}
-
 // GetLeasesInput contains the filtering criteria for the GetLeases scan.
 type GetLeasesInput struct {
 	StartKeys   map[string]string
@@ -901,42 +692,6 @@ func (db *DB) GetLeases(input GetLeasesInput) (GetLeasesOutput, error) {
 		Results:  results,
 		NextKeys: nextKey,
 	}, nil
-}
-
-// UpdateMetadata updates the metadata field of an account, overwriting the old value completely with a new one
-func (db *DB) UpdateMetadata(accountID string, metadata map[string]interface{}) error {
-	serialized, err := dynamodbattribute.Marshal(metadata)
-
-	if err != nil {
-		log.Printf("Failed to marshall metadata map for updating account %s: %s", accountID, err)
-		return err
-	}
-
-	_, err = db.Client.UpdateItem(
-		&dynamodb.UpdateItemInput{
-			TableName: aws.String(db.AccountTableName),
-			Key: map[string]*dynamodb.AttributeValue{
-				"Id": {
-					S: aws.String(accountID),
-				},
-			},
-			UpdateExpression: aws.String("set Metadata=:metadata, " +
-				"LastModifiedOn=:lastModifiedOn"),
-			ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-				":metadata": serialized,
-				":lastModifiedOn": {
-					N: aws.String(strconv.FormatInt(time.Now().Unix(), 10)),
-				},
-			},
-		},
-	)
-
-	if err != nil {
-		log.Printf("Failed to execute metadata update for account %s: %s", accountID, err)
-		return err
-	}
-
-	return nil
 }
 
 // OrphanAccount puts account in Oprhaned status and inactivates any active leases
