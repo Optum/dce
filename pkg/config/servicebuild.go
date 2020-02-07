@@ -97,7 +97,6 @@ func (bldr *ServiceBuilder) WithS3() *ServiceBuilder {
 	return bldr
 }
 
-
 // WithCloudWatchService tells the builder to add an AWS Cognito service to the `DefaultConfigurater`
 func (bldr *ServiceBuilder) WithCloudWatchService() *ServiceBuilder {
 	bldr.handlers = append(bldr.handlers, bldr.createCloudWatch)

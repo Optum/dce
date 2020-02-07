@@ -61,7 +61,7 @@ func getMetric(status account.Status) CountMetric {
 	}
 
 	return CountMetric{
-		name: status.String(),
+		name:  status.String(),
 		count: len(*accounts),
 	}
 }
@@ -94,7 +94,6 @@ func publishMetrics(namespace string, countMetrics CountMetric) {
 		log.Fatalln(err)
 	}
 }
-
 
 // Handler - Handle the lambda function
 func Handler(cloudWatchEvent events.CloudWatchEvent) {

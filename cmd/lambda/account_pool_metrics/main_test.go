@@ -14,27 +14,27 @@ import (
 func TestRefreshMetrics(t *testing.T) {
 
 	tests := []struct {
-		name       string
-		status     account.Status
+		name   string
+		status account.Status
 	}{
 		{
-			name: "get ready accounts",
+			name:   "get ready accounts",
 			status: account.StatusReady,
 		},
 		{
-			name: "get not ready accounts",
+			name:   "get not ready accounts",
 			status: account.StatusNotReady,
 		},
 		{
-			name: "get leased accounts",
+			name:   "get leased accounts",
 			status: account.StatusLeased,
 		},
 		{
-			name: "get orphaned accounts",
+			name:   "get orphaned accounts",
 			status: account.StatusOrphaned,
 		},
 	}
-	for _, tt := range tests{
+	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// arrange
 			accountSvc := accountMocks.Servicer{}
