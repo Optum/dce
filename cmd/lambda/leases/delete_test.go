@@ -142,6 +142,70 @@ func TestDeleteLease(t *testing.T) {
 			getErr: nil,
 		},
 		{
+			name: "When delete input is missing accountID",
+			inputLease: &lease.Lease{
+				PrincipalID: ptrString("principal"),
+			},
+			getLeases: &lease.Leases{
+				lease.Lease{
+					ID:          ptrString("123"),
+					AccountID:   ptrString("123456789012"),
+					PrincipalID: ptrString("User1"),
+				},
+			},
+			expResp: response{
+				StatusCode: 400,
+				Body:       "{\"error\":{\"message\":\"invalid request parameters: missing AccountID\",\"code\":\"ClientError\"}}\n",
+			},
+			expLease: &lease.Lease{
+				ID:           ptrString("abc123"),
+				Status:       lease.StatusInactive.StatusPtr(),
+				StatusReason: lease.StatusReasonExpired.StatusReasonPtr(),
+				PrincipalID:  ptrString("principal"),
+				AccountID:    ptrString("123456789012"),
+			},
+			getErr: nil,
+		},
+		{
+			name: "When delete input is missing principalID",
+			inputLease: &lease.Lease{
+				AccountID: ptrString("User1"),
+			},
+			getLeases: nil,
+			expResp: response{
+				StatusCode: 400,
+				Body:       "{\"error\":{\"message\":\"invalid request parameters: missing PrincipalID\",\"code\":\"ClientError\"}}\n",
+			},
+			expLease: &lease.Lease{
+				ID:           ptrString("abc123"),
+				Status:       lease.StatusInactive.StatusPtr(),
+				StatusReason: lease.StatusReasonExpired.StatusReasonPtr(),
+				PrincipalID:  ptrString("principal"),
+				AccountID:    ptrString("123456789012"),
+			},
+			getErr: nil,
+		},
+		{
+			name: "When no matching lease found error",
+			inputLease: &lease.Lease{
+				PrincipalID: ptrString("principal"),
+				AccountID:   ptrString("123456789012"),
+			},
+			getLeases: &lease.Leases{},
+			expResp: response{
+				StatusCode: 400,
+				Body:       "{\"error\":{\"code\":\"RequestValidationError\",\"message\":\"No leases found for Principal \\\"principal\\\" and Account ID \\\"123456789012\\\"\"}}",
+			},
+			expLease: &lease.Lease{
+				ID:           ptrString("abc123"),
+				Status:       lease.StatusInactive.StatusPtr(),
+				StatusReason: lease.StatusReasonExpired.StatusReasonPtr(),
+				PrincipalID:  ptrString("principal"),
+				AccountID:    ptrString("123456789012"),
+			},
+			getErr: nil,
+		},
+		{
 			name: "When Delete lease service returns a failure",
 			inputLease: &lease.Lease{
 				PrincipalID: ptrString("principal"),

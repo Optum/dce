@@ -40,6 +40,18 @@ func DeleteLease(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if queryLease.AccountID == nil {
+		api.WriteAPIErrorResponse(w,
+			errors.NewBadRequest("invalid request parameters: missing AccountID"))
+		return
+	}
+
+	if queryLease.PrincipalID == nil {
+		api.WriteAPIErrorResponse(w,
+			errors.NewBadRequest("invalid request parameters: missing PrincipalID"))
+		return
+	}
+
 	leases, err := Services.Config.LeaseService().List(queryLease)
 	if err != nil {
 		api.WriteAPIErrorResponse(w, err)
