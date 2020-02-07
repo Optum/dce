@@ -9,8 +9,6 @@ import (
 	"os"
 	"reflect"
 
-	"github.com/Optum/dce/pkg/account/accountiface"
-	"github.com/Optum/dce/pkg/lease/leaseiface"
 	"github.com/caarlos0/env"
 	"github.com/mitchellh/mapstructure"
 )
@@ -257,26 +255,4 @@ func getKeyPtrs(aMap map[string]ParameterStoreVal) []*string {
 		keys = append(keys, &newK)
 	}
 	return keys
-}
-
-// AccountService returns the account Service for you
-func (config *ConfigurationBuilder) AccountService() accountiface.Servicer {
-
-	var accountService accountiface.Servicer
-	if err := config.GetService(&accountService); err != nil {
-		panic(err)
-	}
-
-	return accountService
-}
-
-// LeaseSvc returns the lease Service for you
-func (config *ConfigurationBuilder) LeaseService() leaseiface.Servicer {
-
-	var leaseSvc leaseiface.Servicer
-	if err := config.GetService(&leaseSvc); err != nil {
-		panic(err)
-	}
-
-	return leaseSvc
 }
