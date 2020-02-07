@@ -23,7 +23,7 @@ require (
 	github.com/pquerna/otp v1.2.0 // indirect
 	github.com/rebuy-de/aws-nuke v0.0.0-00010101000000-000000000000
 	github.com/stretchr/testify v1.4.0
-	golang.org/x/crypto v0.0.0-20190418165655-df01cb2cc480 // indirect
+	golang.org/x/crypto v0.0.0-20190418165655-df01cb2cc480
 	golang.org/x/text v0.3.2 // indirect
 	google.golang.org/appengine v1.4.0 // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect

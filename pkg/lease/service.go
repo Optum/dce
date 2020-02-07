@@ -120,6 +120,40 @@ func (a *Service) List(query *Lease) (*Leases, error) {
 	return leases, nil
 }
 
+// Create creates a new lease using the data provided. Returns the lease record
+func (a *Service) Create(data *Lease) (*Lease, error) {
+	// Validate the incoming record doesn't have unneeded fields
+	err := validation.ValidateStruct(data,
+		validation.Field(&data.AccountID, validateAccountID...),
+		validation.Field(&data.PrincipalID, validatePrincipalID...),
+		validation.Field(&data.ID, validation.By(isNil)),
+		validation.Field(&data.Status, validation.By(isNil)),
+		validation.Field(&data.LastModifiedOn, validation.By(isNil)),
+		validation.Field(&data.CreatedOn, validation.By(isNil)),
+		validation.Field(&data.StatusReason, validation.By(isNil)),
+	)
+	if err != nil {
+		return nil, errors.NewValidation("lease", err)
+	}
+
+	// Check if principal already has an active lease
+	existingLeases, err := a.List(data)
+	if err != nil {
+		return nil, errors.NewInternalServer("lease", err)
+	}
+	if len(*existingLeases) > 0 {
+		return nil, errors.NewAlreadyExists("lease", *data.ID)
+	}
+
+	data.Status = StatusActive.StatusPtr()
+	err = a.Save(data)
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
+}
+
 // NewServiceInput Input for creating a new Service
 type NewServiceInput struct {
 	DataSvc  ReaderWriterDeleter
