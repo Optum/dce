@@ -24,7 +24,7 @@ type Nuke struct {
 // aws-nuke to access an account to nuke.
 func (nuke Nuke) NewAccount(creds awsutil.Credentials) (*awsutil.Account,
 	error) {
-	return awsutil.NewAccount(creds)
+	return awsutil.NewAccount(creds, config.CustomEndpoints{})
 }
 
 // Load returns an aws-nuke Nuke configuration with the provided configuration

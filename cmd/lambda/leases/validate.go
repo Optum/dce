@@ -74,7 +74,7 @@ func validateLeaseFromRequest(context *leaseValidationContext, req *http.Request
 	// Group by PrincipalID to get sum of total spent for current billing period
 	spent := 0.0
 	for _, usageItem := range usageRecords {
-		spent = spent + usageItem.CostAmount
+		spent = spent + *usageItem.CostAmount
 	}
 
 	if spent > context.principalBudgetAmount {

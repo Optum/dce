@@ -6,6 +6,7 @@ import (
 	"runtime"
 
 	"github.com/Optum/dce/pkg/account"
+	"github.com/Optum/dce/pkg/account/accountiface"
 	"github.com/Optum/dce/pkg/accountmanager"
 	"github.com/Optum/dce/pkg/accountmanager/accountmanageriface"
 	"github.com/Optum/dce/pkg/common"
@@ -14,12 +15,17 @@ import (
 	"github.com/Optum/dce/pkg/event"
 	"github.com/Optum/dce/pkg/event/eventiface"
 	"github.com/Optum/dce/pkg/lease"
+	"github.com/Optum/dce/pkg/lease/leaseiface"
 
+	"github.com/aws/aws-sdk-go/service/codebuild/codebuildiface"
+	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider/cognitoidentityprovideriface"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
+	"github.com/aws/aws-sdk-go/service/s3/s3iface"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/aws/aws-sdk-go/service/sns/snsiface"
 	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
 	"github.com/aws/aws-sdk-go/service/ssm"
+	"github.com/aws/aws-sdk-go/service/ssm/ssmiface"
 	"github.com/aws/aws-sdk-go/service/sts/stsiface"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -110,42 +116,49 @@ func (bldr *ServiceBuilder) WithSSM() *ServiceBuilder {
 
 // WithStorageService tells the builder to add the DCE DAO (DBer) service to the `ConfigurationBuilder`
 func (bldr *ServiceBuilder) WithStorageService() *ServiceBuilder {
+	bldr.WithS3()
 	bldr.handlers = append(bldr.handlers, bldr.createStorageService)
 	return bldr
 }
 
 // WithAccountDataService tells the builder to add the Data service to the `ConfigurationBuilder`
 func (bldr *ServiceBuilder) WithAccountDataService() *ServiceBuilder {
+	bldr.WithDynamoDB()
 	bldr.handlers = append(bldr.handlers, bldr.createAccountDataService)
 	return bldr
 }
 
 // WithLeaseDataService tells the builder to add the Data service to the `ConfigurationBuilder`
 func (bldr *ServiceBuilder) WithLeaseDataService() *ServiceBuilder {
+	bldr.WithDynamoDB()
 	bldr.handlers = append(bldr.handlers, bldr.createLeaseDataService)
 	return bldr
 }
 
 // WithAccountManagerService tells the builder to add the Data service to the `ConfigurationBuilder`
 func (bldr *ServiceBuilder) WithAccountManagerService() *ServiceBuilder {
+	bldr.WithSTS().WithStorageService()
 	bldr.handlers = append(bldr.handlers, bldr.createAccountManagerService)
 	return bldr
 }
 
 // WithAccountService tells the builder to add the Account service to the `ConfigurationBuilder`
 func (bldr *ServiceBuilder) WithAccountService() *ServiceBuilder {
+	bldr.WithAccountManagerService().WithEventService().WithAccountDataService()
 	bldr.handlers = append(bldr.handlers, bldr.createAccountService)
 	return bldr
 }
 
 // WithLeaseService tells the builder to add the Account service to the `ConfigurationBuilder`
 func (bldr *ServiceBuilder) WithLeaseService() *ServiceBuilder {
+	bldr.WithLeaseDataService().WithEventService()
 	bldr.handlers = append(bldr.handlers, bldr.createLeaseService)
 	return bldr
 }
 
 // WithEventService tells the builder to add the Account service to the `ConfigurationBuilder`
 func (bldr *ServiceBuilder) WithEventService() *ServiceBuilder {
+	bldr.WithSQS().WithSNS()
 	bldr.handlers = append(bldr.handlers, bldr.createEventService)
 	return bldr
 }
@@ -203,54 +216,121 @@ func (bldr *ServiceBuilder) createSession(config ConfigurationServiceBuilder) er
 }
 
 func (bldr *ServiceBuilder) createSTS(config ConfigurationServiceBuilder) error {
+	// Don't add the service twice
+	var api stsiface.STSAPI
+	err := bldr.Config.GetService(&api)
+	if err == nil {
+		log.Printf("Already added STS service")
+		return nil
+	}
+
 	stsSvc := sts.New(bldr.awsSession)
 	config.WithService(stsSvc)
 	return nil
 }
 
 func (bldr *ServiceBuilder) createSNS(config ConfigurationServiceBuilder) error {
+	// Don't add the service twice
+	var api snsiface.SNSAPI
+	err := bldr.Config.GetService(&api)
+	if err == nil {
+		log.Printf("Already added SNS service")
+		return nil
+	}
 	snsSvc := sns.New(bldr.awsSession)
 	config.WithService(snsSvc)
 	return nil
 }
 
 func (bldr *ServiceBuilder) createSQS(config ConfigurationServiceBuilder) error {
+	// Don't add the service twice
+	var api sqsiface.SQSAPI
+	err := bldr.Config.GetService(&api)
+	if err == nil {
+		log.Printf("Already added SQS service")
+		return nil
+	}
 	sqsSvc := sqs.New(bldr.awsSession)
 	config.WithService(sqsSvc)
 	return nil
 }
 
 func (bldr *ServiceBuilder) createDynamoDB(config ConfigurationServiceBuilder) error {
+	// Don't add the service twice
+	var api dynamodbiface.DynamoDBAPI
+	err := bldr.Config.GetService(&api)
+	if err == nil {
+		log.Printf("Already added DynamoDB service")
+		return nil
+	}
 	dynamodbSvc := dynamodb.New(bldr.awsSession)
 	config.WithService(dynamodbSvc)
 	return nil
 }
 
 func (bldr *ServiceBuilder) createS3(config ConfigurationServiceBuilder) error {
+	// Don't add the service twice
+	var api s3iface.S3API
+	err := bldr.Config.GetService(&api)
+	if err == nil {
+		log.Printf("Already added S3 service")
+		return nil
+	}
 	s3Svc := s3.New(bldr.awsSession)
 	config.WithService(s3Svc)
 	return nil
 }
 
 func (bldr *ServiceBuilder) createCognito(config ConfigurationServiceBuilder) error {
+	// Don't add the service twice
+	var api cognitoidentityprovideriface.CognitoIdentityProviderAPI
+	err := bldr.Config.GetService(&api)
+	if err == nil {
+		log.Printf("Already added Cognito service")
+		return nil
+	}
+
 	cognitoSvc := cognitoidentityprovider.New(bldr.awsSession)
 	config.WithService(cognitoSvc)
 	return nil
 }
 
 func (bldr *ServiceBuilder) createCodeBuild(config ConfigurationServiceBuilder) error {
+	// Don't add the service twice
+	var codeBuildAPI codebuildiface.CodeBuildAPI
+	err := bldr.Config.GetService(&codeBuildAPI)
+	if err == nil {
+		log.Printf("Already added CodeBuild service")
+		return nil
+	}
+
 	codeBuildSvc := codebuild.New(bldr.awsSession)
 	config.WithService(codeBuildSvc)
 	return nil
 }
 
 func (bldr *ServiceBuilder) createSSM(config ConfigurationServiceBuilder) error {
+	// Don't add the service twice
+	var ssmAPI ssmiface.SSMAPI
+	err := bldr.Config.GetService(&ssmAPI)
+	if err == nil {
+		log.Printf("Already added SSM service")
+		return nil
+	}
+
 	SSMSvc := ssm.New(bldr.awsSession)
 	config.WithService(SSMSvc)
 	return nil
 }
 
 func (bldr *ServiceBuilder) createStorageService(config ConfigurationServiceBuilder) error {
+	// Don't add the service twice
+	var api common.Storager
+	err := bldr.Config.GetService(&api)
+	if err == nil {
+		log.Printf("Already added Storage service")
+		return nil
+	}
 
 	storageService := &common.S3{
 		Client:  s3.New(bldr.awsSession),
@@ -262,9 +342,16 @@ func (bldr *ServiceBuilder) createStorageService(config ConfigurationServiceBuil
 }
 
 func (bldr *ServiceBuilder) createEventService(config ConfigurationServiceBuilder) error {
+	// Don't add the service twice
+	var api eventiface.Servicer
+	err := bldr.Config.GetService(&api)
+	if err == nil {
+		log.Printf("Already added Eventer service")
+		return nil
+	}
 
 	var sqsService sqsiface.SQSAPI
-	err := bldr.Config.GetService(&sqsService)
+	err = bldr.Config.GetService(&sqsService)
 	if err != nil {
 		return err
 	}
@@ -293,8 +380,16 @@ func (bldr *ServiceBuilder) createEventService(config ConfigurationServiceBuilde
 }
 
 func (bldr *ServiceBuilder) createAccountDataService(config ConfigurationServiceBuilder) error {
+	// Don't add the service twice
+	var api dataiface.AccountData
+	err := bldr.Config.GetService(&api)
+	if err == nil {
+		log.Printf("Already added Account Data service")
+		return nil
+	}
+
 	var dynamodbSvc dynamodbiface.DynamoDBAPI
-	err := bldr.Config.GetService(&dynamodbSvc)
+	err = bldr.Config.GetService(&dynamodbSvc)
 	if err != nil {
 		return err
 	}
@@ -313,8 +408,16 @@ func (bldr *ServiceBuilder) createAccountDataService(config ConfigurationService
 }
 
 func (bldr *ServiceBuilder) createAccountManagerService(config ConfigurationServiceBuilder) error {
+	// Don't add the service twice
+	var api accountmanageriface.Servicer
+	err := bldr.Config.GetService(&api)
+	if err == nil {
+		log.Printf("Already added Account Manager service")
+		return nil
+	}
+
 	amSvcConfig := accountmanager.ServiceConfig{}
-	err := bldr.Config.Unmarshal(&amSvcConfig)
+	err = bldr.Config.Unmarshal(&amSvcConfig)
 	if err != nil {
 		return err
 	}
@@ -347,8 +450,16 @@ func (bldr *ServiceBuilder) createAccountManagerService(config ConfigurationServ
 }
 
 func (bldr *ServiceBuilder) createAccountService(config ConfigurationServiceBuilder) error {
+	// Don't add the service twice
+	var api accountiface.Servicer
+	err := bldr.Config.GetService(&api)
+	if err == nil {
+		log.Printf("Already added Account service")
+		return nil
+	}
+
 	var dataSvc dataiface.AccountData
-	err := bldr.Config.GetService(&dataSvc)
+	err = bldr.Config.GetService(&dataSvc)
 	if err != nil {
 		return err
 	}
@@ -382,8 +493,16 @@ func (bldr *ServiceBuilder) createAccountService(config ConfigurationServiceBuil
 }
 
 func (bldr *ServiceBuilder) createLeaseDataService(config ConfigurationServiceBuilder) error {
+	// Don't add the service twice
+	var api dataiface.LeaseData
+	err := bldr.Config.GetService(&api)
+	if err == nil {
+		log.Printf("Already added Lease Data service")
+		return nil
+	}
+
 	var dynamodbSvc dynamodbiface.DynamoDBAPI
-	err := bldr.Config.GetService(&dynamodbSvc)
+	err = bldr.Config.GetService(&dynamodbSvc)
 
 	if err != nil {
 		return err
@@ -403,8 +522,16 @@ func (bldr *ServiceBuilder) createLeaseDataService(config ConfigurationServiceBu
 }
 
 func (bldr *ServiceBuilder) createLeaseService(config ConfigurationServiceBuilder) error {
+	// Don't add the service twice
+	var api leaseiface.Servicer
+	err := bldr.Config.GetService(&api)
+	if err == nil {
+		log.Printf("Already added Lease service")
+		return nil
+	}
+
 	var dataSvc dataiface.LeaseData
-	err := bldr.Config.GetService(&dataSvc)
+	err = bldr.Config.GetService(&dataSvc)
 	if err != nil {
 		return err
 	}

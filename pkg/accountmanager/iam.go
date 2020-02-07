@@ -41,6 +41,22 @@ func (p *principalService) MergeRole() error {
 	return nil
 }
 
+func (p *principalService) DeleteRole() error {
+
+	_, err := p.iamSvc.DeleteRole(&iam.DeleteRoleInput{
+		RoleName: p.account.PrincipalRoleArn.IAMResourceName(),
+	})
+	if err != nil {
+		if isAWSNoSuchEntityError(err) {
+			log.Print(err.Error() + " (Ignoring)")
+		} else {
+			return errors.NewInternalServer(fmt.Sprintf("unexpected error deleting the role %q", p.account.PrincipalRoleArn.String()), err)
+		}
+	}
+
+	return nil
+}
+
 func (p *principalService) MergePolicy() error {
 
 	policy, policyHash, err := p.buildPolicy()
@@ -89,6 +105,38 @@ func (p *principalService) MergePolicy() error {
 	return nil
 }
 
+func (p *principalService) DeletePolicy() error {
+
+	versions, err := p.iamSvc.ListPolicyVersions(&iam.ListPolicyVersionsInput{
+		PolicyArn: aws.String(p.account.PrincipalPolicyArn.String()),
+	})
+	if err != nil {
+		return errors.NewInternalServer(fmt.Sprintf("unexpected error listing policy versions on %q", p.account.PrincipalPolicyArn.String()), err)
+	}
+	for _, version := range versions.Versions {
+		if !*version.IsDefaultVersion {
+			err = p.deletePolicyVersion(version)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	_, err = p.iamSvc.DeletePolicy(&iam.DeletePolicyInput{
+		PolicyArn: aws.String(p.account.PrincipalPolicyArn.String()),
+	})
+
+	if err != nil {
+		if isAWSNoSuchEntityError(err) {
+			log.Print(err.Error() + " (Ignoring)")
+		} else {
+			return errors.NewInternalServer(fmt.Sprintf("unexpected error deleting the policy %q", p.account.PrincipalPolicyArn.String()), err)
+		}
+	}
+
+	return nil
+}
+
 func (p *principalService) AttachRoleWithPolicy() error {
 
 	// Attach the policy to the role
@@ -102,6 +150,26 @@ func (p *principalService) AttachRoleWithPolicy() error {
 		} else {
 			return errors.NewInternalServer(
 				fmt.Sprintf("unexpected error attaching policy %q to role %q", p.account.PrincipalPolicyArn.String(), p.account.PrincipalRoleArn.String()),
+				err)
+		}
+	}
+
+	return nil
+}
+
+func (p *principalService) DetachRoleWithPolicy() error {
+
+	// Detach the policy to the role
+	_, err := p.iamSvc.DetachRolePolicy(&iam.DetachRolePolicyInput{
+		PolicyArn: aws.String(p.account.PrincipalPolicyArn.String()),
+		RoleName:  p.account.PrincipalRoleArn.IAMResourceName(),
+	})
+	if err != nil {
+		if isAWSNoSuchEntityError(err) {
+			log.Print(err.Error() + " (Ignoring)")
+		} else {
+			return errors.NewInternalServer(
+				fmt.Sprintf("unexpected error detaching policy %q from role %q", p.account.PrincipalPolicyArn.String(), p.account.PrincipalRoleArn.String()),
 				err)
 		}
 	}
@@ -176,7 +244,7 @@ func (p *principalService) deletePolicyVersion(version *iam.PolicyVersion) error
 	_, err := p.iamSvc.DeletePolicyVersion(request)
 	if err != nil {
 		return errors.NewInternalServer(
-			fmt.Sprintf("unexpected error deleting policy version on policy %q with version %q", *version.VersionId, p.account.PrincipalPolicyArn.String()),
+			fmt.Sprintf("unexpected error deleting policy version %q on policy %q", *version.VersionId, p.account.PrincipalPolicyArn.String()),
 			err,
 		)
 	}

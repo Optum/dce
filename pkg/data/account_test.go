@@ -30,11 +30,12 @@ func TestGetAccountByID(t *testing.T) {
 			name:      "should return an account object",
 			accountID: "123456789012",
 			expectedAccount: &account.Account{
-				ID:             ptrString("123456789012"),
-				Status:         account.StatusReady.StatusPtr(),
-				LastModifiedOn: ptrInt64(1573592058),
-				CreatedOn:      ptrInt64(1573592058),
-				AdminRoleArn:   arn.New("aws", "iam", "", "123456789012", "role/AdminRoleArn"),
+				ID:                 ptrString("123456789012"),
+				Status:             account.StatusReady.StatusPtr(),
+				LastModifiedOn:     ptrInt64(1573592058),
+				CreatedOn:          ptrInt64(1573592058),
+				AdminRoleArn:       arn.New("aws", "iam", "", "123456789012", "role/AdminRoleArn"),
+				PrincipalPolicyArn: arn.New("aws", "iam", "", "123456789012", "policy/DCEPrincipalDefaultPolicy"),
 			},
 			dynamoErr: nil,
 			dynamoOutput: &dynamodb.GetItemOutput{
