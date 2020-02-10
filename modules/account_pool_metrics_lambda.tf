@@ -44,6 +44,7 @@ resource "aws_lambda_permission" "allow_cloudwatch_to_call_account_pool_metrics_
 }
 
 resource "aws_cloudwatch_metric_alarm" "orphaned_accounts" {
+  count                     = local.account_pool_metrics_count
   alarm_name                = "orphaned-accounts"
   comparison_operator       = "GreaterThanOrEqualToThreshold"
   evaluation_periods        = "2"
@@ -57,6 +58,7 @@ resource "aws_cloudwatch_metric_alarm" "orphaned_accounts" {
 }
 
 resource "aws_cloudwatch_metric_alarm" "too_few_ready_accounts" {
+  count                     = local.account_pool_metrics_count
   alarm_name                = "ready-accounts"
   comparison_operator       = "LessThanOrEqualToThreshold"
   evaluation_periods        = "2"
