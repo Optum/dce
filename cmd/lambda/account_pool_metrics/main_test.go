@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-func TestRefreshMetrics(t *testing.T) {
+func TestGetMetrics(t *testing.T) {
 
 	tests := []struct {
 		name   string
