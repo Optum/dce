@@ -233,7 +233,7 @@ func (a *Service) Delete(data *Account) error {
 	return nil
 }
 
-// List Get a list of accounts based on Principal ID
+// List Get a list of accounts based on a query
 func (a *Service) List(query *Account) (*Accounts, error) {
 
 	accounts, err := a.dataSvc.List(query)
@@ -242,6 +242,25 @@ func (a *Service) List(query *Account) (*Accounts, error) {
 	}
 
 	return accounts, nil
+}
+
+// ListPages Execute a function per page of accounts
+func (a *Service) ListPages(query *Account, fn func(*Accounts) bool) error {
+
+	for {
+		records, err := a.dataSvc.List(query)
+		if err != nil {
+			return err
+		}
+		if !fn(records) {
+			break
+		}
+		if query.NextID == nil {
+			break
+		}
+	}
+
+	return nil
 }
 
 // Reset initiates the Reset account process.  It will not change the status as there may
