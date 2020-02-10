@@ -28,7 +28,7 @@ func TestWhenCreate(t *testing.T) {
 		request     events.APIGatewayProxyRequest
 		retLease    *lease.Lease
 		retAccounts *account.Accounts
-		retAccount *account.Account
+		retAccount  *account.Account
 		retErr      error
 	}{
 		{
@@ -50,9 +50,9 @@ func TestWhenCreate(t *testing.T) {
 				},
 			},
 			retAccount: &account.Account{
-					ID:     ptrString("1234567890"),
-					Status: account.StatusReady.StatusPtr(),
-				},
+				ID:     ptrString("1234567890"),
+				Status: account.StatusReady.StatusPtr(),
+			},
 			retLease: &lease.Lease{},
 			retErr:   nil,
 		},
