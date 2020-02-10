@@ -27,6 +27,7 @@ func TestWhenCreate(t *testing.T) {
 		request     events.APIGatewayProxyRequest
 		retLease    *lease.Lease
 		retAccounts *account.Accounts
+		retAccount *account.Account
 		retErr      error
 	}{
 		{
@@ -47,6 +48,10 @@ func TestWhenCreate(t *testing.T) {
 					Status: account.StatusReady.StatusPtr(),
 				},
 			},
+			retAccount: &account.Account{
+					ID:     ptrString("1234567890"),
+					Status: account.StatusReady.StatusPtr(),
+				},
 			retLease: &lease.Lease{},
 			retErr:   nil,
 		},
@@ -89,16 +94,16 @@ func TestWhenCreate(t *testing.T) {
 
 			leaseSvc := mocks.Servicer{}
 			accountSvc := mocks.Servicer{}
-			accountSvc.On("List", mock.AnythingOfType("*account.Account")).Return(
+			accountSvc.On("List", mock.Anything).Return(
 				tt.retAccounts, tt.retErr,
 			)
-			accountSvc.On("Update", mock.Anything, mock.AnythingOfType("*account.Account")).Return(
-				(*tt.retAccounts)[0], tt.retErr,
+			accountSvc.On("Update", mock.Anything, mock.Anything).Return(
+				tt.retAccount, tt.retErr,
 			)
 			leaseSvc.On("Create", mock.AnythingOfType("*lease.Lease")).Return(
 				tt.retLease, tt.retErr,
 			)
-			svcBldr.Config.WithService(&leaseSvc).WithService(&accountSvc)
+			svcBldr.Config.WithService(&accountSvc).WithService(&leaseSvc)
 			_, err := svcBldr.Build()
 
 			assert.Nil(t, err)
