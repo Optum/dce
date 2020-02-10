@@ -748,6 +748,8 @@ See [AWS guide for backing up DynamoDB tables](https://docs.aws.amazon.com/amazo
 
 ## Monitor DCE
 
+### CloudWatch Dashboard
+
 DCE comes with a prebuilt CloudWatch dashboard for monitoring things like API calls, account resets, and errors. To enable
 the DCE CloudWatch Dashboard, set the `cloudwatch_dashboard_toggle` terraform variable to `true` during deployment. e.g.
 
@@ -756,6 +758,43 @@ terraform apply -var cloudwatch_dashboard_toggle=true
 ```
 
 The DCE CloudWatch Dashboard is disabled by default.
+
+### Account Pool Monitoring
+
+DCE account pool monitoring may be enabled via the `account_pool_metrics_toggle` terraform variable. Account pool monitoring
+publishes CloudWatch metrics on the number of accounts in each status (i.e. `Ready`, `Leased`, `NotReady`, and `Orphaned`).
+The following CloudWatch alarms are included: 
+
+* `ready-accounts`: triggers when the number of `Ready` accounts is below a configurable threshold. Controlled by the `ready_accounts_alarm_threshold` terraform variable.
+* `orphaned-accounts`: triggers when the number of `Orphaned` accounts is above a configurable threshold. Controlled by the `orphaned_accounts_alarm_threshold` terraform variable.
+
+To enable this feature with logical defaults, simply use:
+```
+terraform apply \
+  -var account_pool_metrics_toggle=true \
+  -var cloudwatch_dashboard_toggle=true \
+```
+
+DCE periodically queries the Accounts table to retrieve the number of accounts in each status. The frequency of these queries
+can be controlled using the `account_pool_metrics_collection_rate_expression` terraform variable.
+
+The DCE CloudWatch dashboard includes an `Account Pool` widget that displays the number of accounts in each status over time. 
+The period over which metrics are aggregated in this widget can be controlled using the `account_pool_metrics_widget_period` terraform variable.
+
+In order for data to display accurately in the `Account Pool` dashboard widget, the period of time over which data is aggregated 
+in the widget (`account_pool_metrics_widget_period`) must be shorter than the metrics sampling interval (`account_pool_metrics_collection_rate_expression`).
+Otherwise, multiple samples will be aggregated together in each data point.
+
+For example, if `account_pool_metrics_collection_rate_expression` is set to `rate(30 minutes)`, then `1200` seconds (20 minutes)
+ would be an acceptable value for `account_pool_metrics_widget_period`.
+
+You may need to increase the DynamoDB Read Capacity Units on the Accounts table in order to accommodate this feature 
+periodically querying all of the Account records. 13 RCUs per 100 accounts should be sufficient to avoid throttling. If needed,
+ refer to the [AWS Documentation](https://aws.amazon.com/dynamodb/pricing/provisioned/) for assistance in 
+calculating the required read capacity units appropriate for your usage.
+This may be adjusted using the `accounts_table_rcu` terraform variable.
+
+### CloudWatch Alarms
 
 DCE also comes prebuilt with a number of CloudWatch alarms, which will trigger when DCE systems encounter errors or behave abnormally.
 
