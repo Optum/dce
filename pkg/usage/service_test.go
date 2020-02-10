@@ -2,6 +2,7 @@ package usage_test
 
 import (
 	"fmt"
+	"strconv"
 	"testing"
 	"time"
 
@@ -212,7 +213,7 @@ func TestCreate(t *testing.T) {
 			},
 			getResponse: response{
 				data: nil,
-				err:  errors.NewNotFound("usage", "1581033600-principal"),
+				err:  errors.NewNotFound("usage", fmt.Sprintf("%s-principal", strconv.FormatInt(startDate, 10))),
 			},
 			writeErr: nil,
 		},
@@ -229,7 +230,7 @@ func TestCreate(t *testing.T) {
 			},
 			exp: response{
 				data: nil,
-				err:  errors.NewAlreadyExists("usage", "1581033600-principal"),
+				err:  errors.NewAlreadyExists("usage", fmt.Sprintf("%s-principal", strconv.FormatInt(startDate, 10))),
 			},
 			getResponse: response{
 				data: &usage.Usage{
@@ -276,7 +277,7 @@ func TestCreate(t *testing.T) {
 			},
 			getResponse: response{
 				data: nil,
-				err:  errors.NewNotFound("usage", "1581033600-principal"),
+				err:  errors.NewNotFound("usage", fmt.Sprintf("%s-principal", strconv.FormatInt(startDate, 10))),
 			},
 			writeErr: errors.NewInternalServer("error", nil),
 		},
