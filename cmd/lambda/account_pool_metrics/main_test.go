@@ -41,7 +41,7 @@ func TestRefreshMetrics(t *testing.T) {
 			accountSvc.On("List", mock.MatchedBy(func(query *account.Account) bool {
 				// assert
 				return *query.Status == tt.status &&
-					*query.Limit == QUERY_LIMIT
+					*query.Limit == QueryLimit
 			})).Return(
 				&account.Accounts{}, nil,
 			)

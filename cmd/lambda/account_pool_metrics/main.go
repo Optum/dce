@@ -38,13 +38,13 @@ func initConfig() {
 	Services = svcBuilder
 }
 
-// Hardcoding until pagination function is implemented
-var QUERY_LIMIT int64 = 20000
-
 func getMetric(status account.Status) CountMetric {
+	// Hardcoding until pagination function is implemented
+	var QueryLimit int64 = 20000
+
 	query := account.Account{
 		Status: &status,
-		Limit:  &QUERY_LIMIT,
+		Limit:  &QueryLimit,
 	}
 	accounts, err := Services.Config.AccountService().List(&query)
 	if err != nil {
