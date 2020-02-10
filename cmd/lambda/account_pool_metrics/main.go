@@ -47,7 +47,7 @@ func getMetric(status account.Status) CountMetric {
 		Status: &status,
 		Limit:  &QueryLimit,
 	}
-	accounts, err := Services.Config.AccountService().List(&query)
+	accounts, err := Services.AccountService().List(&query)
 	if err != nil {
 		log.Fatal("failed to query accounts by name, ", err)
 	}
