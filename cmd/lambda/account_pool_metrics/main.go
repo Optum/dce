@@ -87,7 +87,7 @@ func publishMetrics(namespace string, countMetrics CountMetric) {
 }
 
 // Handler - Handle the lambda function
-func Handler(cloudWatchEvent events.CloudWatchEvent) {
+func Handler(_ events.CloudWatchEvent) {
 	log.Printf("Initializing account pool metrics lambda")
 	initConfig()
 
