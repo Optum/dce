@@ -83,7 +83,7 @@ has exceeded its budget of $100. Actual spend is $150
 		dbSvc := &dbMocks.DBer{}
 		tokenSvc := &commonMocks.TokenService{}
 		budgetSvc := &budgetMocks.Service{}
-		usageSvc := &usageMocks.Service{}
+		usageSvc := &usageMocks.DBer{}
 		snsSvc := &commonMocks.Notificationer{}
 		sqsSvc := &awsMocks.SQSAPI{}
 		emailSvc := &emailMocks.Service{}
