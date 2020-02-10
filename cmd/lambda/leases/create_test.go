@@ -7,9 +7,10 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/Optum/dce/pkg/account/accountiface/mocks"
+	accountmocks "github.com/Optum/dce/pkg/account/accountiface/mocks"
 	"github.com/Optum/dce/pkg/config"
 	"github.com/Optum/dce/pkg/lease"
+	leasemocks "github.com/Optum/dce/pkg/lease/leaseiface/mocks"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -92,8 +93,8 @@ func TestWhenCreate(t *testing.T) {
 			cfgBldr := &config.ConfigurationBuilder{}
 			svcBldr := &config.ServiceBuilder{Config: cfgBldr}
 
-			leaseSvc := mocks.Servicer{}
-			accountSvc := mocks.Servicer{}
+			leaseSvc := leasemocks.Servicer{}
+			accountSvc := accountmocks.Servicer{}
 			accountSvc.On("List", mock.Anything).Return(
 				tt.retAccounts, tt.retErr,
 			)
