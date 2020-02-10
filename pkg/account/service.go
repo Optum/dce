@@ -175,7 +175,7 @@ func (a *Service) Create(data *Account) (*Account, error) {
 		return nil, err
 	}
 
-	err = a.managerSvc.UpsertPrincipalAccess(new)
+	err = a.UpsertPrincipalAccess(new)
 	if err != nil {
 		return nil, err
 	}
@@ -225,7 +225,7 @@ func (a *Service) Delete(data *Account) error {
 		return err
 	}
 
-	err = a.eventSvc.AccountReset(data)
+	err = a.Reset(data)
 	if err != nil {
 		return err
 	}
@@ -261,6 +261,33 @@ func (a *Service) Reset(data *Account) error {
 		return err
 	}
 	log.Printf("Added account %q to Reset Queue\n", *data.ID)
+
+	return nil
+}
+
+// UpsertPrincipalAccess merges principal access to make sure its in sync with expectations
+func (a *Service) UpsertPrincipalAccess(data *Account) error {
+	err := validation.ValidateStruct(data,
+		validation.Field(&data.Status, validation.NotNil, validation.By(isAccountNotLeased)),
+		validation.Field(&data.AdminRoleArn, validation.NotNil),
+		validation.Field(&data.PrincipalRoleArn, validation.NotNil),
+	)
+	if err != nil {
+		return errors.NewConflict("account", *data.ID, err)
+	}
+
+	oldHash := data.PrincipalPolicyHash
+
+	err = a.managerSvc.UpsertPrincipalAccess(data)
+	if err != nil {
+		return err
+	}
+	if oldHash != data.PrincipalPolicyHash {
+		err = a.Save(data)
+		if err != nil {
+			return err
+		}
+	}
 
 	return nil
 }

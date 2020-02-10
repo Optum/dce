@@ -144,3 +144,17 @@ func (_m *Servicer) Update(ID string, data *account.Account) (*account.Account, 
 
 	return r0, r1
 }
+
+// UpsertPrincipalAccess provides a mock function with given fields: data
+func (_m *Servicer) UpsertPrincipalAccess(data *account.Account) error {
+	ret := _m.Called(data)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(*account.Account) error); ok {
+		r0 = rf(data)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
