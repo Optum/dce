@@ -12,13 +12,13 @@ func DeleteAccount(w http.ResponseWriter, r *http.Request) {
 
 	accountID := mux.Vars(r)["accountId"]
 
-	acct, err := Services.Config.AccountService().Get(accountID)
+	acct, err := Services.AccountService().Get(accountID)
 	if err != nil {
 		api.WriteAPIErrorResponse(w, err)
 		return
 	}
 
-	err = Services.Config.AccountService().Delete(acct)
+	err = Services.AccountService().Delete(acct)
 	if err != nil {
 		api.WriteAPIErrorResponse(w, err)
 		return

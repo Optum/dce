@@ -17,7 +17,7 @@ func DeleteLeaseByID(w http.ResponseWriter, r *http.Request) {
 
 	leaseID := mux.Vars(r)["leaseID"]
 
-	lease, err := Services.Config.LeaseService().Delete(leaseID)
+	lease, err := Services.LeaseService().Delete(leaseID)
 
 	if err != nil {
 		api.WriteAPIErrorResponse(w, err)
@@ -52,7 +52,7 @@ func DeleteLease(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	leases, err := Services.Config.LeaseService().List(queryLease)
+	leases, err := Services.LeaseService().List(queryLease)
 	if err != nil {
 		api.WriteAPIErrorResponse(w, err)
 		return
@@ -69,7 +69,7 @@ func DeleteLease(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	leaseID := (*leases)[0].ID
-	lease, err := Services.Config.LeaseService().Delete(*leaseID)
+	lease, err := Services.LeaseService().Delete(*leaseID)
 
 	if err != nil {
 		api.WriteAPIErrorResponse(w, err)

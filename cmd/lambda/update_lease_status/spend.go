@@ -18,7 +18,7 @@ type calculateSpendInput struct {
 	lease                 *db.Lease
 	tokenSvc              common.TokenService
 	budgetSvc             budget.Service
-	usageSvc              usage.Service
+	usageSvc              usage.DBer
 	awsSession            awsiface.AwsSession
 	principalBudgetPeriod string
 	usageTTL              int // TTL in seconds for Usage DynamoDB records
