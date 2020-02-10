@@ -244,37 +244,37 @@ variable "usage_ttl" {
 }
 
 variable "accounts_table_rcu" {
-  type = number
+  type        = number
   default     = 5
   description = "DynamoDB Accounts table provisioned Read Capacity Units (RCUs). See https://aws.amazon.com/dynamodb/pricing/provisioned/"
 }
 
 variable "accounts_table_wcu" {
-  type = number
+  type        = number
   default     = 5
   description = "DynamoDB Accounts table provisioned Write Capacity Units (WCUs). See https://aws.amazon.com/dynamodb/pricing/provisioned/"
 }
 
 variable "leases_table_rcu" {
-  type = number
+  type        = number
   default     = 5
   description = "DynamoDB Leases table provisioned Read Capacity Units (RCUs). See https://aws.amazon.com/dynamodb/pricing/provisioned/"
 }
 
 variable "leases_table_wcu" {
-  type = number
+  type        = number
   default     = 5
   description = "DynamoDB Leases table provisioned Write Capacity Units (WCUs). See https://aws.amazon.com/dynamodb/pricing/provisioned/"
 }
 
 variable "usage_table_rcu" {
-  type = number
+  type        = number
   default     = 5
   description = "DynamoDB Usage table provisioned Read Capacity Units (RCUs). See https://aws.amazon.com/dynamodb/pricing/provisioned/"
 }
 
 variable "usage_table_wcu" {
-  type = number
+  type        = number
   default     = 5
   description = "DynamoDB Usage table provisioned Write Capacity Units (WCUs). See https://aws.amazon.com/dynamodb/pricing/provisioned/"
 }
