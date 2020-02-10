@@ -26,7 +26,7 @@ func CreateLease(w http.ResponseWriter, r *http.Request) {
 	query := &account.Account{
 		Status: account.StatusReady.StatusPtr(),
 	}
-	accounts, err := Services.Config.AccountService().List(query)
+	accounts, err := Services.AccountService().List(query)
 	if err != nil {
 		api.WriteAPIErrorResponse(w, err)
 		return
@@ -40,7 +40,7 @@ func CreateLease(w http.ResponseWriter, r *http.Request) {
 
 	// Mark the account as Status=Leased
 	availableAccount.Status = account.StatusLeased.StatusPtr()
-	leasedAccount, err := Services.Config.AccountService().Update(*availableAccount.ID, &availableAccount)
+	leasedAccount, err := Services.AccountService().Update(*availableAccount.ID, &availableAccount)
 	if err != nil {
 		api.WriteAPIErrorResponse(w, err)
 		return
@@ -48,7 +48,7 @@ func CreateLease(w http.ResponseWriter, r *http.Request) {
 
 	// Create lease
 	newLease.AccountID = leasedAccount.ID
-	lease, err := Services.Config.LeaseService().Create(newLease)
+	lease, err := Services.LeaseService().Create(newLease)
 	if err != nil {
 		api.WriteAPIErrorResponse(w, err)
 		return
