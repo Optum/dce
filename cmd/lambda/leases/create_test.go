@@ -22,12 +22,12 @@ func TestWhenCreate(t *testing.T) {
 	}
 
 	tests := []struct {
-		name     string
-		expResp  events.APIGatewayProxyResponse
-		request  events.APIGatewayProxyRequest
-		retLease *lease.Lease
+		name        string
+		expResp     events.APIGatewayProxyResponse
+		request     events.APIGatewayProxyRequest
+		retLease    *lease.Lease
 		retAccounts *account.Accounts
-		retErr   error
+		retErr      error
 	}{
 		{
 			name: "When given good values. Then success is returned.",
@@ -42,10 +42,10 @@ func TestWhenCreate(t *testing.T) {
 				Body:       "{ \"id\": \"123456789012\", \"adminRoleArn\": \"arn:aws:iam::123456789012:role/AdminRoleArn\" }",
 			},
 			retAccounts: &account.Accounts{
-					account.Account{
-						ID:                  ptrString("1234567890"),
-						Status:              account.StatusReady.StatusPtr(),
-					},
+				account.Account{
+					ID:     ptrString("1234567890"),
+					Status: account.StatusReady.StatusPtr(),
+				},
 			},
 			retLease: &lease.Lease{},
 			retErr:   nil,
