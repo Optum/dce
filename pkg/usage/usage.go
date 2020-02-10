@@ -31,9 +31,9 @@ type DB struct {
 	ConsistentRead bool
 }
 
-// The Service interface includes all methods used by the DB struct to interact with
+// The DBer interface includes all methods used by the DB struct to interact with
 // Usage DynamoDB. This is useful if we want to mock the DB service.
-type Service interface {
+type DBer interface {
 	PutUsage(input Usage) error
 	GetUsageByDateRange(startDate time.Time, endDate time.Time) ([]*Usage, error)
 	GetUsageByPrincipal(startDate time.Time, principalID string) ([]*Usage, error)

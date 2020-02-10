@@ -105,7 +105,7 @@ type lambdaHandlerInput struct {
 	awsSession                             awsiface.AwsSession
 	tokenSvc                               common.TokenService
 	budgetSvc                              budget.Service
-	usageSvc                               usage.Service
+	usageSvc                               usage.DBer
 	snsSvc                                 common.Notificationer
 	leaseLockedTopicArn                    string
 	sqsSvc                                 awsiface.SQSAPI
