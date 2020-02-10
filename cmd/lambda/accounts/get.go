@@ -13,7 +13,7 @@ func GetAccountByID(w http.ResponseWriter, r *http.Request) {
 
 	accountID := mux.Vars(r)["accountId"]
 
-	account, err := Services.Config.AccountService().Get(accountID)
+	account, err := Services.AccountService().Get(accountID)
 
 	if err != nil {
 		api.WriteAPIErrorResponse(w, err)

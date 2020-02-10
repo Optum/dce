@@ -156,11 +156,33 @@ func (bldr *ServiceBuilder) WithAccountService() *ServiceBuilder {
 	return bldr
 }
 
+// AccountService returns the account Service for you
+func (bldr *ServiceBuilder) AccountService() accountiface.Servicer {
+
+	var accountService accountiface.Servicer
+	if err := bldr.Config.GetService(&accountService); err != nil {
+		panic(err)
+	}
+
+	return accountService
+}
+
 // WithLeaseService tells the builder to add the Account service to the `ConfigurationBuilder`
 func (bldr *ServiceBuilder) WithLeaseService() *ServiceBuilder {
 	bldr.WithLeaseDataService().WithEventService()
 	bldr.handlers = append(bldr.handlers, bldr.createLeaseService)
 	return bldr
+}
+
+// LeaseService returns the lease Service for you
+func (bldr *ServiceBuilder) LeaseService() leaseiface.Servicer {
+
+	var leaseSvc leaseiface.Servicer
+	if err := bldr.Config.GetService(&leaseSvc); err != nil {
+		panic(err)
+	}
+
+	return leaseSvc
 }
 
 // WithEventService tells the builder to add the Account service to the `ConfigurationBuilder`
