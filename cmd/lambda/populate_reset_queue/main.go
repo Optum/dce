@@ -53,13 +53,13 @@ func Handler(cloudWatchEvent events.CloudWatchEvent) error {
 	}
 
 	for {
-		accounts, err := services.Config.AccountService().List(query)
+		accounts, err := services.AccountService().List(query)
 		if err != nil {
 			return err
 		}
 		for _, acct := range *accounts {
 			// Send Message
-			err = services.Config.AccountService().Reset(&acct)
+			err = services.AccountService().Reset(&acct)
 			if err != nil {
 				return err
 			}
