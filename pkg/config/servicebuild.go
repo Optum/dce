@@ -20,6 +20,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/codebuild/codebuildiface"
 	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider/cognitoidentityprovideriface"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
+	"github.com/aws/aws-sdk-go/service/lambda"
+	"github.com/aws/aws-sdk-go/service/lambda/lambdaiface"
 	"github.com/aws/aws-sdk-go/service/s3/s3iface"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/aws/aws-sdk-go/service/sns/snsiface"
@@ -111,6 +113,12 @@ func (bldr *ServiceBuilder) WithCodeBuild() *ServiceBuilder {
 // WithSSM tells the builder to add an AWS SSM service to the `DefaultConfigurater`
 func (bldr *ServiceBuilder) WithSSM() *ServiceBuilder {
 	bldr.handlers = append(bldr.handlers, bldr.createSSM)
+	return bldr
+}
+
+// WithLambda tells the builder to add an AWS Lambda service to the `DefaultConfigurater`
+func (bldr *ServiceBuilder) WithLambda() *ServiceBuilder {
+	bldr.handlers = append(bldr.handlers, bldr.createLambda)
 	return bldr
 }
 
@@ -342,6 +350,20 @@ func (bldr *ServiceBuilder) createSSM(config ConfigurationServiceBuilder) error 
 
 	SSMSvc := ssm.New(bldr.awsSession)
 	config.WithService(SSMSvc)
+	return nil
+}
+
+func (bldr *ServiceBuilder) createLambda(config ConfigurationServiceBuilder) error {
+	// Don't add the service twice
+	var lambdaAPI lambdaiface.LambdaAPI
+	err := bldr.Config.GetService(&lambdaAPI)
+	if err == nil {
+		log.Printf("Already added Lambda service")
+		return nil
+	}
+
+	lambdaSvc := lambda.New(bldr.awsSession)
+	config.WithService(lambdaSvc)
 	return nil
 }
 

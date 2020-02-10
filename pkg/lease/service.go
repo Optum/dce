@@ -122,6 +122,25 @@ func (a *Service) List(query *Lease) (*Leases, error) {
 	return leases, nil
 }
 
+// ListPages runs a function on each page in a list
+func (a *Service) ListPages(query *Lease, fn func(*Leases) bool) error {
+
+	for {
+		records, err := a.dataSvc.List(query)
+		if err != nil {
+			return err
+		}
+		if !fn(records) {
+			break
+		}
+		if query.PrincipalID == nil {
+			break
+		}
+	}
+
+	return nil
+}
+
 // NewServiceInput Input for creating a new Service
 type NewServiceInput struct {
 	DataSvc  ReaderWriter
