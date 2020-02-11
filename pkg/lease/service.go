@@ -1,6 +1,7 @@
 package lease
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/Optum/dce/pkg/errors"
@@ -41,9 +42,18 @@ type Eventer interface {
 
 // Service is a type corresponding to a Lease table record
 type Service struct {
-	dataSvc  ReaderWriter
-	eventSvc Eventer
+	dataSvc                  ReaderWriter
+	eventSvc                 Eventer
+	defaultLeaseLengthInDays int
+	principalBudgetAmount    float64
+	principalBudgetPeriod    string
+	maxLeaseBudgetAmount     float64
+	maxLeasePeriod           int64
 }
+
+const (
+	Weekly = "WEEKLY"
+)
 
 // Get returns a lease from ID
 func (a *Service) Get(ID string) (*Lease, error) {
@@ -133,10 +143,24 @@ func (a *Service) Create(data *Lease) (*Lease, error) {
 		validation.Field(&data.LastModifiedOn, validation.By(isNil)),
 		validation.Field(&data.CreatedOn, validation.By(isNil)),
 		validation.Field(&data.StatusReason, validation.By(isNil)),
+		validation.Field(&data.ExpiresOn, validation.By(isNil)),
+		validation.Field(&data.Metadata, validation.By(isNil)),
 	)
 	if err != nil {
 		return nil, errors.NewValidation("lease", err)
 	}
+
+	// Validate lease
+	data, isValid, validationErrorMessage, err := validateLease(a, data)
+
+	if err != nil {
+		return nil, errors.NewInternalServer("lease", err)
+	}
+
+	if !isValid {
+		return nil, errors.NewValidation("lease", fmt.Errorf(validationErrorMessage))
+	}
+
 
 	// Check if principal already has an active lease
 	existingLeases, err := a.List(data)
@@ -158,14 +182,24 @@ func (a *Service) Create(data *Lease) (*Lease, error) {
 
 // NewServiceInput Input for creating a new Service
 type NewServiceInput struct {
-	DataSvc  ReaderWriter
-	EventSvc Eventer
+	DataSvc                  ReaderWriter
+	EventSvc                 Eventer
+	DefaultLeaseLengthInDays int     `env:"DEFAULT_LEASE_LENGTH_IN_DAYS" defaultEnv:"7"`
+	PrincipalBudgetAmount    float64 `env:"PRINCIPAL_BUDGET_AMOUNT" defaultEnv:"1000.00"`
+	PrincipalBudgetPeriod    string  `env:"PRINCIPAL_BUDGET_PERIOD" defaultEnv:"Weekly"`
+	MaxLeaseBudgetAmount     float64 `env:"MAX_LEASE_BUDGET_AMOUNT" defaultEnv:"1000.00"`
+	MaxLeasePeriod           int64   `env:"MAX_LEASE_PERIOD" defaultEnv:"704800"`
 }
 
 // NewService creates a new instance of the Service
 func NewService(input NewServiceInput) *Service {
 	return &Service{
-		dataSvc:  input.DataSvc,
-		eventSvc: input.EventSvc,
+		dataSvc:                  input.DataSvc,
+		eventSvc:                 input.EventSvc,
+		defaultLeaseLengthInDays: input.DefaultLeaseLengthInDays,
+		principalBudgetAmount:    input.PrincipalBudgetAmount,
+		principalBudgetPeriod:    input.PrincipalBudgetPeriod,
+		maxLeaseBudgetAmount:     input.MaxLeaseBudgetAmount,
+		maxLeasePeriod:           input.MaxLeasePeriod,
 	}
 }

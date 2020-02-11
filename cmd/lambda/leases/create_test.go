@@ -41,7 +41,7 @@ func TestWhenCreate(t *testing.T) {
 			request: events.APIGatewayProxyRequest{
 				HTTPMethod: http.MethodPost,
 				Path:       "/leases",
-				Body:       "{ \"id\": \"123456789012\", \"adminRoleArn\": \"arn:aws:iam::123456789012:role/AdminRoleArn\" }",
+				Body:       "{ \"principalID\": \"User1\", \"adminRoleArn\": \"arn:aws:iam::123456789012:role/AdminRoleArn\" }",
 			},
 			retAccounts: &account.Accounts{
 				account.Account{
