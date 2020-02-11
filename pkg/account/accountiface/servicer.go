@@ -18,6 +18,8 @@ type Servicer interface {
 	Delete(data *account.Account) error
 	// List Get a list of accounts based on Principal ID
 	List(query *account.Account) (*account.Accounts, error)
+	// ListPages Execute a function per page of accounts
+	ListPages(query *account.Account, fn func(*account.Accounts) bool) error
 	// Create creates a new account using the data provided. Returns the account record
 	Create(data *account.Account) (*account.Account, error)
 	// Reset initiates the Reset account process.
