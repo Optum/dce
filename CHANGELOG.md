@@ -1,6 +1,7 @@
 ## vNext
 
 - Add `usage_ttl` Terraform var, to configure Usage DB record TTLs.
+- Added account pool status monitoring and dashboard widget
 - Allow `athena:*` for DCE Principal IAM role
 
 ## v0.27.0
