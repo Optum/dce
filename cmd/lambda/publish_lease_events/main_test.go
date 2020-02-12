@@ -115,6 +115,7 @@ func Test_handleRecord(t *testing.T) {
 		shoudEnqueueReset    bool
 		shouldErrorOnEnqueue bool
 		expectedSnsTopic     string
+		getAccount           *db.Account
 	}{
 		{
 			name: "Happy path...",
@@ -132,6 +133,9 @@ func Test_handleRecord(t *testing.T) {
 			wantErr:           false,
 			shoudEnqueueReset: true,
 			expectedSnsTopic:  LockedSnsTopic,
+			getAccount: &db.Account{
+				ID: "123456789012",
+			},
 		},
 		{
 			name: "Went from inactive to active...",
@@ -149,6 +153,9 @@ func Test_handleRecord(t *testing.T) {
 			wantErr:           false,
 			shoudEnqueueReset: false,
 			expectedSnsTopic:  UnlockedSnsTopic,
+			getAccount: &db.Account{
+				ID: "123456789012",
+			},
 		},
 		{
 			name: "Throwing error on enqueue",
@@ -167,6 +174,9 @@ func Test_handleRecord(t *testing.T) {
 			shoudEnqueueReset:    true,
 			shouldErrorOnEnqueue: true,
 			expectedSnsTopic:     LockedSnsTopic,
+			getAccount: &db.Account{
+				ID: "123456789012",
+			},
 		},
 	}
 	for _, tt := range tests {
@@ -181,10 +191,12 @@ func Test_handleRecord(t *testing.T) {
 					db.NotReady,
 				).Return(nil, nil)
 
+				dbSvc.On("GetAccount", "123456789012").Return(tt.getAccount, nil)
+
 				if tt.shouldErrorOnEnqueue {
-					sqsSvc.On("SendMessage", aws.String(tt.args.input.resetQueueURL), aws.String("123456789012")).Return(errors.New("error enqueuing message"))
+					sqsSvc.On("SendMessage", aws.String(tt.args.input.resetQueueURL), aws.String("{\"Id\":\"123456789012\",\"AccountStatus\":\"\",\"LastModifiedOn\":0,\"CreatedOn\":0,\"AdminRoleArn\":\"\",\"PrincipalRoleArn\":\"\",\"PrincipalPolicyHash\":\"\",\"Metadata\":null}")).Return(errors.New("error enqueuing message"))
 				} else {
-					sqsSvc.On("SendMessage", aws.String(tt.args.input.resetQueueURL), aws.String("123456789012")).Return(nil)
+					sqsSvc.On("SendMessage", aws.String(tt.args.input.resetQueueURL), aws.String("{\"Id\":\"123456789012\",\"AccountStatus\":\"\",\"LastModifiedOn\":0,\"CreatedOn\":0,\"AdminRoleArn\":\"\",\"PrincipalRoleArn\":\"\",\"PrincipalPolicyHash\":\"\",\"Metadata\":null}")).Return(errors.New("error enqueuing message")).Return(nil)
 				}
 			}
 			snsSvc.On("PublishMessage", &tt.expectedSnsTopic, mock.Anything, true).Return(nil, nil)

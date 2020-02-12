@@ -113,18 +113,32 @@ func handleRecord(input *handleRecordInput) error {
 		if didBecomeInactive {
 			// Before adding the account to any queues, make sure the account is
 			// updated to NotReady state.
-			_, err = input.dbSvc.TransitionAccountStatus(lease.AccountID, db.Leased, db.NotReady)
+			var acct *db.Account
+			acct, err := input.dbSvc.TransitionAccountStatus(lease.AccountID, db.Leased, db.NotReady)
 			if err != nil {
 				log.Printf("ERROR: Failed to mark AccountStatus=NotReady for %s, after lease for %s became inactive",
 					lease.AccountID, lease.PrincipalID)
 			}
 
+			if acct == nil {
+				acct, err = input.dbSvc.GetAccount(lease.AccountID)
+				if err != nil {
+					log.Printf("ERROR: Failed to mark get account %q", lease.AccountID)
+					return err
+				}
+			}
+
 			// Put the message on the SQS queue ONLY IF the status has gone
 			// to Inactive.
 			log.Printf("Adding account %s to the reset queue", lease.AccountID)
-			err := input.sqsSvc.SendMessage(
+			body, err := json.Marshal(acct)
+			if err != nil {
+				return err
+			}
+			sBody := string(body)
+			err = input.sqsSvc.SendMessage(
 				aws.String(input.resetQueueURL),
-				aws.String(lease.AccountID),
+				aws.String(sBody),
 			)
 
 			if err != nil {

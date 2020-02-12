@@ -4,20 +4,28 @@ import (
 	"fmt"
 
 	"github.com/Optum/dce/pkg/errors"
-	"github.com/Optum/dce/pkg/model"
-
+	"github.com/Optum/dce/pkg/lease"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
+	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
 )
 
-// WriteLease the Lease record in DynamoDB
+// Lease - Data Layer Struct
+type Lease struct {
+	DynamoDB       dynamodbiface.DynamoDBAPI
+	TableName      string `env:"LEASE_DB"`
+	ConsistentRead bool   `env:"USE_CONSISTENT_READS" envDefault:"false"`
+	Limit          int64  `env:"LIMIT" envDefault:"25"`
+}
+
+// Write the Lease record in DynamoDB
 // This is an upsert operation in which the record will either
 // be inserted or updated
 // prevLastModifiedOn parameter is the original lastModifiedOn
-func (a *Account) WriteLease(lease *model.Lease, prevLastModifiedOn *int64) error {
+func (a *Lease) Write(lease *lease.Lease, prevLastModifiedOn *int64) error {
 
 	var expr expression.Expression
 	var err error
@@ -46,7 +54,7 @@ func (a *Account) WriteLease(lease *model.Lease, prevLastModifiedOn *int64) erro
 		ExpressionAttributeValues: expr.Values(),
 		ReturnValues:              aws.String(returnValue),
 	}
-	err = putItem(input, a)
+	err = putItem(input, a.DynamoDB)
 	var awsErr awserr.Error
 	if errors.As(err, &awsErr) {
 		if awsErr.Code() == "ConditionalCheckFailedException" {
@@ -67,37 +75,8 @@ func (a *Account) WriteLease(lease *model.Lease, prevLastModifiedOn *int64) erro
 
 }
 
-// DeleteLease the Lease record in DynamoDB
-func (a *Account) DeleteLease(lease *model.Lease) error {
-
-	input := &dynamodb.DeleteItemInput{
-		// Query in Lease Table
-		TableName: aws.String(a.TableName),
-		// Return the updated record
-		ReturnValues: aws.String("ALL_NEW"),
-		Key: map[string]*dynamodb.AttributeValue{
-			"AccountId": {
-				S: lease.AccountID,
-			},
-			"PrincipalId": {
-				S: lease.PrincipalID,
-			},
-		},
-	}
-	_, err := deleteItem(input, a)
-
-	if err != nil {
-		return errors.NewInternalServer(
-			fmt.Sprintf("delete lease failed for account %q and principal %q", *lease.AccountID, *lease.PrincipalID),
-			err,
-		)
-	}
-
-	return nil
-}
-
-// GetLeaseByAccountIDAndPrincipalID gets the Lease record by AccountID and PrincipalID
-func (a *Account) GetLeaseByAccountIDAndPrincipalID(accountID string, principalID string) (*model.Lease, error) {
+// GetByAccountIDAndPrincipalID gets the Lease record by AccountID and PrincipalID
+func (a *Lease) GetByAccountIDAndPrincipalID(accountID string, principalID string) (*lease.Lease, error) {
 
 	input := &dynamodb.GetItemInput{
 		// Query in Lease Table
@@ -113,7 +92,7 @@ func (a *Account) GetLeaseByAccountIDAndPrincipalID(accountID string, principalI
 		ConsistentRead: aws.Bool(a.ConsistentRead),
 	}
 
-	res, err := getItem(input, a)
+	res, err := getItem(input, a.DynamoDB)
 
 	if err != nil {
 		return nil, errors.NewInternalServer(
@@ -126,7 +105,7 @@ func (a *Account) GetLeaseByAccountIDAndPrincipalID(accountID string, principalI
 		return nil, errors.NewNotFound("lease", accountID)
 	}
 
-	lease := model.Lease{}
+	lease := lease.Lease{}
 	err = dynamodbattribute.UnmarshalMap(res.Item, &lease)
 	if err != nil {
 		return nil, errors.NewInternalServer(
@@ -137,8 +116,8 @@ func (a *Account) GetLeaseByAccountIDAndPrincipalID(accountID string, principalI
 	return &lease, nil
 }
 
-// GetLeaseByID gets the Lease record by ID
-func (a *Account) GetLeaseByID(leaseID string) (*model.Lease, error) {
+// GetByID gets the Lease record by ID
+func (a *Lease) Get(leaseID string) (*lease.Lease, error) {
 
 	input := &dynamodb.QueryInput{
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
@@ -151,7 +130,7 @@ func (a *Account) GetLeaseByID(leaseID string) (*model.Lease, error) {
 		IndexName:              aws.String("LeaseId"),
 		ConsistentRead:         aws.Bool(a.ConsistentRead),
 	}
-	res, err := query(input, a)
+	res, err := query(input, a.DynamoDB)
 
 	if err != nil {
 		return nil, errors.NewInternalServer(
@@ -171,7 +150,7 @@ func (a *Account) GetLeaseByID(leaseID string) (*model.Lease, error) {
 		)
 	}
 
-	lease := model.Lease{}
+	lease := lease.Lease{}
 	err = dynamodbattribute.UnmarshalMap(res.Items[0], &lease)
 	if err != nil {
 		return nil, errors.NewInternalServer(
@@ -179,5 +158,6 @@ func (a *Account) GetLeaseByID(leaseID string) (*model.Lease, error) {
 			err,
 		)
 	}
+
 	return &lease, nil
 }

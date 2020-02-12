@@ -1,3 +1,26 @@
+## vNext
+
+- Add `usage_ttl` Terraform var, to configure Usage DB record TTLs.
+- Added account pool status monitoring and dashboard widget
+- Allow `athena:*` for DCE Principal IAM role
+
+## v0.27.0
+
+- Add CloudWatch Dashboard for monitoring DCE
+- Support deleting a lease by ID at `GET /leases/{ID}` endpoint
+- Update `GET /accounts` to allow for querying with `adminRoleArn`, `principalRoleArn`, and `principalPolicyHash`
+- Add `sts:*` to principal IAM policy, and to documented SCP
+
+## v0.26.0
+
+- **BREAKING CHANGE** Change `GET /leases` to always return a list
+- **BREAKING CHANGE** Change `GET /leases` to not return 404 when the list is empty
+
+**Migration Notes**
+
+This release makes breaking changes to the `GET /leases` endpoint, so that requests will always return a HTTP 200 response, with a JSON array in the payload, even if the result set is empty. Previously, if a query had no results, the endpoint would return an HTTP 404 response, with an error object in the response body.
+
+DCE API clients will need to be updated accordingly, to handle this response.  
 
 ## v0.25.0
 

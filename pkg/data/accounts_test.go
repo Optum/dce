@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/Optum/dce/pkg/account"
+	"github.com/Optum/dce/pkg/arn"
 	awsmocks "github.com/Optum/dce/pkg/awsiface/mocks"
 	"github.com/Optum/dce/pkg/errors"
-	"github.com/Optum/dce/pkg/model"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/stretchr/testify/assert"
@@ -15,8 +16,8 @@ import (
 func TestGetAccountsScan(t *testing.T) {
 	tests := []struct {
 		name        string
-		query       model.Account
-		expAccounts *model.Accounts
+		query       *account.Account
+		expAccounts *account.Accounts
 		expErr      error
 		sOutputRec  *dynamodb.ScanOutput
 		sInput      *dynamodb.ScanInput
@@ -24,42 +25,45 @@ func TestGetAccountsScan(t *testing.T) {
 	}{
 		{
 			name:  "scan get all accounts but empty",
-			query: model.Account{},
+			query: &account.Account{},
 			sInput: &dynamodb.ScanInput{
 				ConsistentRead: aws.Bool(false),
 				TableName:      aws.String("Accounts"),
+				Limit:          aws.Int64(5),
 			},
 			sOutputRec: &dynamodb.ScanOutput{
 				Items: []map[string]*dynamodb.AttributeValue{},
 			},
-			expAccounts: &model.Accounts{},
+			expAccounts: &account.Accounts{},
 		},
 		{
 			name:  "scan get all accounts",
-			query: model.Account{},
+			query: &account.Account{},
 			sInput: &dynamodb.ScanInput{
 				ConsistentRead: aws.Bool(false),
 				TableName:      aws.String("Accounts"),
+				Limit:          aws.Int64(5),
 			},
 			sOutputRec: &dynamodb.ScanOutput{
 				Items: []map[string]*dynamodb.AttributeValue{
 					map[string]*dynamodb.AttributeValue{
 						"Id": {
-							S: aws.String("1"),
+							S: aws.String("123456789012"),
 						},
 					},
 				},
 			},
-			expAccounts: &model.Accounts{
+			expAccounts: &account.Accounts{
 				{
-					ID: ptrString("1"),
+					ID:                 ptrString("123456789012"),
+					PrincipalPolicyArn: arn.New("aws", "iam", "", "123456789012", "policy/DCEPrincipalDefaultPolicy"),
 				},
 			},
 		},
 		{
 			name: "scan get all accounts with admin role arn",
-			query: model.Account{
-				AdminRoleArn: ptrString("test:arn"),
+			query: &account.Account{
+				AdminRoleArn: arn.New("aws", "iam", "", "123456789012", "role/AdminRoleArn"),
 			},
 			sInput: &dynamodb.ScanInput{
 				ConsistentRead:   aws.Bool(false),
@@ -70,31 +74,34 @@ func TestGetAccountsScan(t *testing.T) {
 				},
 				ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
 					":0": {
-						S: aws.String("test:arn"),
+						S: aws.String("arn:aws:iam::123456789012:role/AdminRoleArn"),
 					},
 				},
+				Limit: aws.Int64(5),
 			},
 			sOutputRec: &dynamodb.ScanOutput{
 				Items: []map[string]*dynamodb.AttributeValue{
 					map[string]*dynamodb.AttributeValue{
 						"Id": {
-							S: aws.String("1"),
+							S: aws.String("123456789012"),
 						},
 					},
 				},
 			},
-			expAccounts: &model.Accounts{
+			expAccounts: &account.Accounts{
 				{
-					ID: ptrString("1"),
+					ID:                 ptrString("123456789012"),
+					PrincipalPolicyArn: arn.New("aws", "iam", "", "123456789012", "policy/DCEPrincipalDefaultPolicy"),
 				},
 			},
 		},
 		{
 			name:  "scan failure with internal server error",
-			query: model.Account{},
+			query: &account.Account{},
 			sInput: &dynamodb.ScanInput{
 				ConsistentRead: aws.Bool(false),
 				TableName:      aws.String("Accounts"),
+				Limit:          aws.Int64(5),
 			},
 			sOutputRec:  nil,
 			sOutputErr:  fmt.Errorf("failure"),
@@ -116,8 +123,9 @@ func TestGetAccountsScan(t *testing.T) {
 			accountData := &Account{
 				DynamoDB:  &mockDynamo,
 				TableName: "Accounts",
+				Limit:     5,
 			}
-			accounts, err := accountData.GetAccounts(&tt.query)
+			accounts, err := accountData.List(tt.query)
 			assert.True(t, errors.Is(err, tt.expErr))
 			assert.Equal(t, tt.expAccounts, accounts)
 		})
@@ -128,8 +136,8 @@ func TestGetAccountsScan(t *testing.T) {
 func TestGetAccountsQuery(t *testing.T) {
 	tests := []struct {
 		name        string
-		query       model.Account
-		expAccounts *model.Accounts
+		query       *account.Account
+		expAccounts *account.Accounts
 		expErr      error
 		qInput      *dynamodb.QueryInput
 		qOutputRec  *dynamodb.QueryOutput
@@ -137,8 +145,8 @@ func TestGetAccountsQuery(t *testing.T) {
 	}{
 		{
 			name: "query all accounts by status",
-			query: model.Account{
-				Status: model.AccountStatusReady.AccountStatusPtr(),
+			query: &account.Account{
+				Status: account.StatusReady.StatusPtr(),
 			},
 			qInput: &dynamodb.QueryInput{
 				ConsistentRead: aws.Bool(false),
@@ -153,27 +161,29 @@ func TestGetAccountsQuery(t *testing.T) {
 					},
 				},
 				KeyConditionExpression: aws.String("#0 = :0"),
+				Limit:                  aws.Int64(5),
 			},
 			qOutputRec: &dynamodb.QueryOutput{
 				Items: []map[string]*dynamodb.AttributeValue{
 					map[string]*dynamodb.AttributeValue{
 						"Id": {
-							S: aws.String("1"),
+							S: aws.String("123456789012"),
 						},
 					},
 				},
 			},
-			expAccounts: &model.Accounts{
+			expAccounts: &account.Accounts{
 				{
-					ID: ptrString("1"),
+					ID:                 ptrString("123456789012"),
+					PrincipalPolicyArn: arn.New("aws", "iam", "", "123456789012", "policy/DCEPrincipalDefaultPolicy"),
 				},
 			},
 		},
 		{
 			name: "query all accounts by status with filter",
-			query: model.Account{
-				Status:       model.AccountStatusReady.AccountStatusPtr(),
-				AdminRoleArn: aws.String("test:arn"),
+			query: &account.Account{
+				Status:       account.StatusReady.StatusPtr(),
+				AdminRoleArn: arn.New("aws", "iam", "", "123456789012", "role/AdminRoleArn"),
 			},
 			qInput: &dynamodb.QueryInput{
 				ConsistentRead: aws.Bool(false),
@@ -185,7 +195,7 @@ func TestGetAccountsQuery(t *testing.T) {
 				},
 				ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
 					":0": {
-						S: aws.String("test:arn"),
+						S: aws.String("arn:aws:iam::123456789012:role/AdminRoleArn"),
 					},
 					":1": {
 						S: aws.String("Ready"),
@@ -193,27 +203,29 @@ func TestGetAccountsQuery(t *testing.T) {
 				},
 				KeyConditionExpression: aws.String("#1 = :1"),
 				FilterExpression:       aws.String("#0 = :0"),
+				Limit:                  aws.Int64(5),
 			},
 			qOutputRec: &dynamodb.QueryOutput{
 				Items: []map[string]*dynamodb.AttributeValue{
 					map[string]*dynamodb.AttributeValue{
 						"Id": {
-							S: aws.String("1"),
+							S: aws.String("123456789012"),
 						},
 					},
 				},
 			},
-			expAccounts: &model.Accounts{
+			expAccounts: &account.Accounts{
 				{
-					ID: ptrString("1"),
+					ID:                 ptrString("123456789012"),
+					PrincipalPolicyArn: arn.New("aws", "iam", "", "123456789012", "policy/DCEPrincipalDefaultPolicy"),
 				},
 			},
 		},
 		{
 			name: "query internal error",
-			query: model.Account{
-				Status:       model.AccountStatusReady.AccountStatusPtr(),
-				AdminRoleArn: aws.String("test:arn"),
+			query: &account.Account{
+				Status:       account.StatusReady.StatusPtr(),
+				AdminRoleArn: arn.New("aws", "iam", "", "123456789012", "role/AdminRoleArn"),
 			},
 			qInput: &dynamodb.QueryInput{
 				ConsistentRead: aws.Bool(false),
@@ -225,7 +237,7 @@ func TestGetAccountsQuery(t *testing.T) {
 				},
 				ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
 					":0": {
-						S: aws.String("test:arn"),
+						S: aws.String("arn:aws:iam::123456789012:role/AdminRoleArn"),
 					},
 					":1": {
 						S: aws.String("Ready"),
@@ -233,6 +245,7 @@ func TestGetAccountsQuery(t *testing.T) {
 				},
 				KeyConditionExpression: aws.String("#1 = :1"),
 				FilterExpression:       aws.String("#0 = :0"),
+				Limit:                  aws.Int64(5),
 			},
 			qOutputRec:  nil,
 			qOutputErr:  fmt.Errorf("failure"),
@@ -254,8 +267,9 @@ func TestGetAccountsQuery(t *testing.T) {
 			accountData := &Account{
 				DynamoDB:  &mockDynamo,
 				TableName: "Accounts",
+				Limit:     5,
 			}
-			accounts, err := accountData.GetAccounts(&tt.query)
+			accounts, err := accountData.List(tt.query)
 			assert.True(t, errors.Is(err, tt.expErr))
 			assert.Equal(t, tt.expAccounts, accounts)
 		})

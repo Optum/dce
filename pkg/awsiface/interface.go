@@ -12,6 +12,7 @@ package awsiface
 
 import (
 	"github.com/aws/aws-sdk-go/aws/client"
+	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
 	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider/cognitoidentityprovideriface"
 	"github.com/aws/aws-sdk-go/service/costexplorer/costexploreriface"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
@@ -22,6 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/ses/sesiface"
 	"github.com/aws/aws-sdk-go/service/sns/snsiface"
 	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
+	"github.com/aws/aws-sdk-go/service/sts/stsiface"
 )
 
 type LambdaAPI interface {
@@ -52,8 +54,16 @@ type S3API interface {
 	s3iface.S3API
 }
 
+type STSAPI interface {
+	stsiface.STSAPI
+}
+
 type AwsSession interface {
 	client.ConfigProvider
+}
+
+type CloudWatchAPI interface {
+	cloudwatchiface.CloudWatchAPI
 }
 
 type CostExplorerAPI interface {

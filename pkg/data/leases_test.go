@@ -6,7 +6,7 @@ import (
 
 	awsmocks "github.com/Optum/dce/pkg/awsiface/mocks"
 	"github.com/Optum/dce/pkg/errors"
-	"github.com/Optum/dce/pkg/model"
+	"github.com/Optum/dce/pkg/lease"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/stretchr/testify/assert"
@@ -15,8 +15,8 @@ import (
 func TestGetLeasesScan(t *testing.T) {
 	tests := []struct {
 		name       string
-		query      model.Lease
-		expLeases  *model.Leases
+		query      *lease.Lease
+		expLeases  *lease.Leases
 		expErr     error
 		sOutputRec *dynamodb.ScanOutput
 		sInput     *dynamodb.ScanInput
@@ -24,22 +24,24 @@ func TestGetLeasesScan(t *testing.T) {
 	}{
 		{
 			name:  "scan get all leases but empty",
-			query: model.Lease{},
+			query: &lease.Lease{},
 			sInput: &dynamodb.ScanInput{
 				ConsistentRead: aws.Bool(false),
 				TableName:      aws.String("Leases"),
+				Limit:          ptrInt64(25),
 			},
 			sOutputRec: &dynamodb.ScanOutput{
 				Items: []map[string]*dynamodb.AttributeValue{},
 			},
-			expLeases: &model.Leases{},
+			expLeases: &lease.Leases{},
 		},
 		{
 			name:  "scan get all leases",
-			query: model.Lease{},
+			query: &lease.Lease{},
 			sInput: &dynamodb.ScanInput{
 				ConsistentRead: aws.Bool(false),
 				TableName:      aws.String("Leases"),
+				Limit:          ptrInt64(25),
 			},
 			sOutputRec: &dynamodb.ScanOutput{
 				Items: []map[string]*dynamodb.AttributeValue{
@@ -53,7 +55,7 @@ func TestGetLeasesScan(t *testing.T) {
 					},
 				},
 			},
-			expLeases: &model.Leases{
+			expLeases: &lease.Leases{
 				{
 					AccountID:   ptrString("1"),
 					PrincipalID: ptrString("User1"),
@@ -61,22 +63,23 @@ func TestGetLeasesScan(t *testing.T) {
 			},
 		},
 		{
-			name: "scan get all leases with principalId",
-			query: model.Lease{
-				PrincipalID: ptrString("User1"),
+			name: "scan get all leases with accountId",
+			query: &lease.Lease{
+				AccountID: ptrString("1"),
 			},
 			sInput: &dynamodb.ScanInput{
 				ConsistentRead:   aws.Bool(false),
 				TableName:        aws.String("Leases"),
 				FilterExpression: aws.String("#0 = :0"),
 				ExpressionAttributeNames: map[string]*string{
-					"#0": aws.String("PrincipalId"),
+					"#0": aws.String("AccountId"),
 				},
 				ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
 					":0": {
-						S: aws.String("User1"),
+						S: aws.String("1"),
 					},
 				},
+				Limit: ptrInt64(25),
 			},
 			sOutputRec: &dynamodb.ScanOutput{
 				Items: []map[string]*dynamodb.AttributeValue{
@@ -90,7 +93,7 @@ func TestGetLeasesScan(t *testing.T) {
 					},
 				},
 			},
-			expLeases: &model.Leases{
+			expLeases: &lease.Leases{
 				{
 					AccountID:   ptrString("1"),
 					PrincipalID: ptrString("User1"),
@@ -99,10 +102,11 @@ func TestGetLeasesScan(t *testing.T) {
 		},
 		{
 			name:  "scan failure with internal server error",
-			query: model.Lease{},
+			query: &lease.Lease{},
 			sInput: &dynamodb.ScanInput{
 				ConsistentRead: aws.Bool(false),
 				TableName:      aws.String("Leases"),
+				Limit:          ptrInt64(25),
 			},
 			sOutputRec: nil,
 			sOutputErr: fmt.Errorf("failure"),
@@ -121,11 +125,12 @@ func TestGetLeasesScan(t *testing.T) {
 				)
 			}
 
-			leaseData := &Account{
+			leaseData := &Lease{
 				DynamoDB:  &mockDynamo,
 				TableName: "Leases",
+				Limit:     25,
 			}
-			leases, err := leaseData.GetLeases(&tt.query)
+			leases, err := leaseData.List(tt.query)
 			assert.True(t, errors.Is(err, tt.expErr))
 			assert.Equal(t, tt.expLeases, leases)
 		})
@@ -136,8 +141,8 @@ func TestGetLeasesScan(t *testing.T) {
 func TestGetLeasesQuery(t *testing.T) {
 	tests := []struct {
 		name       string
-		query      model.Lease
-		expLeases  *model.Leases
+		query      *lease.Lease
+		expLeases  *lease.Leases
 		expErr     error
 		qInput     *dynamodb.QueryInput
 		qOutputRec *dynamodb.QueryOutput
@@ -145,8 +150,8 @@ func TestGetLeasesQuery(t *testing.T) {
 	}{
 		{
 			name: "query all leases by status",
-			query: model.Lease{
-				LeaseStatus: model.LeaseStatusActive.LeaseStatusPtr(),
+			query: &lease.Lease{
+				Status: lease.StatusActive.StatusPtr(),
 			},
 			qInput: &dynamodb.QueryInput{
 				ConsistentRead: aws.Bool(false),
@@ -161,6 +166,7 @@ func TestGetLeasesQuery(t *testing.T) {
 					},
 				},
 				KeyConditionExpression: aws.String("#0 = :0"),
+				Limit:                  ptrInt64(25),
 			},
 			qOutputRec: &dynamodb.QueryOutput{
 				Items: []map[string]*dynamodb.AttributeValue{
@@ -174,7 +180,7 @@ func TestGetLeasesQuery(t *testing.T) {
 					},
 				},
 			},
-			expLeases: &model.Leases{
+			expLeases: &lease.Leases{
 				{
 					AccountID:   ptrString("1"),
 					PrincipalID: ptrString("User1"),
@@ -183,28 +189,29 @@ func TestGetLeasesQuery(t *testing.T) {
 		},
 		{
 			name: "query all leases by status with filter",
-			query: model.Lease{
-				LeaseStatus: model.LeaseStatusActive.LeaseStatusPtr(),
+			query: &lease.Lease{
+				Status:      lease.StatusActive.StatusPtr(),
 				PrincipalID: aws.String("User1"),
 			},
 			qInput: &dynamodb.QueryInput{
 				ConsistentRead: aws.Bool(false),
 				TableName:      aws.String("Leases"),
-				IndexName:      aws.String("LeaseStatus"),
+				IndexName:      aws.String("PrincipalId"),
 				ExpressionAttributeNames: map[string]*string{
-					"#0": aws.String("PrincipalId"),
-					"#1": aws.String("LeaseStatus"),
+					"#0": aws.String("LeaseStatus"),
+					"#1": aws.String("PrincipalId"),
 				},
 				ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
 					":0": {
-						S: aws.String("User1"),
+						S: aws.String("Active"),
 					},
 					":1": {
-						S: aws.String("Active"),
+						S: aws.String("User1"),
 					},
 				},
 				KeyConditionExpression: aws.String("#1 = :1"),
 				FilterExpression:       aws.String("#0 = :0"),
+				Limit:                  ptrInt64(25),
 			},
 			qOutputRec: &dynamodb.QueryOutput{
 				Items: []map[string]*dynamodb.AttributeValue{
@@ -218,7 +225,7 @@ func TestGetLeasesQuery(t *testing.T) {
 					},
 				},
 			},
-			expLeases: &model.Leases{
+			expLeases: &lease.Leases{
 				{
 					AccountID:   ptrString("1"),
 					PrincipalID: ptrString("User1"),
@@ -227,28 +234,29 @@ func TestGetLeasesQuery(t *testing.T) {
 		},
 		{
 			name: "query internal error",
-			query: model.Lease{
-				LeaseStatus: model.LeaseStatusActive.LeaseStatusPtr(),
+			query: &lease.Lease{
+				Status:      lease.StatusActive.StatusPtr(),
 				PrincipalID: aws.String("User1"),
 			},
 			qInput: &dynamodb.QueryInput{
 				ConsistentRead: aws.Bool(false),
 				TableName:      aws.String("Leases"),
-				IndexName:      aws.String("LeaseStatus"),
+				IndexName:      aws.String("PrincipalId"),
 				ExpressionAttributeNames: map[string]*string{
-					"#0": aws.String("PrincipalId"),
-					"#1": aws.String("LeaseStatus"),
+					"#0": aws.String("LeaseStatus"),
+					"#1": aws.String("PrincipalId"),
 				},
 				ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
 					":0": {
-						S: aws.String("User1"),
+						S: aws.String("Active"),
 					},
 					":1": {
-						S: aws.String("Active"),
+						S: aws.String("User1"),
 					},
 				},
 				KeyConditionExpression: aws.String("#1 = :1"),
 				FilterExpression:       aws.String("#0 = :0"),
+				Limit:                  ptrInt64(25),
 			},
 			qOutputRec: nil,
 			qOutputErr: fmt.Errorf("failure"),
@@ -267,11 +275,12 @@ func TestGetLeasesQuery(t *testing.T) {
 				)
 			}
 
-			leaseData := &Account{
+			leaseData := &Lease{
 				DynamoDB:  &mockDynamo,
 				TableName: "Leases",
+				Limit:     25,
 			}
-			leases, err := leaseData.GetLeases(&tt.query)
+			leases, err := leaseData.List(tt.query)
 			assert.True(t, errors.Is(err, tt.expErr))
 			assert.Equal(t, tt.expLeases, leases)
 		})

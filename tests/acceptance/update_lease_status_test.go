@@ -492,7 +492,7 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 
 }
 
-func createUsageForInputAmount(t *testing.T, apiURL string, accountID string, usageSvc usage.Service, costAmount float64) []*usage.Usage {
+func createUsageForInputAmount(t *testing.T, apiURL string, accountID string, usageSvc usage.DBer, costAmount float64) []*usage.Usage {
 	// Create usage
 	// Setup usage dates
 	const ttl int = 3
@@ -515,19 +515,22 @@ func createUsageForInputAmount(t *testing.T, apiURL string, accountID string, us
 
 	for i := 1; i <= 10; i++ {
 
-		input := usage.Usage{
-			PrincipalID:  testPrincipalID,
-			AccountID:    testAccountID,
-			StartDate:    startDate.Unix(),
-			EndDate:      endDate.Unix(),
-			CostAmount:   costAmount,
-			CostCurrency: "USD",
-			TimeToLive:   timeToLive.Unix(),
-		}
-		err := usageSvc.PutUsage(input)
+		input, err := usage.NewUsage(
+			usage.NewUsageInput{
+				PrincipalID:  testPrincipalID,
+				AccountID:    testAccountID,
+				StartDate:    startDate.Unix(),
+				EndDate:      endDate.Unix(),
+				CostAmount:   costAmount,
+				CostCurrency: "USD",
+				TimeToLive:   timeToLive.Unix(),
+			},
+		)
+		require.Nil(t, err)
+		err = usageSvc.PutUsage(*input)
 		require.Nil(t, err)
 
-		expectedUsages = append(expectedUsages, &input)
+		expectedUsages = append(expectedUsages, input)
 
 		usageEndDate = endDate
 		startDate = startDate.AddDate(0, 0, -1)

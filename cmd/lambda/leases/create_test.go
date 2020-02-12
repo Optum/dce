@@ -36,7 +36,7 @@ func TestCreateController_Call(t *testing.T) {
 				Dao                   db.DBer
 				SNS                   common.Notificationer
 				LeaseTopicARN         *string
-				UsageSvc              usage.Service
+				UsageSvc              usage.DBer
 				PrincipalBudgetAmount *float64
 				PrincipalBudgetPeriod *string
 				MaxLeaseBudgetAmount  *float64
@@ -55,14 +55,14 @@ func TestCreateController_Call(t *testing.T) {
 		period := "WEEKLY"
 		leasePeriod := int64(704800)
 
-		principalBudgetAmount = &amount
-		principalBudgetPeriod = &period
-		maxLeaseBudgetAmount = &amount
-		maxLeasePeriod = &leasePeriod
+		principalBudgetAmount = amount
+		principalBudgetPeriod = period
+		maxLeaseBudgetAmount = amount
+		maxLeasePeriod = leasePeriod
 
 		dbMock := stubDb()
 		snsMock := &commonMock.Notificationer{}
-		usageMock := &mockUsage.Service{}
+		usageMock := &mockUsage.DBer{}
 		sevenDaysOut := time.Now().AddDate(0, 0, 7).Unix()
 
 		// Should create/update the lease record
@@ -94,10 +94,10 @@ func TestCreateController_Call(t *testing.T) {
 			SNS:                   snsMock,
 			LeaseTopicARN:         &leaseTopicARN,
 			UsageSvc:              usageMock,
-			PrincipalBudgetAmount: principalBudgetAmount,
-			PrincipalBudgetPeriod: principalBudgetPeriod,
-			MaxLeaseBudgetAmount:  maxLeaseBudgetAmount,
-			MaxLeasePeriod:        maxLeasePeriod,
+			PrincipalBudgetAmount: &principalBudgetAmount,
+			PrincipalBudgetPeriod: &principalBudgetPeriod,
+			MaxLeaseBudgetAmount:  &maxLeaseBudgetAmount,
+			MaxLeasePeriod:        &maxLeasePeriod,
 		}
 
 		successResponse := createSuccessCreateResponse()
@@ -155,7 +155,7 @@ func TestCreateController_Call(t *testing.T) {
 					LeaseTopicARN:         &leaseTopicARN,
 					UsageSvc:              usageMock,
 					PrincipalBudgetAmount: aws.Float64(9999999999),
-					PrincipalBudgetPeriod: principalBudgetPeriod,
+					PrincipalBudgetPeriod: &principalBudgetPeriod,
 					MaxLeaseBudgetAmount:  aws.Float64(9999999999),
 					MaxLeasePeriod:        aws.Int64(600000000),
 				},
@@ -168,12 +168,12 @@ func TestCreateController_Call(t *testing.T) {
 			t.Run(tt.name, func(t *testing.T) {
 				dao = tt.fields.Dao
 				snsSvc = tt.fields.SNS
-				leaseAddedTopicARN = tt.fields.LeaseTopicARN
+				leaseAddedTopicARN = *tt.fields.LeaseTopicARN
 				usageSvc = tt.fields.UsageSvc
-				principalBudgetAmount = tt.fields.PrincipalBudgetAmount
-				principalBudgetPeriod = tt.fields.PrincipalBudgetPeriod
-				maxLeaseBudgetAmount = tt.fields.MaxLeaseBudgetAmount
-				maxLeasePeriod = tt.fields.MaxLeasePeriod
+				principalBudgetAmount = *tt.fields.PrincipalBudgetAmount
+				principalBudgetPeriod = *tt.fields.PrincipalBudgetPeriod
+				maxLeaseBudgetAmount = *tt.fields.MaxLeaseBudgetAmount
+				maxLeasePeriod = *tt.fields.MaxLeasePeriod
 				got, err := Handler(tt.args.ctx, *tt.args.req)
 				if (err != nil) != tt.wantErr {
 					t.Errorf("CreateController.Call() error = %v, wantErr %v", err, tt.wantErr)

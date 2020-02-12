@@ -15,6 +15,7 @@ import (
 	emailMocks "github.com/Optum/dce/pkg/email/mocks"
 	"github.com/Optum/dce/pkg/usage"
 	usageMocks "github.com/Optum/dce/pkg/usage/mocks"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
@@ -82,7 +83,7 @@ has exceeded its budget of $100. Actual spend is $150
 		dbSvc := &dbMocks.DBer{}
 		tokenSvc := &commonMocks.TokenService{}
 		budgetSvc := &budgetMocks.Service{}
-		usageSvc := &usageMocks.Service{}
+		usageSvc := &usageMocks.DBer{}
 		snsSvc := &commonMocks.Notificationer{}
 		sqsSvc := &awsMocks.SQSAPI{}
 		emailSvc := &emailMocks.Service{}
@@ -105,7 +106,6 @@ has exceeded its budget of $100. Actual spend is $150
 			snsSvc:                                 snsSvc,
 			leaseLockedTopicArn:                    "lease-locked",
 			sqsSvc:                                 sqsSvc,
-			resetQueueURL:                          "reset-queue-url",
 			emailSvc:                               emailSvc,
 			budgetNotificationFromEmail:            "from@example.com",
 			budgetNotificationBCCEmails:            []string{"bcc@example.com"},
@@ -114,6 +114,7 @@ has exceeded its budget of $100. Actual spend is $150
 			budgetNotificationTemplateSubject:      emailTemplateSubject,
 			budgetNotificationThresholdPercentiles: []float64{75, 100},
 			principalBudgetAmount:                  1000,
+			usageTTL:                               3600,
 		}
 
 		// Should grab the account from the DB, to get it's adminRoleArn
@@ -138,19 +139,22 @@ has exceeded its budget of $100. Actual spend is $150
 			endDate,
 		).Return(test.actualSpend, nil)
 
-		// Mock Usage service
-		inputUsage := usage.Usage{
-			PrincipalID:  "test-user",
-			AccountID:    "",
-			StartDate:    startDate.Unix(),
-			EndDate:      usageEndDate.Unix(),
-			CostAmount:   test.actualSpend,
-			CostCurrency: "USD",
-			TimeToLive:   startDate.AddDate(0, 1, 0).Unix(),
-		}
+		// Expected Usage DB entry
+		inputUsage, err := usage.NewUsage(
+			usage.NewUsageInput{
+				PrincipalID:  "test-user",
+				AccountID:    "",
+				StartDate:    startDate.Unix(),
+				EndDate:      usageEndDate.Unix(),
+				CostAmount:   test.actualSpend,
+				CostCurrency: "USD",
+				TimeToLive:   startDate.Add(time.Duration(3600) * time.Second).Unix(),
+			},
+		)
+		assert.Nil(t, err)
 
 		budgetStartTime := time.Unix(input.lease.LeaseStatusModifiedOn, 0)
-		usageSvc.On("PutUsage", inputUsage).Return(nil)
+		usageSvc.On("PutUsage", *inputUsage).Return(nil)
 		usageSvc.On("GetUsageByDateRange", budgetStartTime, usageEndDate.AddDate(0, 0, -1)).Return(nil, nil)
 		usageSvc.On("GetUsageByDateRange", mock.Anything, mock.Anything).Return(nil, nil)
 
@@ -180,7 +184,7 @@ has exceeded its budget of $100. Actual spend is $150
 		}
 
 		// Call Lambda handler
-		err := lambdaHandler(input)
+		err = lambdaHandler(input)
 		if test.expectedError == "" {
 			require.Nil(t, err)
 		} else {

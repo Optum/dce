@@ -3,91 +3,78 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 
+	"github.com/Optum/dce/pkg/api"
 	"github.com/Optum/dce/pkg/api/response"
-
-	"github.com/Optum/dce/pkg/db"
+	"github.com/Optum/dce/pkg/errors"
+	"github.com/Optum/dce/pkg/lease"
+	"github.com/gorilla/mux"
 )
 
-// requestBody is the structured object of the Request Called to the Router
-type deleteLeaseRequest struct {
-	PrincipalID string `json:"principalId"`
-	AccountID   string `json:"accountId"`
+// DeleteLeaseByID - Deletes the given lease by Lease ID
+func DeleteLeaseByID(w http.ResponseWriter, r *http.Request) {
+
+	leaseID := mux.Vars(r)["leaseID"]
+
+	lease, err := Services.LeaseService().Delete(leaseID)
+
+	if err != nil {
+		api.WriteAPIErrorResponse(w, err)
+		return
+	}
+
+	api.WriteAPIResponse(w, http.StatusOK, lease)
 }
 
 // DeleteLease - Deletes the given lease
 func DeleteLease(w http.ResponseWriter, r *http.Request) {
 
-	requestBody := &deleteLeaseRequest{}
-
+	// Deserialize the request JSON as an request object
+	queryLease := &lease.Lease{}
 	decoder := json.NewDecoder(r.Body)
-	err := decoder.Decode(&requestBody)
-
-	if err != nil || requestBody.PrincipalID == "" {
-		log.Printf("Failed to Parse Request Body: %s", r.Body)
-		response.WriteBadRequestError(w, fmt.Sprintf("Failed to Parse Request Body: %s", r.Body))
-		return
-	}
-
-	principalID := requestBody.PrincipalID
-	accountID := requestBody.AccountID
-	log.Printf("Destroying lease %s for Principal %s", accountID, principalID)
-
-	// Move the account to decommissioned
-	accts, err := dao.FindLeasesByPrincipal(principalID)
+	err := decoder.Decode(queryLease)
 	if err != nil {
-		log.Printf("Error finding leases for Principal %s: %s", principalID, err)
-		response.WriteServerErrorWithResponse(w, fmt.Sprintf("Cannot verify if Principal %s has a lease", principalID))
-		return
-	}
-	if accts == nil {
-		errStr := fmt.Sprintf("No leases found for %s", principalID)
-		log.Printf("Error: %s", errStr)
-		response.WriteBadRequestError(w, errStr)
+		api.WriteAPIErrorResponse(w,
+			errors.NewBadRequest("invalid request parameters"))
 		return
 	}
 
-	// Get the Lease
-	var acct *db.Lease
-	for _, a := range accts {
-		if a.AccountID == requestBody.AccountID {
-			acct = a
-			break
-		}
-	}
-	if acct == nil {
-		response.WriteBadRequestError(w, fmt.Sprintf("No active account leases found for %s", principalID))
-		return
-	} else if acct.LeaseStatus != db.Active {
-		errStr := fmt.Sprintf("Lease is not active for %s - %s",
-			principalID, accountID)
-		response.WriteBadRequestError(w, errStr)
+	if queryLease.AccountID == nil {
+		api.WriteAPIErrorResponse(w,
+			errors.NewBadRequest("invalid request parameters: missing AccountID"))
 		return
 	}
 
-	// Transition the Lease Status
-	updatedLease, err := dao.TransitionLeaseStatus(acct.AccountID, principalID,
-		db.Active, db.Inactive, db.LeaseDestroyed)
+	if queryLease.PrincipalID == nil {
+		api.WriteAPIErrorResponse(w,
+			errors.NewBadRequest("invalid request parameters: missing PrincipalID"))
+		return
+	}
+
+	leases, err := Services.LeaseService().List(queryLease)
 	if err != nil {
-		log.Printf("Error transitioning lease status: %s", err)
-		response.WriteServerErrorWithResponse(w, fmt.Sprintf("Failed Decommission on Account Lease %s - %s", principalID, accountID))
+		api.WriteAPIErrorResponse(w, err)
 		return
 	}
 
-	// Transition the Account Status
-	_, err = dao.TransitionAccountStatus(acct.AccountID, db.Leased,
-		db.NotReady)
-	if err != nil {
-		response.WriteServerErrorWithResponse(w, fmt.Sprintf("Failed Decommission on Account Lease %s - %s", principalID, accountID))
+	if len(*leases) == 0 {
+		api.WriteAPIErrorResponse(w,
+			errors.NewNotFound("lease", fmt.Sprintf("with Principal ID %s and Account ID %s", *queryLease.PrincipalID, *queryLease.AccountID)))
 		return
 	}
 
-	leaseResponse := response.LeaseResponse(*updatedLease)
-	err = json.NewEncoder(w).Encode(leaseResponse)
-	if err != nil {
-		response.WriteServerErrorWithResponse(w, fmt.Sprintf("Failed Decommission on Account Lease %s - %s", principalID, accountID))
+	if len(*leases) > 1 {
+		response.WriteRequestValidationError(w, fmt.Sprintf("Found more than one lease"))
 		return
 	}
+	leaseID := (*leases)[0].ID
+	lease, err := Services.LeaseService().Delete(*leaseID)
+
+	if err != nil {
+		api.WriteAPIErrorResponse(w, err)
+		return
+	}
+
+	api.WriteAPIResponse(w, http.StatusOK, lease)
 }

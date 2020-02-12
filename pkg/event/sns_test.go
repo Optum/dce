@@ -56,7 +56,7 @@ func TestSns(t *testing.T) {
 			mockSns := &mocks.SNSAPI{}
 			eventer, _ := NewSnsEvent(mockSns, "arn:aws:sns:us-east-1:123456789012:test")
 
-			// Mock StartBuild call
+			// Mock Publish call
 			mockSns.On("Publish",
 				&sns.PublishInput{
 					Message:          aws.String(tt.expectedMessage),

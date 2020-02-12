@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
 	"io/ioutil"
 	"math/rand"
+	"math"
 	"net/http"
 	"net/url"
 	"os"
@@ -65,6 +66,7 @@ func TestApi(t *testing.T) {
 		tfOut["leases_table_name"].(string),
 		7,
 	)
+	dbSvc.ConsistentRead = true
 
 	// Configure the usage service
 	usageSvc := usage.New(
@@ -527,6 +529,72 @@ func TestApi(t *testing.T) {
 			fmt.Print("TODO")
 		})
 
+		t.Run("Should be able to create and destroy and lease by ID", func(t *testing.T) {
+			defer truncateAccountTable(t, dbSvc)
+			defer truncateLeaseTable(t, dbSvc)
+
+			// Create an Account Entry
+			acctID := "123"
+			principalID := "user"
+			timeNow := time.Now().Unix()
+			err := dbSvc.PutAccount(db.Account{
+				ID:             acctID,
+				AccountStatus:  db.Ready,
+				LastModifiedOn: timeNow,
+			})
+			require.Nil(t, err)
+
+			// Create the Provision Request Body
+			body := leaseRequest{
+				PrincipalID: principalID,
+			}
+
+			// Send an API request
+			resp := apiRequest(t, &apiRequestInput{
+				method: "POST",
+				url:    apiURL + "/leases",
+				json:   body,
+			})
+
+			// Verify response code
+			require.Equal(t, http.StatusCreated, resp.StatusCode)
+
+			// Parse response json
+			data := parseResponseJSON(t, resp)
+
+			// Verify provisioned response json
+			require.Equal(t, principalID, data["principalId"].(string))
+			require.Equal(t, acctID, data["accountId"].(string))
+			require.Equal(t, string(db.Active),
+				data["leaseStatus"].(string))
+			require.NotNil(t, data["createdOn"])
+			require.NotNil(t, data["lastModifiedOn"])
+			require.NotNil(t, data["leaseStatusModifiedOn"])
+
+			// Send an API request
+			resp = apiRequest(t, &apiRequestInput{
+				method: "DELETE",
+				url:    apiURL + fmt.Sprintf("/leases/%s", data["id"]),
+				f: func(r *testutil.R, apiResp *apiResponse) {
+					// Verify response code
+					assert.Equal(r, http.StatusOK, apiResp.StatusCode)
+				},
+			})
+
+			// Parse response json
+			data = parseResponseJSON(t, resp)
+
+			// Verify provisioned response json
+			assert.Equal(t, principalID, data["principalId"].(string))
+			assert.Equal(t, acctID, data["accountId"].(string))
+			assert.Equal(t, string(db.Inactive),
+				data["leaseStatus"].(string))
+			assert.NotNil(t, data["createdOn"])
+			assert.NotNil(t, data["lastModifiedOn"])
+			assert.NotNil(t, data["leaseStatusModifiedOn"])
+
+		})
+
 		t.Run("Should not be able to create lease with empty json", func(t *testing.T) {
 			// Send an API request
 			apiRequest(t, &apiRequestInput{
@@ -651,7 +719,7 @@ func TestApi(t *testing.T) {
 					// Get nested json in response json
 					err := data["error"].(map[string]interface{})
 					assert.Equal(r, "ClientError", err["code"].(string))
-					assert.Equal(r, "Failed to Parse Request Body: {}",
+					assert.Equal(r, "invalid request parameters",
 						err["message"].(string))
 				},
 			})
@@ -674,7 +742,7 @@ func TestApi(t *testing.T) {
 				json:   body,
 				f: func(r *testutil.R, apiResp *apiResponse) {
 					// Verify response code
-					assert.Equal(r, http.StatusBadRequest, apiResp.StatusCode)
+					assert.Equal(r, http.StatusNotFound, apiResp.StatusCode)
 
 					// Parse response json
 					data := parseResponseJSON(t, apiResp)
@@ -682,8 +750,8 @@ func TestApi(t *testing.T) {
 					// Verify error response json
 					// Get nested json in response json
 					err := data["error"].(map[string]interface{})
-					assert.Equal(r, "ClientError", err["code"].(string))
-					assert.Equal(r, "No leases found for user",
+					assert.Equal(r, "NotFoundError", err["code"].(string))
+					assert.Equal(r, fmt.Sprintf("lease \"with Principal ID %s and Account ID %s\" not found", principalID, acctID),
 						err["message"].(string))
 				},
 			})
@@ -728,7 +796,7 @@ func TestApi(t *testing.T) {
 				json:   body,
 				f: func(r *testutil.R, apiResp *apiResponse) {
 					// Verify response code
-					assert.Equal(r, http.StatusBadRequest, apiResp.StatusCode)
+					assert.Equal(r, http.StatusNotFound, apiResp.StatusCode)
 
 					// Parse response json
 					data := parseResponseJSON(t, apiResp)
@@ -736,8 +804,8 @@ func TestApi(t *testing.T) {
 					// Verify error response json
 					// Get nested json in response json
 					errResp := data["error"].(map[string]interface{})
-					assert.Equal(r, "ClientError", errResp["code"].(string))
-					assert.Equal(r, "No active account leases found for user",
+					assert.Equal(r, "NotFoundError", errResp["code"].(string))
+					assert.Equal(r, fmt.Sprintf("lease \"with Principal ID %s and Account ID %s\" not found", principalID, wrongAcctID),
 						errResp["message"].(string))
 				},
 			})
@@ -781,7 +849,7 @@ func TestApi(t *testing.T) {
 				json:   body,
 				f: func(r *testutil.R, apiResp *apiResponse) {
 					// Verify response code
-					assert.Equal(r, http.StatusBadRequest, apiResp.StatusCode)
+					assert.Equal(r, http.StatusConflict, apiResp.StatusCode)
 
 					// Parse response json
 					data := parseResponseJSON(t, apiResp)
@@ -789,9 +857,8 @@ func TestApi(t *testing.T) {
 					// Verify error response json
 					// Get nested json in response json
 					errResp := data["error"].(map[string]interface{})
-					assert.Equal(r, "ClientError", errResp["code"].(string))
-					assert.Equal(r, "Lease is not active for user - 123",
-						errResp["message"].(string))
+					assert.Equal(r, "ConflictError", errResp["code"].(string))
+					assert.Regexp(t, "leaseStatus: must be active lease", errResp["message"].(string))
 				},
 			})
 
@@ -998,15 +1065,21 @@ func TestApi(t *testing.T) {
 					})
 
 					// Check the lease is decommissioned
-					// (since we dont' yet have a GET /leases endpoint
-					lease, err := dbSvc.GetLease(accountID, "test-user")
-					require.Nil(t, err)
-					require.Equal(t, db.Inactive, lease.LeaseStatus)
+					resp := apiRequest(t, &apiRequestInput{
+						method: "GET",
+						url:    apiURL + fmt.Sprintf("/leases?principalId=test-user&accountId=%s", accountID),
+						json:   nil,
+					})
+
+					results := parseResponseArrayJSON(t, resp)
+					assert.Equal(t, 200, resp.StatusCode)
+					assert.Equal(t, 1, len(results), "one lease should be returned")
+					assert.Equal(t, "Inactive", results[0]["leaseStatus"])
 
 					t.Run("STEP: Recreate lease against same account", func(t *testing.T) {
 						// Account is being reset, so it's not marked as "Ready".
 						// Update the DB to be ready, so we can create a lease
-						_, err := dbSvc.TransitionAccountStatus(accountID, db.NotReady, db.Ready)
+						_, err := dbSvc.TransitionAccountStatus(accountID, db.Leased, db.Ready)
 						require.Nil(t, err)
 
 						// Request a lease
@@ -1211,8 +1284,6 @@ func TestApi(t *testing.T) {
 					"metadata": map[string]interface{}{
 						"foo": "bar",
 					},
-					// this shouldn't actually persist
-					"accountStatus": "hippos",
 				},
 				f: statusCodeAssertion(200),
 			})
@@ -1222,8 +1293,6 @@ func TestApi(t *testing.T) {
 			require.Equal(t, map[string]interface{}{
 				"foo": "bar",
 			}, resJSON["metadata"], "Response includes updated metadata")
-			require.NotEqual(t, "hippos", resJSON["accountStatus"],
-				"shouldn't update non-updatable fields")
 			require.True(t, resJSON["lastModifiedOn"].(float64) > resJSON["createdOn"].(float64),
 				"should update lastModifiedOn timestamp")
 
@@ -1234,8 +1303,6 @@ func TestApi(t *testing.T) {
 			require.Equal(t, map[string]interface{}{
 				"foo": "bar",
 			}, account.Metadata, "db record metadata is updated")
-			require.NotEqual(t, "hippos", account.AccountStatus,
-				"shouldn't update non-updatable fields in DB")
 			require.True(t, account.LastModifiedOn > account.CreatedOn,
 				"should update lastModifiedOn timestamp")
 		})
@@ -1255,9 +1322,8 @@ func TestApi(t *testing.T) {
 			resJSON := parseResponseJSON(t, res)
 			require.Equal(t, map[string]interface{}{
 				"error": map[string]interface{}{
-					"code": "RequestValidationError",
-					"message": fmt.Sprintf("Unable to update account %s: "+
-						"admin role is not assumable by the master account", accountID),
+					"code":    "RequestValidationError",
+					"message": fmt.Sprintf("account validation error: adminRoleArn: must be an admin role arn that can be assumed."),
 				},
 			}, resJSON)
 		})
@@ -1267,7 +1333,7 @@ func TestApi(t *testing.T) {
 			// with invalid adminRoleArn
 			res := apiRequest(t, &apiRequestInput{
 				method: "PUT",
-				url:    apiURL + "/accounts/not-an-account-id",
+				url:    apiURL + "/accounts/123456789012",
 				json: map[string]interface{}{
 					"metadata": map[string]interface{}{
 						"foo": "bar",
@@ -1279,8 +1345,8 @@ func TestApi(t *testing.T) {
 			resJSON := parseResponseJSON(t, res)
 			require.Equal(t, map[string]interface{}{
 				"error": map[string]interface{}{
-					"code":    "NotFound",
-					"message": "The requested resource could not be found.",
+					"code":    "NotFoundError",
+					"message": "account \"123456789012\" not found",
 				},
 			}, resJSON)
 		})
@@ -1342,7 +1408,7 @@ func TestApi(t *testing.T) {
 			testStartDate := time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), 0, 0, 0, 0, time.UTC)
 			testEndDate := time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), 23, 59, 59, 59, time.UTC)
 			var testPrincipalID = "TestUser1"
-			var testAccount = "TestAccount1"
+			var testAccount = "123456789012"
 
 			t.Run("Should be able to get usage by start date and end date", func(t *testing.T) {
 				queryString := fmt.Sprintf("/usage?startDate=%d&endDate=%d", testStartDate.Unix(), testEndDate.Unix())
@@ -1366,7 +1432,7 @@ func TestApi(t *testing.T) {
 					if data[0] != nil {
 						usageJSON := data[0]
 						assert.Equal(r, "TestUser1", usageJSON["principalId"].(string))
-						assert.Equal(r, "TestAccount1", usageJSON["accountId"].(string))
+						assert.Equal(r, "123456789012", usageJSON["accountId"].(string))
 						assert.Equal(r, 2000.00, usageJSON["costAmount"].(float64))
 					}
 				})
@@ -1394,7 +1460,7 @@ func TestApi(t *testing.T) {
 					if data[0] != nil {
 						usageJSON := data[0]
 						assert.Equal(r, "TestUser1", usageJSON["principalId"].(string))
-						assert.Equal(r, "TestAccount1", usageJSON["accountId"].(string))
+						assert.Equal(r, "123456789012", usageJSON["accountId"].(string))
 						assert.Equal(r, 2000.00, usageJSON["costAmount"].(float64))
 					}
 				})
@@ -1422,7 +1488,7 @@ func TestApi(t *testing.T) {
 					if data[0] != nil {
 						usageJSON := data[0]
 						assert.Equal(r, "TestUser1", usageJSON["principalId"].(string))
-						assert.Equal(r, "TestAccount1", usageJSON["accountId"].(string))
+						assert.Equal(r, "123456789012", usageJSON["accountId"].(string))
 						assert.Equal(r, 2000.00, usageJSON["costAmount"].(float64))
 					}
 				})
@@ -1669,6 +1735,28 @@ func TestApi(t *testing.T) {
 			assert.Equal(t, 2, len(results), "only two leases should be returned")
 		})
 
+		t.Run("When there is a principal ID and an Account ID parameter", func(t *testing.T) {
+			resp := apiRequest(t, &apiRequestInput{
+				method: "GET",
+				url:    apiURL + "/leases?principalId=" + principalIDOne + "&accountId=" + accountIDOne,
+				json:   nil,
+			})
+
+			results := parseResponseArrayJSON(t, resp)
+			assert.Equal(t, 1, len(results), "only one lease should be returned")
+		})
+
+		t.Run("When there is no leases found with principal and account don't exist", func(t *testing.T) {
+			resp := apiRequest(t, &apiRequestInput{
+				method: "GET",
+				url:    apiURL + "/leases?principalId=reallybadprincipal&accountId=notanaccount",
+				json:   nil,
+			})
+
+			results := parseResponseArrayJSON(t, resp)
+			assert.Equal(t, 0, len(results), "no lease should be returned")
+		})
+
 		t.Run("When there is a limit parameter", func(t *testing.T) {
 			resp := apiRequest(t, &apiRequestInput{
 				method: "GET",
@@ -1886,9 +1974,11 @@ func TestApi(t *testing.T) {
 			// Get nested json in response json
 			err := data["error"].(map[string]interface{})
 			require.Equal(t, "RequestValidationError", err["code"].(string))
+			// Weekday + 1 since Sunday is 0.  Min of 5 because thats what the write usage does
+			weekday := math.Min(float64(time.Now().Weekday())+1, 5)
 			require.Equal(t,
-				"Unable to create lease: User principal TestUser1 "+
-					"has already spent 10000.00 of their 1000.00 principal budget",
+				fmt.Sprintf("Unable to create lease: User principal TestUser1 "+
+					"has already spent %.2f of their 1000.00 principal budget", weekday*2000),
 				err["message"].(string),
 			)
 		})
@@ -2270,7 +2360,7 @@ func createAdminRole(t *testing.T, awsSession client.ConfigProvider, adminRoleNa
 	}
 }
 
-func createUsage(t *testing.T, apiURL string, usageSvc usage.Service) {
+func createUsage(t *testing.T, apiURL string, usageSvc usage.DBer) {
 	// Create usage
 	// Setup usage dates
 	const ttl int = 3
@@ -2286,20 +2376,23 @@ func createUsage(t *testing.T, apiURL string, usageSvc usage.Service) {
 	timeToLive := startDate.AddDate(0, 0, ttl)
 
 	var testPrincipalID = "TestUser1"
-	var testAccountID = "TestAccount1"
+	var testAccountID = "123456789012"
 
 	for i := 1; i <= 5; i++ {
 
-		input := usage.Usage{
-			PrincipalID:  testPrincipalID,
-			AccountID:    testAccountID,
-			StartDate:    startDate.Unix(),
-			EndDate:      endDate.Unix(),
-			CostAmount:   2000.00,
-			CostCurrency: "USD",
-			TimeToLive:   timeToLive.Unix(),
-		}
-		err := usageSvc.PutUsage(input)
+		input, err := usage.NewUsage(
+			usage.NewUsageInput{
+				PrincipalID:  testPrincipalID,
+				AccountID:    testAccountID,
+				StartDate:    startDate.Unix(),
+				EndDate:      endDate.Unix(),
+				CostAmount:   2000.00,
+				CostCurrency: "USD",
+				TimeToLive:   timeToLive.Unix(),
+			},
+		)
+		require.Nil(t, err)
+		err = usageSvc.PutUsage(*input)
 		require.Nil(t, err)
 
 		usageEndDate = endDate

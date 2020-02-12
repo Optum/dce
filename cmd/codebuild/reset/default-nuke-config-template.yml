@@ -6,7 +6,7 @@ regions:
 {{range .Regions}}  - "{{.}}"
 {{end}}
 account-blacklist:
-  - "999999999999" # Arbitrary production account id
+  - "{{ .ParentAccountID}}" # Arbitrary production account id
 
 resource-types:
   excludes:
@@ -31,3 +31,5 @@ accounts:
       IAMRolePolicyAttachment:
         # Do not remove the policy from the principal user role
         - "{{ .PrincipalRole}} -> {{ .PrincipalPolicy}}"
+        - property: RoleName
+          value: "{{ .AdminRole}}"

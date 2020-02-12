@@ -8,7 +8,7 @@ import (
 
 	awsmocks "github.com/Optum/dce/pkg/awsiface/mocks"
 	"github.com/Optum/dce/pkg/errors"
-	"github.com/Optum/dce/pkg/model"
+	"github.com/Optum/dce/pkg/lease"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -24,16 +24,16 @@ func TestGetLeaseByAccountIDAndPrincipalID(t *testing.T) {
 		dynamoErr     error
 		dynamoOutput  *dynamodb.GetItemOutput
 		expectedErr   error
-		expectedLease *model.Lease
+		expectedLease *lease.Lease
 	}{
 		{
 			name:        "should return a lease object",
 			accountID:   "123456789012",
 			principalID: "User1",
-			expectedLease: &model.Lease{
+			expectedLease: &lease.Lease{
 				AccountID:      ptrString("123456789012"),
 				PrincipalID:    ptrString("User1"),
-				LeaseStatus:    model.LeaseStatusActive.LeaseStatusPtr(),
+				Status:         lease.StatusActive.StatusPtr(),
 				LastModifiedOn: ptrInt64(1573592058),
 			},
 			dynamoErr: nil,
@@ -90,75 +90,13 @@ func TestGetLeaseByAccountIDAndPrincipalID(t *testing.T) {
 			})).Return(
 				tt.dynamoOutput, tt.dynamoErr,
 			)
-			leaseData := &Account{
+			leaseData := &Lease{
 				DynamoDB:  &mockDynamo,
 				TableName: "Leases",
 			}
 
-			lease, err := leaseData.GetLeaseByAccountIDAndPrincipalID(tt.accountID, tt.principalID)
+			lease, err := leaseData.GetByAccountIDAndPrincipalID(tt.accountID, tt.principalID)
 			assert.Equal(t, tt.expectedLease, lease)
-			assert.True(t, errors.Is(err, tt.expectedErr))
-		})
-	}
-
-}
-
-func TestLeaseDelete(t *testing.T) {
-
-	tests := []struct {
-		name         string
-		lease        model.Lease
-		dynamoErr    error
-		dynamoOutput *dynamodb.DeleteItemOutput
-		expectedErr  error
-	}{
-		{
-			name: "should delete a lease successfully",
-			lease: model.Lease{
-				AccountID:      ptrString("123456789012"),
-				PrincipalID:    ptrString("User1"),
-				LeaseStatus:    model.LeaseStatusActive.LeaseStatusPtr(),
-				LastModifiedOn: ptrInt64(1573592058),
-			},
-			dynamoErr: nil,
-			dynamoOutput: &dynamodb.DeleteItemOutput{
-				Attributes: map[string]*dynamodb.AttributeValue{},
-			},
-			expectedErr: nil,
-		},
-		{
-			name: "should delete a lease return error",
-			lease: model.Lease{
-				AccountID:      ptrString("123456789012"),
-				PrincipalID:    ptrString("User1"),
-				LeaseStatus:    model.LeaseStatusActive.LeaseStatusPtr(),
-				LastModifiedOn: ptrInt64(1573592058),
-			},
-			dynamoErr: gErrors.New("failure"),
-			dynamoOutput: &dynamodb.DeleteItemOutput{
-				Attributes: map[string]*dynamodb.AttributeValue{},
-			},
-			expectedErr: errors.NewInternalServer("delete lease failed for account \"123456789012\" and principal \"User1\"", gErrors.New("failure")),
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			mockDynamo := awsmocks.DynamoDBAPI{}
-
-			mockDynamo.On("DeleteItem", mock.MatchedBy(func(input *dynamodb.DeleteItemInput) bool {
-				return (*input.TableName == "Leases" &&
-					*input.Key["AccountId"].S == *tt.lease.AccountID &&
-					*input.Key["PrincipalId"].S == *tt.lease.PrincipalID)
-			})).Return(
-				tt.dynamoOutput, tt.dynamoErr,
-			)
-			leaseData := &Account{
-				DynamoDB:  &mockDynamo,
-				TableName: "Leases",
-			}
-
-			err := leaseData.DeleteLease(&tt.lease)
 			assert.True(t, errors.Is(err, tt.expectedErr))
 		})
 	}
@@ -168,17 +106,17 @@ func TestLeaseDelete(t *testing.T) {
 func TestLeaseUpdate(t *testing.T) {
 	tests := []struct {
 		name              string
-		lease             model.Lease
+		lease             *lease.Lease
 		dynamoErr         error
 		expectedErr       error
 		oldLastModifiedOn *int64
 	}{
 		{
 			name: "update",
-			lease: model.Lease{
+			lease: &lease.Lease{
 				AccountID:      ptrString("123456789012"),
 				PrincipalID:    ptrString("User1"),
-				LeaseStatus:    model.LeaseStatusActive.LeaseStatusPtr(),
+				Status:         lease.StatusActive.StatusPtr(),
 				LastModifiedOn: ptrInt64(1573592058),
 			},
 			oldLastModifiedOn: ptrInt64(1573592057),
@@ -187,10 +125,10 @@ func TestLeaseUpdate(t *testing.T) {
 		},
 		{
 			name: "create",
-			lease: model.Lease{
+			lease: &lease.Lease{
 				AccountID:      ptrString("123456789012"),
 				PrincipalID:    ptrString("User1"),
-				LeaseStatus:    model.LeaseStatusActive.LeaseStatusPtr(),
+				Status:         lease.StatusActive.StatusPtr(),
 				LastModifiedOn: ptrInt64(1573592058),
 			},
 			dynamoErr:   nil,
@@ -198,10 +136,10 @@ func TestLeaseUpdate(t *testing.T) {
 		},
 		{
 			name: "conditional failure",
-			lease: model.Lease{
+			lease: &lease.Lease{
 				AccountID:      ptrString("123456789012"),
 				PrincipalID:    ptrString("User1"),
-				LeaseStatus:    model.LeaseStatusActive.LeaseStatusPtr(),
+				Status:         lease.StatusActive.StatusPtr(),
 				LastModifiedOn: ptrInt64(1573592058),
 			},
 			oldLastModifiedOn: ptrInt64(1573592057),
@@ -213,10 +151,10 @@ func TestLeaseUpdate(t *testing.T) {
 		},
 		{
 			name: "other dynamo error",
-			lease: model.Lease{
+			lease: &lease.Lease{
 				AccountID:      ptrString("123456789012"),
 				PrincipalID:    ptrString("User2"),
-				LeaseStatus:    model.LeaseStatusActive.LeaseStatusPtr(),
+				Status:         lease.StatusActive.StatusPtr(),
 				LastModifiedOn: ptrInt64(1573592058),
 			},
 			oldLastModifiedOn: ptrInt64(1573592057),
@@ -236,25 +174,25 @@ func TestLeaseUpdate(t *testing.T) {
 					return (*input.TableName == "Leases" &&
 						*input.Item["AccountId"].S == *tt.lease.AccountID &&
 						*input.Item["PrincipalId"].S == *tt.lease.PrincipalID &&
-						*input.Item["LeaseStatus"].S == string(*tt.lease.LeaseStatus) &&
+						input.Item["LeaseStatus"].S == tt.lease.Status.StringPtr() &&
 						*input.Item["LastModifiedOn"].N == strconv.FormatInt(*tt.lease.LastModifiedOn, 10) &&
 						*input.ConditionExpression == "attribute_not_exists (#0)")
 				}
 				return (*input.TableName == "Leases" &&
 					*input.Item["AccountId"].S == *tt.lease.AccountID &&
 					*input.Item["PrincipalId"].S == *tt.lease.PrincipalID &&
-					*input.Item["LeaseStatus"].S == string(*tt.lease.LeaseStatus) &&
+					input.Item["LeaseStatus"].S == tt.lease.Status.StringPtr() &&
 					*input.Item["LastModifiedOn"].N == strconv.FormatInt(*tt.lease.LastModifiedOn, 10) &&
 					*input.ExpressionAttributeValues[":0"].N == strconv.FormatInt(*tt.oldLastModifiedOn, 10))
 			})).Return(
 				&dynamodb.PutItemOutput{}, tt.dynamoErr,
 			)
-			leaseData := &Account{
+			leaseData := &Lease{
 				DynamoDB:  &mockDynamo,
 				TableName: "Leases",
 			}
 
-			err := leaseData.WriteLease(&tt.lease, tt.oldLastModifiedOn)
+			err := leaseData.Write(tt.lease, tt.oldLastModifiedOn)
 			assert.Truef(t, errors.Is(err, tt.expectedErr), "actual error %q doesn't match expected error %q", err, tt.expectedErr)
 		})
 	}
@@ -268,16 +206,16 @@ func TestGetLeaseByID(t *testing.T) {
 		dynamoErr     error
 		dynamoOutput  *dynamodb.QueryOutput
 		expectedErr   error
-		expectedLease *model.Lease
+		expectedLease *lease.Lease
 	}{
 		{
 			name:    "should return a lease object",
 			leaseID: "123",
-			expectedLease: &model.Lease{
+			expectedLease: &lease.Lease{
 				ID:             ptrString("123"),
 				AccountID:      ptrString("123456789012"),
 				PrincipalID:    ptrString("User1"),
-				LeaseStatus:    model.LeaseStatusActive.LeaseStatusPtr(),
+				Status:         lease.StatusActive.StatusPtr(),
 				LastModifiedOn: ptrInt64(1573592058),
 			},
 			dynamoErr: nil,
@@ -373,12 +311,12 @@ func TestGetLeaseByID(t *testing.T) {
 			})).Return(
 				tt.dynamoOutput, tt.dynamoErr,
 			)
-			leaseData := &Account{
+			leaseData := &Lease{
 				DynamoDB:  &mockDynamo,
 				TableName: "Leases",
 			}
 
-			lease, err := leaseData.GetLeaseByID(tt.leaseID)
+			lease, err := leaseData.Get(tt.leaseID)
 			assert.Equal(t, tt.expectedLease, lease)
 			assert.True(t, errors.Is(err, tt.expectedErr))
 		})

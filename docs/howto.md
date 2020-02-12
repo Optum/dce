@@ -23,39 +23,40 @@ The DCE CLI is the easiest way to quickly deploy and use DCE. For more advanced 
 1. Test the dce command by typing `dce`
     ```
     $ dce
-    Disposable Cloud Environment (DCE)
+    Disposable Cloud Environment (DCE) 
 
-      The DCE cli allows:
+    The DCE cli allows:
 
-      - Admins to provision DCE to a master account and administer said account
-      - Users to lease accounts and execute commands against them
+    - Admins to provision DCE to a master account and administer said account
+    - Users to lease accounts and execute commands against them
 
     Usage:
-      dce [command]
+    dce [command]
 
     Available Commands:
-      accounts    Manage dce accounts
-      auth        Login to dce
-      help        Help about any command
-      init        First time DCE cli setup. Creates config file at ~/.dce.yaml
-      leases      Manage dce leases
-      system      Deploy and configure the DCE system
+    accounts    Manage dce accounts
+    auth        Login to dce
+    help        Help about any command
+    init        First time DCE cli setup. Creates config file at "$HOME/.dce/config.yaml" (by default) or at the location specifief by "--config"
+    leases      Manage dce leases
+    system      Deploy and configure the DCE system
+    usage       View lease budget information
 
     Flags:
-          --config string   config file (default is $HOME/.dce.yaml)
-      -h, --help            help for dce
+        --config string   config file (default is "$HOME/.dce/config.yaml")
+    -h, --help            help for dce
 
     Use "dce [command] --help" for more information about a command.
     ```
 
-1. Type `dce init` to generate a new config file at ~/.dce.yaml. Leave everything blank for now.
+1. Type `dce init` to generate a new configuration file. Leave everything blank for now.
 
 ### Configuring AWS Credentials
 
 The DCE CLI needs AWS IAM credentials any time it interacts with an AWS account. Below is a list of places where the DCE CLI
 will look for credentials, ordered by precedence.
 
-1. An API Token in the `api.token` field of the `.dce.yaml` config file. You may obtain an API Token by:
+1. An API Token in the `api.token` field in the configuration file. You may obtain an API Token by:
     - Running the `dce auth` command
     - Base64 encoding the following JSON string. Note that `expireTime` is a Unix epoch timestamp and the string should
     not contain spaces or newline characters.
@@ -70,6 +71,8 @@ will look for credentials, ordered by precedence.
         ```
 1. The Environment Variables: `AWS_ACCESS_KEY_ID`, `AWS_ACCESS_KEY`, and `AWS_SESSION_TOKEN`
 1. Stored in the AWS CLI credentials file under the `default` profile. This is located at `$HOME/.aws/credentials` on Linux/OSX and `%USERPROFILE%\.aws\credentials` on Windows.
+
+.
 
 ### Deploying DCE from the CLI
 
@@ -95,6 +98,70 @@ This section will cover deployment using the DCE CLI with credentilas configured
       basepath: /api
     region: us-east-1
     ```
+
+#### Using advanced deployment options
+
+The DCE CLI uses [terraform](https://www.terraform.io/) to provision the infrastructure into the AWS account. 
+You can use the `--tf-init-options` and `--tf-apply-options` to supply options directly to `terraform init`
+and `terraform apply` (respectively) in the same format in which you would supply them to the `terraform` command.
+
+> Note: if you are an advanced terraform user, you should consider 
+> using the `DCE terraform module directly<terraform.html>`_.
+
+The `--save-options` flag, if supplied, saves the values supplied to `--tf-init-options` and `--tf-apply-options`
+in the configuration file in the following locations:
+
+```yaml
+terraform:
+  initOptions: "-lock=true"
+  applyOptions: "-compact-warnings -lock=true"
+```
+
+The DCE CLI stores its configuration by default in the `$HOME/.dce/config.yaml` location. This
+can by overridden using the `--config` command line option. The file is as shown:
+
+```yaml
+# The API configutation. This is the DCE API that has been deployed to 
+# an AWS account.
+api:
+  # This is the host name only, in the format of 
+  # {restapi_id}.execute-api.{region}.amazonaws.com
+  # For more information, see 
+  # https://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-call-api.html
+  host: api-gateway-id.execute-api.us-east-1.amazonaws.com
+  # The stage name of the API Gateway
+  # Default: /api
+  basepath: /api
+# The AWS region. It must match the region configured in the 
+# api.host. Must be one of:
+# "us-east-1", "us-east-2", "us-west-1", "us-west-2"
+region: us-east-1
+# Terraform configuration
+terraform:
+  # The full path to the locally-cached terraform binary used
+  # by DCE to provision resources. Default value is 
+  # $HOME/.dce/.cache/terraform/0.12.18/terraform
+  bin: /path/to/terraform
+  # The source from which terraform was downloaded. This
+  # is reserved for future use.
+  source: https://download.url.example.com/terraform.zip
+  # The options passed to the underlying terraform init command.
+  # This value is read if the --tf-init-options command option
+  # is not specified or if the DCE_TF_INIT_OPTIONS environment
+  # variable is empty, in that order.
+  # The format of the value should be just as you would pass
+  # them to terraform, as a quoted string.
+  initOptions: ""
+  # The options passed to the underlying terraform apply command.
+  # Like the --tf-init-options flag, the command option is read
+  # first, then the DCE_TF_APPLY_OPTIONS environment variable,
+  # and lastly this value here. Use the --save-options flag to
+  # easily save the values you supply on the CLI to this file.
+  # The format of the value should be just as you would pass
+  # them to terraform, as a quoted string.
+  applyOptions: ""
+
+```
 
 ### Authenticating with DCE
 
@@ -681,7 +748,55 @@ See [AWS guide for backing up DynamoDB tables](https://docs.aws.amazon.com/amazo
 
 ## Monitor DCE
 
-DCE comes prebuilt with a number of CloudWatch alarms, which will trigger when DCE systems encounter errors or behaves abnormally.
+### CloudWatch Dashboard
+
+DCE comes with a prebuilt CloudWatch dashboard for monitoring things like API calls, account resets, and errors. To enable
+the DCE CloudWatch Dashboard, set the `cloudwatch_dashboard_toggle` terraform variable to `true` during deployment. e.g.
+
+```
+terraform apply -var cloudwatch_dashboard_toggle=true
+```
+
+The DCE CloudWatch Dashboard is disabled by default.
+
+### Account Pool Monitoring
+
+DCE account pool monitoring may be enabled via the `account_pool_metrics_toggle` terraform variable. Account pool monitoring
+publishes CloudWatch metrics on the number of accounts in each status (i.e. `Ready`, `Leased`, `NotReady`, and `Orphaned`).
+The following CloudWatch alarms are included: 
+
+* `ready-accounts`: triggers when the number of `Ready` accounts is below a configurable threshold. Controlled by the `ready_accounts_alarm_threshold` terraform variable.
+* `orphaned-accounts`: triggers when the number of `Orphaned` accounts is above a configurable threshold. Controlled by the `orphaned_accounts_alarm_threshold` terraform variable.
+
+To enable this feature with logical defaults, simply use:
+```
+terraform apply \
+  -var account_pool_metrics_toggle=true \
+  -var cloudwatch_dashboard_toggle=true \
+```
+
+DCE periodically queries the Accounts table to retrieve the number of accounts in each status. The frequency of these queries
+can be controlled using the `account_pool_metrics_collection_rate_expression` terraform variable.
+
+The DCE CloudWatch dashboard includes an `Account Pool` widget that displays the number of accounts in each status over time. 
+The period over which metrics are aggregated in this widget can be controlled using the `account_pool_metrics_widget_period` terraform variable.
+
+In order for data to display accurately in the `Account Pool` dashboard widget, the period of time over which data is aggregated 
+in the widget (`account_pool_metrics_widget_period`) must be shorter than the metrics sampling interval (`account_pool_metrics_collection_rate_expression`).
+Otherwise, multiple samples will be aggregated together in each data point.
+
+For example, if `account_pool_metrics_collection_rate_expression` is set to `rate(30 minutes)`, then `1200` seconds (20 minutes)
+ would be an acceptable value for `account_pool_metrics_widget_period`.
+
+You may need to increase the DynamoDB Read Capacity Units on the Accounts table in order to accommodate this feature 
+periodically querying all of the Account records. 13 RCUs per 100 accounts should be sufficient to avoid throttling. If needed,
+ refer to the [AWS Documentation](https://aws.amazon.com/dynamodb/pricing/provisioned/) for assistance in 
+calculating the required read capacity units appropriate for your usage.
+This may be adjusted using the `accounts_table_rcu` terraform variable.
+
+### CloudWatch Alarms
+
+DCE also comes prebuilt with a number of CloudWatch alarms, which will trigger when DCE systems encounter errors or behave abnormally.
 
 These CloudWatch alarms are delivered to an SNS topic. The ARN of this SNS topic is available as `a Terraform output <terraform.html#accessing-terraform-outputs>`_:
 

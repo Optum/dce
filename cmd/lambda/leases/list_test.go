@@ -1,191 +1,131 @@
 package main
 
 import (
-	"context"
-	"encoding/json"
-	"errors"
-	"net/http"
+	"fmt"
+	"io/ioutil"
+	"net/http/httptest"
 	"net/url"
-	"strings"
 	"testing"
 
-	"github.com/Optum/dce/pkg/api/response"
-	"github.com/Optum/dce/pkg/db"
-	"github.com/Optum/dce/pkg/db/mocks"
-	"github.com/aws/aws-lambda-go/events"
+	"github.com/Optum/dce/pkg/config"
+	"github.com/Optum/dce/pkg/lease"
+	"github.com/Optum/dce/pkg/lease/leaseiface/mocks"
+	"github.com/gorilla/schema"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/mock"
 )
 
-func TestListLeases(t *testing.T) {
+func TestGetLeases(t *testing.T) {
 
-	t.Run("Building next URL", func(t *testing.T) {
-		body := strings.NewReader("")
-		request, err := http.NewRequest("GET", "http://example.com/api/leases?limit=2", body)
-
-		assert.Nil(t, err)
-
-		nextParams := make(map[string]string)
-
-		nextParams["AccountId"] = "1"
-		nextParams["PrincipalId"] = "b"
-
-		nextURL := response.BuildNextURL(request, nextParams, url.URL{})
-
-		assert.Equal(t, url.Values{
-			"limit": {
-				"2",
-			},
-			"nextAccountId": {
-				"1",
-			},
-			"nextPrincipalId": {
-				"b",
-			},
-		}, nextURL.Query())
-
-	})
-
-	t.Run("Empty leases", func(t *testing.T) {
-
-		leasesResult := createEmptyLeasesOutput()
-
-		mockLeaseInput := createGetEmptyLeasesInput()
-		mockDb := mocks.DBer{}
-		mockDb.On("GetLeases", *mockLeaseInput).Return(*leasesResult, nil)
-		mockRequest := createGetEmptyLeasesRequest()
-
-		dao = &mockDb
-
-		actualResponse, err := Handler(context.Background(), mockRequest)
-		require.Nil(t, err)
-
-		parsedResponse := []response.LeaseResponse{}
-		err = json.Unmarshal([]byte(actualResponse.Body), &parsedResponse)
-		require.Nil(t, err)
-
-		require.Equal(t, 0, len(parsedResponse), "empty result")
-		require.Equal(t, actualResponse.StatusCode, 200, "Returns a 200.")
-	})
-
-	t.Run("When the invoking Call and there are no errors", func(t *testing.T) {
-
-		expectedLeaseResponses := response.LeaseResponse{
-			ID:             "unique-id",
-			AccountID:      "987654321",
-			PrincipalID:    "12345",
-			LeaseStatus:    db.Active,
-			LastModifiedOn: 1561149393,
-		}
-
-		leasesResult := createSingleLeaseOutput()
-
-		mockDb := mocks.DBer{}
-		mockDb.On("GetLease", "987654321", "12345").Return(leasesResult, nil)
-		mockRequest := createGetSingleLeaseRequest()
-
-		dao = &mockDb
-
-		actualResponse, err := Handler(context.Background(), mockRequest)
-		require.Nil(t, err)
-
-		parsedResponse := response.LeaseResponse{}
-		err = json.Unmarshal([]byte(actualResponse.Body), &parsedResponse)
-		require.Nil(t, err)
-
-		require.Equal(t, expectedLeaseResponses, parsedResponse, "Returns a single lease.")
-		require.Equal(t, actualResponse.StatusCode, 200, "Returns a 200.")
-	})
-
-	t.Run("When the query fails", func(t *testing.T) {
-		expectedError := errors.New("Error")
-		mockLeaseInput := createGetEmptyLeasesInput()
-		leasesResult := createLeasesOutput()
-		mockDb := mocks.DBer{}
-		mockDb.On("GetLeases", *mockLeaseInput).Return(*leasesResult, expectedError)
-		mockRequest := createGetLeasesRequest()
-
-		dao = &mockDb
-
-		actualResponse, err := Handler(context.Background(), mockRequest)
-		require.Nil(t, err)
-
-		require.Equal(t, actualResponse.StatusCode, 500, "Returns a 500.")
-		require.Equal(t, actualResponse.Body, "{\"error\":{\"code\":\"ServerError\",\"message\":\"Internal server error\"}}")
-	})
-
-}
-
-func createGetEmptyLeasesInput() *db.GetLeasesInput {
-	keys := make(map[string]string)
-	return &db.GetLeasesInput{
-		StartKeys: keys,
+	type response struct {
+		StatusCode int
+		Body       string
 	}
-}
-
-func createGetSingleLeaseRequest() events.APIGatewayProxyRequest {
-	q := make(map[string]string)
-	q[PrincipalIDParam] = "12345"
-	q[AccountIDParam] = "987654321"
-	return events.APIGatewayProxyRequest{
-		HTTPMethod:            http.MethodGet,
-		QueryStringParameters: q,
-		Path:                  "/leases",
-	}
-}
-
-func createGetLeasesRequest() events.APIGatewayProxyRequest {
-	q := make(map[string]string)
-	return events.APIGatewayProxyRequest{
-		HTTPMethod:            http.MethodGet,
-		QueryStringParameters: q,
-		Path:                  "/leases",
-	}
-}
-
-func createGetEmptyLeasesRequest() events.APIGatewayProxyRequest {
-	q := make(map[string]string)
-	return events.APIGatewayProxyRequest{
-		HTTPMethod:            http.MethodGet,
-		QueryStringParameters: q,
-		Path:                  "/leases",
-	}
-}
-
-func createLeasesOutput() *db.GetLeasesOutput {
-
-	nextKeys := make(map[string]string)
-	leases := []*db.Lease{
+	tests := []struct {
+		name            string
+		expResp         response
+		expLink         string
+		query           *lease.Lease
+		retLeases       *lease.Leases
+		retErr          error
+		nextAccountID   *string
+		nextPrincipalID *string
+	}{
 		{
-			ID:             "unique-id",
-			AccountID:      "987654321",
-			PrincipalID:    "12345",
-			LeaseStatus:    db.Active,
-			LastModifiedOn: 1561149393,
+			name:  "get all leases",
+			query: &lease.Lease{},
+			expResp: response{
+				StatusCode: 200,
+				Body:       "[]\n",
+			},
+			retLeases: &lease.Leases{},
+			retErr:    nil,
+		},
+		{
+			name:  "get paged leases",
+			query: &lease.Lease{},
+			expResp: response{
+				StatusCode: 200,
+				Body:       "[{\"accountId\":\"123456789012\",\"principalId\":\"User1\"}]\n",
+			},
+			retLeases: &lease.Leases{
+				lease.Lease{
+					AccountID:   ptrString("123456789012"),
+					PrincipalID: ptrString("User1"),
+				},
+			},
+			nextAccountID:   ptrString("234567890123"),
+			nextPrincipalID: ptrString("User2"),
+			expLink:         "<https://example.com/unit/leases?limit=1&nextAccountId=234567890123&nextPrincipalId=User2>; rel=\"next\"",
+			retErr:          nil,
+		},
+		{
+			name: "fail to get leases",
+			query: &lease.Lease{
+				AccountID:   ptrString("abc123"),
+				PrincipalID: ptrString("User2"),
+			},
+			expResp: response{
+				StatusCode: 500,
+				Body:       "{\"error\":{\"message\":\"unknown error\",\"code\":\"ServerError\"}}\n",
+			},
+			retLeases: nil,
+			retErr:    fmt.Errorf("failure"),
 		},
 	}
-	return &db.GetLeasesOutput{
-		NextKeys: nextKeys,
-		Results:  leases,
-	}
-}
 
-func createSingleLeaseOutput() *db.Lease {
-	return &db.Lease{
-		ID:             "unique-id",
-		AccountID:      "987654321",
-		PrincipalID:    "12345",
-		LeaseStatus:    db.Active,
-		LastModifiedOn: 1561149393,
-	}
-}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := httptest.NewRequest("GET", "http://example.com/leases", nil)
 
-func createEmptyLeasesOutput() *db.GetLeasesOutput {
+			baseRequest = url.URL{}
+			baseRequest.Scheme = "https"
+			baseRequest.Host = "example.com"
+			baseRequest.Path = fmt.Sprintf("%s%s", "unit", "/leases")
 
-	nextKeys := make(map[string]string)
-	leases := []*db.Lease{}
-	return &db.GetLeasesOutput{
-		NextKeys: nextKeys,
-		Results:  leases,
+			values := url.Values{}
+			err := schema.NewEncoder().Encode(tt.query, values)
+			assert.Nil(t, err)
+
+			r.URL.RawQuery = values.Encode()
+			w := httptest.NewRecorder()
+
+			cfgBldr := &config.ConfigurationBuilder{}
+			svcBldr := &config.ServiceBuilder{Config: cfgBldr}
+
+			leaseSvc := mocks.Servicer{}
+
+			leaseSvc.On("List", mock.MatchedBy(func(input *lease.Lease) bool {
+				if (input.AccountID != nil && tt.query.AccountID != nil && *input.AccountID == *tt.query.AccountID) || input.AccountID == tt.query.AccountID {
+					if tt.nextAccountID != nil && tt.nextPrincipalID != nil {
+						input.NextAccountID = tt.nextAccountID
+						input.NextPrincipalID = tt.nextPrincipalID
+						input.Limit = ptr64(1)
+					}
+					return true
+				}
+				return false
+			})).Return(
+				tt.retLeases, tt.retErr,
+			)
+			svcBldr.Config.WithService(&leaseSvc)
+			_, err = svcBldr.Build()
+
+			assert.Nil(t, err)
+			if err == nil {
+				Services = svcBldr
+			}
+
+			GetLeases(w, r)
+
+			resp := w.Result()
+			body, err := ioutil.ReadAll(resp.Body)
+
+			assert.Nil(t, err)
+			assert.Equal(t, tt.expResp.StatusCode, resp.StatusCode)
+			assert.Equal(t, tt.expResp.Body, string(body))
+			assert.Equal(t, tt.expLink, w.Header().Get("Link"))
+		})
 	}
+
 }

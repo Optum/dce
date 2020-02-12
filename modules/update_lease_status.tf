@@ -45,6 +45,7 @@ module "update_lease_status_lambda" {
     BUDGET_NOTIFICATION_THRESHOLD_PERCENTILES = join(",", var.budget_notification_threshold_percentiles)
     PRINCIPAL_BUDGET_AMOUNT                   = var.principal_budget_amount
     PRINCIPAL_BUDGET_PERIOD                   = var.principal_budget_period
+    USAGE_TTL                                 = var.usage_ttl
   }
 }
 

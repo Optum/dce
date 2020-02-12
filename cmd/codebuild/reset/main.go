@@ -18,7 +18,7 @@ import (
 	"github.com/avast/retry-go"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/athena"
-	"github.com/aws/aws-sdk-go/service/rds"
+	"github.com/aws/aws-sdk-go/service/sts"
 )
 
 // main will run through the reset process for an account which involves using
@@ -27,6 +27,15 @@ func main() {
 	// Initialize a service container
 	svc := &service{}
 	config := svc.config()
+	awsSession := svc.awsSession()
+	tokenService := svc.tokenService()
+
+	//get current Account ID
+	caller, err := tokenService.Client.GetCallerIdentity(&sts.GetCallerIdentityInput{})
+	if err != nil {
+		log.Fatalf("Failed to get code build account information: %s\n", err)
+	}
+	_config.parentAccountID = *caller.Account
 
 	if !config.isNukeEnabled {
 		log.Println("INFO: Nuke is set in Dry Run mode and will not remove " +
@@ -35,27 +44,10 @@ func main() {
 			"mode.")
 	}
 
-	// Delete RDS automated backups
+	// Delete items nuke doesn't support currently
 	if config.isNukeEnabled {
-		log.Println("RDS backup nuke")
-		awsSession := svc.awsSession()
-		tokenService := svc.tokenService()
-		roleArn := "arn:aws:iam::" + config.accountID + ":role/" + config.accountAdminRoleName
-		rdsCreds := tokenService.NewCredentials(awsSession, roleArn)
-		rdsSession, err := tokenService.NewSession(awsSession, roleArn)
-		if err != nil {
-			log.Fatalf("Failed to create rds session %s: %s\n", config.accountID, err)
-		}
-		rdsClient := rds.New(rdsSession, &aws.Config{
-			Credentials: rdsCreds,
-		})
-		rdsReset := reset.RdsReset{
-			Client: rdsClient,
-		}
-		err = reset.DeleteRdsBackups(rdsReset)
-		if err != nil {
-			log.Fatalf("Failed to execute aws-nuke RDS backup on account %s: %s\n", config.accountID, err)
-		}
+
+		roleArn := "arn:aws:iam::" + config.childAccountID + ":role/" + config.accountAdminRoleName
 
 		// Delete Athena resources
 		log.Println("Starting Athena nuking")
@@ -69,25 +61,25 @@ func main() {
 		}
 		err = reset.DeleteAthenaResources(athenaReset)
 		if err != nil {
-			log.Fatalf("Failed to execute aws-nuke athena on account %s: %s\n", config.accountID, err)
+			log.Fatalf("Failed to execute aws-nuke athena on account %s: %s\n", config.childAccountID, err)
 		}
 	}
 
 	// Execute aws-nuke, to delete all resources from the account
-	err := nukeAccount(
+	err = nukeAccount(
 		svc,
 		// Execute nuke as a dry run, if isNukeEnabled is off
 		!config.isNukeEnabled,
 	)
 	if err != nil {
-		log.Fatalf("Failed to execute aws-nuke on account %s: %s\n", config.accountID, err)
+		log.Fatalf("Failed to execute aws-nuke on account %s: %s\n", config.childAccountID, err)
 	}
-	log.Printf("%s  :  Nuke Success\n", config.accountID)
+	log.Printf("%s  :  Nuke Success\n", config.childAccountID)
 
 	// Update the DB with Account/Lease statuses
-	err = updateDBPostReset(svc.db(), svc.snsService(), config.accountID, common.RequireEnv("RESET_COMPLETE_TOPIC_ARN"))
+	err = updateDBPostReset(svc.db(), svc.snsService(), config.childAccountID, common.RequireEnv("RESET_COMPLETE_TOPIC_ARN"))
 	if err != nil {
-		log.Fatalf("Failed to update the DB post-reset for account %s:  %s", config.accountID, err)
+		log.Fatalf("Failed to update the DB post-reset for account %s:  %s", config.childAccountID, err)
 	}
 }
 
@@ -137,7 +129,7 @@ func nukeAccount(svc *service, isDryRun bool) error {
 	config := svc.config()
 
 	// Create the file
-	configFile := fmt.Sprintf("/tmp/nuke-config-%s.yml", config.accountID)
+	configFile := fmt.Sprintf("/tmp/nuke-config-%s.yml", config.childAccountID)
 	f, err := os.Create(configFile)
 	if err != nil {
 		log.Fatalf("Failed to create file %s: %s", configFile, err)
@@ -161,12 +153,12 @@ func nukeAccount(svc *service, isDryRun bool) error {
 
 	// Configure the NukeAccountInput
 	nukeAccountInput := reset.NukeAccountInput{
-		AccountID:  config.accountID,
-		RoleName:   config.accountAdminRoleName,
-		ConfigPath: configFile,
-		NoDryRun:   !isDryRun,
-		Token:      svc.tokenService(),
-		Nuke:       nuke,
+		ChildAccountID: config.childAccountID,
+		RoleName:       config.accountAdminRoleName,
+		ConfigPath:     configFile,
+		NoDryRun:       !isDryRun,
+		Token:          svc.tokenService(),
+		Nuke:           nuke,
 	}
 
 	// Nukes based on the configuration file that is generated
@@ -195,7 +187,7 @@ func generateNukeConfig(svc *service, f io.Writer) error {
 			config.nukeTemplateBucket, config.nukeTemplateKey)
 
 		// Download the file from S3
-		templateFile = fmt.Sprintf("nuke-config-template-%s.yml", config.accountID)
+		templateFile = fmt.Sprintf("nuke-config-template-%s.yml", config.childAccountID)
 		err := svc.s3Service().Download(config.nukeTemplateBucket,
 			config.nukeTemplateKey, templateFile)
 		if err != nil {
@@ -213,11 +205,12 @@ func generateNukeConfig(svc *service, f io.Writer) error {
 	template, err := template.New(templateFile).ParseFiles(templateFile)
 	if err != nil {
 		log.Printf("Failed to generate nuke config for acount %s using template %s: %s",
-			config.accountID, templateFile, err)
+			config.childAccountID, templateFile, err)
 		return err
 	}
 
 	type templateParams struct {
+		ParentAccountID string
 		ID              string
 		AdminRole       string
 		PrincipalRole   string
@@ -226,7 +219,8 @@ func generateNukeConfig(svc *service, f io.Writer) error {
 	}
 
 	err = template.ExecuteTemplate(f, templateFile, &templateParams{
-		ID:              config.accountID,
+		ParentAccountID: config.parentAccountID,
+		ID:              config.childAccountID,
 		AdminRole:       config.accountAdminRoleName,
 		PrincipalRole:   config.accountPrincipalRoleName,
 		PrincipalPolicy: config.accountPrincipalPolicyName,
@@ -234,7 +228,7 @@ func generateNukeConfig(svc *service, f io.Writer) error {
 	})
 	if err != nil {
 		log.Printf("Failed to generate nuke config for acount %s using template %s: %s",
-			config.accountID, templateFile, err)
+			config.childAccountID, templateFile, err)
 		return err
 	}
 

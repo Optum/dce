@@ -3,8 +3,8 @@ package data
 import (
 	"fmt"
 
+	"github.com/Optum/dce/pkg/account"
 	"github.com/Optum/dce/pkg/errors"
-	"github.com/Optum/dce/pkg/model"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -19,13 +19,14 @@ type Account struct {
 	DynamoDB       dynamodbiface.DynamoDBAPI
 	TableName      string `env:"ACCOUNT_DB"`
 	ConsistentRead bool   `env:"USE_CONSISTENT_READS" envDefault:"false"`
+	Limit          int64  `env:"LIMIT" envDefault:"25"`
 }
 
-// WriteAccount the Account record in DynamoDB
+// Write the Account record in DynamoDB
 // This is an upsert operation in which the record will either
 // be inserted or updated
 // prevLastModifiedOn parameter is the original lastModifiedOn
-func (a *Account) WriteAccount(account *model.Account, prevLastModifiedOn *int64) error {
+func (a *Account) Write(account *account.Account, prevLastModifiedOn *int64) error {
 
 	var expr expression.Expression
 	var err error
@@ -58,7 +59,7 @@ func (a *Account) WriteAccount(account *model.Account, prevLastModifiedOn *int64
 		// Return the updated record
 		ReturnValues: aws.String(returnValue),
 	}
-	err = putItem(input, a)
+	err = putItem(input, a.DynamoDB)
 	var awsErr awserr.Error
 	if errors.As(err, &awsErr) {
 		if awsErr.Code() == "ConditionalCheckFailedException" {
@@ -78,15 +79,15 @@ func (a *Account) WriteAccount(account *model.Account, prevLastModifiedOn *int64
 	return nil
 }
 
-// DeleteAccount the Account record in DynamoDB
-func (a *Account) DeleteAccount(account *model.Account) error {
+// Delete the Account record in DynamoDB
+func (a *Account) Delete(account *account.Account) error {
 
 	_, err := a.DynamoDB.DeleteItem(
 		&dynamodb.DeleteItemInput{
 			// Query in Lease Table
 			TableName: aws.String(a.TableName),
 			// Return the updated record
-			ReturnValues: aws.String("ALL_NEW"),
+			ReturnValues: aws.String("NONE"),
 			Key: map[string]*dynamodb.AttributeValue{
 				"Id": {
 					S: account.ID,
@@ -105,16 +106,15 @@ func (a *Account) DeleteAccount(account *model.Account) error {
 	return nil
 }
 
-// GetAccountByID the Account record by ID
-func (a *Account) GetAccountByID(accountID string) (*model.Account, error) {
-
+// Get the Account record by ID
+func (a *Account) Get(ID string) (*account.Account, error) {
 	res, err := a.DynamoDB.GetItem(
 		&dynamodb.GetItemInput{
 			// Query in Lease Table
 			TableName: aws.String(a.TableName),
 			Key: map[string]*dynamodb.AttributeValue{
 				"Id": {
-					S: aws.String(accountID),
+					S: aws.String(ID),
 				},
 			},
 			ConsistentRead: aws.Bool(a.ConsistentRead),
@@ -123,22 +123,22 @@ func (a *Account) GetAccountByID(accountID string) (*model.Account, error) {
 
 	if err != nil {
 		return nil, errors.NewInternalServer(
-			fmt.Sprintf("get failed for account %q", accountID),
+			fmt.Sprintf("get failed for account %q", ID),
 			err,
 		)
 	}
 
 	if len(res.Item) == 0 {
-		return nil, errors.NewNotFound("account", accountID)
+		return nil, errors.NewNotFound("account", ID)
 	}
 
-	account := model.Account{}
-	err = dynamodbattribute.UnmarshalMap(res.Item, &account)
+	account := &account.Account{}
+	err = dynamodbattribute.UnmarshalMap(res.Item, account)
 	if err != nil {
 		return nil, errors.NewInternalServer(
-			fmt.Sprintf("failure unmarshaling account %q", accountID),
+			fmt.Sprintf("failure unmarshaling account %q", ID),
 			err,
 		)
 	}
-	return &account, nil
+	return account, nil
 }

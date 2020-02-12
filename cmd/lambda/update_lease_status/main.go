@@ -62,7 +62,6 @@ func main() {
 			budgetSvc:                              &budget.AWSBudgetService{},
 			usageSvc:                               usageSvc,
 			sqsSvc:                                 sqs.New(awsSession),
-			resetQueueURL:                          common.RequireEnv("RESET_QUEUE_URL"),
 			snsSvc:                                 &common.SNS{Client: sns.New(awsSession)},
 			leaseLockedTopicArn:                    common.RequireEnv("LEASE_LOCKED_TOPIC_ARN"),
 			emailSvc:                               &email.SESEmailService{SES: ses.New(awsSession)},
@@ -74,6 +73,7 @@ func main() {
 			budgetNotificationThresholdPercentiles: common.RequireEnvFloatSlice("BUDGET_NOTIFICATION_THRESHOLD_PERCENTILES", ","),
 			principalBudgetAmount:                  common.RequireEnvFloat("PRINCIPAL_BUDGET_AMOUNT"),
 			principalBudgetPeriod:                  common.RequireEnv("PRINCIPAL_BUDGET_PERIOD"),
+			usageTTL:                               common.RequireEnvInt("USAGE_TTL"),
 		})
 		if err != nil {
 			log.Fatalf("Failed check budget: %s", err)
@@ -105,11 +105,10 @@ type lambdaHandlerInput struct {
 	awsSession                             awsiface.AwsSession
 	tokenSvc                               common.TokenService
 	budgetSvc                              budget.Service
-	usageSvc                               usage.Service
+	usageSvc                               usage.DBer
 	snsSvc                                 common.Notificationer
 	leaseLockedTopicArn                    string
 	sqsSvc                                 awsiface.SQSAPI
-	resetQueueURL                          string
 	emailSvc                               email.Service
 	budgetNotificationFromEmail            string
 	budgetNotificationBCCEmails            []string
@@ -119,6 +118,7 @@ type lambdaHandlerInput struct {
 	budgetNotificationThresholdPercentiles []float64
 	principalBudgetAmount                  float64
 	principalBudgetPeriod                  string
+	usageTTL                               int // TTL in seconds for Usage DynamoDB records
 }
 
 func lambdaHandler(input *lambdaHandlerInput) error {
@@ -145,6 +145,7 @@ func lambdaHandler(input *lambdaHandlerInput) error {
 		usageSvc:              input.usageSvc,
 		awsSession:            input.awsSession,
 		principalBudgetPeriod: input.principalBudgetPeriod,
+		usageTTL:              input.usageTTL,
 	})
 	if err != nil {
 		return errors.Wrapf(err, "Failed to calculate spend for lease %s", leaseLogID)
