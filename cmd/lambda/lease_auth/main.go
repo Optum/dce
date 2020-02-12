@@ -1,70 +1,63 @@
 package main
 
 import (
-	"fmt"
-
-	"log"
-
+	"context"
 	"github.com/Optum/dce/pkg/api"
-	"github.com/Optum/dce/pkg/common"
-	"github.com/Optum/dce/pkg/db"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
-	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/Optum/dce/pkg/config"
+	"github.com/aws/aws-lambda-go/events"
+	"github.com/awslabs/aws-lambda-go-api-proxy/gorillamux"
+	"log"
 
 	"github.com/aws/aws-lambda-go/lambda"
 )
 
-const (
-	consoleURL    = "https://console.aws.amazon.com/"
-	federationURL = "https://signin.aws.amazon.com/federation"
+var (
+	muxLambda *gorillamux.GorillaMuxAdapter
+	Services  *config.ServiceBuilder
 )
 
+func initConfig() {
+	// Define required env vars
+	cfgBldr := &config.ConfigurationBuilder{}
+	_ = cfgBldr.WithEnv("AWS_CURRENT_REGION", "AWS_CURRENT_REGION", "us-east-1").Build()
+
+	// Define services we're going to need access to later
+	Services = &config.ServiceBuilder{Config: cfgBldr}
+	_, err := Services.
+		WithLeaseService().
+		WithUserDetailer().
+		WithAccountManagerService().
+		WithAccountService().
+		Build()
+	if err != nil {
+		panic(err)
+	}
+}
+
 func main() {
+	initConfig()
+	log.Println("Cold start; creating router for /leases/auth")
 
-	// Create the Database Service from the environment
-	dao := newDBer()
-
-	// Create the Token Service
-	awsSession := newAWSSession()
-	tokenSvc := common.STS{Client: sts.New(awsSession)}
-	cognitoSvc := cognitoidentityprovider.New(awsSession)
-	userDetails := &api.UserDetails{
-		CognitoUserPoolID:        common.RequireEnv("COGNITO_USER_POOL_ID"),
-		RolesAttributesAdminName: common.RequireEnv("COGNITO_ROLES_ATTRIBUTE_ADMIN_NAME"),
-		CognitoClient:            cognitoSvc,
-	}
-
-	router := &api.Router{
-		ResourceName: "/auth",
-		CreateController: CreateController{
-			Dao:           dao,
-			TokenService:  tokenSvc,
-			FederationURL: federationURL,
-			ConsoleURL:    consoleURL,
-			UserDetailer:  userDetails,
+	routes := api.Routes{
+		api.Route{
+			"LeaseAuth",
+			"POST",
+			"/leases/{leaseID}/auth",
+			api.EmptyQueryString,
+			LeaseAuthHandler,
 		},
-		UserDetails: userDetails,
+		api.Route{
+			"LeaseAuth",
+			"POST",
+			"/leases/auth",
+			api.EmptyQueryString,
+			LeaseAuthHandler,
+		},
 	}
+	r := api.NewRouter(routes)
+	muxLambda = gorillamux.New(r)
 
-	lambda.Start(router.Route)
-}
-
-func newDBer() db.DBer {
-	dao, err := db.NewFromEnv()
-	if err != nil {
-		errorMessage := fmt.Sprintf("Failed to initialize database: %s", err)
-		log.Fatal(errorMessage)
-	}
-
-	return dao
-}
-
-func newAWSSession() *session.Session {
-	awsSession, err := session.NewSession()
-	if err != nil {
-		errorMessage := fmt.Sprintf("Failed to create AWS session: %s", err)
-		log.Fatal(errorMessage)
-	}
-	return awsSession
+	lambda.Start(func(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+		return muxLambda.Proxy(req)
+	})
 }

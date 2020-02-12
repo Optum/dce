@@ -1,6 +1,7 @@
 package config
 
 import (
+	"github.com/Optum/dce/pkg/api"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"log"
 	"reflect"
@@ -157,6 +158,15 @@ func (bldr *ServiceBuilder) WithAccountManagerService() *ServiceBuilder {
 	return bldr
 }
 
+func (bldr *ServiceBuilder) AccountManager() accountmanageriface.Servicer {
+	var accountManager accountmanageriface.Servicer
+	err := bldr.Config.GetService(&accountManager)
+	if err != nil {
+		panic(err)
+	}
+	return accountManager
+}
+
 // WithAccountService tells the builder to add the Account service to the `ConfigurationBuilder`
 func (bldr *ServiceBuilder) WithAccountService() *ServiceBuilder {
 	bldr.WithAccountManagerService().WithEventService().WithAccountDataService()
@@ -198,6 +208,49 @@ func (bldr *ServiceBuilder) WithEventService() *ServiceBuilder {
 	bldr.WithSQS().WithSNS()
 	bldr.handlers = append(bldr.handlers, bldr.createEventService)
 	return bldr
+}
+
+func (bldr *ServiceBuilder) WithUserDetailer() *ServiceBuilder {
+	// UserDetailer depends on Cognito service
+	bldr.WithCognito()
+
+	bldr.handlers = append(bldr.handlers, func(config ConfigurationServiceBuilder) error {
+		// Grab the Cognito service
+		var cognitoSvc cognitoidentityprovider.CognitoIdentityProvider
+		err := bldr.Config.GetService(&cognitoSvc)
+		if err != nil {
+			return err
+		}
+
+		// Grab required env vars
+		cognitoUserPoolID := common.RequireEnv("COGNITO_USER_POOL_ID")
+		rolesAttributesAdminNames := common.RequireEnv("COGNITO_ROLES_ATTRIBUTE_ADMIN_NAME")
+
+		log.Printf("Configuring UserDetailer to with user pool %s and admin group name %s",
+			cognitoUserPoolID, rolesAttributesAdminNames)
+
+		// Create and register the UserDetails Service
+		userDetailer := &api.UserDetails{
+			CognitoUserPoolID:        cognitoUserPoolID,
+			RolesAttributesAdminName: rolesAttributesAdminNames,
+			CognitoClient:            &cognitoSvc,
+		}
+		config.WithService(userDetailer)
+
+		return nil
+	})
+
+	return bldr
+}
+
+func (bldr *ServiceBuilder) UserDetailer() api.UserDetailer {
+	var userDetailer api.UserDetailer
+	err := bldr.Config.GetService(&userDetailer)
+	if err != nil {
+		panic(err)
+	}
+
+	return userDetailer
 }
 
 // Build creates and returns a structue with AWS services
