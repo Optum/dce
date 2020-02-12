@@ -428,7 +428,7 @@ func TestApi(t *testing.T) {
 
 		})
 
-		t.Run("Should not be able to create and destroy and lease for other user", func(t *testing.T) {
+		t.Run("Should not be able to create or destroy a lease for other user", func(t *testing.T) {
 
 			userPoolSvc := cognitoidentityprovider.New(
 				awsSession,
@@ -477,7 +477,17 @@ func TestApi(t *testing.T) {
 
 
 			// Update user pool client to allow ADMIN_USER_PASSWORD_AUTH
-			clientID := "1lamh3mgr1sof9trnd38jag18"
+
+
+
+
+			clientID := "3c35injn5cb8kmokbldn61v9oa"
+			identityPoolID := "us-east-1:53e49cfa-f50b-427f-9c7e-39597f64a4d1"
+			userPoolProviderName := "cognito-idp.us-east-1.amazonaws.com/us-east-1_EDctQDdxy"
+
+
+
+
 			ALLOW_REFRESH_TOKEN_AUTH := "ALLOW_REFRESH_TOKEN_AUTH"
 			ALLOW_ADMIN_USER_PASSWORD_AUTH := "ALLOW_ADMIN_USER_PASSWORD_AUTH"
 			allowedAuthFlows := []*string{&ALLOW_REFRESH_TOKEN_AUTH, &ALLOW_ADMIN_USER_PASSWORD_AUTH,}
@@ -488,7 +498,7 @@ func TestApi(t *testing.T) {
 			})
 			require.Nil(t, err)
 
-			// Login
+			// authenticate with use pool to get Access, Identity, and Refresh JWTs
 			var userCreds map[string]*string
 			userCreds = make(map[string]*string)
 			userCreds["USERNAME"] = &username
@@ -505,15 +515,23 @@ func TestApi(t *testing.T) {
 			fmt.Println("@@@@output.AuthenticationResult.IdToken: ", *output.AuthenticationResult.IdToken)
 
 
-			// Get iam creds
-			var logins map[string]*string = make(map[string]*string)
-			userPoolProviderName := "cognito-idp.us-east-1.amazonaws.com/us-east-1_drjuf6UEb"
+
+			// Exchange Identity JWT with identity pool for iam creds
+			var logins = make(map[string]*string)
 			logins[userPoolProviderName] = output.AuthenticationResult.IdToken
-			//_, err := identityPoolSvc.GetCredentialsForIdentity(cognitoidentity.GetCredentialsForIdentityInput{
-			//	CustomRoleArn: nil,
-			//	IdentityId:    nil,
-			//	Logins:        logins,
-			//})
+			identityID, err := identityPoolSvc.GetId(&cognitoidentity.GetIdInput{
+				AccountId:      &accountID,
+				IdentityPoolId: &identityPoolID,
+				Logins:         logins,
+			})
+			require.Nil(t, err)
+
+			idCredOutput, err := identityPoolSvc.GetCredentialsForIdentity(&cognitoidentity.GetCredentialsForIdentityInput{
+				IdentityId:    identityID.IdentityId,
+				Logins:        logins,
+			})
+			require.Nil(t, err)
+			fmt.Println("@@@@idCredOutput: ", idCredOutput)
 
 			// Change session to use user creds
 
