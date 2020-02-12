@@ -428,20 +428,56 @@ func TestApi(t *testing.T) {
 
 		})
 
-		t.Run("Cognito user should not be able to create or destroy a lease for other user", func(t *testing.T) {
-			// Arrange
-			//cognitoUser := NewCognitoUser(t, tfOut, awsSession, accountID)
-
-
-			// Assert POST lease returns 403
-
-			// Assert DELETE lease returns 403
-
-		})
-
-		t.Run("Cognito user should be able to create and destroy a lease for self", func(t *testing.T) {
+		t.Run("Cognito user should not be able to create a lease for other user", func(t *testing.T) {
 			// Arrange
 			cognitoUser := NewCognitoUser(t, tfOut, awsSession, accountID)
+			defer cognitoUser.delete(tfOut, awsSession)
+			otherCognitoUser := NewCognitoUser(t, tfOut, awsSession, accountID)
+			defer otherCognitoUser.delete(tfOut, awsSession)
+
+			// Create an Account Entry
+			acctID := "123"
+			timeNow := time.Now().Unix()
+			err := dbSvc.PutAccount(db.Account{
+				ID:             acctID,
+				AccountStatus:  db.Ready,
+				LastModifiedOn: timeNow,
+			})
+			require.Nil(t, err)
+
+			// Assert POST lease returns 403
+			apiRequest(t, &apiRequestInput{
+				method: "POST",
+				url:    apiURL + "/leases",
+				json: struct {
+					PrincipalID              string   `json:"principalId"`
+					BudgetAmount             float64  `json:"budgetAmount"`
+					BudgetCurrency           string   `json:"budgetCurrency"`
+					BudgetNotificationEmails []string `json:"budgetNotificationEmails"`
+				}{
+					PrincipalID:              otherCognitoUser.Username,
+					BudgetAmount:             100,
+					BudgetCurrency:           "USD",
+					BudgetNotificationEmails: []string{"test@optum.com"},
+				},
+				f: func(r *testutil.R, apiResp *apiResponse) {
+
+					// Assert
+					assert.Equalf(r, http.StatusCreated, apiResp.StatusCode, "%v", apiResp.json)
+				},
+				creds: credentials.NewStaticCredentialsFromCreds(cognitoUser.UserCredsValue),
+			})
+		})
+
+		t.Run("Cognito user should not be able to delete a lease for other user", func(t *testing.T) {
+			// Assert DELETE lease returns 403
+			t.Fail()
+		})
+
+			t.Run("Cognito user should be able to create and destroy a lease for self", func(t *testing.T) {
+			// Arrange
+			cognitoUser := NewCognitoUser(t, tfOut, awsSession, accountID)
+			defer cognitoUser.delete(tfOut, awsSession)
 			// Create an Account Entry
 			acctID := "123"
 			timeNow := time.Now().Unix()
@@ -2443,6 +2479,19 @@ func getRandString(t *testing.T, n int, letters string) string {
 type CognitoUser struct {
 	UserCredsValue credentials.Value
 	Username string
+	UserPoolID string
+}
+
+func (u CognitoUser) delete(tfOut map[string]interface{}, adminSession *session.Session) {
+	userPoolSvc := cognitoidentityprovider.New(
+		adminSession,
+		aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
+	)
+
+	userPoolSvc.AdminDeleteUser(&cognitoidentityprovider.AdminDeleteUserInput{
+		UserPoolId: &u.UserPoolID,
+		Username:   &u.Username,
+	})
 }
 func NewCognitoUser(t *testing.T, tfOut map[string]interface{}, awsSession *session.Session, accountID string) CognitoUser {
 	userPoolSvc := cognitoidentityprovider.New(
@@ -2470,11 +2519,6 @@ func NewCognitoUser(t *testing.T, tfOut map[string]interface{}, awsSession *sess
 		Username:               &username,
 	})
 	require.Nil(t, err)
-
-	defer userPoolSvc.AdminDeleteUser(&cognitoidentityprovider.AdminDeleteUserInput{
-		UserPoolId: &userPoolID,
-		Username:   &username,
-	})
 
 	// Reset user's password
 	permPassword := getRandString(t, 4, "abcdefghijklmnopqrstuvwxyz") +
