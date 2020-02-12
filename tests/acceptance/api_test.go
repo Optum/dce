@@ -428,132 +428,10 @@ func TestApi(t *testing.T) {
 
 		})
 
-		t.Run("Should not be able to create or destroy a lease for other user", func(t *testing.T) {
+		t.Run("Cognito user should not be able to create or destroy a lease for other user", func(t *testing.T) {
+			// Arrange
+			//cognitoUser := NewCognitoUser(t, tfOut, awsSession, accountID)
 
-			userPoolSvc := cognitoidentityprovider.New(
-				awsSession,
-				aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
-				)
-
-			identityPoolSvc := cognitoidentity.New(
-				awsSession,
-				aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
-			)
-			// Create user
-			username := getRandString(t,8, "abcdefghijklmnopqrstuvwxyz")
-			tempPassword := getRandString(t, 4, "abcdefghijklmnopqrstuvwxyz") +
-				getRandString(t, 2, "ABCDEFGHIJKLMNOPQRSTUVWXYZ") +
-				getRandString(t, 2, "123456789") +
-				getRandString(t, 1, "!^*")
-
-			supress := "SUPPRESS"
-			userPoolID := tfOut["cognito_user_pool_id"].(string)
-			_, err := userPoolSvc.AdminCreateUser(&cognitoidentityprovider.AdminCreateUserInput{
-				MessageAction:          &supress,
-				TemporaryPassword:      &tempPassword,
-				UserPoolId:             &userPoolID,
-				Username:               &username,
-			})
-			require.Nil(t, err)
-
-			defer userPoolSvc.AdminDeleteUser(&cognitoidentityprovider.AdminDeleteUserInput{
-				UserPoolId: &userPoolID,
-				Username:   &username,
-			})
-
-			// Reset user's password
-			permPassword := getRandString(t, 4, "abcdefghijklmnopqrstuvwxyz") +
-				getRandString(t, 2, "ABCDEFGHIJKLMNOPQRSTUVWXYZ") +
-				getRandString(t, 2, "123456789") +
-				getRandString(t, 1, "!^*")
-			permanent := true
-			_, err = userPoolSvc.AdminSetUserPassword(&cognitoidentityprovider.AdminSetUserPasswordInput{
-				Password:   &permPassword,
-				Permanent:  &permanent,
-				UserPoolId: &userPoolID,
-				Username:   &username,
-			})
-			require.Nil(t, err)
-
-
-			// Update user pool client to allow ADMIN_USER_PASSWORD_AUTH
-			clientID := tfOut["cognito_user_pool_client_id"].(string)
-			ALLOW_REFRESH_TOKEN_AUTH := "ALLOW_REFRESH_TOKEN_AUTH"
-			ALLOW_ADMIN_USER_PASSWORD_AUTH := "ALLOW_ADMIN_USER_PASSWORD_AUTH"
-			allowedAuthFlows := []*string{&ALLOW_REFRESH_TOKEN_AUTH, &ALLOW_ADMIN_USER_PASSWORD_AUTH,}
-			_, err = userPoolSvc.UpdateUserPoolClient(&cognitoidentityprovider.UpdateUserPoolClientInput{
-				ClientId:                        &clientID,
-				ExplicitAuthFlows:               allowedAuthFlows,
-				UserPoolId:                      &userPoolID,
-			})
-			require.Nil(t, err)
-
-			// authenticate with use pool to get Access, Identity, and Refresh JWTs
-			var userCreds map[string]*string
-			userCreds = make(map[string]*string)
-			userCreds["USERNAME"] = &username
-			userCreds["PASSWORD"] = &permPassword
-			adminAuthFlow := "ADMIN_USER_PASSWORD_AUTH"
-			output, err := userPoolSvc.AdminInitiateAuth(&cognitoidentityprovider.AdminInitiateAuthInput{
-				AuthFlow:          &adminAuthFlow,
-				AuthParameters:    userCreds,
-				ClientId:          &clientID,
-				UserPoolId:        &userPoolID,
-			})
-			require.Nil(t, err)
-			fmt.Println("@@@@Output: ", output)
-			fmt.Println("@@@@output.AuthenticationResult.IdToken: ", *output.AuthenticationResult.IdToken)
-
-
-
-			// Exchange Identity JWT with identity pool for iam creds
-			// https://github.com/aws/aws-sdk-go/issues/406#issuecomment-150666885
-			userPoolProviderName := tfOut["cognito_user_pool_endpoint"].(string)
-			identityPoolID := tfOut["cognito_identity_pool_id"].(string)
-			var logins = make(map[string]*string)
-			logins[userPoolProviderName] = output.AuthenticationResult.IdToken
-			identityID, err := identityPoolSvc.GetId(&cognitoidentity.GetIdInput{
-				AccountId:      &accountID,
-				IdentityPoolId: &identityPoolID,
-				Logins:         logins,
-			})
-			require.Nil(t, err)
-
-			idCredOutput, err := identityPoolSvc.GetCredentialsForIdentity(&cognitoidentity.GetCredentialsForIdentityInput{
-				IdentityId:    identityID.IdentityId,
-				Logins:        logins,
-			})
-			require.Nil(t, err)
-			fmt.Println("@@@@idCredOutput: ", idCredOutput)
-
-			// Change session to use user creds
-			//userCredsValue := credentials.Value{
-			//	AccessKeyID:     *idCredOutput.Credentials.AccessKeyId,
-			//	SecretAccessKey: *idCredOutput.Credentials.SecretKey,
-			//	SessionToken:    *idCredOutput.Credentials.SessionToken,
-			//}
-			//userSession, err := session.NewSession(&aws.Config{
-			//	Region: aws.String("us-west-2"),
-			//	Credentials: credentials.NewStaticCredentialsFromCreds(userCredsValue)
-			//})
-			//
-			//
-			//otherPrincipleID := cognitoUtil.CreateUser().PrincipleID
-			//// Assert GET lease returns 403 for other user
-			//body := leaseRequest{
-			//	PrincipalID: otherPrincipleID,
-			//	AccountID:   accountID,
-			//}
-			//
-			//resp := apiRequest(t, &apiRequestInput{
-			//	method: "GET",
-			//	url:    apiURL + "/leases",
-			//	json:   body,
-			//	f: func(r *testutil.R, apiResp *apiResponse) {
-			//		// Verify response code
-			//		assert.Equal(r, http.StatusOK, apiResp.StatusCode)
-			//	},
-			//})
 
 			// Assert POST lease returns 403
 
@@ -561,112 +439,20 @@ func TestApi(t *testing.T) {
 
 		})
 
-		t.Run("User should be able to create a lease for self", func(t *testing.T) {
-
-			userPoolSvc := cognitoidentityprovider.New(
-				awsSession,
-				aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
-			)
-
-			identityPoolSvc := cognitoidentity.New(
-				awsSession,
-				aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
-			)
-			// Create user
-			username := getRandString(t,8, "abcdefghijklmnopqrstuvwxyz")
-			tempPassword := getRandString(t, 4, "abcdefghijklmnopqrstuvwxyz") +
-				getRandString(t, 2, "ABCDEFGHIJKLMNOPQRSTUVWXYZ") +
-				getRandString(t, 2, "123456789") +
-				getRandString(t, 1, "!^*")
-
-			supress := "SUPPRESS"
-			userPoolID := tfOut["cognito_user_pool_id"].(string)
-			_, err := userPoolSvc.AdminCreateUser(&cognitoidentityprovider.AdminCreateUserInput{
-				MessageAction:          &supress,
-				TemporaryPassword:      &tempPassword,
-				UserPoolId:             &userPoolID,
-				Username:               &username,
+		t.Run("Cognito user should be able to create and destroy a lease for self", func(t *testing.T) {
+			// Arrange
+			cognitoUser := NewCognitoUser(t, tfOut, awsSession, accountID)
+			// Create an Account Entry
+			acctID := "123"
+			timeNow := time.Now().Unix()
+			err := dbSvc.PutAccount(db.Account{
+				ID:             acctID,
+				AccountStatus:  db.Ready,
+				LastModifiedOn: timeNow,
 			})
 			require.Nil(t, err)
 
-			defer userPoolSvc.AdminDeleteUser(&cognitoidentityprovider.AdminDeleteUserInput{
-				UserPoolId: &userPoolID,
-				Username:   &username,
-			})
-
-			// Reset user's password
-			permPassword := getRandString(t, 4, "abcdefghijklmnopqrstuvwxyz") +
-				getRandString(t, 2, "ABCDEFGHIJKLMNOPQRSTUVWXYZ") +
-				getRandString(t, 2, "123456789") +
-				getRandString(t, 1, "!^*")
-			permanent := true
-			_, err = userPoolSvc.AdminSetUserPassword(&cognitoidentityprovider.AdminSetUserPasswordInput{
-				Password:   &permPassword,
-				Permanent:  &permanent,
-				UserPoolId: &userPoolID,
-				Username:   &username,
-			})
-			require.Nil(t, err)
-
-
-			// Update user pool client to allow ADMIN_USER_PASSWORD_AUTH
-			clientID := tfOut["cognito_user_pool_client_id"].(string)
-			ALLOW_REFRESH_TOKEN_AUTH := "ALLOW_REFRESH_TOKEN_AUTH"
-			ALLOW_ADMIN_USER_PASSWORD_AUTH := "ALLOW_ADMIN_USER_PASSWORD_AUTH"
-			allowedAuthFlows := []*string{&ALLOW_REFRESH_TOKEN_AUTH, &ALLOW_ADMIN_USER_PASSWORD_AUTH,}
-			_, err = userPoolSvc.UpdateUserPoolClient(&cognitoidentityprovider.UpdateUserPoolClientInput{
-				ClientId:                        &clientID,
-				ExplicitAuthFlows:               allowedAuthFlows,
-				UserPoolId:                      &userPoolID,
-			})
-			require.Nil(t, err)
-
-			// authenticate with use pool to get Access, Identity, and Refresh JWTs
-			var userCreds map[string]*string
-			userCreds = make(map[string]*string)
-			userCreds["USERNAME"] = &username
-			userCreds["PASSWORD"] = &permPassword
-			adminAuthFlow := "ADMIN_USER_PASSWORD_AUTH"
-			output, err := userPoolSvc.AdminInitiateAuth(&cognitoidentityprovider.AdminInitiateAuthInput{
-				AuthFlow:          &adminAuthFlow,
-				AuthParameters:    userCreds,
-				ClientId:          &clientID,
-				UserPoolId:        &userPoolID,
-			})
-			require.Nil(t, err)
-			fmt.Println("@@@@Output: ", output)
-			fmt.Println("@@@@output.AuthenticationResult.IdToken: ", *output.AuthenticationResult.IdToken)
-
-
-
-			// Exchange Identity JWT with identity pool for iam creds
-			// https://github.com/aws/aws-sdk-go/issues/406#issuecomment-150666885
-			userPoolProviderName := tfOut["cognito_user_pool_endpoint"].(string)
-			identityPoolID := tfOut["cognito_identity_pool_id"].(string)
-			var logins = make(map[string]*string)
-			logins[userPoolProviderName] = output.AuthenticationResult.IdToken
-			identityID, err := identityPoolSvc.GetId(&cognitoidentity.GetIdInput{
-				AccountId:      &accountID,
-				IdentityPoolId: &identityPoolID,
-				Logins:         logins,
-			})
-			require.Nil(t, err)
-
-			idCredOutput, err := identityPoolSvc.GetCredentialsForIdentity(&cognitoidentity.GetCredentialsForIdentityInput{
-				IdentityId:    identityID.IdentityId,
-				Logins:        logins,
-			})
-			require.Nil(t, err)
-			fmt.Println("@@@@idCredOutput: ", idCredOutput)
-
-			// Change session to use user creds
-			userCredsValue := credentials.Value{
-				AccessKeyID:     *idCredOutput.Credentials.AccessKeyId,
-				SecretAccessKey: *idCredOutput.Credentials.SecretKey,
-				SessionToken:    *idCredOutput.Credentials.SessionToken,
-			}
-
-			// Assert POST lease returns 201 for self
+			// Act - Create Lease
 			apiRequest(t, &apiRequestInput{
 				method: "POST",
 				url:    apiURL + "/leases",
@@ -676,16 +462,36 @@ func TestApi(t *testing.T) {
 					BudgetCurrency           string   `json:"budgetCurrency"`
 					BudgetNotificationEmails []string `json:"budgetNotificationEmails"`
 				}{
-					PrincipalID:              username,
+					PrincipalID:              cognitoUser.Username,
 					BudgetAmount:             100,
 					BudgetCurrency:           "USD",
 					BudgetNotificationEmails: []string{"test@optum.com"},
 				},
 				f: func(r *testutil.R, apiResp *apiResponse) {
-					assert.Equalf(r, 201, apiResp.StatusCode, "%v", apiResp.json)
+
+					// Assert
+					fmt.Println(apiResp)
+					assert.Equalf(r, http.StatusCreated, apiResp.StatusCode, "%v", apiResp.json)
 				},
-				creds: credentials.NewStaticCredentialsFromCreds(userCredsValue),
+				creds: credentials.NewStaticCredentialsFromCreds(cognitoUser.UserCredsValue),
 			})
+
+			// Act - Destroy Lease
+			apiRequest(t, &apiRequestInput{
+				method: "DELETE",
+				url:    apiURL + "/leases",
+				json:   leaseRequest{
+					PrincipalID: cognitoUser.Username,
+					AccountID:   acctID,
+				},
+				f: func(r *testutil.R, apiResp *apiResponse) {
+					// Verify response code
+					fmt.Println(apiResp)
+					assert.Equal(r, http.StatusOK, apiResp.StatusCode)
+				},
+				creds: credentials.NewStaticCredentialsFromCreds(cognitoUser.UserCredsValue),
+			})
+
 		})
 
 		t.Run("Should be able to create and destroy and lease by ID", func(t *testing.T) {
@@ -2634,4 +2440,112 @@ func getRandString(t *testing.T, n int, letters string) string {
 		b[i] = letters[rand.Int63()%int64(len(letters))]
 	}
 	return string(b)
+}
+
+type CognitoUser struct {
+	UserCredsValue credentials.Value
+	Username string
+}
+func NewCognitoUser(t *testing.T, tfOut map[string]interface{}, awsSession *session.Session, accountID string) CognitoUser {
+	userPoolSvc := cognitoidentityprovider.New(
+		awsSession,
+		aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
+	)
+
+	identityPoolSvc := cognitoidentity.New(
+		awsSession,
+		aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
+	)
+	// Create user
+	username := getRandString(t,8, "abcdefghijklmnopqrstuvwxyz")
+	tempPassword := getRandString(t, 4, "abcdefghijklmnopqrstuvwxyz") +
+		getRandString(t, 2, "ABCDEFGHIJKLMNOPQRSTUVWXYZ") +
+		getRandString(t, 2, "123456789") +
+		getRandString(t, 1, "!^*")
+
+	supress := "SUPPRESS"
+	userPoolID := tfOut["cognito_user_pool_id"].(string)
+	_, err := userPoolSvc.AdminCreateUser(&cognitoidentityprovider.AdminCreateUserInput{
+		MessageAction:          &supress,
+		TemporaryPassword:      &tempPassword,
+		UserPoolId:             &userPoolID,
+		Username:               &username,
+	})
+	require.Nil(t, err)
+
+	defer userPoolSvc.AdminDeleteUser(&cognitoidentityprovider.AdminDeleteUserInput{
+		UserPoolId: &userPoolID,
+		Username:   &username,
+	})
+
+	// Reset user's password
+	permPassword := getRandString(t, 4, "abcdefghijklmnopqrstuvwxyz") +
+		getRandString(t, 2, "ABCDEFGHIJKLMNOPQRSTUVWXYZ") +
+		getRandString(t, 2, "123456789") +
+		getRandString(t, 1, "!^*")
+	permanent := true
+	_, err = userPoolSvc.AdminSetUserPassword(&cognitoidentityprovider.AdminSetUserPasswordInput{
+		Password:   &permPassword,
+		Permanent:  &permanent,
+		UserPoolId: &userPoolID,
+		Username:   &username,
+	})
+	require.Nil(t, err)
+
+	// Update user pool client to allow ADMIN_USER_PASSWORD_AUTH
+	clientID := tfOut["cognito_user_pool_client_id"].(string)
+	ALLOW_REFRESH_TOKEN_AUTH := "ALLOW_REFRESH_TOKEN_AUTH"
+	ALLOW_ADMIN_USER_PASSWORD_AUTH := "ALLOW_ADMIN_USER_PASSWORD_AUTH"
+	allowedAuthFlows := []*string{&ALLOW_REFRESH_TOKEN_AUTH, &ALLOW_ADMIN_USER_PASSWORD_AUTH,}
+	_, err = userPoolSvc.UpdateUserPoolClient(&cognitoidentityprovider.UpdateUserPoolClientInput{
+		ClientId:                        &clientID,
+		ExplicitAuthFlows:               allowedAuthFlows,
+		UserPoolId:                      &userPoolID,
+	})
+	require.Nil(t, err)
+
+	// authenticate with use pool to get Access, Identity, and Refresh JWTs
+	var userCreds map[string]*string
+	userCreds = make(map[string]*string)
+	userCreds["USERNAME"] = &username
+	userCreds["PASSWORD"] = &permPassword
+	adminAuthFlow := "ADMIN_USER_PASSWORD_AUTH"
+	output, err := userPoolSvc.AdminInitiateAuth(&cognitoidentityprovider.AdminInitiateAuthInput{
+		AuthFlow:          &adminAuthFlow,
+		AuthParameters:    userCreds,
+		ClientId:          &clientID,
+		UserPoolId:        &userPoolID,
+	})
+	require.Nil(t, err)
+
+	// Exchange Identity JWT with identity pool for iam creds
+	// https://github.com/aws/aws-sdk-go/issues/406#issuecomment-150666885
+	userPoolProviderName := tfOut["cognito_user_pool_endpoint"].(string)
+	identityPoolID := tfOut["cognito_identity_pool_id"].(string)
+	var logins = make(map[string]*string)
+	logins[userPoolProviderName] = output.AuthenticationResult.IdToken
+	identityID, err := identityPoolSvc.GetId(&cognitoidentity.GetIdInput{
+		AccountId:      &accountID,
+		IdentityPoolId: &identityPoolID,
+		Logins:         logins,
+	})
+	require.Nil(t, err)
+
+	idCredOutput, err := identityPoolSvc.GetCredentialsForIdentity(&cognitoidentity.GetCredentialsForIdentityInput{
+		IdentityId:    identityID.IdentityId,
+		Logins:        logins,
+	})
+	require.Nil(t, err)
+
+	// Change session to use user creds
+	userCredsValue := credentials.Value{
+		AccessKeyID:     *idCredOutput.Credentials.AccessKeyId,
+		SecretAccessKey: *idCredOutput.Credentials.SecretKey,
+		SessionToken:    *idCredOutput.Credentials.SessionToken,
+	}
+
+	return CognitoUser{
+		UserCredsValue: userCredsValue,
+		Username:       username,
+	}
 }
