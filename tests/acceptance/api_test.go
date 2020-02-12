@@ -470,7 +470,6 @@ func TestApi(t *testing.T) {
 				f: func(r *testutil.R, apiResp *apiResponse) {
 
 					// Assert
-					fmt.Println(apiResp)
 					assert.Equalf(r, http.StatusCreated, apiResp.StatusCode, "%v", apiResp.json)
 				},
 				creds: credentials.NewStaticCredentialsFromCreds(cognitoUser.UserCredsValue),
@@ -486,7 +485,6 @@ func TestApi(t *testing.T) {
 				},
 				f: func(r *testutil.R, apiResp *apiResponse) {
 					// Verify response code
-					fmt.Println(apiResp)
 					assert.Equal(r, http.StatusOK, apiResp.StatusCode)
 				},
 				creds: credentials.NewStaticCredentialsFromCreds(cognitoUser.UserCredsValue),
