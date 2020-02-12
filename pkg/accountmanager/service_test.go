@@ -2,6 +2,13 @@ package accountmanager
 
 import (
 	"fmt"
+	accountManagerMocks "github.com/Optum/dce/pkg/accountmanager/accountmanageriface/mocks"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/stretchr/testify/require"
+	"io/ioutil"
+	"net/http"
+	"net/url"
+	"strings"
 	"testing"
 	"time"
 
@@ -478,4 +485,50 @@ func TestDeletePrincipalAccess(t *testing.T) {
 			assert.True(t, errors.Is(err, tt.exp), "actual error %+v doesn't match expected error %+v", err, tt.exp)
 		})
 	}
+}
+
+func TestConsoleURL(t *testing.T) {
+
+	t.Run("should generate a console URL", func(t *testing.T) {
+		// Mock the credentials
+		mockCreds := &accountManagerMocks.Credentialer{}
+		mockCreds.On("Get").Return(credentials.Value{
+			AccessKeyID:     "access-key-id",
+			SecretAccessKey: "secret-access-key",
+			SessionToken:    "session-token",
+		}, nil)
+
+		// Mock the HTTP signin token request
+		mockHTTP := &mocks.HTTPClienter{}
+		mockHTTP.
+			On("Do", mock.MatchedBy(func(req *http.Request) bool {
+				assert.Equal(t, "GET", req.Method)
+				assert.Equal(t, "signin.aws.amazon.com", req.URL.Host)
+				assert.Equal(t, "/federation", req.URL.Path)
+
+				expectedQuery := url.Values(map[string][]string{
+					"Action":  {"getSigninToken"},
+					"Session": {"{\"sessionId\":\"access-key-id\",\"sessionKey\":\"secret-access-key\",\"sessionToken\":\"session-token\"}"},
+				})
+				assert.Equal(t, expectedQuery, req.URL.Query())
+				return true
+			})).
+			Return(&http.Response{
+				Body: ioutil.NopCloser(strings.NewReader(
+					"{\"SigninToken\":\"test-sigin-token\"}",
+				)),
+			}, nil)
+
+		accountMgr := Service{
+			httpClient: mockHTTP,
+		}
+
+		res, err := accountMgr.ConsoleURL(mockCreds)
+		require.Nil(t, err)
+		require.Equal(t,
+			"https://signin.aws.amazon.com/federation?Action=login&Destination=https%3A%2F%2Fconsole.aws.amazon.com%2F&Issuer=DCE&SigninToken=test-sigin-token",
+			res,
+		)
+	})
+
 }

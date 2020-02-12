@@ -3,13 +3,14 @@
 - Add `tag:*` to support finding resources by tag, and changing tags for existing resources.
 - Fix bug where account status would not transition from `Leased` --> `NotReady`, on lease deletion.
 - Do not run `aws-nuke` if `var.reset_nuke_toggle = false`. Previously, ran aws-nuke in dry-run mode.
+- Prevent non-admins from performing CRUD operations on other user's leases
+- Add `POST /leases/auth` endpoint, to login to the requesting user's active lease
 
 ## v0.28.0
 
 - Add `usage_ttl` Terraform var, to configure Usage DB record TTLs.
 - Added account pool status monitoring and dashboard widget
 - Allow `athena:*` for DCE Principal IAM role
-- Prevent non-admins from performing CRUD operations on other user's leases
 
 ## v0.27.0
 
