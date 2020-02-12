@@ -477,17 +477,7 @@ func TestApi(t *testing.T) {
 
 
 			// Update user pool client to allow ADMIN_USER_PASSWORD_AUTH
-
-
-
-
-			clientID := "3c35injn5cb8kmokbldn61v9oa"
-			identityPoolID := "us-east-1:53e49cfa-f50b-427f-9c7e-39597f64a4d1"
-			userPoolProviderName := "cognito-idp.us-east-1.amazonaws.com/us-east-1_EDctQDdxy"
-
-
-
-
+			clientID := tfOut["cognito_user_pool_client_id"].(string)
 			ALLOW_REFRESH_TOKEN_AUTH := "ALLOW_REFRESH_TOKEN_AUTH"
 			ALLOW_ADMIN_USER_PASSWORD_AUTH := "ALLOW_ADMIN_USER_PASSWORD_AUTH"
 			allowedAuthFlows := []*string{&ALLOW_REFRESH_TOKEN_AUTH, &ALLOW_ADMIN_USER_PASSWORD_AUTH,}
@@ -517,6 +507,9 @@ func TestApi(t *testing.T) {
 
 
 			// Exchange Identity JWT with identity pool for iam creds
+			// https://github.com/aws/aws-sdk-go/issues/406#issuecomment-150666885
+			userPoolProviderName := tfOut["cognito_user_pool_endpoint"].(string)
+			identityPoolID := tfOut["cognito_identity_pool_id"].(string)
 			var logins = make(map[string]*string)
 			logins[userPoolProviderName] = output.AuthenticationResult.IdToken
 			identityID, err := identityPoolSvc.GetId(&cognitoidentity.GetIdInput{

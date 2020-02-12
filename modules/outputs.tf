@@ -127,6 +127,18 @@ output cognito_user_pool_id {
   value = module.api_gateway_authorizer.user_pool_id
 }
 
+output cognito_user_pool_client_id {
+  value = module.api_gateway_authorizer.client_id
+}
+
+output cognito_user_pool_endpoint {
+  value = module.api_gateway_authorizer.user_pool_endpoint
+}
+
+output cognito_identity_pool_id {
+  value = module.api_gateway_authorizer.identity_pool_id
+}
+
 output "role_user_arn" {
   value = module.api_gateway_authorizer.user_role_arn
 }
