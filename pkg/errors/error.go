@@ -16,6 +16,7 @@ const (
 	validationError    = "RequestValidationError"
 	alreadyExistsError = "AlreadyExistsError"
 	notFoundError      = "NotFoundError"
+	unauthorizedError  = "Unauthorized"
 	conflictError      = "ConflictError"
 )
 
@@ -75,6 +76,18 @@ func (e StatusError) Is(err error) bool {
 	return false
 }
 
+// IsStatusError checks if the provided error is
+// the same type of status error
+func (e StatusError) IsStatusError(err error) bool {
+
+	otherErr, ok := err.(*StatusError)
+	if !ok {
+		return false
+	}
+	return e.httpCode == otherErr.httpCode &&
+		e.Details.Code == otherErr.Details.Code
+}
+
 // HTTPCode returns the API Code
 type HTTPCode interface {
 	HTTPCode() int
@@ -126,6 +139,23 @@ func NewNotFound(group string, name string) *StatusError {
 		},
 		stack: callers(),
 	}
+}
+
+func NewUnauthorized(message string) *StatusError {
+	return &StatusError{
+		httpCode: http.StatusUnauthorized,
+		Details: detailError{
+			Message: message,
+			Code:    unauthorizedError,
+		},
+		stack: callers(),
+	}
+}
+
+func NewUnauthorizedf(message string, a ...interface{}) *StatusError {
+	return NewUnauthorized(
+		fmt.Sprintf(message, a...),
+	)
 }
 
 // NewInternalServer returns an error for Internal Server Errors

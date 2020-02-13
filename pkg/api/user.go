@@ -29,8 +29,9 @@ type User struct {
 }
 
 // UserDetailer - used for mocking tests
+//go:generate mockery -name UserDetailer
 type UserDetailer interface {
-	GetUser(event *events.APIGatewayProxyRequest) *User
+	GetUser(reqCtx *events.APIGatewayProxyRequestContext) *User
 }
 
 // UserDetails - Gets User information
@@ -40,17 +41,20 @@ type UserDetails struct {
 	CognitoClient            awsiface.CognitoIdentityProviderAPI
 }
 
-// GetUser - Gets the username and role out of an event
-func (u *UserDetails) GetUser(event *events.APIGatewayProxyRequest) *User {
-
-	if event.RequestContext.Identity.CognitoIdentityPoolID == "" {
+// GetUser - Gets the username and role out of an http request object
+// Assumes that the request is via a Lambda event.
+// Uses cognito metadata from the request to determine the user info.
+// If the request is not authenticated with cognito,
+// returns a generic admin user: User{ Username: "", Role: "Admin" }
+func (u *UserDetails) GetUser(reqCtx *events.APIGatewayProxyRequestContext) *User {
+	if reqCtx.Identity.CognitoIdentityPoolID == "" {
 		// No cognito authentication means the user is considered an admin
 		return &User{
 			Role: AdminGroupName,
 		}
 	}
 
-	congitoSubID := strings.Split(event.RequestContext.Identity.CognitoAuthenticationProvider, ":CognitoSignIn:")[1]
+	congitoSubID := strings.Split(reqCtx.Identity.CognitoAuthenticationProvider, ":CognitoSignIn:")[1]
 
 	filter := fmt.Sprintf("sub = \"%s\"", congitoSubID)
 	users, err := u.CognitoClient.ListUsers(&cognitoidentityprovider.ListUsersInput{

@@ -7,6 +7,7 @@ import (
 )
 
 // Servicer makes working with the Account Service struct easier
+//go:generate mockery -name Servicer
 type Servicer interface {
 	// Get returns an account from ID
 	Get(ID string) (*account.Account, error)
