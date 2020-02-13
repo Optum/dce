@@ -17,8 +17,8 @@ type MultiError struct {
 // Error returns the error message to satisfy the error interface
 func (e MultiError) Error() string {
 	var errStrs []string
-	for _, e := range e.Errors {
-		errStrs = append(errStrs, e.Error())
+	for _, err := range e.Errors {
+		errStrs = append(errStrs, err.Error())
 	}
 	return fmt.Sprintf(
 		"%s: %s",

@@ -81,7 +81,9 @@ func TestPopulateResetQeue(t *testing.T) {
 				},
 			},
 			alertErr: errors.NewInternalServer("error", fmt.Errorf("error")),
-			expErr:   errors.NewInternalServer("error", fmt.Errorf("error")),
+			expErr: errors.NewMultiError("error when processing accounts", []error{
+				errors.NewInternalServer("error", fmt.Errorf("error")),
+			}),
 		},
 	}
 
