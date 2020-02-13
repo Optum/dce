@@ -980,7 +980,7 @@ func TestApi(t *testing.T) {
 
 						// Ignore error from this, since reset might have happened
 						if err != nil {
-							dbSvc.TransitionAccountStatus(accountID, db.NotReady, db.Ready)
+							_, _ = dbSvc.TransitionAccountStatus(accountID, db.NotReady, db.Ready)
 						}
 
 						// Request a lease
