@@ -976,16 +976,12 @@ func TestApi(t *testing.T) {
 						// Account is being reset, so it's not marked as "Ready".
 						// Update the DB to be ready, so we can create a lease
 
-						// PUT /accounts/:id
-						// to update account status
-						res := apiRequest(t, &apiRequestInput{
-							method: "PUT",
-							url:    apiURL + "/accounts/" + accountID,
-							json: map[string]interface{}{
-								"status": "Ready",
-								},
-						})
-						require.Equal(t, 200, res.StatusCode)
+						_, err := dbSvc.TransitionAccountStatus(accountID, db.Leased, db.Ready)
+
+						// Ignore error from this, since reset might have happened
+						if err != nil {
+							dbSvc.TransitionAccountStatus(accountID, db.NotReady, db.Ready)
+						}
 
 						// Request a lease
 						// Because we only have one account in our system,
