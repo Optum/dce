@@ -975,8 +975,17 @@ func TestApi(t *testing.T) {
 					t.Run("STEP: Recreate lease against same account", func(t *testing.T) {
 						// Account is being reset, so it's not marked as "Ready".
 						// Update the DB to be ready, so we can create a lease
-						_, err := dbSvc.TransitionAccountStatus(accountID, db.NotReady, db.Ready)
-						require.Nil(t, err)
+
+						// PUT /accounts/:id
+						// to update account status
+						res := apiRequest(t, &apiRequestInput{
+							method: "PUT",
+							url:    apiURL + "/accounts/" + accountID,
+							json: map[string]interface{}{
+								"status": "Ready",
+								},
+						})
+						require.Equal(t, 200, res.StatusCode)
 
 						// Request a lease
 						// Because we only have one account in our system,
