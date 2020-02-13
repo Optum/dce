@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/Optum/dce/pkg/errors"
+	"net/http"
 	"net/url"
 
 	"log"
@@ -73,6 +75,25 @@ type messageBody struct {
 	Body    string `json:"Body"`
 }
 
+func userDetailsMiddleware(next http.Handler) http.Handler {
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		reqCtx, err := muxLambda.GetAPIGatewayContext(r)
+		if err != nil {
+			log.Printf("Failed to parse context object from request: %s", err)
+			api.WriteAPIErrorResponse(w,
+				errors.NewInternalServer("Internal server error", err),
+			)
+			return
+		}
+		user := Services.UserDetailer().GetUser(&reqCtx)
+		ctx := context.WithValue(r.Context(), api.User{}, user)
+		r = r.WithContext(ctx)
+
+		next.ServeHTTP(w, r)
+	})
+}
+
 func init() {
 	initConfig()
 	log.Println("Cold start; creating router for /leases")
@@ -116,6 +137,7 @@ func init() {
 	}
 	r := api.NewRouter(leasesRoutes)
 	muxLambda = gorillamux.New(r)
+	r.Use(userDetailsMiddleware)
 }
 
 // initConfig configures package-level variables
@@ -136,6 +158,7 @@ func initConfig() {
 
 	_, err = svcBldr.
 		WithLeaseService().
+		WithUserDetailer().
 		Build()
 	if err != nil {
 		panic(err)
@@ -155,7 +178,7 @@ func initConfig() {
 }
 
 // Handler - Handle the lambda function
-func Handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+func Handler(_ context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	// If no name is provided in the HTTP request body, throw an error
 	// requestUser := userDetails.GetUser(&req)
 	// ctxWithUser := context.WithValue(ctx, api.DceCtxKey, *requestUser)
@@ -167,7 +190,7 @@ func Handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 	baseRequest.Host = req.Headers["Host"]
 	baseRequest.Path = fmt.Sprintf("%s%s", req.RequestContext.Stage, req.Path)
 
-	return muxLambda.ProxyWithContext(ctx, req)
+	return muxLambda.Proxy(req)
 }
 
 func main() {
