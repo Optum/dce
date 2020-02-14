@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/Optum/dce/pkg/account/accountiface"
 	"github.com/Optum/dce/pkg/accountmanager/accountmanageriface"
@@ -16,6 +17,8 @@ import (
 )
 
 func LeaseAuthHandler(w http.ResponseWriter, r *http.Request) {
+	// Retrieve the API Gateway context from our HTTP request object
+	// (required for our UserDetails service, to extract Cognito info)
 	reqCtx, err := muxLambda.GetAPIGatewayContext(r)
 	if err != nil {
 		log.Printf("Failed to parse context object from request: %s", err)
@@ -37,6 +40,7 @@ func LeaseAuthHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Generate credentials for the requested lease
 	res, err := leaseAuth(&leaseAuthInput{
 		leaseID:        leaseID,
 		requestContext: &reqCtx,
@@ -139,6 +143,23 @@ func leaseAuth(input *leaseAuthInput) (*response.LeaseAuthResponse, error) {
 			fmt.Sprintf("Failed to generate console URL for %s", acct.PrincipalRoleArn),
 			err,
 		)
+	}
+
+	// Log the access key id, and the name of the authenticated user we delivered the creds to.
+	// This may be used for auditing purposes, eg. to track CloudTrail events
+	// back to an authenticated DCE user.
+	credsMetaData := map[string]string{
+		"accessKeyId": credsValue.AccessKeyID,
+		"principalId": *lease.PrincipalID,
+		// Note that the username will be an empty string, for requests
+		// not authenticated via Cognito
+		"username": user.Username,
+	}
+	credsLog, err := json.Marshal(credsMetaData)
+	if err != nil {
+		log.Printf("WARNING: Failed to log lease auth data (%v): %s", credsMetaData, err)
+	} else {
+		log.Println(credsLog)
 	}
 
 	return &response.LeaseAuthResponse{
