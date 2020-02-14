@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/Optum/dce/pkg/api"
 	"io/ioutil"
 	"net/http/httptest"
 	"net/url"
@@ -15,7 +16,7 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func TestGetLeases(t *testing.T) {
+func TestAdminGetLeases(t *testing.T) {
 
 	type response struct {
 		StatusCode int
@@ -23,6 +24,7 @@ func TestGetLeases(t *testing.T) {
 	}
 	tests := []struct {
 		name            string
+		user            *api.User
 		expResp         response
 		expLink         string
 		query           *lease.Lease
@@ -32,7 +34,11 @@ func TestGetLeases(t *testing.T) {
 		nextPrincipalID *string
 	}{
 		{
-			name:  "get all leases",
+			name:  "admin gets empty list when no leases",
+			user:  &api.User{
+				Username: "admin1",
+				Role:     api.AdminGroupName,
+			},
 			query: &lease.Lease{},
 			expResp: response{
 				StatusCode: 200,
@@ -42,7 +48,11 @@ func TestGetLeases(t *testing.T) {
 			retErr:    nil,
 		},
 		{
-			name:  "get paged leases",
+			name:  "admin can get paged leases belonging to other users",
+			user:  &api.User{
+				Username: "admin1",
+				Role:     api.AdminGroupName,
+			},
 			query: &lease.Lease{},
 			expResp: response{
 				StatusCode: 200,
@@ -60,7 +70,51 @@ func TestGetLeases(t *testing.T) {
 			retErr:          nil,
 		},
 		{
-			name: "fail to get leases",
+			name:  "user gets empty list when no leases",
+			user:  &api.User{
+				Username: "User1",
+				Role:     api.UserGroupName,
+			},
+			query: &lease.Lease{},
+			expResp: response{
+				StatusCode: 200,
+				Body:       "[]\n",
+			},
+			retLeases: &lease.Leases{},
+			retErr:    nil,
+		},
+		{
+			name:  "user can get only their own paged leases",
+			user:  &api.User{
+				Username: "User1",
+				Role:     api.UserGroupName,
+			},
+			query: &lease.Lease{},
+			expResp: response{
+				StatusCode: 200,
+				Body:       "[{\"accountId\":\"123456789012\",\"principalId\":\"User1\"},{\"accountId\":\"133456789012\",\"principalId\":\"User1\"}]\n",
+			},
+			retLeases: &lease.Leases{
+				lease.Lease{
+					AccountID:   ptrString("123456789012"),
+					PrincipalID: ptrString("User1"),
+				},
+				lease.Lease{
+					AccountID:   ptrString("133456789012"),
+					PrincipalID: ptrString("User1"),
+				},
+			},
+			nextAccountID:   ptrString("143456789012"),
+			nextPrincipalID: ptrString("User1"),
+			expLink:         "<https://example.com/unit/leases?limit=1&nextAccountId=143456789012&nextPrincipalId=User1&principalId=User1>; rel=\"next\"",
+			retErr:          nil,
+		},
+		{
+			name: "admin gets 500 when error",
+			user:  &api.User{
+				Username: "admin1",
+				Role:     api.AdminGroupName,
+			},
 			query: &lease.Lease{
 				AccountID:   ptrString("abc123"),
 				PrincipalID: ptrString("User2"),
@@ -96,7 +150,18 @@ func TestGetLeases(t *testing.T) {
 			leaseSvc := mocks.Servicer{}
 
 			leaseSvc.On("List", mock.MatchedBy(func(input *lease.Lease) bool {
-				if (input.AccountID != nil && tt.query.AccountID != nil && *input.AccountID == *tt.query.AccountID) || input.AccountID == tt.query.AccountID {
+				var authorizationCorrectlyEnforced bool
+				if tt.user.Role == api.AdminGroupName {
+					// admins own principalID has NOT been added to the query
+					authorizationCorrectlyEnforced = input.PrincipalID == nil || *input.PrincipalID != tt.user.Username
+
+				} else {
+					// users own principalID has been added to the query
+					authorizationCorrectlyEnforced = *input.PrincipalID == tt.user.Username
+
+				}
+				accountIDsAreEqual := (input.AccountID != nil && tt.query.AccountID != nil && *input.AccountID == *tt.query.AccountID) || input.AccountID == tt.query.AccountID
+				if accountIDsAreEqual && authorizationCorrectlyEnforced {
 					if tt.nextAccountID != nil && tt.nextPrincipalID != nil {
 						input.NextAccountID = tt.nextAccountID
 						input.NextPrincipalID = tt.nextPrincipalID
@@ -116,6 +181,7 @@ func TestGetLeases(t *testing.T) {
 				Services = svcBldr
 			}
 
+			user = tt.user
 			GetLeases(w, r)
 
 			resp := w.Result()
@@ -127,5 +193,4 @@ func TestGetLeases(t *testing.T) {
 			assert.Equal(t, tt.expLink, w.Header().Get("Link"))
 		})
 	}
-
 }

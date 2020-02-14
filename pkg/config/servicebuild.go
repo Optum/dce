@@ -223,8 +223,16 @@ func (bldr *ServiceBuilder) WithUserDetailer() *ServiceBuilder {
 		}
 
 		// Grab required env vars
-		cognitoUserPoolID := common.RequireEnv("COGNITO_USER_POOL_ID")
-		rolesAttributesAdminNames := common.RequireEnv("COGNITO_ROLES_ATTRIBUTE_ADMIN_NAME")
+		cognitoUserPoolID, err := bldr.Config.GetStringVal("COGNITO_USER_POOL_ID")
+		if err == nil {
+			log.Printf("Unable to retrieve COGNITO_USER_POOL_ID")
+			return err
+		}
+		rolesAttributesAdminNames, err := bldr.Config.GetStringVal("COGNITO_ROLES_ATTRIBUTE_ADMIN_NAME")
+		if err == nil {
+			log.Printf("Unable to retrieve COGNITO_ROLES_ATTRIBUTE_ADMIN_NAME")
+			return err
+		}
 
 		log.Printf("Configuring UserDetailer to with user pool %s and admin group name %s",
 			cognitoUserPoolID, rolesAttributesAdminNames)

@@ -66,6 +66,7 @@ var (
 	baseRequest              url.URL
 	//cognitoUserPoolId        string
 	//cognitoAdminName         string
+	user               *api.User
 )
 
 // messageBody is the structured object of the JSON Message to send
@@ -86,9 +87,7 @@ func userDetailsMiddleware(next http.Handler) http.Handler {
 			)
 			return
 		}
-		user := Services.UserDetailer().GetUser(&reqCtx)
-		ctx := context.WithValue(r.Context(), api.User{}, user)
-		r = r.WithContext(ctx)
+		user = Services.UserDetailer().GetUser(&reqCtx)
 
 		next.ServeHTTP(w, r)
 	})

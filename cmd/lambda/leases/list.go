@@ -22,6 +22,12 @@ func GetLeases(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// If user is not an admin, they may only list their own leases
+	if user.Role != api.AdminGroupName {
+		usersPrincipalID := user.Username
+		query.PrincipalID = &usersPrincipalID
+	}
+
 	leases, err := Services.LeaseService().List(query)
 	if err != nil {
 		api.WriteAPIErrorResponse(w, err)
