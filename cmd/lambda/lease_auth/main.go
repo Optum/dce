@@ -5,10 +5,9 @@ import (
 	"github.com/Optum/dce/pkg/api"
 	"github.com/Optum/dce/pkg/config"
 	"github.com/aws/aws-lambda-go/events"
+	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/awslabs/aws-lambda-go-api-proxy/gorillamux"
 	"log"
-
-	"github.com/aws/aws-lambda-go/lambda"
 )
 
 var (
@@ -16,13 +15,11 @@ var (
 	Services  *config.ServiceBuilder
 )
 
+
 func initConfig() {
-	// Define required env vars
-	cfgBldr := &config.ConfigurationBuilder{}
-	_ = cfgBldr.WithEnv("AWS_CURRENT_REGION", "AWS_CURRENT_REGION", "us-east-1").Build()
+	Services = config.NewServiceBuilder()
 
 	// Define services we're going to need access to later
-	Services = &config.ServiceBuilder{Config: cfgBldr}
 	_, err := Services.
 		WithLeaseService().
 		WithUserDetailer().

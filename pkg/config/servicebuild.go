@@ -228,6 +228,9 @@ func (bldr *ServiceBuilder) UserDetailer() api.UserDetailer {
 
 // Build creates and returns a structue with AWS services
 func (bldr *ServiceBuilder) Build() (*ConfigurationBuilder, error) {
+	// bldr.createSession() requires AWS_CURRENT_REGION
+	bldr.Config.
+		WithEnv("AWS_CURRENT_REGION", "AWS_CURRENT_REGION", "us-east-1")
 	err := bldr.Config.Build()
 	if err != nil {
 		// We failed to build the configuration, so honestly there is no
@@ -263,6 +266,7 @@ func (bldr *ServiceBuilder) Build() (*ConfigurationBuilder, error) {
 
 func (bldr *ServiceBuilder) createSession(config ConfigurationServiceBuilder) error {
 	var err error
+	bldr.Config.WithEnv("AWS_CURRENT_REGION", "AWS_CURRENT_REGION", "us-east-1")
 	region, err := bldr.Config.GetStringVal("AWS_CURRENT_REGION")
 	if err == nil {
 		log.Printf("Using AWS region \"%s\" to create session...", region)
@@ -662,4 +666,10 @@ func (bldr *ServiceBuilder) createLeaseService(config ConfigurationServiceBuilde
 
 	config.WithService(leaseSvc)
 	return nil
+}
+
+func NewServiceBuilder() *ServiceBuilder {
+	return &ServiceBuilder{
+		Config: &ConfigurationBuilder{},
+	}
 }
