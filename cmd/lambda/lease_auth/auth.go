@@ -14,6 +14,7 @@ import (
 	"github.com/gorilla/mux"
 	"log"
 	"net/http"
+	"time"
 )
 
 func LeaseAuthHandler(w http.ResponseWriter, r *http.Request) {
@@ -42,12 +43,16 @@ func LeaseAuthHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Generate credentials for the requested lease
 	res, err := leaseAuth(&leaseAuthInput{
-		leaseID:        leaseID,
-		requestContext: &reqCtx,
-		leaseService:   Services.LeaseService(),
-		accountService: Services.AccountService(),
-		userDetailer:   Services.UserDetailer(),
-		accountManager: Services.AccountManager(),
+		leaseID:                  leaseID,
+		requestContext:           &reqCtx,
+		leaseService:             Services.LeaseService(),
+		accountService:           Services.AccountService(),
+		userDetailer:             Services.UserDetailer(),
+		accountManager:           Services.AccountManager(),
+		// Note that AWS has a hard 1-hour limit on roles assumed
+		// via "role-chaining" (assuming a role from an assumed-role).
+		// In our case, we're assuming a role, via our assumed lambda execution role.
+		principalSessionDuration: time.Hour,
 	})
 	if err != nil {
 		api.WriteAPIErrorResponse(w, err)
@@ -58,12 +63,13 @@ func LeaseAuthHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 type leaseAuthInput struct {
-	leaseID        *string
-	requestContext *events.APIGatewayProxyRequestContext
-	leaseService   leaseiface.Servicer
-	accountService accountiface.Servicer
-	userDetailer   api.UserDetailer
-	accountManager accountmanageriface.Servicer
+	leaseID                  *string
+	requestContext           *events.APIGatewayProxyRequestContext
+	leaseService             leaseiface.Servicer
+	accountService           accountiface.Servicer
+	userDetailer             api.UserDetailer
+	accountManager           accountmanageriface.Servicer
+	principalSessionDuration time.Duration
 }
 
 func leaseAuth(input *leaseAuthInput) (*response.LeaseAuthResponse, error) {
@@ -125,7 +131,7 @@ func leaseAuth(input *leaseAuthInput) (*response.LeaseAuthResponse, error) {
 	if roleSessionName == "" {
 		roleSessionName = *lease.PrincipalID
 	}
-	creds := input.accountManager.Credentials(acct.PrincipalRoleArn, roleSessionName)
+	creds := input.accountManager.Credentials(acct.PrincipalRoleArn, roleSessionName, &input.principalSessionDuration)
 	credsValue, err := creds.Get()
 	if err != nil {
 		log.Printf("Failed to login to %s: %s", acct.PrincipalRoleArn, err)
@@ -162,10 +168,18 @@ func leaseAuth(input *leaseAuthInput) (*response.LeaseAuthResponse, error) {
 		log.Println(credsLog)
 	}
 
+	// Grab the credentials expires time
+	expiresOn, err := creds.ExpiresAt()
+	if err != nil {
+		log.Println(err)
+		return nil, errors.NewInternalServer("Internal server error", err)
+	}
+
 	return &response.LeaseAuthResponse{
 		AccessKeyID:     credsValue.AccessKeyID,
 		SecretAccessKey: credsValue.SecretAccessKey,
 		SessionToken:    credsValue.SessionToken,
 		ConsoleURL:      consoleURL,
+		ExpiresOn:       expiresOn.Unix(),
 	}, nil
 }

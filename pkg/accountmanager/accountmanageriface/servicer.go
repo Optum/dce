@@ -6,6 +6,7 @@ import (
 	"github.com/Optum/dce/pkg/account"
 	"github.com/Optum/dce/pkg/arn"
 	"github.com/aws/aws-sdk-go/aws/credentials"
+	"time"
 )
 
 // Servicer makes working with the Account Manager easier
@@ -14,7 +15,7 @@ type Servicer interface {
 	// ValidateAccess creates a new Account instance
 	ValidateAccess(role *arn.ARN) error
 	// Retrieve credentials for the provided IAM Role ARN
-	Credentials(role *arn.ARN, roleSessionName string) Credentialer
+	Credentials(role *arn.ARN, roleSessionName string, duration *time.Duration) Credentialer
 	// ConsoleURL generates a URL that may be used
 	// to login to the AWS web console for an account
 	ConsoleURL(creds Credentialer) (string, error)
@@ -27,4 +28,6 @@ type Servicer interface {
 //go:generate mockery -name Credentialer
 type Credentialer interface {
 	Get() (credentials.Value, error)
+	ExpiresAt() (time.Time, error)
+	IsExpired() bool
 }

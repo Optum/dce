@@ -18,6 +18,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"testing"
+	"time"
 )
 
 type leaseAuthTestInput struct {
@@ -32,6 +33,9 @@ type leaseAuthTestInput struct {
 	leaseQueryResults *[]lease.Lease
 	// Error to return from LeaseService.Get()
 	getLeaseError error
+
+	// PrincipalSessionDuration (configured as env var, IRLO)
+	principalSessionDuration time.Duration
 
 	// Mock account to return from AccountService.Get()
 	account *account.Account
@@ -133,11 +137,12 @@ func leaseAuthTest(t *testing.T, input *leaseAuthTestInput) {
 
 	// Call the LeasAuth controller
 	res, err := leaseAuth(&leaseAuthInput{
-		leaseID:        input.leaseID,
-		leaseService:   leaseSvc,
-		accountService: accountSvc,
-		userDetailer:   userDetails,
-		accountManager: accountMgr,
+		leaseID:                  input.leaseID,
+		principalSessionDuration: input.principalSessionDuration,
+		leaseService:             leaseSvc,
+		accountService:           accountSvc,
+		userDetailer:             userDetails,
+		accountManager:           accountMgr,
 	})
 	if input.expectedError != nil {
 		require.IsType(t, &errors.StatusError{}, err)
@@ -148,6 +153,14 @@ func leaseAuthTest(t *testing.T, input *leaseAuthTestInput) {
 	}
 
 	if input.expectedResult != nil {
+		// Check expectation for `expiresOn` separately, as this value is
+		// sensitive to actual time passing, so we want some wiggle-room
+		expectedExpiresOn := input.expectedResult.ExpiresOn
+		actualExpiresOn := res.ExpiresOn
+		input.expectedResult.ExpiresOn = 0
+		res.ExpiresOn = 0
+		require.InDelta(t, expectedExpiresOn, actualExpiresOn, 10, "Expected expiresOn")
+
 		require.Equal(t, input.expectedResult, res)
 	}
 }
@@ -163,6 +176,7 @@ func TestLeaseAuth(t *testing.T) {
 				PrincipalID: aws.String("test-user"),
 				Status:      lease.StatusActive.StatusPtr(),
 			},
+			principalSessionDuration: time.Hour * 4,
 			account: &account.Account{
 				PrincipalRoleArn: mockRoleArn("dce-principal"),
 			},
@@ -178,6 +192,7 @@ func TestLeaseAuth(t *testing.T) {
 				SecretAccessKey: "mock-secret-access-key",
 				SessionToken:    "mock-session-token",
 				ConsoleURL:      "http://example.com/mock/signin",
+				ExpiresOn:       time.Now().Add(time.Hour * 4).Unix(),
 			},
 		})
 	})
@@ -247,6 +262,7 @@ func TestLeaseAuth(t *testing.T) {
 				PrincipalID: aws.String("test-user"),
 				Status:      lease.StatusActive.StatusPtr(),
 			}},
+			principalSessionDuration: time.Hour * 4,
 			account: &account.Account{
 				ID:               aws.String("account-123"),
 				PrincipalRoleArn: mockRoleArn("dce-principal"),
@@ -264,6 +280,7 @@ func TestLeaseAuth(t *testing.T) {
 				SecretAccessKey: "mock-secret-access-key",
 				SessionToken:    "mock-session-token",
 				ConsoleURL:      "http://example.com/mock/signin",
+				ExpiresOn:       time.Now().Add(time.Hour * 4).Unix(),
 			},
 		})
 	})

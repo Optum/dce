@@ -1108,15 +1108,21 @@ func TestApi(t *testing.T) {
 					credsJSON := parseResponseJSON(t, res)
 
 					// Check the response has the expected fields
-					for _, key := range []string{
+					for _, key := range []interface{}{
 						"accessKeyId",
 						"secretAccessKey",
 						"sessionToken",
 						"consoleUrl",
+						"expiresOn",
 					} {
 						require.Contains(t, credsJSON, key)
-						require.IsType(t, "", credsJSON[key])
 					}
+
+					// ExpiresOn time should be ~4 hours in the future
+					require.IsType(t, float64(0), credsJSON["expiresOn"])
+					expiresInSeconds := int64(credsJSON["expiresOn"].(float64)) - time.Now().Unix()
+					require.InDelta(t, 60*60, expiresInSeconds, 120,
+						"Credentials should expire in 1hrs (+/- 2min)")
 
 					// Should be able to access DCE API with the returned creds
 					leaseCreds := credentials.NewStaticCredentials(

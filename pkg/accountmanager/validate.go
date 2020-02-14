@@ -14,7 +14,7 @@ func isAssumable(client clienter) validation.RuleFunc {
 			return fmt.Errorf("value is not an ARN")
 		}
 		// Create the credentials from AssumeRoleProvider to assume the role
-		config := client.Config(a, systemSessionName)
+		config := client.Config(a, systemSessionName, nil)
 		_, err := config.Credentials.Get()
 		if err != nil {
 			return err

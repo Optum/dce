@@ -1005,6 +1005,9 @@ definitions:
       consoleUrl:
         type: string
         description: URL to access the AWS Console
+      expiresOn:
+        type: number
+        descripton: Time when the provided credentials with expire, in epoch seconds
   account:
     description: "Account Details"
     type: object

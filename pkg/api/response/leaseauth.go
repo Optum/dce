@@ -13,4 +13,5 @@ type LeaseAuthResponse struct {
 	SecretAccessKey string `json:"secretAccessKey"`
 	SessionToken    string `json:"sessionToken"`
 	ConsoleURL      string `json:"consoleUrl"`
+	ExpiresOn       int64  `json:"expiresOn"`
 }

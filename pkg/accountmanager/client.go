@@ -6,6 +6,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/iam/iamiface"
 	"github.com/aws/aws-sdk-go/service/sts/stsiface"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -13,7 +14,7 @@ import (
 
 //go:generate mockery -name clienter
 type clienter interface {
-	Config(roleArn *arn.ARN, roleSessionName string) *aws.Config
+	Config(roleArn *arn.ARN, roleSessionName string, duration *time.Duration) *aws.Config
 	IAM(roleArn *arn.ARN) iamiface.IAMAPI
 }
 
@@ -27,7 +28,7 @@ type client struct {
 }
 
 // Config configures caching of credentials
-func (c *client) Config(roleArn *arn.ARN, roleSessionName string) *aws.Config {
+func (c *client) Config(roleArn *arn.ARN, roleSessionName string, duration *time.Duration) *aws.Config {
 
 	// return no config for nil inputs
 	if roleArn == nil {
@@ -39,6 +40,9 @@ func (c *client) Config(roleArn *arn.ARN, roleSessionName string) *aws.Config {
 		if roleSessionName != "" {
 			p.RoleSessionName = roleSessionName
 		}
+		if duration != nil {
+			p.Duration = *duration
+		}
 	})
 
 	// new config
@@ -49,5 +53,5 @@ func (c *client) Config(roleArn *arn.ARN, roleSessionName string) *aws.Config {
 
 // IAM creates a new IAM Client
 func (c *client) IAM(roleArn *arn.ARN) iamiface.IAMAPI {
-	return iam.New(c.session, c.Config(roleArn, systemSessionName))
+	return iam.New(c.session, c.Config(roleArn, systemSessionName, nil))
 }

@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/Optum/dce/pkg/account"
 	"github.com/Optum/dce/pkg/arn"
@@ -69,8 +70,8 @@ func (s *Service) ValidateAccess(role *arn.ARN) error {
 
 // Credentials assumes role into the provided ARN
 // and returns back a wrapper object for retrieving STS crednetials
-func (s *Service) Credentials(role *arn.ARN, roleSessionName string) accountmanageriface.Credentialer {
-	return s.client.Config(role, roleSessionName).Credentials
+func (s *Service) Credentials(role *arn.ARN, roleSessionName string, duration *time.Duration) accountmanageriface.Credentialer {
+	return s.client.Config(role, roleSessionName, duration).Credentials
 }
 
 // ConsoleURL generates a URL that may be used

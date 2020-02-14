@@ -2,7 +2,10 @@
 
 package mocks
 
-import arn "github.com/Optum/dce/pkg/arn"
+import (
+	arn "github.com/Optum/dce/pkg/arn"
+	time2 "time"
+)
 import aws "github.com/aws/aws-sdk-go/aws"
 import iamiface "github.com/aws/aws-sdk-go/service/iam/iamiface"
 import mock "github.com/stretchr/testify/mock"
@@ -13,7 +16,7 @@ type clienter struct {
 }
 
 // Config provides a mock function with given fields: roleArn, roleSessionName
-func (_m *clienter) Config(roleArn *arn.ARN, roleSessionName string) *aws.Config {
+func (_m *clienter) Config(roleArn *arn.ARN, roleSessionName string, duration *time2.Duration) *aws.Config {
 	ret := _m.Called(roleArn, roleSessionName)
 
 	var r0 *aws.Config
