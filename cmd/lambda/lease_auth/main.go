@@ -15,7 +15,6 @@ var (
 	Services  *config.ServiceBuilder
 )
 
-
 func initConfig() {
 	Services = config.NewServiceBuilder()
 

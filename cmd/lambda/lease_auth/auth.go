@@ -43,12 +43,12 @@ func LeaseAuthHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Generate credentials for the requested lease
 	res, err := leaseAuth(&leaseAuthInput{
-		leaseID:                  leaseID,
-		requestContext:           &reqCtx,
-		leaseService:             Services.LeaseService(),
-		accountService:           Services.AccountService(),
-		userDetailer:             Services.UserDetailer(),
-		accountManager:           Services.AccountManager(),
+		leaseID:        leaseID,
+		requestContext: &reqCtx,
+		leaseService:   Services.LeaseService(),
+		accountService: Services.AccountService(),
+		userDetailer:   Services.UserDetailer(),
+		accountManager: Services.AccountManager(),
 		// Note that AWS has a hard 1-hour limit on roles assumed
 		// via "role-chaining" (assuming a role from an assumed-role).
 		// In our case, we're assuming a role, via our assumed lambda execution role.
