@@ -287,7 +287,6 @@ func (a *Service) Reset(data *Account) error {
 // UpsertPrincipalAccess merges principal access to make sure its in sync with expectations
 func (a *Service) UpsertPrincipalAccess(data *Account) error {
 	err := validation.ValidateStruct(data,
-		validation.Field(&data.Status, validation.NotNil, validation.By(isAccountNotLeased)),
 		validation.Field(&data.AdminRoleArn, validation.NotNil),
 		validation.Field(&data.PrincipalRoleArn, validation.NotNil),
 	)
