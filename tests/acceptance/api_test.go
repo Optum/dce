@@ -428,46 +428,46 @@ func TestApi(t *testing.T) {
 
 		})
 
-		t.Run("Cognito user should not be able to create a lease for other user", func(t *testing.T) {
-			// Arrange
-			cognitoUser := NewCognitoUser(t, tfOut, awsSession, accountID)
-			defer cognitoUser.delete(tfOut, awsSession)
-			otherCognitoUser := NewCognitoUser(t, tfOut, awsSession, accountID)
-			defer otherCognitoUser.delete(tfOut, awsSession)
-
-			// Create an Account Entry
-			acctID := "123"
-			timeNow := time.Now().Unix()
-			err := dbSvc.PutAccount(db.Account{
-				ID:             acctID,
-				AccountStatus:  db.Ready,
-				LastModifiedOn: timeNow,
-			})
-			require.Nil(t, err)
-
-			// Assert POST lease returns 403
-			apiRequest(t, &apiRequestInput{
-				method: "POST",
-				url:    apiURL + "/leases",
-				json: struct {
-					PrincipalID              string   `json:"principalId"`
-					BudgetAmount             float64  `json:"budgetAmount"`
-					BudgetCurrency           string   `json:"budgetCurrency"`
-					BudgetNotificationEmails []string `json:"budgetNotificationEmails"`
-				}{
-					PrincipalID:              otherCognitoUser.Username,
-					BudgetAmount:             100,
-					BudgetCurrency:           "USD",
-					BudgetNotificationEmails: []string{"test@optum.com"},
-				},
-				f: func(r *testutil.R, apiResp *apiResponse) {
-
-					// Assert
-					assert.Equalf(r, http.StatusCreated, apiResp.StatusCode, "%v", apiResp.json)
-				},
-				creds: credentials.NewStaticCredentialsFromCreds(cognitoUser.UserCredsValue),
-			})
-		})
+		//t.Run("Cognito user should not be able to create a lease for other user", func(t *testing.T) {
+		//	// Arrange
+		//	cognitoUser := NewCognitoUser(t, tfOut, awsSession, accountID)
+		//	defer cognitoUser.delete(tfOut, awsSession)
+		//	otherCognitoUser := NewCognitoUser(t, tfOut, awsSession, accountID)
+		//	defer otherCognitoUser.delete(tfOut, awsSession)
+		//
+		//	// Create an Account Entry
+		//	acctID := "123"
+		//	timeNow := time.Now().Unix()
+		//	err := dbSvc.PutAccount(db.Account{
+		//		ID:             acctID,
+		//		AccountStatus:  db.Ready,
+		//		LastModifiedOn: timeNow,
+		//	})
+		//	require.Nil(t, err)
+		//
+		//	// Assert POST lease returns 401
+		//	apiRequest(t, &apiRequestInput{
+		//		method: "POST",
+		//		url:    apiURL + "/leases",
+		//		json: struct {
+		//			PrincipalID              string   `json:"principalId"`
+		//			BudgetAmount             float64  `json:"budgetAmount"`
+		//			BudgetCurrency           string   `json:"budgetCurrency"`
+		//			BudgetNotificationEmails []string `json:"budgetNotificationEmails"`
+		//		}{
+		//			PrincipalID:              otherCognitoUser.Username,
+		//			BudgetAmount:             100,
+		//			BudgetCurrency:           "USD",
+		//			BudgetNotificationEmails: []string{"test@optum.com"},
+		//		},
+		//		f: func(r *testutil.R, apiResp *apiResponse) {
+		//
+		//			// Assert
+		//			assert.Equalf(r, http.StatusCreated, apiResp.StatusCode, "%v", apiResp.json)
+		//		},
+		//		creds: credentials.NewStaticCredentialsFromCreds(cognitoUser.UserCredsValue),
+		//	})
+		//})
 
 		t.Run("Cognito user should not be able to create, get, list, or delete a lease for another user", func(t *testing.T) {
 			// Arrange
@@ -487,7 +487,30 @@ func TestApi(t *testing.T) {
 
 			// Act
 			// Create Lease
-			// Cognito User 2 tries to create lease for Cognito User 1 and gets 403
+			// Cognito User 2 tries to create lease for Cognito User 1 and gets 401
+			apiRequest(t, &apiRequestInput{
+				method: "POST",
+				url:    apiURL + "/leases",
+				json: struct {
+					PrincipalID              string   `json:"principalId"`
+					BudgetAmount             float64  `json:"budgetAmount"`
+					BudgetCurrency           string   `json:"budgetCurrency"`
+					BudgetNotificationEmails []string `json:"budgetNotificationEmails"`
+				}{
+					PrincipalID:              cognitoUser1.Username,
+					BudgetAmount:             100,
+					BudgetCurrency:           "USD",
+					BudgetNotificationEmails: []string{"test@optum.com"},
+				},
+				f: func(r *testutil.R, apiResp *apiResponse) {
+
+					// Assert
+					fmt.Println("cognito User 2 tries to create lease for Cognito User 1: ", apiResp)
+					assert.Equalf(r, http.StatusUnauthorized, apiResp.StatusCode, "%v", apiResp.json)
+				},
+				creds: credentials.NewStaticCredentialsFromCreds(cognitoUser2.UserCredsValue),
+			})
+
 			// Cognito User 1 creates a lease for themself
 			apiRequest(t, &apiRequestInput{
 				method: "POST",
@@ -512,7 +535,7 @@ func TestApi(t *testing.T) {
 			})
 
 			// Get Lease
-			// Cognito User 2 should get 403
+			// Cognito User 2 should get 401
 			// Cognito User 1 should get their lease and 200
 
 			// List Leases
@@ -543,7 +566,7 @@ func TestApi(t *testing.T) {
 				creds: credentials.NewStaticCredentialsFromCreds(cognitoUser1.UserCredsValue),
 			})
 			// Delete Lease
-			// Cognito User 2 should get 403
+			// Cognito User 2 should get 401
 			// Cognito User 1 should delete their lease and 200
 
 		})
@@ -2757,5 +2780,6 @@ func NewCognitoUser(t *testing.T, tfOut map[string]interface{}, awsSession *sess
 	return CognitoUser{
 		UserCredsValue: userCredsValue,
 		Username:       username,
+		UserPoolID:     userPoolID,
 	}
 }
