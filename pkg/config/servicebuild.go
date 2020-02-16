@@ -211,43 +211,8 @@ func (bldr *ServiceBuilder) WithEventService() *ServiceBuilder {
 }
 
 func (bldr *ServiceBuilder) WithUserDetailer() *ServiceBuilder {
-	// UserDetailer depends on Cognito service
 	bldr.WithCognito()
-
-	bldr.handlers = append(bldr.handlers, func(config ConfigurationServiceBuilder) error {
-		// Grab the Cognito service
-		var cognitoSvc cognitoidentityprovider.CognitoIdentityProvider
-		err := bldr.Config.GetService(&cognitoSvc)
-		if err != nil {
-			return err
-		}
-
-		// Grab required env vars
-		cognitoUserPoolID, err := bldr.Config.GetStringVal("COGNITO_USER_POOL_ID")
-		if err == nil {
-			log.Printf("Unable to retrieve COGNITO_USER_POOL_ID")
-			return err
-		}
-		rolesAttributesAdminNames, err := bldr.Config.GetStringVal("COGNITO_ROLES_ATTRIBUTE_ADMIN_NAME")
-		if err == nil {
-			log.Printf("Unable to retrieve COGNITO_ROLES_ATTRIBUTE_ADMIN_NAME")
-			return err
-		}
-
-		log.Printf("Configuring UserDetailer to with user pool %s and admin group name %s",
-			cognitoUserPoolID, rolesAttributesAdminNames)
-
-		// Create and register the UserDetails Service
-		userDetailer := &api.UserDetails{
-			CognitoUserPoolID:        cognitoUserPoolID,
-			RolesAttributesAdminName: rolesAttributesAdminNames,
-			CognitoClient:            &cognitoSvc,
-		}
-		config.WithService(userDetailer)
-
-		return nil
-	})
-
+	bldr.handlers = append(bldr.handlers, bldr.createUserDetailerService)
 	return bldr
 }
 
@@ -464,6 +429,33 @@ func (bldr *ServiceBuilder) createStorageService(config ConfigurationServiceBuil
 	}
 
 	config.WithService(storageService)
+	return nil
+}
+
+func (bldr *ServiceBuilder) createUserDetailerService(config ConfigurationServiceBuilder) error {
+	// Don't add the service twice
+	var userDetailerAPI api.UserDetailer
+	err := bldr.Config.GetService(&userDetailerAPI)
+	if err == nil {
+		log.Printf("Already added UserDetailer service")
+		return nil
+	}
+
+	var cognitoSvc cognitoidentityprovider.CognitoIdentityProvider
+	err = bldr.Config.GetService(&cognitoSvc)
+	if err != nil {
+		return err
+	}
+
+	userDetailerImpl := &api.UserDetails{}
+	err = bldr.Config.Unmarshal(userDetailerImpl)
+	if err != nil {
+		return err
+	}
+
+	userDetailerImpl.CognitoClient = &cognitoSvc
+
+	config.WithService(userDetailerImpl)
 	return nil
 }
 

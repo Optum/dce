@@ -36,8 +36,8 @@ type UserDetailer interface {
 
 // UserDetails - Gets User information
 type UserDetails struct {
-	CognitoUserPoolID        string
-	RolesAttributesAdminName string
+	CognitoUserPoolID        string `env:"COGNITO_USER_POOL_ID" defaultEnv:"DefaultCognitoUserPoolId"`
+	RolesAttributesAdminName string `env:"COGNITO_ROLES_ATTRIBUTE_ADMIN_NAME" defaultEnv:"DefaultCognitoAdminName"`
 	CognitoClient            awsiface.CognitoIdentityProviderAPI
 }
 
