@@ -2716,8 +2716,7 @@ func NewCognitoUser(t *testing.T, tfOut map[string]interface{}, awsSession *sess
 	require.Nil(t, err)
 
 	// authenticate with use pool to get Access, Identity, and Refresh JWTs
-	var userCreds map[string]*string
-	userCreds = make(map[string]*string)
+	userCreds := make(map[string]*string)
 	userCreds["USERNAME"] = &cognitoUser.Username
 	userCreds["PASSWORD"] = &permPassword
 	adminAuthFlow := "ADMIN_USER_PASSWORD_AUTH"
