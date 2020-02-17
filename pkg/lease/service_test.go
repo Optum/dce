@@ -18,6 +18,15 @@ func ptrString(s string) *string {
 	return &ptrS
 }
 
+func ptrFloat(s float64) *float64 {
+	ptrS := s
+	return &ptrS
+}
+func ptrArrayString(s []string) *[]string {
+	ptrS := s
+	return &ptrS
+}
+
 func TestGetLeaseByID(t *testing.T) {
 
 	type response struct {
@@ -323,4 +332,101 @@ func TestGetLeases(t *testing.T) {
 		})
 	}
 
+}
+
+func TestCreate(t *testing.T) {
+
+	type response struct {
+		data *lease.Lease
+		err  error
+	}
+
+	leaseExpires := time.Now().AddDate(0, 0, 7).Unix()
+
+	tests := []struct {
+		name           string
+		req            *lease.Lease
+		exp            response
+		getResponse    *lease.Leases
+		writeErr       error
+		leaseCreateErr error
+	}{
+		{
+			name: "should create",
+			req: &lease.Lease{
+				PrincipalID:              ptrString("User1"),
+				AccountID:                ptrString("123456789012"),
+				BudgetAmount:             ptrFloat(200.00),
+				BudgetCurrency:           ptrString("USD"),
+				BudgetNotificationEmails: ptrArrayString([]string{"test1@test.com", "test2@test.com"}),
+				Metadata: map[string]interface{}{},
+			},
+			exp: response{
+				data: &lease.Lease{
+					//ID:                       ptrString("6d666a28-4f2c-43af-8c94-1b715ca079ae"),
+					PrincipalID:              ptrString("User1"),
+					AccountID:                ptrString("123456789012"),
+					BudgetAmount:             ptrFloat(200.00),
+					BudgetCurrency:           ptrString("USD"),
+					BudgetNotificationEmails: ptrArrayString([]string{"test1@test.com", "test2@test.com"}),
+					ExpiresOn: &leaseExpires,
+					Metadata: map[string]interface{}{},
+				},
+				err: nil,
+			},
+			getResponse:    nil,
+			writeErr:       nil,
+			leaseCreateErr: nil,
+		},
+		{
+			name: "should fail on lease already exists",
+			req: &lease.Lease{
+				PrincipalID:              ptrString("User1"),
+				AccountID:                ptrString("123456789012"),
+				BudgetAmount:             ptrFloat(200.00),
+				BudgetCurrency:           ptrString("USD"),
+				BudgetNotificationEmails: ptrArrayString([]string{"test1@test.com", "test2@test.com"}),
+				Metadata: map[string]interface{}{},
+			},
+			exp: response{
+				data: nil,
+				err: errors.NewAlreadyExists("lease", "User1"),
+			},
+			getResponse: &lease.Leases{
+				lease.Lease{
+					PrincipalID:              ptrString("User1"),
+					AccountID:                ptrString("123456789012"),
+					BudgetAmount:             ptrFloat(200.00),
+					BudgetCurrency:           ptrString("USD"),
+					BudgetNotificationEmails: ptrArrayString([]string{"test1@test.com", "test2@test.com"}),
+					Metadata: map[string]interface{}{},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			mocksRwd := &mocks.ReaderWriterDeleter{}
+			mocksRwd.On("List", mock.AnythingOfType("*lease.Lease")).Return(tt.getResponse, nil)
+			mocksRwd.On("Write", mock.AnythingOfType("*lease.Lease"), mock.AnythingOfType("*int64")).Return(tt.writeErr)
+
+			leaseSvc := lease.NewService(
+				lease.NewServiceInput{
+					DataSvc:                  mocksRwd,
+					DefaultLeaseLengthInDays: 7,
+					PrincipalBudgetAmount:    1000.00,
+					PrincipalBudgetPeriod:    "Weekly",
+					MaxLeaseBudgetAmount:     1000.00,
+					MaxLeasePeriod:           704800,
+				},
+			)
+
+			result, err := leaseSvc.Create(tt.req)
+
+			assert.Truef(t, errors.Is(err, tt.exp.err), "actual error %q doesn't match expected error %q", err, tt.exp.err)
+			assert.Equal(t, tt.exp.data, result)
+		})
+	}
 }

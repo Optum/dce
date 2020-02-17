@@ -61,8 +61,9 @@ func validateLease(a *Service, requestBody *Lease) (*Lease, bool, string, error)
 	}
 
 	// Set default expiresOn
-	if *requestBody.ExpiresOn == 0 {
-		*requestBody.ExpiresOn = time.Now().AddDate(0, 0, a.defaultLeaseLengthInDays).Unix()
+	if requestBody.ExpiresOn == nil {
+		leaseExpires := time.Now().AddDate(0, 0, a.defaultLeaseLengthInDays).Unix()
+		requestBody.ExpiresOn = &leaseExpires
 	}
 
 	// Set default metadata (empty object)

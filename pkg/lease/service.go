@@ -144,7 +144,6 @@ func (a *Service) Create(data *Lease) (*Lease, error) {
 		validation.Field(&data.CreatedOn, validation.By(isNil)),
 		validation.Field(&data.StatusReason, validation.By(isNil)),
 		validation.Field(&data.ExpiresOn, validation.By(isNil)),
-		validation.Field(&data.Metadata, validation.By(isNil)),
 	)
 	if err != nil {
 		return nil, errors.NewValidation("lease", err)
@@ -161,18 +160,27 @@ func (a *Service) Create(data *Lease) (*Lease, error) {
 		return nil, errors.NewValidation("lease", fmt.Errorf(validationErrorMessage))
 	}
 
-
 	// Check if principal already has an active lease
 	existingLeases, err := a.List(data)
 	if err != nil {
 		return nil, errors.NewInternalServer("lease", err)
 	}
-	if len(*existingLeases) > 0 {
-		return nil, errors.NewAlreadyExists("lease", *data.ID)
+	if existingLeases != nil && len(*existingLeases) > 0 {
+		return nil, errors.NewAlreadyExists("lease", *data.PrincipalID)
 	}
 
-	data.Status = StatusActive.StatusPtr()
-	err = a.Save(data)
+	new := NewLease(NewLeaseInput{
+		AccountID:                *data.AccountID,
+		PrincipalID:              *data.PrincipalID,
+		BudgetAmount:             *data.BudgetAmount,
+		BudgetCurrency:           *data.BudgetCurrency,
+		BudgetNotificationEmails: *data.BudgetNotificationEmails,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	err = a.Save(new)
 	if err != nil {
 		return nil, err
 	}
