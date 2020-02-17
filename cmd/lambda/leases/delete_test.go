@@ -33,8 +33,8 @@ func TestDeleteLeaseByLeaseID(t *testing.T) {
 		transitionErr error
 	}{
 		{
-			name:    "admin successfully deletes other users lease",
-			user:  &api.User{
+			name: "admin successfully deletes other users lease",
+			user: &api.User{
 				Username: "admin1",
 				Role:     api.AdminGroupName,
 			},
@@ -53,8 +53,8 @@ func TestDeleteLeaseByLeaseID(t *testing.T) {
 			getErr: nil,
 		},
 		{
-			name:    "user successfully deletes their own lease",
-			user:  &api.User{
+			name: "user successfully deletes their own lease",
+			user: &api.User{
 				Username: "user1",
 				Role:     api.UserGroupName,
 			},
@@ -73,15 +73,15 @@ func TestDeleteLeaseByLeaseID(t *testing.T) {
 			getErr: nil,
 		},
 		{
-			name:    "user cannot delete other users lease",
-			user:  &api.User{
+			name: "user cannot delete other users lease",
+			user: &api.User{
 				Username: "user1",
 				Role:     api.UserGroupName,
 			},
 			leaseID: "abc123",
 			expResp: response{
 				StatusCode: 401,
-				Body: "{\"error\":{\"code\":\"Unauthorized\",\"message\":\"Could not access the resource requested.\"}}",
+				Body:       "{\"error\":{\"code\":\"Unauthorized\",\"message\":\"Could not access the resource requested.\"}}",
 			},
 			expLease: &lease.Lease{
 				ID:           ptrString("abc123"),
@@ -93,8 +93,8 @@ func TestDeleteLeaseByLeaseID(t *testing.T) {
 			getErr: nil,
 		},
 		{
-			name:    "When Admin Delete lease service returns a failure",
-			user:  &api.User{
+			name: "When Admin Delete lease service returns a failure",
+			user: &api.User{
 				Username: "admin1",
 				Role:     api.AdminGroupName,
 			},
@@ -164,7 +164,7 @@ func TestDeleteLeaseByPrincipalIDAndAccountID(t *testing.T) {
 	}
 	tests := []struct {
 		name       string
-		user          *api.User
+		user       *api.User
 		inputLease *lease.Lease
 		getLeases  *lease.Leases
 		expResp    response
@@ -173,7 +173,7 @@ func TestDeleteLeaseByPrincipalIDAndAccountID(t *testing.T) {
 	}{
 		{
 			name: "admin successfully deletes other users lease",
-			user:  &api.User{
+			user: &api.User{
 				Username: "admin1",
 				Role:     api.AdminGroupName,
 			},
@@ -203,7 +203,7 @@ func TestDeleteLeaseByPrincipalIDAndAccountID(t *testing.T) {
 		},
 		{
 			name: "user successful deletes their own  lease",
-			user:  &api.User{
+			user: &api.User{
 				Username: "user1",
 				Role:     api.UserGroupName,
 			},
@@ -233,7 +233,7 @@ func TestDeleteLeaseByPrincipalIDAndAccountID(t *testing.T) {
 		},
 		{
 			name: "user cannot delete another users lease",
-			user:  &api.User{
+			user: &api.User{
 				Username: "user1",
 				Role:     api.UserGroupName,
 			},
@@ -263,7 +263,7 @@ func TestDeleteLeaseByPrincipalIDAndAccountID(t *testing.T) {
 		},
 		{
 			name: "when delete input is missing accountID",
-			user:  &api.User{
+			user: &api.User{
 				Username: "admin1",
 				Role:     api.AdminGroupName,
 			},
@@ -292,7 +292,7 @@ func TestDeleteLeaseByPrincipalIDAndAccountID(t *testing.T) {
 		},
 		{
 			name: "when delete input is missing principalID",
-			user:  &api.User{
+			user: &api.User{
 				Username: "admin1",
 				Role:     api.AdminGroupName,
 			},
@@ -315,7 +315,7 @@ func TestDeleteLeaseByPrincipalIDAndAccountID(t *testing.T) {
 		},
 		{
 			name: "when no matching lease found error",
-			user:  &api.User{
+			user: &api.User{
 				Username: "admin1",
 				Role:     api.AdminGroupName,
 			},
@@ -339,7 +339,7 @@ func TestDeleteLeaseByPrincipalIDAndAccountID(t *testing.T) {
 		},
 		{
 			name: "when Delete lease service returns a failure",
-			user:  &api.User{
+			user: &api.User{
 				Username: "admin1",
 				Role:     api.AdminGroupName,
 			},

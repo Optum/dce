@@ -34,8 +34,8 @@ func TestAdminGetLeases(t *testing.T) {
 		nextPrincipalID *string
 	}{
 		{
-			name:  "admin gets empty list when no leases",
-			user:  &api.User{
+			name: "admin gets empty list when no leases",
+			user: &api.User{
 				Username: "admin1",
 				Role:     api.AdminGroupName,
 			},
@@ -48,8 +48,8 @@ func TestAdminGetLeases(t *testing.T) {
 			retErr:    nil,
 		},
 		{
-			name:  "admin can get paged leases belonging to other users",
-			user:  &api.User{
+			name: "admin can get paged leases belonging to other users",
+			user: &api.User{
 				Username: "admin1",
 				Role:     api.AdminGroupName,
 			},
@@ -70,8 +70,8 @@ func TestAdminGetLeases(t *testing.T) {
 			retErr:          nil,
 		},
 		{
-			name:  "user gets empty list when no leases",
-			user:  &api.User{
+			name: "user gets empty list when no leases",
+			user: &api.User{
 				Username: "User1",
 				Role:     api.UserGroupName,
 			},
@@ -84,8 +84,8 @@ func TestAdminGetLeases(t *testing.T) {
 			retErr:    nil,
 		},
 		{
-			name:  "user can get only their own paged leases",
-			user:  &api.User{
+			name: "user can get only their own paged leases",
+			user: &api.User{
 				Username: "User1",
 				Role:     api.UserGroupName,
 			},
@@ -111,7 +111,7 @@ func TestAdminGetLeases(t *testing.T) {
 		},
 		{
 			name: "admin gets 500 when error",
-			user:  &api.User{
+			user: &api.User{
 				Username: "admin1",
 				Role:     api.AdminGroupName,
 			},

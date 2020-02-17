@@ -37,8 +37,8 @@ func TestGetLeaseByID(t *testing.T) {
 		retErr   error
 	}{
 		{
-			name:    "When admin Get lease for other user service returns a success",
-			user:  &api.User{
+			name: "When admin Get lease for other user service returns a success",
+			user: &api.User{
 				Username: "admin1",
 				Role:     api.AdminGroupName,
 			},
@@ -48,13 +48,13 @@ func TestGetLeaseByID(t *testing.T) {
 				Body:       "{\"principalId\":\"user1\"}\n",
 			},
 			retLease: &lease.Lease{
-				PrincipalID:              ptrString("user1"),
+				PrincipalID: ptrString("user1"),
 			},
-			retErr:   nil,
+			retErr: nil,
 		},
 		{
-			name:    "When user Get lease for self service returns a success",
-			user:  &api.User{
+			name: "When user Get lease for self service returns a success",
+			user: &api.User{
 				Username: "user1",
 				Role:     api.UserGroupName,
 			},
@@ -64,13 +64,13 @@ func TestGetLeaseByID(t *testing.T) {
 				Body:       "{\"principalId\":\"user1\"}\n",
 			},
 			retLease: &lease.Lease{
-				PrincipalID:              ptrString("user1"),
+				PrincipalID: ptrString("user1"),
 			},
-			retErr:   nil,
+			retErr: nil,
 		},
 		{
-			name:    "When user Get lease for other user service returns 401",
-			user:  &api.User{
+			name: "When user Get lease for other user service returns 401",
+			user: &api.User{
 				Username: "user1",
 				Role:     api.UserGroupName,
 			},
@@ -80,13 +80,13 @@ func TestGetLeaseByID(t *testing.T) {
 				Body:       "{\"error\":{\"code\":\"Unauthorized\",\"message\":\"Could not access the resource requested.\"}}",
 			},
 			retLease: &lease.Lease{
-				PrincipalID:              ptrString("user2"),
+				PrincipalID: ptrString("user2"),
 			},
-			retErr:   nil,
+			retErr: nil,
 		},
 		{
-			name:    "When Get lease service returns a failure",
-			user:  &api.User{
+			name: "When Get lease service returns a failure",
+			user: &api.User{
 				Username: "admin1",
 				Role:     api.AdminGroupName,
 			},
@@ -138,7 +138,7 @@ func TestGetLeaseByID(t *testing.T) {
 	}
 }
 
-func TestHandler(t *testing.T){
+func TestHandler(t *testing.T) {
 
 	t.Run("When the handler invoking get and there are no errors", func(t *testing.T) {
 		expectedLease := &lease.Lease{
@@ -160,7 +160,7 @@ func TestHandler(t *testing.T){
 		userDetailerMock := apiMocks.UserDetailer{}
 		userDetailerMock.On("GetUser", mock.Anything).Return(&api.User{
 			Username: "",
-			Role: api.AdminGroupName})
+			Role:     api.AdminGroupName})
 
 		svcBuilder.Config.WithService(&leaseSvc)
 		svcBuilder.Config.WithService(&userDetailerMock)
@@ -198,7 +198,7 @@ func TestHandler(t *testing.T){
 		userDetailerMock := apiMocks.UserDetailer{}
 		userDetailerMock.On("GetUser", mock.Anything).Return(&api.User{
 			Username: "",
-			Role: api.AdminGroupName})
+			Role:     api.AdminGroupName})
 
 		svcBuilder.Config.WithService(&leaseSvc)
 		svcBuilder.Config.WithService(&userDetailerMock)

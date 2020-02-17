@@ -23,7 +23,7 @@ func DeleteLeaseByID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//If user is not an admin, they can't delete leases for other users
-	if user.Role != api.AdminGroupName && *_lease.PrincipalID != user.Username{
+	if user.Role != api.AdminGroupName && *_lease.PrincipalID != user.Username {
 		log.Printf("User [%s] with role: [%s] attempted to delete a lease for: [%s], but was not authorized", user.Username, user.Role, *_lease.PrincipalID)
 		response.WriteUnauthorizedError(w)
 		return
@@ -65,7 +65,7 @@ func DeleteLease(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// If user is not an admin, they can't delete leases for other users
-	if user.Role != api.AdminGroupName &&* queryLease.PrincipalID != user.Username{
+	if user.Role != api.AdminGroupName && *queryLease.PrincipalID != user.Username {
 		log.Printf("User [%s] with role: [%s] attempted to delete a lease for: [%s], but was not authorized", user.Username, user.Role, *queryLease.PrincipalID)
 		response.WriteUnauthorizedError(w)
 		return
