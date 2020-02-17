@@ -427,6 +427,7 @@ func TestApi(t *testing.T) {
 			assert.NotNil(t, data["leaseStatusModifiedOn"])
 
 		})
+
 		t.Run("Cognito user should not be able to create, get, list, or delete a lease for another user", func(t *testing.T) {
 			///////////
 			// Setup //
@@ -437,10 +438,10 @@ func TestApi(t *testing.T) {
 			cognitoUser2 := NewCognitoUser(t, tfOut, awsSession, accountID)
 			defer cognitoUser2.delete(tfOut, awsSession)
 			// Create an Account Entry
-			acctID := "123"
+			leasedAccountID := "123"
 			timeNow := time.Now().Unix()
 			err := dbSvc.PutAccount(db.Account{
-				ID:             acctID,
+				ID:             leasedAccountID,
 				AccountStatus:  db.Ready,
 				LastModifiedOn: timeNow,
 			})
@@ -485,7 +486,6 @@ func TestApi(t *testing.T) {
 					BudgetNotificationEmails: []string{"test@optum.com"},
 				},
 				f: func(r *testutil.R, apiResp *apiResponse) {
-					// Assert
 					assert.Equalf(r, http.StatusCreated, apiResp.StatusCode, "%v", apiResp.json)
 				},
 				creds: credentials.NewStaticCredentialsFromCreds(cognitoUser1.UserCredsValue),
@@ -496,7 +496,23 @@ func TestApi(t *testing.T) {
 			// Get Lease //
 			///////////////
 			// Cognito User 2 should get 401
-			// Cognito User 1 should get their lease and 200
+			apiRequest(t, &apiRequestInput{
+				method: "GET",
+				url:    apiURL + fmt.Sprintf("/leases/%s", createLeaseOutput["id"]),
+				f: func(r *testutil.R, apiResp *apiResponse) {
+					assert.Equal(r, http.StatusUnauthorized, apiResp.StatusCode)
+				},
+				creds: credentials.NewStaticCredentialsFromCreds(cognitoUser2.UserCredsValue),
+			})
+			// Cognito User 1 should get 200
+			apiRequest(t, &apiRequestInput{
+				method: "GET",
+				url:    apiURL + fmt.Sprintf("/leases/%s", createLeaseOutput["id"]),
+				f: func(r *testutil.R, apiResp *apiResponse) {
+					assert.Equal(r, http.StatusOK, apiResp.StatusCode)
+				},
+				creds: credentials.NewStaticCredentialsFromCreds(cognitoUser1.UserCredsValue),
+			})
 
 			/////////////////
 			// List Leases //
@@ -538,10 +554,9 @@ func TestApi(t *testing.T) {
 				url:    apiURL + "/leases",
 				json:   leaseRequest{
 					PrincipalID: cognitoUser1.Username,
-					AccountID:   accountID,
+					AccountID:   leasedAccountID,
 				},
 				f: func(r *testutil.R, apiResp *apiResponse) {
-					// Verify response code
 					assert.Equal(r, http.StatusUnauthorized, apiResp.StatusCode)
 				},
 				creds: credentials.NewStaticCredentialsFromCreds(cognitoUser2.UserCredsValue),
@@ -551,22 +566,21 @@ func TestApi(t *testing.T) {
 				method: "DELETE",
 				url:    apiURL + fmt.Sprintf("/leases/%s", createLeaseOutput["id"]),
 				f: func(r *testutil.R, apiResp *apiResponse) {
-					// Verify response code
 					assert.Equal(r, http.StatusUnauthorized, apiResp.StatusCode)
 				},
 				creds: credentials.NewStaticCredentialsFromCreds(cognitoUser2.UserCredsValue),
 			})
-			// Cognito User 1 should delete their lease
+			// Cognito User 1 should delete their own lease
 			apiRequest(t, &apiRequestInput{
 				method: "DELETE",
 				url:    apiURL + fmt.Sprintf("/leases/%s", createLeaseOutput["id"]),
 				f: func(r *testutil.R, apiResp *apiResponse) {
-					// Verify response code
 					assert.Equal(r, http.StatusOK, apiResp.StatusCode)
 				},
 				creds: credentials.NewStaticCredentialsFromCreds(cognitoUser1.UserCredsValue),
 			})
 		})
+
 		t.Run("Should be able to create and destroy and lease by ID", func(t *testing.T) {
 			defer truncateAccountTable(t, dbSvc)
 			defer truncateLeaseTable(t, dbSvc)
