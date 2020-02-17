@@ -23,6 +23,17 @@ fi
 golangci-lint run
 echo "done."
 
+echo -n "Running security scanner... "
+GOSEC_CMD=gosec
+
+if [ ! "$(command -v ${GOSEC_CMD})" ]; then
+  echo -n "installing ${GOSEC_CMD}... "
+  go get github.com/securego/gosec/cmd/gosec
+fi
+
+gosec ./...
+echo "done."
+
 echo -n "Formatting terraform code.... "
 terraform fmt -diff -check -recursive ./modules/
 echo "done."
