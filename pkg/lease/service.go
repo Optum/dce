@@ -161,7 +161,12 @@ func (a *Service) Create(data *Lease) (*Lease, error) {
 	}
 
 	// Check if principal already has an active lease
-	existingLeases, err := a.List(data)
+	query := &Lease{
+		PrincipalID: data.PrincipalID,
+		Status:      StatusActive.StatusPtr(),
+	}
+
+	existingLeases, err := a.List(query)
 	if err != nil {
 		return nil, errors.NewInternalServer("lease", err)
 	}
