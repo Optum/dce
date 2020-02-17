@@ -2727,6 +2727,11 @@ func NewCognitoUser(t *testing.T, tfOut map[string]interface{}, awsSession *sess
 
 	// Update user pool client to allow ADMIN_USER_PASSWORD_AUTH
 	clientID := tfOut["cognito_user_pool_client_id"].(string)
+	describeUserPoolClientOutput, err := userPoolSvc.DescribeUserPoolClient(&cognitoidentityprovider.DescribeUserPoolClientInput{
+		ClientId:   &clientID,
+		UserPoolId: &userPoolID,
+	})
+	require.Nil(t, err)
 	ALLOW_REFRESH_TOKEN_AUTH := "ALLOW_REFRESH_TOKEN_AUTH"
 	ALLOW_ADMIN_USER_PASSWORD_AUTH := "ALLOW_ADMIN_USER_PASSWORD_AUTH"
 	allowedAuthFlows := []*string{&ALLOW_REFRESH_TOKEN_AUTH, &ALLOW_ADMIN_USER_PASSWORD_AUTH,}
@@ -2734,6 +2739,8 @@ func NewCognitoUser(t *testing.T, tfOut map[string]interface{}, awsSession *sess
 		ClientId:                        &clientID,
 		ExplicitAuthFlows:               allowedAuthFlows,
 		UserPoolId:                      &userPoolID,
+		CallbackURLs: describeUserPoolClientOutput.UserPoolClient.CallbackURLs,
+		LogoutURLs: describeUserPoolClientOutput.UserPoolClient.LogoutURLs,
 	})
 	require.Nil(t, err)
 
