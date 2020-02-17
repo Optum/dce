@@ -206,6 +206,16 @@ func WriteBadRequestError(w http.ResponseWriter, message string) {
 	)
 }
 
+// WriteUnauthorizedError - Writes the unauthorized error.
+func WriteUnauthorizedError(w http.ResponseWriter) {
+	WriteAPIErrorResponse(
+		w,
+		http.StatusUnauthorized,
+		"Unauthorized",
+		"Could not access the resource requested.",
+	)
+}
+
 // WriteConflictError - Writes a request validate error with the given message.
 func WriteConflictError(w http.ResponseWriter, message string) {
 	WriteAPIErrorResponse(
