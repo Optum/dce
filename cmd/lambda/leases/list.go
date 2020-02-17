@@ -22,7 +22,7 @@ func GetLeases(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	leases, err := Services.Config.LeaseService().List(query)
+	leases, err := Services.LeaseService().List(query)
 	if err != nil {
 		api.WriteAPIErrorResponse(w, err)
 		return

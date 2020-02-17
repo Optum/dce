@@ -35,7 +35,15 @@ func GetUsage(w http.ResponseWriter, r *http.Request) {
 	// Serialize them for the JSON response.
 	usageResponseItems := []response.UsageResponse{}
 	for _, usageItem := range result.Results {
-		usageResponseItems = append(usageResponseItems, response.UsageResponse(*usageItem))
+		usageResponseItems = append(usageResponseItems, response.UsageResponse{
+			PrincipalID:  *usageItem.PrincipalID,
+			AccountID:    *usageItem.AccountID,
+			StartDate:    *usageItem.StartDate,
+			EndDate:      *usageItem.EndDate,
+			CostAmount:   *usageItem.CostAmount,
+			CostCurrency: *usageItem.CostCurrency,
+			TimeToLive:   *usageItem.TimeToLive,
+		})
 	}
 
 	// If the DB result has next keys, then the URL to retrieve the next page is put into the Link header.

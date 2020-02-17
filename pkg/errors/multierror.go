@@ -15,16 +15,21 @@ type MultiError struct {
 }
 
 // Error returns the error message to satisfy the error interface
-func (err MultiError) Error() string {
+func (e MultiError) Error() string {
 	var errStrs []string
-	for _, e := range err.Errors {
-		errStrs = append(errStrs, e.Error())
+	for _, err := range e.Errors {
+		errStrs = append(errStrs, err.Error())
 	}
 	return fmt.Sprintf(
 		"%s: %s",
-		err.Message,
+		e.Message,
 		strings.Join(errStrs, "; "),
 	)
+}
+
+// Is to satisfy the error comparison interface
+func (e MultiError) Is(err error) bool {
+	return e.Error() == err.Error()
 }
 
 // NewMultiError is a list of errors
