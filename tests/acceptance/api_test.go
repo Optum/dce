@@ -434,9 +434,9 @@ func TestApi(t *testing.T) {
 			///////////
 			// Create cognito users
 			cognitoUser1 := NewCognitoUser(t, tfOut, awsSession, accountID)
-			defer cognitoUser1.delete(tfOut, awsSession)
+			defer cognitoUser1.delete(t, tfOut, awsSession)
 			cognitoUser2 := NewCognitoUser(t, tfOut, awsSession, accountID)
-			defer cognitoUser2.delete(tfOut, awsSession)
+			defer cognitoUser2.delete(t, tfOut, awsSession)
 			// Create an Account Entry
 			leasedAccountID := "123"
 			timeNow := time.Now().Unix()
@@ -2629,18 +2629,21 @@ type CognitoUser struct {
 	UserPoolID     string
 }
 
-func (u CognitoUser) delete(tfOut map[string]interface{}, adminSession *session.Session) {
+func (u CognitoUser) delete(t *testing.T, tfOut map[string]interface{}, adminSession *session.Session) {
 	userPoolSvc := cognitoidentityprovider.New(
 		adminSession,
 		aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
 	)
 
-	userPoolSvc.AdminDeleteUser(&cognitoidentityprovider.AdminDeleteUserInput{
+	_, err := userPoolSvc.AdminDeleteUser(&cognitoidentityprovider.AdminDeleteUserInput{
 		UserPoolId: &u.UserPoolID,
 		Username:   &u.Username,
 	})
+	assert.Nil(t, err)
 }
 func NewCognitoUser(t *testing.T, tfOut map[string]interface{}, awsSession *session.Session, accountID string) CognitoUser {
+	cognitoUser := CognitoUser{}
+
 	userPoolSvc := cognitoidentityprovider.New(
 		awsSession,
 		aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
@@ -2651,20 +2654,23 @@ func NewCognitoUser(t *testing.T, tfOut map[string]interface{}, awsSession *sess
 		aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
 	)
 	// Create user
-	username := getRandString(t, 8, "abcdefghijklmnopqrstuvwxyz")
+	cognitoUser.Username = getRandString(t, 8, "abcdefghijklmnopqrstuvwxyz")
 	tempPassword := getRandString(t, 4, "abcdefghijklmnopqrstuvwxyz") +
 		getRandString(t, 2, "ABCDEFGHIJKLMNOPQRSTUVWXYZ") +
 		getRandString(t, 2, "123456789") +
 		getRandString(t, 1, "!^*")
 
 	supress := "SUPPRESS"
-	userPoolID := tfOut["cognito_user_pool_id"].(string)
+	cognitoUser.UserPoolID = tfOut["cognito_user_pool_id"].(string)
 	_, err := userPoolSvc.AdminCreateUser(&cognitoidentityprovider.AdminCreateUserInput{
 		MessageAction:     &supress,
 		TemporaryPassword: &tempPassword,
-		UserPoolId:        &userPoolID,
-		Username:          &username,
+		UserPoolId:        &cognitoUser.UserPoolID,
+		Username:          &cognitoUser.Username,
 	})
+	if err != nil {
+		defer cognitoUser.delete(t, tfOut, awsSession)
+	}
 	require.Nil(t, err)
 
 	// Reset user's password
@@ -2676,17 +2682,23 @@ func NewCognitoUser(t *testing.T, tfOut map[string]interface{}, awsSession *sess
 	_, err = userPoolSvc.AdminSetUserPassword(&cognitoidentityprovider.AdminSetUserPasswordInput{
 		Password:   &permPassword,
 		Permanent:  &permanent,
-		UserPoolId: &userPoolID,
-		Username:   &username,
+		UserPoolId: &cognitoUser.UserPoolID,
+		Username:   &cognitoUser.Username,
 	})
+	if err != nil {
+		defer cognitoUser.delete(t, tfOut, awsSession)
+	}
 	require.Nil(t, err)
 
 	// Update user pool client to allow ADMIN_USER_PASSWORD_AUTH
 	clientID := tfOut["cognito_user_pool_client_id"].(string)
 	describeUserPoolClientOutput, err := userPoolSvc.DescribeUserPoolClient(&cognitoidentityprovider.DescribeUserPoolClientInput{
 		ClientId:   &clientID,
-		UserPoolId: &userPoolID,
+		UserPoolId: &cognitoUser.UserPoolID,
 	})
+	if err != nil {
+		defer cognitoUser.delete(t, tfOut, awsSession)
+	}
 	require.Nil(t, err)
 	ALLOW_REFRESH_TOKEN_AUTH := "ALLOW_REFRESH_TOKEN_AUTH"
 	ALLOW_ADMIN_USER_PASSWORD_AUTH := "ALLOW_ADMIN_USER_PASSWORD_AUTH"
@@ -2694,24 +2706,30 @@ func NewCognitoUser(t *testing.T, tfOut map[string]interface{}, awsSession *sess
 	_, err = userPoolSvc.UpdateUserPoolClient(&cognitoidentityprovider.UpdateUserPoolClientInput{
 		ClientId:          &clientID,
 		ExplicitAuthFlows: allowedAuthFlows,
-		UserPoolId:        &userPoolID,
+		UserPoolId:        &cognitoUser.UserPoolID,
 		CallbackURLs:      describeUserPoolClientOutput.UserPoolClient.CallbackURLs,
 		LogoutURLs:        describeUserPoolClientOutput.UserPoolClient.LogoutURLs,
 	})
+	if err != nil {
+		defer cognitoUser.delete(t, tfOut, awsSession)
+	}
 	require.Nil(t, err)
 
 	// authenticate with use pool to get Access, Identity, and Refresh JWTs
 	var userCreds map[string]*string
 	userCreds = make(map[string]*string)
-	userCreds["USERNAME"] = &username
+	userCreds["USERNAME"] = &cognitoUser.Username
 	userCreds["PASSWORD"] = &permPassword
 	adminAuthFlow := "ADMIN_USER_PASSWORD_AUTH"
 	output, err := userPoolSvc.AdminInitiateAuth(&cognitoidentityprovider.AdminInitiateAuthInput{
 		AuthFlow:       &adminAuthFlow,
 		AuthParameters: userCreds,
 		ClientId:       &clientID,
-		UserPoolId:     &userPoolID,
+		UserPoolId:     &cognitoUser.UserPoolID,
 	})
+	if err != nil {
+		defer cognitoUser.delete(t, tfOut, awsSession)
+	}
 	require.Nil(t, err)
 
 	// Exchange Identity JWT with identity pool for iam creds
@@ -2725,24 +2743,26 @@ func NewCognitoUser(t *testing.T, tfOut map[string]interface{}, awsSession *sess
 		IdentityPoolId: &identityPoolID,
 		Logins:         logins,
 	})
+	if err != nil {
+		defer cognitoUser.delete(t, tfOut, awsSession)
+	}
 	require.Nil(t, err)
 
 	idCredOutput, err := identityPoolSvc.GetCredentialsForIdentity(&cognitoidentity.GetCredentialsForIdentityInput{
 		IdentityId: identityID.IdentityId,
 		Logins:     logins,
 	})
+	if err != nil {
+		defer cognitoUser.delete(t, tfOut, awsSession)
+	}
 	require.Nil(t, err)
 
 	// Change session to use user creds
-	userCredsValue := credentials.Value{
+	cognitoUser.UserCredsValue = credentials.Value{
 		AccessKeyID:     *idCredOutput.Credentials.AccessKeyId,
 		SecretAccessKey: *idCredOutput.Credentials.SecretKey,
 		SessionToken:    *idCredOutput.Credentials.SessionToken,
 	}
 
-	return CognitoUser{
-		UserCredsValue: userCredsValue,
-		Username:       username,
-		UserPoolID:     userPoolID,
-	}
+	return cognitoUser
 }
