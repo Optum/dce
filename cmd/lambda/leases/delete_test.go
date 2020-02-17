@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/Optum/dce/pkg/api"
 	"github.com/stretchr/testify/mock"
 	"io/ioutil"
 	"net/http/httptest"
@@ -16,7 +17,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestDeleteLeaseByID(t *testing.T) {
+func TestDeleteLeaseByLeaseID(t *testing.T) {
 
 	type response struct {
 		StatusCode int
@@ -24,6 +25,7 @@ func TestDeleteLeaseByID(t *testing.T) {
 	}
 	tests := []struct {
 		name          string
+		user          *api.User
 		expResp       response
 		leaseID       string
 		getErr        error
@@ -31,7 +33,11 @@ func TestDeleteLeaseByID(t *testing.T) {
 		transitionErr error
 	}{
 		{
-			name:    "successful delete",
+			name:    "admin successfully deletes other users lease",
+			user:  &api.User{
+				Username: "admin1",
+				Role:     api.AdminGroupName,
+			},
 			leaseID: "abc123",
 			expResp: response{
 				StatusCode: 200,
@@ -47,7 +53,51 @@ func TestDeleteLeaseByID(t *testing.T) {
 			getErr: nil,
 		},
 		{
-			name:    "When Delete lease service returns a failure",
+			name:    "user successfully deletes their own lease",
+			user:  &api.User{
+				Username: "user1",
+				Role:     api.UserGroupName,
+			},
+			leaseID: "abc123",
+			expResp: response{
+				StatusCode: 200,
+				Body:       "{\"accountId\":\"123456789012\",\"principalId\":\"user1\",\"id\":\"abc123\",\"leaseStatus\":\"Inactive\",\"leaseStatusReason\":\"Expired\"}\n",
+			},
+			expLease: &lease.Lease{
+				ID:           ptrString("abc123"),
+				Status:       lease.StatusInactive.StatusPtr(),
+				StatusReason: lease.StatusReasonExpired.StatusReasonPtr(),
+				PrincipalID:  ptrString("user1"),
+				AccountID:    ptrString("123456789012"),
+			},
+			getErr: nil,
+		},
+		{
+			name:    "user cannot delete other users lease",
+			user:  &api.User{
+				Username: "user1",
+				Role:     api.UserGroupName,
+			},
+			leaseID: "abc123",
+			expResp: response{
+				StatusCode: 401,
+				Body: "{\"error\":{\"code\":\"Unauthorized\",\"message\":\"Could not access the resource requested.\"}}",
+			},
+			expLease: &lease.Lease{
+				ID:           ptrString("abc123"),
+				Status:       lease.StatusInactive.StatusPtr(),
+				StatusReason: lease.StatusReasonExpired.StatusReasonPtr(),
+				PrincipalID:  ptrString("user2"),
+				AccountID:    ptrString("123456789012"),
+			},
+			getErr: nil,
+		},
+		{
+			name:    "When Admin Delete lease service returns a failure",
+			user:  &api.User{
+				Username: "admin1",
+				Role:     api.AdminGroupName,
+			},
 			leaseID: "abc123",
 			expResp: response{
 				StatusCode: 500,
@@ -76,6 +126,9 @@ func TestDeleteLeaseByID(t *testing.T) {
 			svcBldr := &config.ServiceBuilder{Config: cfgBldr}
 
 			leaseSvc := mocks.Servicer{}
+			leaseSvc.On("Get", tt.leaseID).Return(
+				tt.expLease, tt.getErr,
+			)
 			leaseSvc.On("Delete", tt.leaseID).Return(
 				tt.expLease, tt.getErr,
 			)
@@ -87,6 +140,8 @@ func TestDeleteLeaseByID(t *testing.T) {
 			if err == nil {
 				Services = svcBldr
 			}
+
+			user = tt.user
 
 			DeleteLeaseByID(w, r)
 
@@ -101,7 +156,7 @@ func TestDeleteLeaseByID(t *testing.T) {
 
 }
 
-func TestDeleteLease(t *testing.T) {
+func TestDeleteLeaseByPrincipalIDAndAccountID(t *testing.T) {
 
 	type response struct {
 		StatusCode int
@@ -109,6 +164,7 @@ func TestDeleteLease(t *testing.T) {
 	}
 	tests := []struct {
 		name       string
+		user          *api.User
 		inputLease *lease.Lease
 		getLeases  *lease.Leases
 		expResp    response
@@ -116,33 +172,101 @@ func TestDeleteLease(t *testing.T) {
 		expLease   *lease.Lease
 	}{
 		{
-			name: "successful delete",
+			name: "admin successfully deletes other users lease",
+			user:  &api.User{
+				Username: "admin1",
+				Role:     api.AdminGroupName,
+			},
 			inputLease: &lease.Lease{
-				PrincipalID: ptrString("principal"),
+				PrincipalID: ptrString("User1"),
 				AccountID:   ptrString("123456789012"),
 			},
 			getLeases: &lease.Leases{
 				lease.Lease{
-					ID:          ptrString("123"),
+					ID:          ptrString("abc123"),
 					AccountID:   ptrString("123456789012"),
 					PrincipalID: ptrString("User1"),
 				},
 			},
 			expResp: response{
 				StatusCode: 200,
-				Body:       "{\"accountId\":\"123456789012\",\"principalId\":\"principal\",\"id\":\"abc123\",\"leaseStatus\":\"Inactive\",\"leaseStatusReason\":\"Expired\"}\n",
+				Body:       "{\"accountId\":\"123456789012\",\"principalId\":\"User1\",\"id\":\"abc123\",\"leaseStatus\":\"Inactive\",\"leaseStatusReason\":\"Expired\"}\n",
 			},
 			expLease: &lease.Lease{
 				ID:           ptrString("abc123"),
 				Status:       lease.StatusInactive.StatusPtr(),
 				StatusReason: lease.StatusReasonExpired.StatusReasonPtr(),
-				PrincipalID:  ptrString("principal"),
+				PrincipalID:  ptrString("User1"),
 				AccountID:    ptrString("123456789012"),
 			},
 			getErr: nil,
 		},
 		{
-			name: "When delete input is missing accountID",
+			name: "user successful deletes their own  lease",
+			user:  &api.User{
+				Username: "user1",
+				Role:     api.UserGroupName,
+			},
+			inputLease: &lease.Lease{
+				PrincipalID: ptrString("user1"),
+				AccountID:   ptrString("123456789012"),
+			},
+			getLeases: &lease.Leases{
+				lease.Lease{
+					ID:          ptrString("abc123"),
+					AccountID:   ptrString("123456789012"),
+					PrincipalID: ptrString("user1"),
+				},
+			},
+			expResp: response{
+				StatusCode: 200,
+				Body:       "{\"accountId\":\"123456789012\",\"principalId\":\"user1\",\"id\":\"abc123\",\"leaseStatus\":\"Inactive\",\"leaseStatusReason\":\"Expired\"}\n",
+			},
+			expLease: &lease.Lease{
+				ID:           ptrString("abc123"),
+				Status:       lease.StatusInactive.StatusPtr(),
+				StatusReason: lease.StatusReasonExpired.StatusReasonPtr(),
+				PrincipalID:  ptrString("user1"),
+				AccountID:    ptrString("123456789012"),
+			},
+			getErr: nil,
+		},
+		{
+			name: "user cannot delete another users lease",
+			user:  &api.User{
+				Username: "user1",
+				Role:     api.UserGroupName,
+			},
+			inputLease: &lease.Lease{
+				PrincipalID: ptrString("user2"),
+				AccountID:   ptrString("123456789012"),
+			},
+			getLeases: &lease.Leases{
+				lease.Lease{
+					ID:          ptrString("123"),
+					AccountID:   ptrString("123456789012"),
+					PrincipalID: ptrString("user2"),
+				},
+			},
+			expResp: response{
+				StatusCode: 401,
+				Body:       "{\"error\":{\"code\":\"Unauthorized\",\"message\":\"Could not access the resource requested.\"}}",
+			},
+			expLease: &lease.Lease{
+				ID:           ptrString("abc123"),
+				Status:       lease.StatusInactive.StatusPtr(),
+				StatusReason: lease.StatusReasonExpired.StatusReasonPtr(),
+				PrincipalID:  ptrString("user2"),
+				AccountID:    ptrString("123456789012"),
+			},
+			getErr: nil,
+		},
+		{
+			name: "when delete input is missing accountID",
+			user:  &api.User{
+				Username: "admin1",
+				Role:     api.AdminGroupName,
+			},
 			inputLease: &lease.Lease{
 				PrincipalID: ptrString("principal"),
 			},
@@ -167,7 +291,11 @@ func TestDeleteLease(t *testing.T) {
 			getErr: nil,
 		},
 		{
-			name: "When delete input is missing principalID",
+			name: "when delete input is missing principalID",
+			user:  &api.User{
+				Username: "admin1",
+				Role:     api.AdminGroupName,
+			},
 			inputLease: &lease.Lease{
 				AccountID: ptrString("User1"),
 			},
@@ -186,7 +314,11 @@ func TestDeleteLease(t *testing.T) {
 			getErr: nil,
 		},
 		{
-			name: "When no matching lease found error",
+			name: "when no matching lease found error",
+			user:  &api.User{
+				Username: "admin1",
+				Role:     api.AdminGroupName,
+			},
 			inputLease: &lease.Lease{
 				PrincipalID: ptrString("principal"),
 				AccountID:   ptrString("123456789012"),
@@ -206,7 +338,11 @@ func TestDeleteLease(t *testing.T) {
 			getErr: nil,
 		},
 		{
-			name: "When Delete lease service returns a failure",
+			name: "when Delete lease service returns a failure",
+			user:  &api.User{
+				Username: "admin1",
+				Role:     api.AdminGroupName,
+			},
 			inputLease: &lease.Lease{
 				PrincipalID: ptrString("principal"),
 				AccountID:   ptrString("123456789012"),
@@ -246,7 +382,7 @@ func TestDeleteLease(t *testing.T) {
 				tt.getLeases, tt.getErr,
 			)
 
-			leaseSvc.On("Delete", "123").Return(
+			leaseSvc.On("Delete", *tt.expLease.ID).Return(
 				tt.expLease, tt.getErr,
 			)
 
@@ -257,6 +393,8 @@ func TestDeleteLease(t *testing.T) {
 			if err == nil {
 				Services = svcBldr
 			}
+
+			user = tt.user
 
 			DeleteLease(w, r)
 

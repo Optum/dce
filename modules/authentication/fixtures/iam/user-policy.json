@@ -9,7 +9,9 @@
         "${api_gateway_arn}/GET/leases",
         "${api_gateway_arn}/POST/leases",
         "${api_gateway_arn}/POST/leases/*",
-        "${api_gateway_arn}/DELETE/leases"
+        "${api_gateway_arn}/DELETE/leases",
+        "${api_gateway_arn}/DELETE/leases/*"
+
       ]
     }
   ]
