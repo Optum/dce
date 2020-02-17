@@ -16,7 +16,6 @@ import (
 type Storager interface {
 	GetObject(bucket string, key string) (string, error)
 	GetTemplateObject(bucket string, key string, input interface{}) (string, string, error)
-	Upload(bucket string, key string, filepath string) error
 	Download(bukcet string, key string, filepath string) error
 }
 

@@ -71,17 +71,3 @@ func (_m *Storager) GetTemplateObject(bucket string, key string, input interface
 
 	return r0, r1, r2
 }
-
-// Upload provides a mock function with given fields: bucket, key, filepath
-func (_m *Storager) Upload(bucket string, key string, filepath string) error {
-	ret := _m.Called(bucket, key, filepath)
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(string, string, string) error); ok {
-		r0 = rf(bucket, key, filepath)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
