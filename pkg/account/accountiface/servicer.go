@@ -3,6 +3,9 @@
 package accountiface
 
 import (
+	"time"
+
+	"github.com/Optum/dce/internal/types"
 	"github.com/Optum/dce/pkg/account"
 )
 
@@ -26,4 +29,6 @@ type Servicer interface {
 	Reset(id string) (*account.Account, error)
 	// UpsertPrincipalAccess merges principal access to make sure its
 	UpsertPrincipalAccess(data *account.Account) error
+	// GetUsageBetweenDates gets Usage data from the acount
+	GetUsageBetweenDates(data *account.Account, startDate time.Time, endDate time.Time) (types.Usages, error)
 }

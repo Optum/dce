@@ -4,6 +4,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/Optum/dce/internal/types"
 	"github.com/Optum/dce/pkg/arn"
 	"github.com/Optum/dce/pkg/errors"
 	validation "github.com/go-ozzo/ozzo-validation"
@@ -61,6 +62,7 @@ type Manager interface {
 	ValidateAccess(role *arn.ARN) error
 	UpsertPrincipalAccess(account *Account) error
 	DeletePrincipalAccess(account *Account) error
+	GetUsageBetweenDates(account *Account, startDate time.Time, endDate time.Time) (types.Usages, error)
 }
 
 // Service is a type corresponding to a Account table record
@@ -327,6 +329,19 @@ func (a *Service) UpsertPrincipalAccess(data *Account) error {
 	}
 
 	return nil
+}
+
+// GetUsageBetweenDates gets Usage data from the acount
+func (a *Service) GetUsageBetweenDates(data *Account, startDate time.Time, endDate time.Time) (types.Usages, error) {
+	err := validation.ValidateStruct(data,
+		validation.Field(&data.AdminRoleArn, validation.NotNil),
+		validation.Field(&data.PrincipalRoleArn, validation.NotNil),
+	)
+	if err != nil {
+		return nil, errors.NewConflict("account", *data.ID, err)
+	}
+
+	return a.managerSvc.GetUsageBetweenDates(data, startDate, endDate)
 }
 
 // NewServiceInput Input for creating a new Service

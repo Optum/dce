@@ -3,6 +3,8 @@ package accountmanager
 import (
 	"github.com/Optum/dce/pkg/arn"
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/costexplorer"
+	"github.com/aws/aws-sdk-go/service/costexplorer/costexploreriface"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/iam/iamiface"
 	"github.com/aws/aws-sdk-go/service/sts/stsiface"
@@ -14,6 +16,7 @@ import (
 type clienter interface {
 	Config(roleArn *arn.ARN) *aws.Config
 	IAM(roleArn *arn.ARN) iamiface.IAMAPI
+	CostExplorer(roleArn *arn.ARN) costexploreriface.CostExplorerAPI
 }
 
 // Client helps with client management testing and abstraction
@@ -55,4 +58,9 @@ func (c *client) Config(roleArn *arn.ARN) *aws.Config {
 // IAM creates a new IAM Client
 func (c *client) IAM(roleArn *arn.ARN) iamiface.IAMAPI {
 	return iam.New(c.session, c.Config(roleArn))
+}
+
+// CostExplorer creates a new CostExplorer Client
+func (c *client) CostExplorer(roleArn *arn.ARN) costexploreriface.CostExplorerAPI {
+	return costexplorer.New(c.session, c.Config(roleArn))
 }

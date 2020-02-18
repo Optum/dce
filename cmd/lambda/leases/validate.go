@@ -2,11 +2,12 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"math"
 	"net/http"
 	"time"
+
+	"github.com/Optum/dce/pkg/usage"
 )
 
 type leaseValidationContext struct {
@@ -63,13 +64,9 @@ func validateLeaseFromRequest(context *leaseValidationContext, req *http.Request
 	}
 
 	// Validate requested lease budget amount is less than PRINCIPAL_BUDGET_AMOUNT for current principal billing period
-	usageStartTime := getBeginningOfCurrentBillingPeriod(context.principalBudgetPeriod)
+	_ = getBeginningOfCurrentBillingPeriod(context.principalBudgetPeriod)
 
-	usageRecords, err := usageSvc.GetUsageByPrincipal(usageStartTime, requestBody.PrincipalID)
-	if err != nil {
-		errStr := fmt.Sprintf("Failed to retrieve usage: %s", err)
-		return requestBody, true, "", errors.New(errStr)
-	}
+	var usageRecords []*usage.Usage
 
 	// Group by PrincipalID to get sum of total spent for current billing period
 	spent := 0.0
