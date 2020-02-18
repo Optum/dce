@@ -141,7 +141,7 @@ func nukeAccount(svc *service, isDryRun bool) error {
 	}
 
 	// Print the contents of the config file, for logging/debugging
-	conf, err := ioutil.ReadFile(configFile) // #nosec
+	conf, err := ioutil.ReadFile(configFile)
 	if err != nil {
 		return err
 	}
