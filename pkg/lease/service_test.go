@@ -343,6 +343,7 @@ func TestCreate(t *testing.T) {
 
 	leaseExpiresAfterAWeek := time.Now().AddDate(0, 0, 7).Unix()
 	leaseExpiresAfterAYear := time.Now().AddDate(1, 0, 0).Unix()
+	leaseExpiresYesterday := time.Now().AddDate(0, 0, -1).Unix()
 
 	tests := []struct {
 		name           string
@@ -405,7 +406,33 @@ func TestCreate(t *testing.T) {
 			},
 		},
 		{
-			name: "should fail on lease validation error caused by long expires on date",
+			name: "should fail on lease expires yesterday",
+			req: &lease.Lease{
+				PrincipalID:              ptrString("User1"),
+				AccountID:                ptrString("123456789012"),
+				BudgetAmount:             ptrFloat(200.00),
+				BudgetCurrency:           ptrString("USD"),
+				BudgetNotificationEmails: ptrArrayString([]string{"test1@test.com", "test2@test.com"}),
+				Metadata:                 map[string]interface{}{},
+				ExpiresOn:                &leaseExpiresYesterday,
+			},
+			exp: response{
+				data: nil,
+				err:  errors.NewValidation("lease", fmt.Errorf("expiresOn: Requested lease has a desired expiry date less than today: %d.", leaseExpiresYesterday)),
+			},
+			getResponse: &lease.Leases{
+				lease.Lease{
+					PrincipalID:              ptrString("User1"),
+					AccountID:                ptrString("123456789012"),
+					BudgetAmount:             ptrFloat(200.00),
+					BudgetCurrency:           ptrString("USD"),
+					BudgetNotificationEmails: ptrArrayString([]string{"test1@test.com", "test2@test.com"}),
+					Metadata:                 map[string]interface{}{},
+				},
+			},
+		},
+		{
+			name: "should fail on lease expires after a year",
 			req: &lease.Lease{
 				PrincipalID:              ptrString("User1"),
 				AccountID:                ptrString("123456789012"),
