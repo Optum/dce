@@ -2,7 +2,6 @@ package config
 
 import (
 	"github.com/Optum/dce/pkg/api"
-	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"log"
 	"reflect"
 	"runtime"
@@ -685,9 +684,16 @@ func (bldr *ServiceBuilder) createLeaseService(config ConfigurationServiceBuilde
 		return err
 	}
 
+	var eventSvc eventiface.Servicer
+	err = bldr.Config.GetService(&eventSvc)
+	if err != nil {
+		return err
+	}
+
 	leaseSvc := lease.NewService(
 		lease.NewServiceInput{
-			DataSvc: dataSvc,
+			DataSvc:  dataSvc,
+			EventSvc: eventSvc,
 		},
 	)
 
