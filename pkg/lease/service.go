@@ -183,6 +183,7 @@ func (a *Service) Create(data *Lease) (*Lease, error) {
 		BudgetAmount:             *data.BudgetAmount,
 		BudgetCurrency:           *data.BudgetCurrency,
 		BudgetNotificationEmails: *data.BudgetNotificationEmails,
+		ExpiresOn:                *data.ExpiresOn,
 	})
 	if err != nil {
 		return nil, err

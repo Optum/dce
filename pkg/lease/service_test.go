@@ -460,10 +460,10 @@ func TestCreate(t *testing.T) {
 		{
 			name: "should fail on budget details missing",
 			req: &lease.Lease{
-				PrincipalID:              ptrString("User1"),
-				AccountID:                ptrString("123456789012"),
-				Metadata:                 map[string]interface{}{},
-				ExpiresOn:                &leaseExpiresAfterAWeek,
+				PrincipalID: ptrString("User1"),
+				AccountID:   ptrString("123456789012"),
+				Metadata:    map[string]interface{}{},
+				ExpiresOn:   &leaseExpiresAfterAWeek,
 			},
 			exp: response{
 				data: nil,
@@ -476,7 +476,7 @@ func TestCreate(t *testing.T) {
 			req: &lease.Lease{
 				AccountID:                ptrString("123456789012"),
 				BudgetAmount:             ptrFloat(200.00),
-				BudgetCurrency: ptrString("USD"),
+				BudgetCurrency:           ptrString("USD"),
 				BudgetNotificationEmails: ptrArrayString([]string{"test1@test.com", "test2@test.com"}),
 				Metadata:                 map[string]interface{}{},
 				ExpiresOn:                &leaseExpiresAfterAWeek,
@@ -500,6 +500,24 @@ func TestCreate(t *testing.T) {
 			exp: response{
 				data: nil,
 				err:  errors.NewValidation("lease", fmt.Errorf("accountId: must be a string.")),
+			},
+			getResponse: nil,
+		},
+		{
+			name: "should fail on leaseId must be empty",
+			req: &lease.Lease{
+				ID:                       ptrString(""),
+				PrincipalID:              ptrString("User1"),
+				AccountID:                ptrString("123456789012"),
+				BudgetAmount:             ptrFloat(200.00),
+				BudgetCurrency:           ptrString("USD"),
+				BudgetNotificationEmails: ptrArrayString([]string{"test1@test.com", "test2@test.com"}),
+				Metadata:                 map[string]interface{}{},
+				ExpiresOn:                &leaseExpiresAfterAWeek,
+			},
+			exp: response{
+				data: nil,
+				err:  errors.NewValidation("lease", fmt.Errorf("id: must be empty.")),
 			},
 			getResponse: nil,
 		},
