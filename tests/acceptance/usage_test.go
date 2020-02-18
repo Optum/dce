@@ -30,7 +30,7 @@ func TestUsageDb(t *testing.T) {
 			awsSession,
 			aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
 		),
-		tfOut["usage_table_name"].(string),
+		tfOut["principal_table_name"].(string),
 		"StartDate",
 		"PrincipalId",
 	)

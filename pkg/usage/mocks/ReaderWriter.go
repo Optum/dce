@@ -10,13 +10,13 @@ type ReaderWriter struct {
 	mock.Mock
 }
 
-// Get provides a mock function with given fields: startDate, principalID
-func (_m *ReaderWriter) Get(startDate int64, principalID string) (*usage.Usage, error) {
-	ret := _m.Called(startDate, principalID)
+// Add provides a mock function with given fields: i
+func (_m *ReaderWriter) Add(i *usage.Usage) (*usage.Usage, error) {
+	ret := _m.Called(i)
 
 	var r0 *usage.Usage
-	if rf, ok := ret.Get(0).(func(int64, string) *usage.Usage); ok {
-		r0 = rf(startDate, principalID)
+	if rf, ok := ret.Get(0).(func(*usage.Usage) *usage.Usage); ok {
+		r0 = rf(i)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*usage.Usage)
@@ -24,31 +24,8 @@ func (_m *ReaderWriter) Get(startDate int64, principalID string) (*usage.Usage, 
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(int64, string) error); ok {
-		r1 = rf(startDate, principalID)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// List provides a mock function with given fields: query
-func (_m *ReaderWriter) List(query *usage.Usage) (*usage.Usages, error) {
-	ret := _m.Called(query)
-
-	var r0 *usage.Usages
-	if rf, ok := ret.Get(0).(func(*usage.Usage) *usage.Usages); ok {
-		r0 = rf(query)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*usage.Usages)
-		}
-	}
-
-	var r1 error
 	if rf, ok := ret.Get(1).(func(*usage.Usage) error); ok {
-		r1 = rf(query)
+		r1 = rf(i)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -57,15 +34,24 @@ func (_m *ReaderWriter) List(query *usage.Usage) (*usage.Usages, error) {
 }
 
 // Write provides a mock function with given fields: i
-func (_m *ReaderWriter) Write(i *usage.Usage) error {
+func (_m *ReaderWriter) Write(i *usage.Usage) (*usage.Usage, error) {
 	ret := _m.Called(i)
 
-	var r0 error
-	if rf, ok := ret.Get(0).(func(*usage.Usage) error); ok {
+	var r0 *usage.Usage
+	if rf, ok := ret.Get(0).(func(*usage.Usage) *usage.Usage); ok {
 		r0 = rf(i)
 	} else {
-		r0 = ret.Error(0)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*usage.Usage)
+		}
 	}
 
-	return r0
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*usage.Usage) error); ok {
+		r1 = rf(i)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }

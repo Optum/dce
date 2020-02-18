@@ -3,7 +3,9 @@ package accountmanager
 import (
 	"fmt"
 	"strings"
+	"time"
 
+	"github.com/Optum/dce/internal/types"
 	"github.com/Optum/dce/pkg/account"
 	"github.com/Optum/dce/pkg/arn"
 	"github.com/Optum/dce/pkg/common"
@@ -121,6 +123,26 @@ func (s *Service) DeletePrincipalAccess(account *account.Account) error {
 	}
 
 	return nil
+}
+
+// GetUsageBetweenDates gets the information from cost explorer
+func (s *Service) GetUsageBetweenDates(account *account.Account, startDate time.Time, endDate time.Time) (types.Usages, error) {
+	err := validation.ValidateStruct(account,
+		validation.Field(&account.AdminRoleArn, validation.NotNil),
+		validation.Field(&account.PrincipalRoleArn, validation.NotNil),
+	)
+	if err != nil {
+		return nil, errors.NewValidation("account", err)
+	}
+
+	ceSvc := s.client.CostExplorer(account.AdminRoleArn)
+
+	usageSvc := usageService{
+		ceSvc:  ceSvc,
+		config: s.config,
+	}
+
+	return usageSvc.GetUsage(startDate, endDate)
 }
 
 // NewServiceInput are the items needed to create a new service
