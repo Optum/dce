@@ -104,6 +104,7 @@ func initConfig() {
 	_, err = svcBldr.
 		WithLeaseService().
 		WithAccountService().
+		WithUsageService().
 		Build()
 	if err != nil {
 		panic(err)

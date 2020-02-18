@@ -75,7 +75,7 @@ func isExpiresOnValid(a *Service) validation.RuleFunc {
 	}
 }
 
-func isBudgetAmountValid(a *Service) validation.RuleFunc {
+func isBudgetAmountValid(a *Service, principalId string, principalSpentAmount float64) validation.RuleFunc {
 	return func(value interface{}) error {
 		if !reflect.ValueOf(value).IsNil() {
 			b, _ := value.(*float64)
@@ -85,30 +85,14 @@ func isBudgetAmountValid(a *Service) validation.RuleFunc {
 				return fmt.Errorf("Requested lease has a budget amount of %f, which is greater than max lease budget amount of %f", math.Round(*b), math.Round(a.maxLeaseBudgetAmount))
 			}
 
-			/*
-				// Validate requested lease budget amount is less than PRINCIPAL_BUDGET_AMOUNT for current principal billing period
-				usageStartTime := getBeginningOfCurrentBillingPeriod(a.principalBudgetPeriod)
+			// Validate requested lease budget amount is less than PRINCIPAL_BUDGET_AMOUNT for current principal billing period
+			if principalSpentAmount > a.principalBudgetAmount {
+				return fmt.Errorf(
+					"Unable to create lease: User principal %s has already spent %.2f of their %.2f principal budget",
+					principalId, principalSpentAmount, a.principalBudgetAmount,
+				)
+			}
 
-					usageRecords, err := usageSvc.GetUsageByPrincipal(usageStartTime, *requestBody.PrincipalID)
-					if err != nil {
-						errStr := fmt.Sprintf("Failed to retrieve usage: %s", err)
-						return requestBody, true, "", errors.New(errStr)
-					}
-
-					// Group by PrincipalID to get sum of total spent for current billing period
-					spent := 0.0
-					for _, usageItem := range usageRecords {
-						spent = spent + *usageItem.CostAmount
-					}
-
-					if spent > a.principalBudgetAmount {
-						validationErrStr := fmt.Sprintf(
-							"Unable to create lease: User principal %s has already spent %.2f of their %.2f principal budget",
-							*requestBody.PrincipalID, spent, a.principalBudgetAmount,
-						)
-						return requestBody, false, validationErrStr, nil
-					}
-			*/
 		}
 		return nil
 	}

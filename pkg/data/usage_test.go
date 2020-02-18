@@ -85,7 +85,7 @@ func TestGetUageByStartDateAndPrincipalID(t *testing.T) {
 				TableName: "Usage",
 			}
 
-			usg, err := usgData.GetByStartDateAndPrincipalID(tt.startDate, tt.principalID)
+			usg, err := usgData.Get(tt.startDate, tt.principalID)
 			assert.Equal(t, tt.expUsage, usg)
 			assert.True(t, errors.Is(err, tt.expErr))
 		})

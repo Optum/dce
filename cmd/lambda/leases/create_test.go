@@ -11,6 +11,7 @@ import (
 	"github.com/Optum/dce/pkg/config"
 	"github.com/Optum/dce/pkg/lease"
 	leasemocks "github.com/Optum/dce/pkg/lease/leaseiface/mocks"
+	usagemocks "github.com/Optum/dce/pkg/usage/usageiface/mocks"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -95,16 +96,20 @@ func TestWhenCreate(t *testing.T) {
 
 			leaseSvc := leasemocks.Servicer{}
 			accountSvc := accountmocks.Servicer{}
+			usageSvc := usagemocks.Servicer{}
 			accountSvc.On("List", mock.Anything).Return(
 				tt.retAccounts, tt.retErr,
 			)
 			accountSvc.On("Update", mock.Anything, mock.Anything).Return(
 				tt.retAccount, tt.retErr,
 			)
-			leaseSvc.On("Create", mock.AnythingOfType("*lease.Lease")).Return(
+			leaseSvc.On("Create", mock.AnythingOfType("*lease.Lease"), mock.Anything).Return(
 				tt.retLease, tt.retErr,
 			)
-			svcBldr.Config.WithService(&accountSvc).WithService(&leaseSvc)
+			usageSvc.On("Get", mock.Anything, mock.Anything).Return(
+				nil, nil,
+			)
+			svcBldr.Config.WithService(&accountSvc).WithService(&leaseSvc).WithService(&usageSvc).WithEnv("PrincipalBudgetPeriod", "PRINCIPAL_BUDGET_PERIOD", "Weekly")
 			_, err := svcBldr.Build()
 
 			assert.Nil(t, err)

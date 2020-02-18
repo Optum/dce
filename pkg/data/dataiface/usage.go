@@ -5,6 +5,7 @@ package dataiface
 import (
 	"github.com/Optum/dce/pkg/usage"
 )
+
 // UsageData makes working with the Usage Data Layer easier
 type UsageData interface {
 

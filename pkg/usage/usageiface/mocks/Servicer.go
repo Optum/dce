@@ -11,15 +11,15 @@ type Servicer struct {
 }
 
 // Get provides a mock function with given fields: startDate, principalID
-func (_m *Servicer) Get(startDate int64, principalID string) (*usage.Usage, error) {
+func (_m *Servicer) Get(startDate int64, principalID string) (*usage.Usages, error) {
 	ret := _m.Called(startDate, principalID)
 
-	var r0 *usage.Usage
-	if rf, ok := ret.Get(0).(func(int64, string) *usage.Usage); ok {
+	var r0 *usage.Usages
+	if rf, ok := ret.Get(0).(func(int64, string) *usage.Usages); ok {
 		r0 = rf(startDate, principalID)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*usage.Usage)
+			r0 = ret.Get(0).(*usage.Usages)
 		}
 	}
 

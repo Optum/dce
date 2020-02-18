@@ -347,12 +347,13 @@ func TestCreate(t *testing.T) {
 	timeNow := time.Now().Unix()
 
 	tests := []struct {
-		name           string
-		req            *lease.Lease
-		exp            response
-		getResponse    *lease.Leases
-		writeErr       error
-		leaseCreateErr error
+		name                 string
+		req                  *lease.Lease
+		exp                  response
+		getResponse          *lease.Leases
+		writeErr             error
+		leaseCreateErr       error
+		principalSpentAmount float64
 	}{
 		{
 			name: "should create",
@@ -380,6 +381,7 @@ func TestCreate(t *testing.T) {
 			getResponse:    nil,
 			writeErr:       nil,
 			leaseCreateErr: nil,
+			principalSpentAmount: 0.0,
 		},
 		{
 			name: "should fail on lease validation error caused by budget amount greater than max lease budget amount",
@@ -405,6 +407,33 @@ func TestCreate(t *testing.T) {
 					Metadata:                 map[string]interface{}{},
 				},
 			},
+			principalSpentAmount: 0.0,
+		},
+		{
+			name: "should fail on lease validation error caused by user already over principal budget amount",
+			req: &lease.Lease{
+				PrincipalID:              ptrString("User1"),
+				AccountID:                ptrString("123456789012"),
+				BudgetAmount:             ptrFloat(200.00),
+				BudgetCurrency:           ptrString("USD"),
+				BudgetNotificationEmails: ptrArrayString([]string{"test1@test.com", "test2@test.com"}),
+				Metadata:                 map[string]interface{}{},
+			},
+			exp: response{
+				data: nil,
+				err:  errors.NewValidation("lease", fmt.Errorf("budgetAmount: Unable to create lease: User principal User1 has already spent 2000.00 of their 1000.00 principal budget.")),
+			},
+			getResponse: &lease.Leases{
+				lease.Lease{
+					PrincipalID:              ptrString("User1"),
+					AccountID:                ptrString("123456789012"),
+					BudgetAmount:             ptrFloat(200.00),
+					BudgetCurrency:           ptrString("USD"),
+					BudgetNotificationEmails: ptrArrayString([]string{"test1@test.com", "test2@test.com"}),
+					Metadata:                 map[string]interface{}{},
+				},
+			},
+			principalSpentAmount: 2000.0,
 		},
 		{
 			name: "should fail on lease expires yesterday",
@@ -431,6 +460,7 @@ func TestCreate(t *testing.T) {
 					Metadata:                 map[string]interface{}{},
 				},
 			},
+			principalSpentAmount: 0.0,
 		},
 		{
 			name: "should fail on lease expires after a year",
@@ -457,6 +487,7 @@ func TestCreate(t *testing.T) {
 					Metadata:                 map[string]interface{}{},
 				},
 			},
+			principalSpentAmount: 0.0,
 		},
 		{
 			name: "should fail on budget details missing",
@@ -471,6 +502,7 @@ func TestCreate(t *testing.T) {
 				err:  errors.NewValidation("lease", fmt.Errorf("budgetAmount: is required; budgetCurrency: is required; budgetNotificationEmails: is required.")),
 			},
 			getResponse: nil,
+			principalSpentAmount: 0.0,
 		},
 		{
 			name: "should fail on principalId missing",
@@ -487,6 +519,7 @@ func TestCreate(t *testing.T) {
 				err:  errors.NewValidation("lease", fmt.Errorf("principalId: must be a string.")),
 			},
 			getResponse: nil,
+			principalSpentAmount: 0.0,
 		},
 		{
 			name: "should fail on accountId missing",
@@ -503,6 +536,7 @@ func TestCreate(t *testing.T) {
 				err:  errors.NewValidation("lease", fmt.Errorf("accountId: must be a string.")),
 			},
 			getResponse: nil,
+			principalSpentAmount: 0.0,
 		},
 		{
 			name: "should fail on leaseId must be empty",
@@ -521,6 +555,7 @@ func TestCreate(t *testing.T) {
 				err:  errors.NewValidation("lease", fmt.Errorf("id: must be empty.")),
 			},
 			getResponse: nil,
+			principalSpentAmount: 0.0,
 		},
 		{
 			name: "should fail on status and statusReason must be empty",
@@ -540,6 +575,7 @@ func TestCreate(t *testing.T) {
 				err:  errors.NewValidation("lease", fmt.Errorf("leaseStatus: must be empty; leaseStatusReason: must be empty.")),
 			},
 			getResponse: nil,
+			principalSpentAmount: 0.0,
 		},
 		{
 			name: "should fail on createdOn and lastModifiedOn must be empty",
@@ -559,6 +595,7 @@ func TestCreate(t *testing.T) {
 				err:  errors.NewValidation("lease", fmt.Errorf("createdOn: must be empty; lastModifiedOn: must be empty.")),
 			},
 			getResponse: nil,
+			principalSpentAmount: 0.0,
 		},
 		{
 			name: "should fail on lease already exists",
@@ -585,6 +622,7 @@ func TestCreate(t *testing.T) {
 					Metadata:                 map[string]interface{}{},
 				},
 			},
+			principalSpentAmount: 0.0,
 		},
 	}
 
@@ -606,7 +644,7 @@ func TestCreate(t *testing.T) {
 				},
 			)
 
-			result, err := leaseSvc.Create(tt.req)
+			result, err := leaseSvc.Create(tt.req, tt.principalSpentAmount)
 
 			assert.Truef(t, errors.Is(err, tt.exp.err), "actual error %q doesn't match expected error %q", err, tt.exp.err)
 			assert.Equal(t, tt.exp.data, result)

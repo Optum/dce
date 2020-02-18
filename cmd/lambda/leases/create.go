@@ -3,11 +3,16 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/Optum/dce/pkg/account"
 	"github.com/Optum/dce/pkg/api"
 	"github.com/Optum/dce/pkg/errors"
 	"github.com/Optum/dce/pkg/lease"
+)
+
+const (
+	Weekly = "WEEKLY"
 )
 
 // CreateLease - Function to validate the lease request and create lease
@@ -46,13 +51,49 @@ func CreateLease(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Get user principal's current spend
+	principalBudgetPeriod, err := Services.Config.GetStringVal("PrincipalBudgetPeriod")
+	if err != nil {
+		api.WriteAPIErrorResponse(w, err)
+		return
+	}
+
+	usageStartTime := getBeginningOfCurrentBillingPeriod(principalBudgetPeriod).Unix()
+	usageRecords, err := Services.UsageService().Get(usageStartTime, *newLease.PrincipalID)
+	if err != nil {
+		api.WriteAPIErrorResponse(w, err)
+		return
+	}
+	// Group by PrincipalID to get sum of total spent for current billing period
+	spent := 0.0
+	if usageRecords != nil {
+		for _, usageItem := range *usageRecords {
+			spent = spent + *usageItem.CostAmount
+		}
+	}
+
 	// Create lease
 	newLease.AccountID = leasedAccount.ID
-	lease, err := Services.LeaseService().Create(newLease)
+	lease, err := Services.LeaseService().Create(newLease, spent)
 	if err != nil {
 		api.WriteAPIErrorResponse(w, err)
 		return
 	}
 
 	api.WriteAPIResponse(w, http.StatusCreated, lease)
+}
+
+// getBeginningOfCurrentBillingPeriod returns starts of the billing period based on budget period
+func getBeginningOfCurrentBillingPeriod(input string) time.Time {
+	currentTime := time.Now()
+	if input == Weekly {
+
+		for currentTime.Weekday() != time.Sunday { // iterate back to Sunday
+			currentTime = currentTime.AddDate(0, 0, -1)
+		}
+
+		return time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 0, 0, 0, 0, time.UTC)
+	}
+
+	return time.Date(currentTime.Year(), currentTime.Month(), 1, 0, 0, 0, 0, time.UTC)
 }

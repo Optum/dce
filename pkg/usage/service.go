@@ -3,6 +3,7 @@ package usage
 import (
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/Optum/dce/pkg/errors"
 )
@@ -40,14 +41,22 @@ type Service struct {
 }
 
 // Get returns an usage from startDate and principalID
-func (a *Service) Get(startDate int64, principalID string) (*Usage, error) {
-
-	new, err := a.dataSvc.Get(startDate, principalID)
-	if err != nil {
-		return nil, err
+func (a *Service) Get(startDate int64, principalID string) (*Usages, error) {
+	currentTime := time.Now()
+	tomorrow := time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day()+1, 0, 0, 0, 0, time.UTC).Unix()
+	usages := &Usages{}
+	for {
+		new, err := a.dataSvc.Get(startDate, principalID)
+		if err != nil {
+			return nil, err
+		}
+		*usages = append(*usages, *new)
+		startDate = startDate + 86400
+		if !(startDate < tomorrow) {
+			break
+		}
 	}
-
-	return new, err
+	return usages, nil
 }
 
 // save writes the record to the dataSvc

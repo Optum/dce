@@ -11,13 +11,13 @@ type Servicer struct {
 	mock.Mock
 }
 
-// Create provides a mock function with given fields: data
-func (_m *Servicer) Create(data *lease.Lease) (*lease.Lease, error) {
-	ret := _m.Called(data)
+// Create provides a mock function with given fields: data, principalSpentAmount
+func (_m *Servicer) Create(data *lease.Lease, principalSpentAmount float64) (*lease.Lease, error) {
+	ret := _m.Called(data, principalSpentAmount)
 
 	var r0 *lease.Lease
-	if rf, ok := ret.Get(0).(func(*lease.Lease) *lease.Lease); ok {
-		r0 = rf(data)
+	if rf, ok := ret.Get(0).(func(*lease.Lease, float64) *lease.Lease); ok {
+		r0 = rf(data, principalSpentAmount)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*lease.Lease)
@@ -25,8 +25,8 @@ func (_m *Servicer) Create(data *lease.Lease) (*lease.Lease, error) {
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(*lease.Lease) error); ok {
-		r1 = rf(data)
+	if rf, ok := ret.Get(1).(func(*lease.Lease, float64) error); ok {
+		r1 = rf(data, principalSpentAmount)
 	} else {
 		r1 = ret.Error(1)
 	}
