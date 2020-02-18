@@ -976,12 +976,7 @@ func TestApi(t *testing.T) {
 						// Account is being reset, so it's not marked as "Ready".
 						// Update the DB to be ready, so we can create a lease
 
-						_, err := dbSvc.TransitionAccountStatus(accountID, db.Leased, db.Ready)
-
-						// Ignore error from this, since reset might have happened
-						if err != nil {
-							_, _ = dbSvc.TransitionAccountStatus(accountID, db.NotReady, db.Ready)
-						}
+						_, _ = dbSvc.TransitionAccountStatus(accountID, db.Leased, db.Ready)
 
 						// Request a lease
 						// Because we only have one account in our system,
@@ -1001,6 +996,11 @@ func TestApi(t *testing.T) {
 							},
 							f: func(r *testutil.R, apiResp *apiResponse) {
 								assert.Equal(r, 201, apiResp.StatusCode)
+
+								// Ignore error from this, since reset might not have completed successful or happened
+								if apiResp.StatusCode == 503 {
+									_, _ = dbSvc.TransitionAccountStatus(accountID, db.NotReady, db.Ready)
+								}
 							},
 						})
 						resJSON = parseResponseJSON(t, res)
