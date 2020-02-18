@@ -11,7 +11,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Optum/dce/pkg/usage"
 	util "github.com/Optum/dce/tests/testutils"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/stretchr/testify/assert"
@@ -36,7 +35,6 @@ func TestCreateController_Call(t *testing.T) {
 				Dao                   db.DBer
 				SNS                   common.Notificationer
 				LeaseTopicARN         *string
-				UsageSvc              usage.DBer
 				PrincipalBudgetAmount *float64
 				PrincipalBudgetPeriod *string
 				MaxLeaseBudgetAmount  *float64
@@ -93,7 +91,6 @@ func TestCreateController_Call(t *testing.T) {
 			Dao:                   dbMock,
 			SNS:                   snsMock,
 			LeaseTopicARN:         &leaseTopicARN,
-			UsageSvc:              usageMock,
 			PrincipalBudgetAmount: &principalBudgetAmount,
 			PrincipalBudgetPeriod: &principalBudgetPeriod,
 			MaxLeaseBudgetAmount:  &maxLeaseBudgetAmount,
@@ -153,7 +150,6 @@ func TestCreateController_Call(t *testing.T) {
 					Dao:                   dbMock,
 					SNS:                   snsMock,
 					LeaseTopicARN:         &leaseTopicARN,
-					UsageSvc:              usageMock,
 					PrincipalBudgetAmount: aws.Float64(9999999999),
 					PrincipalBudgetPeriod: &principalBudgetPeriod,
 					MaxLeaseBudgetAmount:  aws.Float64(9999999999),
@@ -169,7 +165,6 @@ func TestCreateController_Call(t *testing.T) {
 				dao = tt.fields.Dao
 				snsSvc = tt.fields.SNS
 				leaseAddedTopicARN = *tt.fields.LeaseTopicARN
-				usageSvc = tt.fields.UsageSvc
 				principalBudgetAmount = *tt.fields.PrincipalBudgetAmount
 				principalBudgetPeriod = *tt.fields.PrincipalBudgetPeriod
 				maxLeaseBudgetAmount = *tt.fields.MaxLeaseBudgetAmount

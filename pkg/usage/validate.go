@@ -1,9 +1,30 @@
 package usage
 
 import (
+	"errors"
+	"reflect"
 	"regexp"
 
 	validation "github.com/go-ozzo/ozzo-validation"
+)
+
+var (
+	validCurrencies = [...]string{
+		"AUD",
+		"CAD",
+		"CHF",
+		"CNY",
+		"DKK",
+		"EUR",
+		"GBP",
+		"HKD",
+		"JPY",
+		"NOK",
+		"NZD",
+		"SEK",
+		"USD",
+		"ZAR",
+	}
 )
 
 // We don't use the internal errors package here because validation will rewrite it anyways
@@ -28,8 +49,16 @@ var validateFloat64 = []validation.Rule{
 
 var validateCostCurrency = []validation.Rule{
 	validation.NotNil.Error("must be a valid cost concurrency"),
+	validation.In(validCurrencies),
 }
 
 var validateTimeToLive = []validation.Rule{
 	validation.NotNil.Error("must be a valid time to live"),
+}
+
+func isNil(value interface{}) error {
+	if !reflect.ValueOf(value).IsNil() {
+		return errors.New("must be empty")
+	}
+	return nil
 }

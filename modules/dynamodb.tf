@@ -124,12 +124,12 @@ resource "aws_dynamodb_table" "leases" {
   */
 }
 
-resource "aws_dynamodb_table" "usage" {
-  name             = "Usage${local.table_suffix}"
+resource "aws_dynamodb_table" "principal" {
+  name             = "Principal${local.table_suffix}"
   read_capacity    = var.usage_table_rcu
   write_capacity   = var.usage_table_wcu
-  hash_key         = "StartDate"
-  range_key        = "PrincipalId"
+  hash_key         = "PrincipalId"
+  range_key        = "SK"
   stream_enabled   = true
   stream_view_type = "NEW_AND_OLD_IMAGES"
 
@@ -145,8 +145,8 @@ resource "aws_dynamodb_table" "usage" {
 
   # AWS usage cost amount for start date as epoch timestamp
   attribute {
-    name = "StartDate"
-    type = "N"
+    name = "SK"
+    type = "S"
   }
 
   # TTL enabled attribute

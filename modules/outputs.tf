@@ -14,12 +14,12 @@ output "leases_table_arn" {
   value = aws_dynamodb_table.leases.arn
 }
 
-output "usage_table_name" {
-  value = aws_dynamodb_table.usage.name
+output "principal_table_name" {
+  value = aws_dynamodb_table.principal.name
 }
 
-output "usage_table_arn" {
-  value = aws_dynamodb_table.usage.arn
+output "principal_table_arn" {
+  value = aws_dynamodb_table.principal.arn
 }
 
 output "sqs_reset_queue_url" {

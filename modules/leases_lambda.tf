@@ -22,7 +22,7 @@ module "leases_lambda" {
     MAX_LEASE_PERIOD                   = var.max_lease_period
     PRINCIPAL_BUDGET_AMOUNT            = var.principal_budget_amount
     PRINCIPAL_BUDGET_PERIOD            = var.principal_budget_period
-    USAGE_CACHE_DB                     = aws_dynamodb_table.usage.id
+    PRINCIPAL_DB                       = aws_dynamodb_table.principal.id
   }
 }
 
