@@ -9,7 +9,6 @@ import (
 
 	"github.com/Optum/dce/pkg/api"
 	"github.com/Optum/dce/pkg/common"
-	"github.com/Optum/dce/pkg/db"
 	"github.com/Optum/dce/pkg/usage"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sns"
@@ -49,17 +48,15 @@ var (
 
 var (
 	// Soon to be deprecated - Legacy support
-	Config             common.DefaultEnvConfig
-	awsSession         *session.Session
-	dao                db.DBer
-	snsSvc             common.Notificationer
-	usageSvc           usage.DBer
+	Config     common.DefaultEnvConfig
+	awsSession *session.Session
+	snsSvc     common.Notificationer
+	usageSvc   usage.DBer
 	//decommissionTopicARN     string
-	baseRequest              url.URL
+	baseRequest url.URL
 	//cognitoUserPoolId        string
 	//cognitoAdminName         string
 )
-
 
 func init() {
 	initConfig()
@@ -162,8 +159,7 @@ func Handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 func main() {
 
 	awsSession = newAWSSession()
-	// Create the Database Service from the environment
-	dao = newDBer()
+
 	snsSvc = &common.SNS{Client: sns.New(awsSession)}
 
 	usageService, err := usage.NewFromEnv()
@@ -175,16 +171,6 @@ func main() {
 	usageSvc = usageService
 
 	lambda.Start(Handler)
-}
-
-func newDBer() db.DBer {
-	dao, err := db.NewFromEnv()
-	if err != nil {
-		errorMessage := fmt.Sprintf("Failed to initialize database: %s", err)
-		log.Fatal(errorMessage)
-	}
-
-	return dao
 }
 
 func newAWSSession() *session.Session {
