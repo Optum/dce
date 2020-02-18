@@ -1236,6 +1236,18 @@ func TestApi(t *testing.T) {
 						json:   nil,
 					})
 
+					// Account status should change "Leased" to "NotReady"
+					apiRequest(t, &apiRequestInput{
+						method: "GET",
+						url: apiURL + "/accounts" + accountID,
+						f: func(r *testutil.R, apiResp *apiResponse) {
+							resJSON := apiResp.json.(map[string]interface{})
+							status, ok := resJSON["accountStatus"]
+							assert.True(t, ok)
+							assert.Equal(r, "NotReady", status, "%v", resJSON)
+						},
+					})
+
 					results := parseResponseArrayJSON(t, resp)
 					assert.Equal(t, 200, resp.StatusCode)
 					assert.Equal(t, 1, len(results), "one lease should be returned")
@@ -1250,7 +1262,7 @@ func TestApi(t *testing.T) {
 							method: "DELETE",
 							url:    apiURL + "/accounts/" + accountID,
 							f: func(r *testutil.R, apiResp *apiResponse) {
-								assert.Equal(r, 204, apiResp.StatusCode)
+								assert.Equal(r, 204, apiResp.StatusCode, "%v", apiResp.json)
 							},
 						})
 
