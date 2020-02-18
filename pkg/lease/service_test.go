@@ -344,6 +344,7 @@ func TestCreate(t *testing.T) {
 	leaseExpiresAfterAWeek := time.Now().AddDate(0, 0, 7).Unix()
 	leaseExpiresAfterAYear := time.Now().AddDate(1, 0, 0).Unix()
 	leaseExpiresYesterday := time.Now().AddDate(0, 0, -1).Unix()
+	timeNow := time.Now().Unix()
 
 	tests := []struct {
 		name           string
@@ -518,6 +519,44 @@ func TestCreate(t *testing.T) {
 			exp: response{
 				data: nil,
 				err:  errors.NewValidation("lease", fmt.Errorf("id: must be empty.")),
+			},
+			getResponse: nil,
+		},
+		{
+			name: "should fail on status and statusReason must be empty",
+			req: &lease.Lease{
+				PrincipalID:              ptrString("User1"),
+				AccountID:                ptrString("123456789012"),
+				Status:                   lease.StatusActive.StatusPtr(),
+				StatusReason:             lease.StatusReasonExpired.StatusReasonPtr(),
+				BudgetAmount:             ptrFloat(200.00),
+				BudgetCurrency:           ptrString("USD"),
+				BudgetNotificationEmails: ptrArrayString([]string{"test1@test.com", "test2@test.com"}),
+				Metadata:                 map[string]interface{}{},
+				ExpiresOn:                &leaseExpiresAfterAWeek,
+			},
+			exp: response{
+				data: nil,
+				err:  errors.NewValidation("lease", fmt.Errorf("leaseStatus: must be empty; leaseStatusReason: must be empty.")),
+			},
+			getResponse: nil,
+		},
+		{
+			name: "should fail on createdOn and lastModifiedOn must be empty",
+			req: &lease.Lease{
+				PrincipalID:              ptrString("User1"),
+				AccountID:                ptrString("123456789012"),
+				CreatedOn:                &timeNow,
+				LastModifiedOn:           &timeNow,
+				BudgetAmount:             ptrFloat(200.00),
+				BudgetCurrency:           ptrString("USD"),
+				BudgetNotificationEmails: ptrArrayString([]string{"test1@test.com", "test2@test.com"}),
+				Metadata:                 map[string]interface{}{},
+				ExpiresOn:                &leaseExpiresAfterAWeek,
+			},
+			exp: response{
+				data: nil,
+				err:  errors.NewValidation("lease", fmt.Errorf("createdOn: must be empty; lastModifiedOn: must be empty.")),
 			},
 			getResponse: nil,
 		},
