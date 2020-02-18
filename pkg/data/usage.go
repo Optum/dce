@@ -2,7 +2,6 @@ package data
 
 import (
 	"fmt"
-	"strconv"
 
 	"github.com/Optum/dce/pkg/errors"
 	"github.com/Optum/dce/pkg/usage"
@@ -16,80 +15,94 @@ import (
 // Usage - Data Layer Struct
 type Usage struct {
 	DynamoDB       dynamodbiface.DynamoDBAPI
-	TableName      string `env:"USAGE_DB"`
+	TableName      string `env:"PRINCIPAL_DB"`
 	ConsistentRead bool   `env:"USE_CONSISTENT_READS" envDefault:"false"`
 	Limit          int64  `env:"LIMIT" envDefault:"25"`
 }
 
-// Write the Lease record in DynamoDB
+// Write the Usage record in DynamoDB
 // This is an upsert operation in which the record will either
 // be inserted or updated
-// prevLastModifiedOn parameter is the original lastModifiedOn
-func (a *Usage) Write(usg *usage.Usage) error {
+// Returns the old record
+func (a *Usage) Write(usg *usage.Usage) (*usage.Usage, error) {
 
-	var expr expression.Expression
 	var err error
-	returnValue := "NONE"
+	returnValue := "ALL_OLD"
 
 	putMap, _ := dynamodbattribute.Marshal(usg)
 	input := &dynamodb.PutItemInput{
+		TableName:    aws.String(a.TableName),
+		Item:         putMap.M,
+		ReturnValues: aws.String(returnValue),
+	}
+
+	old, err := a.DynamoDB.PutItem(input)
+	if err != nil {
+		return nil, errors.NewInternalServer(
+			fmt.Sprintf("update failed for usage with PrincipalID %q and SK %s", *usg.PrincipalID, *usg.SK),
+			err,
+		)
+	}
+
+	oldUsg := &usage.Usage{}
+	err = dynamodbattribute.UnmarshalMap(old.Attributes, oldUsg)
+	if err != nil {
+		fmt.Printf("Error: %+v", err)
+		return nil, err
+	}
+
+	fmt.Printf("Old Usage: %+v\n", oldUsg)
+
+	return oldUsg, nil
+
+}
+
+// Add to CostAmount
+// Returns new values
+func (a *Usage) Add(usg *usage.Usage) (*usage.Usage, error) {
+
+	var err error
+	returnValue := "ALL_NEW"
+	var expr expression.Expression
+	var updateBldr expression.UpdateBuilder
+
+	updateBldr = updateBldr.Add(expression.Name("CostAmount"), expression.Value(usg.CostAmount))
+	updateBldr = updateBldr.Set(expression.Name("CostCurrency"), expression.Value(usg.CostCurrency))
+	updateBldr = updateBldr.Set(expression.Name("Date"), expression.Value(usg.Date.Unix()))
+	updateBldr = updateBldr.Set(expression.Name("TimeToLive"), expression.Value(usg.TimeToLive))
+	expr, err = expression.NewBuilder().WithUpdate(updateBldr).Build()
+
+	input := &dynamodb.UpdateItemInput{
+		Key: map[string]*dynamodb.AttributeValue{
+			"PrincipalId": {
+				S: usg.PrincipalID,
+			},
+			"SK": {
+				S: usg.SK,
+			},
+		},
 		TableName:                 aws.String(a.TableName),
-		Item:                      putMap.M,
-		ConditionExpression:       expr.Condition(),
+		UpdateExpression:          expr.Update(),
 		ExpressionAttributeNames:  expr.Names(),
 		ExpressionAttributeValues: expr.Values(),
 		ReturnValues:              aws.String(returnValue),
 	}
-	err = putItem(input, a.DynamoDB)
 
-	if err != nil {
-		return errors.NewInternalServer(
-			fmt.Sprintf("update failed for usage with Start Date \"%d\" and PrincipalID %q", *usg.StartDate, *usg.PrincipalID),
-			err,
-		)
-	}
-
-	return nil
-
-}
-
-// GetByStartDateAndPrincipalID gets the Usage record by StartDate and PrincipalID
-func (a *Usage) GetByStartDateAndPrincipalID(startDate int64, principalID string) (*usage.Usage, error) {
-
-	input := &dynamodb.GetItemInput{
-		// Query in Lease Table
-		TableName: aws.String(a.TableName),
-		Key: map[string]*dynamodb.AttributeValue{
-			"StartDate": {
-				N: aws.String(strconv.FormatInt(startDate, 10)),
-			},
-			"PrincipalId": {
-				S: aws.String(principalID),
-			},
-		},
-		ConsistentRead: aws.Bool(a.ConsistentRead),
-	}
-
-	res, err := getItem(input, a.DynamoDB)
-
+	old, err := a.DynamoDB.UpdateItem(input)
 	if err != nil {
 		return nil, errors.NewInternalServer(
-			fmt.Sprintf("get usage failed for start date \"%d\" and principal %q", startDate, principalID),
+			fmt.Sprintf("update failed for usage with PrincipalID %q and SK %s", *usg.PrincipalID, *usg.SK),
 			err,
 		)
 	}
 
-	if len(res.Item) == 0 {
-		return nil, errors.NewNotFound("usage", fmt.Sprintf("%d-%s", startDate, principalID))
-	}
-
-	usg := &usage.Usage{}
-	err = dynamodbattribute.UnmarshalMap(res.Item, usg)
+	newUsg := &usage.Usage{}
+	err = dynamodbattribute.UnmarshalMap(old.Attributes, newUsg)
 	if err != nil {
-		return nil, errors.NewInternalServer(
-			fmt.Sprintf("failure unmarshaling usage with start date \"%d\" and princiapl %q", startDate, principalID),
-			err,
-		)
+		fmt.Printf("Error: %+v", err)
+		return nil, err
 	}
-	return usg, nil
+
+	return newUsg, nil
+
 }

@@ -3,6 +3,9 @@
 package accountmanageriface
 
 import (
+	"time"
+
+	"github.com/Optum/dce/internal/types"
 	"github.com/Optum/dce/pkg/account"
 	"github.com/Optum/dce/pkg/arn"
 )
@@ -15,4 +18,6 @@ type Servicer interface {
 	UpsertPrincipalAccess(account *account.Account) error
 	// DeletePrincipalAccess removes all the principal roles and policies
 	DeletePrincipalAccess(account *account.Account) error
+	// GetUsageBetweenDates gets the information from cost explorer
+	GetUsageBetweenDates(account *account.Account, startDate time.Time, endDate time.Time) (types.Usages, error)
 }

@@ -44,8 +44,8 @@ func (a *Usage) query(query *usage.Usage, keyName string, index *string) (*query
 	if query.NextStartDate != nil && query.NextPrincipalID != nil {
 		// Should be more dynamic
 		queryInput.SetExclusiveStartKey(map[string]*dynamodb.AttributeValue{
-			"StartDate": &dynamodb.AttributeValue{
-				N: aws.String(strconv.FormatInt(*query.StartDate, 10)),
+			"Date": &dynamodb.AttributeValue{
+				N: aws.String(strconv.FormatInt(query.Date.Unix(), 10)),
 			},
 			"PrincipalId": &dynamodb.AttributeValue{
 				S: query.NextPrincipalID,
@@ -93,8 +93,8 @@ func (a *Usage) scan(query *usage.Usage) (*queryScanOutput, error) {
 	if query.NextStartDate != nil && query.NextPrincipalID != nil {
 		// Should be more dynamic
 		scanInput.SetExclusiveStartKey(map[string]*dynamodb.AttributeValue{
-			"StartDate": &dynamodb.AttributeValue{
-				N: aws.String(strconv.FormatInt(*query.StartDate, 10)),
+			"Date": &dynamodb.AttributeValue{
+				N: aws.String(strconv.FormatInt(query.Date.Unix(), 10)),
 			},
 			"PrincipalId": &dynamodb.AttributeValue{
 				S: query.NextPrincipalID,
@@ -124,8 +124,8 @@ func (a *Usage) List(query *usage.Usage) (*usage.Usages, error) {
 		query.Limit = &a.Limit
 	}
 
-	if query.StartDate != nil {
-		outputs, err = a.query(query, "StartDate", nil)
+	if query.Date != nil {
+		outputs, err = a.query(query, "Date", nil)
 	} else {
 		outputs, err = a.scan(query)
 	}
@@ -136,7 +136,7 @@ func (a *Usage) List(query *usage.Usage) (*usage.Usages, error) {
 	query.NextStartDate = nil
 	query.NextPrincipalID = nil
 	for k, v := range outputs.lastEvaluatedKey {
-		if strings.Contains(k, "StartDate") {
+		if strings.Contains(k, "Date") {
 			if n, err := strconv.ParseInt(*v.N, 10, 64); err == nil {
 				query.NextStartDate = &n
 			} else {

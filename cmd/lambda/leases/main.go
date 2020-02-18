@@ -10,7 +10,6 @@ import (
 	"github.com/Optum/dce/pkg/api"
 	"github.com/Optum/dce/pkg/common"
 	"github.com/Optum/dce/pkg/db"
-	"github.com/Optum/dce/pkg/usage"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sns"
 
@@ -53,7 +52,6 @@ var (
 	awsSession         *session.Session
 	dao                db.DBer
 	snsSvc             common.Notificationer
-	usageSvc           usage.DBer
 	leaseAddedTopicARN string
 	//decommissionTopicARN     string
 	principalBudgetAmount    float64
@@ -179,14 +177,6 @@ func main() {
 	// Create the Database Service from the environment
 	dao = newDBer()
 	snsSvc = &common.SNS{Client: sns.New(awsSession)}
-
-	usageService, err := usage.NewFromEnv()
-	if err != nil {
-		errorMessage := fmt.Sprintf("Failed to initialize usage service: %s", err)
-		log.Fatal(errorMessage)
-	}
-
-	usageSvc = usageService
 
 	lambda.Start(Handler)
 }

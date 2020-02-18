@@ -4,6 +4,7 @@ package mocks
 
 import arn "github.com/Optum/dce/pkg/arn"
 import aws "github.com/aws/aws-sdk-go/aws"
+import costexploreriface "github.com/aws/aws-sdk-go/service/costexplorer/costexploreriface"
 import iamiface "github.com/aws/aws-sdk-go/service/iam/iamiface"
 import mock "github.com/stretchr/testify/mock"
 
@@ -22,6 +23,22 @@ func (_m *Clienter) Config(roleArn *arn.ARN) *aws.Config {
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*aws.Config)
+		}
+	}
+
+	return r0
+}
+
+// CostExplorer provides a mock function with given fields: roleArn
+func (_m *Clienter) CostExplorer(roleArn *arn.ARN) costexploreriface.CostExplorerAPI {
+	ret := _m.Called(roleArn)
+
+	var r0 costexploreriface.CostExplorerAPI
+	if rf, ok := ret.Get(0).(func(*arn.ARN) costexploreriface.CostExplorerAPI); ok {
+		r0 = rf(roleArn)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(costexploreriface.CostExplorerAPI)
 		}
 	}
 

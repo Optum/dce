@@ -3,6 +3,7 @@ package usage_test
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/Optum/dce/pkg/errors"
 	"github.com/Optum/dce/pkg/usage"
@@ -18,19 +19,17 @@ func TestValidate(t *testing.T) {
 		{
 			name: "should validate",
 			usage: usage.NewUsageInput{
-				StartDate:   1580924093,
-				AccountID:   "123456789012",
+				Date:        time.Now(),
 				PrincipalID: "user1",
 			},
 		},
 		{
-			name: "should not validate no status",
+			name: "should not validate cost currency",
 			usage: usage.NewUsageInput{
-				StartDate:   1580924093,
-				AccountID:   "ABCADF",
-				PrincipalID: "user1",
+				Date:         time.Now(),
+				CostCurrency: "BAD",
 			},
-			expErr: errors.NewValidation("usage", fmt.Errorf("accountId: must be a string with 12 digits.")), //nolint golint
+			expErr: errors.NewValidation("usage", fmt.Errorf("costCurrency: must be a valid value.")), //nolint golint
 		},
 	}
 
