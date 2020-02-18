@@ -8,13 +8,9 @@ import (
 	"log"
 
 	"github.com/Optum/dce/pkg/api"
-	"github.com/Optum/dce/pkg/common"
-	"github.com/Optum/dce/pkg/usage"
+	"github.com/Optum/dce/pkg/config"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/aws/aws-sdk-go/aws/session"
-
-	"github.com/Optum/dce/pkg/config"
 	"github.com/awslabs/aws-lambda-go-api-proxy/gorillamux"
 )
 
@@ -31,10 +27,6 @@ type leaseControllerConfiguration struct {
 	DefaultLeaseLengthInDays int     `env:"DEFAULT_LEASE_LENGTH_IN_DAYS" defaultEnv:"7"`
 }
 
-const (
-	Weekly = "WEEKLY"
-)
-
 var (
 	muxLambda *gorillamux.GorillaMuxAdapter
 	//CurrentAccountID is the ID where the request is being created
@@ -45,14 +37,7 @@ var (
 )
 
 var (
-	// Soon to be deprecated - Legacy support
-	Config     common.DefaultEnvConfig
-	awsSession *session.Session
-	usageSvc   usage.DBer
-	//decommissionTopicARN     string
 	baseRequest url.URL
-	//cognitoUserPoolId        string
-	//cognitoAdminName         string
 )
 
 func init() {
@@ -145,25 +130,5 @@ func Handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 }
 
 func main() {
-
-	awsSession = newAWSSession()
-
-	usageService, err := usage.NewFromEnv()
-	if err != nil {
-		errorMessage := fmt.Sprintf("Failed to initialize usage service: %s", err)
-		log.Fatal(errorMessage)
-	}
-
-	usageSvc = usageService
-
 	lambda.Start(Handler)
-}
-
-func newAWSSession() *session.Session {
-	awsSession, err := session.NewSession()
-	if err != nil {
-		errorMessage := fmt.Sprintf("Failed to create AWS session: %s", err)
-		log.Fatal(errorMessage)
-	}
-	return awsSession
 }
