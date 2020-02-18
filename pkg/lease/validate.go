@@ -97,18 +97,3 @@ func isBudgetAmountValid(a *Service, principalId string, principalSpentAmount fl
 		return nil
 	}
 }
-
-// getBeginningOfCurrentBillingPeriod returns starts of the billing period based on budget period
-func getBeginningOfCurrentBillingPeriod(input string) time.Time {
-	currentTime := time.Now()
-	if input == Weekly {
-
-		for currentTime.Weekday() != time.Sunday { // iterate back to Sunday
-			currentTime = currentTime.AddDate(0, 0, -1)
-		}
-
-		return time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 0, 0, 0, 0, time.UTC)
-	}
-
-	return time.Date(currentTime.Year(), currentTime.Month(), 1, 0, 0, 0, 0, time.UTC)
-}
