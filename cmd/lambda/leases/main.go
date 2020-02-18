@@ -10,11 +10,9 @@ import (
 	"github.com/Optum/dce/pkg/api"
 	"github.com/Optum/dce/pkg/common"
 	"github.com/Optum/dce/pkg/usage"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/sns"
-
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-sdk-go/aws/session"
 
 	"github.com/Optum/dce/pkg/config"
 	"github.com/awslabs/aws-lambda-go-api-proxy/gorillamux"
@@ -50,7 +48,6 @@ var (
 	// Soon to be deprecated - Legacy support
 	Config     common.DefaultEnvConfig
 	awsSession *session.Session
-	snsSvc     common.Notificationer
 	usageSvc   usage.DBer
 	//decommissionTopicARN     string
 	baseRequest url.URL
@@ -129,15 +126,6 @@ func initConfig() {
 
 	Services = svcBldr
 
-	leaseAddedTopicARN = Config.GetEnvVar("LEASE_ADDED_TOPIC", "DCEDefaultProvisionTopic")
-	//decommissionTopicARN = Config.GetEnvVar("DECOMMISSION_TOPIC", "DefaultDecommissionTopicArn")
-	//cognitoUserPoolId = Config.GetEnvVar("COGNITO_USER_POOL_ID", "DefaultCognitoUserPoolId")
-	//cognitoAdminName = Config.GetEnvVar("COGNITO_ROLES_ATTRIBUTE_ADMIN_NAME", "DefaultCognitoAdminName")
-	principalBudgetAmount = Config.GetEnvFloatVar("PRINCIPAL_BUDGET_AMOUNT", 1000.00)
-	principalBudgetPeriod = Config.GetEnvVar("PRINCIPAL_BUDGET_PERIOD", Weekly)
-	maxLeaseBudgetAmount = Config.GetEnvFloatVar("MAX_LEASE_BUDGET_AMOUNT", 1000.00)
-	maxLeasePeriod = int64(Config.GetEnvIntVar("MAX_LEASE_PERIOD", 704800))
-	defaultLeaseLengthInDays = Config.GetEnvIntVar("DEFAULT_LEASE_LENGTH_IN_DAYS", 7)
 }
 
 // Handler - Handle the lambda function
@@ -159,8 +147,6 @@ func Handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 func main() {
 
 	awsSession = newAWSSession()
-
-	snsSvc = &common.SNS{Client: sns.New(awsSession)}
 
 	usageService, err := usage.NewFromEnv()
 	if err != nil {
