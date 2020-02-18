@@ -375,7 +375,7 @@ func TestApi(t *testing.T) {
 				PrincipalID: principalID,
 			}
 
-			// Send an API request
+			// Create the lease
 			resp := apiRequest(t, &apiRequestInput{
 				method: "POST",
 				url:    apiURL + "/leases",
@@ -397,17 +397,24 @@ func TestApi(t *testing.T) {
 			require.NotNil(t, data["lastModifiedOn"])
 			require.NotNil(t, data["leaseStatusModifiedOn"])
 
-			// Create the Decommission Request Body
-			body = leaseRequest{
-				PrincipalID: principalID,
-				AccountID:   acctID,
-			}
+			// Account should be marked as status=Leased
+			resp = apiRequest(t, &apiRequestInput{
+				method: "GET",
+				url:    apiURL + "/accounts/" + acctID,
+				f: func(r *testutil.R, apiResp *apiResponse) {
+					status := responseJSONString(r, apiResp, "accountStatus")
+					assert.Equal(r, "Leased", status)
+				},
+			})
 
-			// Send an API request
+			// Delete the lease
 			resp = apiRequest(t, &apiRequestInput{
 				method: "DELETE",
 				url:    apiURL + "/leases",
-				json:   body,
+				json: leaseRequest{
+					PrincipalID: principalID,
+					AccountID:   acctID,
+				},
 				f: func(r *testutil.R, apiResp *apiResponse) {
 					// Verify response code
 					assert.Equal(r, http.StatusOK, apiResp.StatusCode)
@@ -426,6 +433,15 @@ func TestApi(t *testing.T) {
 			assert.NotNil(t, data["lastModifiedOn"])
 			assert.NotNil(t, data["leaseStatusModifiedOn"])
 
+			// Account should be marked as status=NotReady
+			resp = apiRequest(t, &apiRequestInput{
+				method: "GET",
+				url:    apiURL + "/accounts/" + acctID,
+				f: func(r *testutil.R, apiResp *apiResponse) {
+					status := responseJSONString(r, apiResp, "accountStatus")
+					assert.Equal(r, "NotReady", status)
+				},
+			})
 		})
 
 		t.Run("Cognito user should not be able to create, get, list, or delete a lease for another user", func(t *testing.T) {
@@ -1071,6 +1087,7 @@ func TestApi(t *testing.T) {
 					s[i] = v
 				}
 
+				require.Contains(t, resJSON, "id")
 				require.Equal(t, "test-user", resJSON["principalId"])
 				require.Equal(t, accountID, resJSON["accountId"])
 				require.Equal(t, "Active", resJSON["leaseStatus"])
@@ -1083,12 +1100,26 @@ func TestApi(t *testing.T) {
 				require.Nil(t, err)
 				require.NotNil(t, resJSON["leaseStatusModifiedOn"])
 
-				// Check the lease is in the DB
-				// (since we dont' yet have a GET /leases endpoint
-				lease, err := dbSvc.GetLease(accountID, "test-user")
-				require.Nil(t, err)
-				require.Equal(t, "test-user", lease.PrincipalID)
-				require.Equal(t, accountID, lease.AccountID)
+				// Check the lease is created
+				res = apiRequest(t, &apiRequestInput{
+					method: "GET",
+					url:    apiURL + "/leases/" + resJSON["id"].(string),
+					f: func(r *testutil.R, apiResp *apiResponse) {
+						assert.Equal(r, 200, apiResp.StatusCode)
+					},
+				})
+				leaseJSON := parseResponseJSON(t, res)
+				require.Equal(t, accountID, leaseJSON["accountId"])
+
+				// Account should be marked as status=Leased
+				apiRequest(t, &apiRequestInput{
+					method: "GET",
+					url:    apiURL + "/accounts/" + accountID,
+					f: func(r *testutil.R, apiResp *apiResponse) {
+						status := responseJSONString(r, apiResp, "accountStatus")
+						assert.Equal(r, "Leased", status)
+					},
+				})
 
 				t.Run("STEP: Delete Account (with Lease)", func(t *testing.T) {
 					// Request a lease
@@ -1136,6 +1167,16 @@ func TestApi(t *testing.T) {
 					assert.Equal(t, 1, len(results), "one lease should be returned")
 					assert.Equal(t, "Inactive", results[0]["leaseStatus"])
 
+					// Account status should change from Leased --> NotReady
+					apiRequest(t, &apiRequestInput{
+						method: "GET",
+						url:    apiURL + "/accounts/" + accountID,
+						f: func(r *testutil.R, apiResp *apiResponse) {
+							status := responseJSONString(r, apiResp, "accountStatus")
+							assert.Equal(r, "NotReady", status)
+						},
+					})
+
 					t.Run("STEP: Recreate lease against same account", func(t *testing.T) {
 						// Account is being reset, so it's not marked as "Ready".
 						// Update the DB to be ready, so we can create a lease
@@ -1174,9 +1215,9 @@ func TestApi(t *testing.T) {
 						require.Equal(t, "EUR", resJSON["budgetCurrency"])
 						require.Equal(t, float64(expiresOn), resJSON["expiresOn"])
 						// Check that our timestamps are updated
-						require.True(t, resJSON["createdOn"].(float64) > float64(lease.CreatedOn))
-						require.True(t, resJSON["lastModifiedOn"].(float64) > float64(lease.LastModifiedOn))
-						require.True(t, resJSON["leaseStatusModifiedOn"].(float64) > float64(lease.LeaseStatusModifiedOn))
+						require.True(t, resJSON["createdOn"].(float64) > leaseJSON["createdOn"].(float64))
+						require.True(t, resJSON["lastModifiedOn"].(float64) > leaseJSON["lastModifiedOn"].(float64))
+						require.True(t, resJSON["leaseStatusModifiedOn"].(float64) > leaseJSON["leaseStatusModifiedOn"].(float64))
 
 						// Lookup the lease in the DB, to make sure it was updated
 						newLease, err := dbSvc.GetLeaseByID(resJSON["id"].(string))
@@ -1185,9 +1226,9 @@ func TestApi(t *testing.T) {
 						require.Equal(t, "EUR", newLease.BudgetCurrency)
 						require.Equal(t, expiresOn, newLease.ExpiresOn)
 						// Check that our timestamps are updated
-						require.True(t, newLease.CreatedOn > lease.CreatedOn)
-						require.True(t, newLease.LastModifiedOn > lease.LastModifiedOn)
-						require.True(t, newLease.LeaseStatusModifiedOn > lease.LeaseStatusModifiedOn)
+						require.True(t, float64(newLease.CreatedOn) > leaseJSON["createdOn"].(float64))
+						require.True(t, float64(newLease.LastModifiedOn) > leaseJSON["lastModifiedOn"].(float64))
+						require.True(t, float64(newLease.LeaseStatusModifiedOn) > leaseJSON["leaseStatusModifiedOn"].(float64))
 
 						// Delete the lease (cleanup)
 						apiRequest(t, &apiRequestInput{
@@ -1199,6 +1240,16 @@ func TestApi(t *testing.T) {
 							},
 							f: func(r *testutil.R, apiResp *apiResponse) {
 								assert.Equal(r, 200, apiResp.StatusCode)
+							},
+						})
+
+						// Account status should change from Leased --> NotReady
+						apiRequest(t, &apiRequestInput{
+							method: "GET",
+							url:    apiURL + "/accounts/" + accountID,
+							f: func(r *testutil.R, apiResp *apiResponse) {
+								status := responseJSONString(r, apiResp, "accountStatus")
+								assert.Equal(r, "NotReady", status)
 							},
 						})
 					})
@@ -2337,12 +2388,21 @@ func apiRequest(t *testing.T, input *apiRequestInput) *apiResponse {
 	return apiResp
 }
 
-func parseResponseJSON(t *testing.T, resp *apiResponse) map[string]interface{} {
+func parseResponseJSON(t require.TestingT, resp *apiResponse) map[string]interface{} {
 	require.NotNil(t, resp.json)
 	return resp.json.(map[string]interface{})
 }
 
-func parseResponseArrayJSON(t *testing.T, resp *apiResponse) []map[string]interface{} {
+func responseJSONString(t require.TestingT, resp *apiResponse, key string) string {
+	resJSON := parseResponseJSON(t, resp)
+	val, ok := resJSON[key]
+	assert.True(t, ok, "response has key %s", key)
+	valStr, ok := val.(string)
+	assert.True(t, ok, "response key %s is string: %v", key, val)
+	return valStr
+}
+
+func parseResponseArrayJSON(t require.TestingT, resp *apiResponse) []map[string]interface{} {
 	require.NotNil(t, resp.json)
 
 	// Go doesn't allow you to cast directly to []map[string]interface{}
