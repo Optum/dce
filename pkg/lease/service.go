@@ -1,7 +1,6 @@
 package lease
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/Optum/dce/pkg/errors"
@@ -134,6 +133,18 @@ func (a *Service) List(query *Lease) (*Leases, error) {
 
 // Create creates a new lease using the data provided. Returns the lease record
 func (a *Service) Create(data *Lease) (*Lease, error) {
+
+	// Set default expiresOn
+	if data.ExpiresOn == nil {
+		leaseExpires := time.Now().AddDate(0, 0, a.defaultLeaseLengthInDays).Unix()
+		data.ExpiresOn = &leaseExpires
+	}
+
+	// Set default metadata (empty object)
+	if data.Metadata == nil {
+		data.Metadata = map[string]interface{}{}
+	}
+
 	// Validate the incoming record doesn't have unneeded fields
 	err := validation.ValidateStruct(data,
 		validation.Field(&data.AccountID, validateAccountID...),
@@ -143,21 +154,13 @@ func (a *Service) Create(data *Lease) (*Lease, error) {
 		validation.Field(&data.LastModifiedOn, validation.By(isNil)),
 		validation.Field(&data.CreatedOn, validation.By(isNil)),
 		validation.Field(&data.StatusReason, validation.By(isNil)),
-		validation.Field(&data.ExpiresOn, validation.By(isNil)),
+		validation.Field(&data.ExpiresOn, validation.NotNil, validation.By(isExpiresOnValid(a))),
+		validation.Field(&data.BudgetAmount, validation.NotNil, validation.By(isBudgetAmountValid(a))),
+		validation.Field(&data.BudgetCurrency, validation.NotNil),
+		validation.Field(&data.BudgetNotificationEmails, validation.NotNil),
 	)
 	if err != nil {
 		return nil, errors.NewValidation("lease", err)
-	}
-
-	// Validate lease
-	data, isValid, validationErrorMessage, err := validateLease(a, data)
-
-	if err != nil {
-		return nil, errors.NewInternalServer("lease", err)
-	}
-
-	if !isValid {
-		return nil, errors.NewValidation("lease", fmt.Errorf(validationErrorMessage))
 	}
 
 	// Check if principal already has an active lease

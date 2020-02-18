@@ -341,7 +341,8 @@ func TestCreate(t *testing.T) {
 		err  error
 	}
 
-	leaseExpires := time.Now().AddDate(0, 0, 7).Unix()
+	leaseExpiresAfterAWeek := time.Now().AddDate(0, 0, 7).Unix()
+	leaseExpiresAfterAYear := time.Now().AddDate(1, 0, 0).Unix()
 
 	tests := []struct {
 		name           string
@@ -369,7 +370,7 @@ func TestCreate(t *testing.T) {
 					BudgetAmount:             ptrFloat(200.00),
 					BudgetCurrency:           ptrString("USD"),
 					BudgetNotificationEmails: ptrArrayString([]string{"test1@test.com", "test2@test.com"}),
-					ExpiresOn:                &leaseExpires,
+					ExpiresOn:                &leaseExpiresAfterAWeek,
 					Metadata:                 map[string]interface{}{},
 				},
 				err: nil,
@@ -390,7 +391,7 @@ func TestCreate(t *testing.T) {
 			},
 			exp: response{
 				data: nil,
-				err:  errors.NewValidation("lease", fmt.Errorf("Requested lease has a budget amount of 2000.000000, which is greater than max lease budget amount of 1000.000000")),
+				err:  errors.NewValidation("lease", fmt.Errorf("budgetAmount: Requested lease has a budget amount of 2000.000000, which is greater than max lease budget amount of 1000.000000.")),
 			},
 			getResponse: &lease.Leases{
 				lease.Lease{
@@ -404,19 +405,19 @@ func TestCreate(t *testing.T) {
 			},
 		},
 		{
-			name: "should fail on lease validation error caused by expires on not being nil",
+			name: "should fail on lease validation error caused by long expires on date",
 			req: &lease.Lease{
 				PrincipalID:              ptrString("User1"),
 				AccountID:                ptrString("123456789012"),
-				BudgetAmount:             ptrFloat(2000.00),
+				BudgetAmount:             ptrFloat(200.00),
 				BudgetCurrency:           ptrString("USD"),
 				BudgetNotificationEmails: ptrArrayString([]string{"test1@test.com", "test2@test.com"}),
 				Metadata:                 map[string]interface{}{},
-				ExpiresOn:                &leaseExpires,
+				ExpiresOn:                &leaseExpiresAfterAYear,
 			},
 			exp: response{
 				data: nil,
-				err:  errors.NewValidation("lease", fmt.Errorf("expiresOn: must be empty.")),
+				err:  errors.NewValidation("lease", fmt.Errorf("expiresOn: Requested lease has a budget expires on of %d, which is greater than max lease period of 704800.", leaseExpiresAfterAYear)),
 			},
 			getResponse: &lease.Leases{
 				lease.Lease{

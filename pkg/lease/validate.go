@@ -52,70 +52,66 @@ func isLeaseActive(value interface{}) error {
 	return nil
 }
 
-// validateLease validates lease budget amount and period
-func validateLease(a *Service, requestBody *Lease) (*Lease, bool, string, error) {
+func isExpiresOnValid(a *Service) validation.RuleFunc {
 
-	if *requestBody.PrincipalID == "" {
-		validationErrStr := "invalid request parameters"
-		return requestBody, false, validationErrStr, nil
-	}
+	return func(value interface{}) error {
+		if !reflect.ValueOf(value).IsNil() {
 
-	// Set default expiresOn
-	if requestBody.ExpiresOn == nil {
-		leaseExpires := time.Now().AddDate(0, 0, a.defaultLeaseLengthInDays).Unix()
-		requestBody.ExpiresOn = &leaseExpires
-	}
+			e, _ := value.(*int64)
 
-	// Set default metadata (empty object)
-	if requestBody.Metadata == nil {
-		requestBody.Metadata = map[string]interface{}{}
-	}
-
-	// Validate requested lease end date is greater than today
-	if *requestBody.ExpiresOn <= time.Now().Unix() {
-		validationErrStr := fmt.Sprintf("Requested lease has a desired expiry date less than today: %d", requestBody.ExpiresOn)
-		return requestBody, false, validationErrStr, nil
-	}
-
-	// Validate requested lease budget amount is less than MAX_LEASE_BUDGET_AMOUNT
-	if *requestBody.BudgetAmount > a.maxLeaseBudgetAmount {
-		validationErrStr := fmt.Sprintf("Requested lease has a budget amount of %f, which is greater than max lease budget amount of %f", math.Round(*requestBody.BudgetAmount), math.Round(a.maxLeaseBudgetAmount))
-		return requestBody, false, validationErrStr, nil
-	}
-
-	// Validate requested lease budget period is less than MAX_LEASE_BUDGET_PERIOD
-	currentTime := time.Now()
-	maxLeaseExpiresOn := currentTime.Add(time.Second * time.Duration(a.maxLeasePeriod))
-	if *requestBody.ExpiresOn > maxLeaseExpiresOn.Unix() {
-		validationErrStr := fmt.Sprintf("Requested lease has a budget expires on of %d, which is greater than max lease period of %d", requestBody.ExpiresOn, maxLeaseExpiresOn.Unix())
-		return requestBody, false, validationErrStr, nil
-	}
-
-	/*
-		// Validate requested lease budget amount is less than PRINCIPAL_BUDGET_AMOUNT for current principal billing period
-		usageStartTime := getBeginningOfCurrentBillingPeriod(a.principalBudgetPeriod)
-
-			usageRecords, err := usageSvc.GetUsageByPrincipal(usageStartTime, *requestBody.PrincipalID)
-			if err != nil {
-				errStr := fmt.Sprintf("Failed to retrieve usage: %s", err)
-				return requestBody, true, "", errors.New(errStr)
+			// Validate requested lease end date is greater than today
+			if *e <= time.Now().Unix() {
+				return errors.New(fmt.Sprintf("Requested lease has a desired expiry date less than today: %d", *e))
 			}
 
-			// Group by PrincipalID to get sum of total spent for current billing period
-			spent := 0.0
-			for _, usageItem := range usageRecords {
-				spent = spent + *usageItem.CostAmount
+			// Validate requested lease budget period is less than MAX_LEASE_BUDGET_PERIOD
+			currentTime := time.Now()
+			maxLeaseExpiresOn := currentTime.Add(time.Second * time.Duration(a.maxLeasePeriod))
+			if *e > maxLeaseExpiresOn.Unix() {
+				return errors.New(fmt.Sprintf("Requested lease has a budget expires on of %d, which is greater than max lease period of %d", *e, a.maxLeasePeriod))
+			}
+		}
+		return nil
+	}
+}
+
+func isBudgetAmountValid(a *Service) validation.RuleFunc {
+	return func(value interface{}) error {
+		if !reflect.ValueOf(value).IsNil() {
+			b, _ := value.(*float64)
+
+			// Validate requested lease budget amount is less than MAX_LEASE_BUDGET_AMOUNT
+			if *b > a.maxLeaseBudgetAmount {
+				return errors.New(fmt.Sprintf("Requested lease has a budget amount of %f, which is greater than max lease budget amount of %f", math.Round(*b), math.Round(a.maxLeaseBudgetAmount)))
 			}
 
-			if spent > a.principalBudgetAmount {
-				validationErrStr := fmt.Sprintf(
-					"Unable to create lease: User principal %s has already spent %.2f of their %.2f principal budget",
-					*requestBody.PrincipalID, spent, a.principalBudgetAmount,
-				)
-				return requestBody, false, validationErrStr, nil
-			}
-	*/
-	return requestBody, true, "", nil
+			/*
+				// Validate requested lease budget amount is less than PRINCIPAL_BUDGET_AMOUNT for current principal billing period
+				usageStartTime := getBeginningOfCurrentBillingPeriod(a.principalBudgetPeriod)
+
+					usageRecords, err := usageSvc.GetUsageByPrincipal(usageStartTime, *requestBody.PrincipalID)
+					if err != nil {
+						errStr := fmt.Sprintf("Failed to retrieve usage: %s", err)
+						return requestBody, true, "", errors.New(errStr)
+					}
+
+					// Group by PrincipalID to get sum of total spent for current billing period
+					spent := 0.0
+					for _, usageItem := range usageRecords {
+						spent = spent + *usageItem.CostAmount
+					}
+
+					if spent > a.principalBudgetAmount {
+						validationErrStr := fmt.Sprintf(
+							"Unable to create lease: User principal %s has already spent %.2f of their %.2f principal budget",
+							*requestBody.PrincipalID, spent, a.principalBudgetAmount,
+						)
+						return requestBody, false, validationErrStr, nil
+					}
+			*/
+		}
+		return nil
+	}
 }
 
 // getBeginningOfCurrentBillingPeriod returns starts of the billing period based on budget period
