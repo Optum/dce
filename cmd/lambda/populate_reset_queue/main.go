@@ -5,6 +5,7 @@ import (
 
 	"github.com/Optum/dce/pkg/account"
 	"github.com/Optum/dce/pkg/config"
+	"github.com/Optum/dce/pkg/errors"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 )
@@ -52,23 +53,27 @@ func Handler(cloudWatchEvent events.CloudWatchEvent) error {
 		Status: account.StatusNotReady.StatusPtr(),
 	}
 
-	for {
-		accounts, err := services.AccountService().List(query)
-		if err != nil {
-			return err
-		}
-		for _, acct := range *accounts {
-			// Send Message
-			err = services.AccountService().Reset(&acct)
-			if err != nil {
-				return err
+	var errs []error
+	err := services.AccountService().ListPages(query,
+		func(accts *account.Accounts) bool {
+
+			for _, acct := range *accts {
+				// Send Message
+				err := services.AccountService().Reset(&acct)
+				if err != nil {
+					errs = append(errs, err)
+				}
 			}
-		}
-		if query.NextID == nil {
-			break
-		}
+			return true //always continue
+		},
+	)
+	if err != nil {
+		return err
 	}
 
+	if len(errs) > 0 {
+		return errors.NewMultiError("error when processing accounts", errs)
+	}
 	return nil
 }
 

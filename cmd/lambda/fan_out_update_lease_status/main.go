@@ -4,108 +4,106 @@ import (
 	"encoding/json"
 	"log"
 
-	"github.com/Optum/dce/pkg/common"
-	"github.com/Optum/dce/pkg/db"
+	"github.com/Optum/dce/pkg/config"
 	"github.com/Optum/dce/pkg/errors"
+	"github.com/Optum/dce/pkg/lease"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
 	lambdaSDK "github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/aws/aws-sdk-go/service/lambda/lambdaiface"
 )
 
-/*
-This lambda initiates the budget check process. It:
-
-- Runs on a CloudWatch scheduled event (eg. every 6 hours)
-- Grabs all active leases from the DB
-- For each lease, invokes the `check_budget` lambda, with the lease object as JSON payload
-
-In this way, it acts as a _fan out_ process, to parallelize
-budgeting checking process for each account.
-*/
-func main() {
-	lambda.Start(func(cloudWatchEvent events.CloudWatchEvent) {
-		log.Printf("Initializing budget check fan out")
-
-		// Configure the DB
-		dbSvc, err := db.NewFromEnv()
-		if err != nil {
-			log.Fatalf("Failed to configure the DB service: %s", err)
-		}
-
-		// Configure the Lambda SDK
-		awsSession := session.Must(session.NewSession())
-		lambdaSvc := lambdaSDK.New(awsSession)
-
-		// Run our Lambda handler
-		err = lambdaHandler(&lambdaHandlerInput{
-			dbSvc:                         dbSvc,
-			lambdaSvc:                     lambdaSvc,
-			updateLeaseStatusFunctionName: common.RequireEnv("UPDATE_LEASE_STATUS_FUNCTION_NAME"),
-		})
-		if err != nil {
-			log.Fatal(err.Error())
-		}
-
-		log.Print("Budget check fan out complete")
-	})
+type configuration struct {
+	Debug         string `env:"DEBUG" envDefault:"false"`
+	LeaseFunction string `env:"UPDATE_LEASE_STATUS_FUNCTION_NAME" envDefault:"UpdateLeaseStatusFunction"`
 }
 
-type lambdaHandlerInput struct {
-	dbSvc                         db.DBer
-	lambdaSvc                     lambdaiface.LambdaAPI
-	updateLeaseStatusFunctionName string
+var (
+	services *config.ServiceBuilder
+	// Settings - the configuration settings for the controller
+	settings *configuration
+)
+
+func init() {
+	cfgBldr := &config.ConfigurationBuilder{}
+	settings = &configuration{}
+	if err := cfgBldr.Unmarshal(settings); err != nil {
+		log.Fatalf("Could not load configuration: %s", err.Error())
+	}
+
+	// load up the values into the various settings...
+	err := cfgBldr.WithEnv("AWS_CURRENT_REGION", "AWS_CURRENT_REGION", "us-east-1").Build()
+	if err != nil {
+		log.Printf("Error: %+v", err)
+	}
+	svcBldr := &config.ServiceBuilder{Config: cfgBldr}
+
+	_, err = svcBldr.
+		WithLambda().
+		WithLeaseService().
+		Build()
+	if err != nil {
+		panic(err)
+	}
+
+	services = svcBldr
+
 }
 
-func lambdaHandler(input *lambdaHandlerInput) error {
-	// Grab all Status=Leased accounts from the DB
-	log.Printf("Looking up active leases...")
-	leases, err := input.dbSvc.FindLeasesByStatus(db.Active)
+func handler(cloudWatchEvent events.CloudWatchEvent) error {
+
+	query := &lease.Lease{
+		Status: lease.StatusActive.StatusPtr(),
+	}
+
+	var lambdaSvc lambdaiface.LambdaAPI
+	err := services.Config.GetService(&lambdaSvc)
 	if err != nil {
 		return err
 	}
-	log.Printf("Found %d active leases", len(leases))
 
-	// Invoke our `check_bucket` lambda for each lease
-	invokeErrors := []error{}
-	for _, lease := range leases {
-		// Serialize lease as JSON
-		leaseJSON, err := json.Marshal(lease)
-		// save any errors to handle later
-		if err != nil {
-			invokeErrors = append(invokeErrors, err)
-			continue
-		}
+	var errs []error
 
-		// Invoke the fan_out_update_lease_status lambda
-		log.Printf("Invoking lambda %s with lease %s @ %s",
-			input.updateLeaseStatusFunctionName, lease.PrincipalID, lease.AccountID)
-		_, err = input.lambdaSvc.Invoke(&lambdaSDK.InvokeInput{
-			FunctionName:   aws.String(input.updateLeaseStatusFunctionName),
-			InvocationType: aws.String("Event"),
-			Payload:        leaseJSON,
-		})
-		// save any errors to handle later
-		if err != nil {
-			log.Printf("Failed to invoke lambda %s with lease %s @ %s: %s",
-				input.updateLeaseStatusFunctionName, lease.PrincipalID, lease.AccountID, err)
-			invokeErrors = append(invokeErrors, err)
-			continue
-		}
+	err = services.LeaseService().ListPages(query,
+		func(leases *lease.Leases) bool {
+			for _, ls := range *leases {
+				leaseJSON, err := json.Marshal(&ls)
+				// save any errors to handle later
+				if err != nil {
+					errs = append(errs, err)
+					continue
+				}
+				// Invoke the fan_out_update_lease_status lambda
+				log.Printf("Invoking lambda %s with lease %s @ %s",
+					settings.LeaseFunction, *ls.PrincipalID, *ls.AccountID)
+				_, err = lambdaSvc.Invoke(&lambdaSDK.InvokeInput{
+					FunctionName:   aws.String(settings.LeaseFunction),
+					InvocationType: aws.String("Event"),
+					Payload:        leaseJSON,
+				})
+				// save any errors to handle later
+				if err != nil {
+					log.Printf("Failed to invoke lambda %s with lease %s @ %s: %s",
+						settings.LeaseFunction, *ls.PrincipalID, *ls.AccountID, err)
+					errs = append(errs, err)
+					continue
+				}
+			}
+			return true //always continue
+		},
+	)
+	if err != nil {
+		return err
 	}
 
-	// Combine any invocation errors into a single error response
-	if len(invokeErrors) > 0 {
-		return errors.NewMultiError(
-			"Failed to invoke some check_budget functions",
-			invokeErrors,
-		)
+	if len(errs) > 0 {
+		return errors.NewMultiError("error when processing accounts", errs)
 	}
-
-	log.Printf("Successfully invoked check_budget lambda for %d/%d leases",
-		len(leases)-len(invokeErrors), len(leases))
-
 	return nil
+}
+
+// Start the Lambda Handler
+func main() {
+	lambda.Start(handler)
 }

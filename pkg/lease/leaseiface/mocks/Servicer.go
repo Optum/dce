@@ -102,3 +102,17 @@ func (_m *Servicer) List(query *lease.Lease) (*lease.Leases, error) {
 
 	return r0, r1
 }
+
+// ListPages provides a mock function with given fields: query, fn
+func (_m *Servicer) ListPages(query *lease.Lease, fn func(*lease.Leases) bool) error {
+	ret := _m.Called(query, fn)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(*lease.Lease, func(*lease.Leases) bool) error); ok {
+		r0 = rf(query, fn)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}

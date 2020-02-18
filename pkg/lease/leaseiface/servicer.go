@@ -19,4 +19,7 @@ type Servicer interface {
 
 	// List Get a list of lease based on Lease ID
 	List(query *lease.Lease) (*lease.Leases, error)
+
+	// ListPages runs a function on each page in a list
+	ListPages(query *lease.Lease, fn func(*lease.Leases) bool) error
 }

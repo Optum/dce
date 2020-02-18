@@ -595,3 +595,96 @@ func TestCreate(t *testing.T) {
 		})
 	}
 }
+
+func TestUpsertPrincipalAccess(t *testing.T) {
+	tests := []struct {
+		name       string
+		input      *account.Account //Input
+		expErr     error            //Expected Error
+		writeErr   error            // Returned error from Write
+		managerErr error            // Returned error from manager
+		newHash    *string          // The new hash that was saved
+	}{
+		{
+			name: "should upsert principal access with new hash",
+			input: &account.Account{
+				ID:                 ptrString("123456789012"),
+				AdminRoleArn:       arn.New("aws", "iam", "", "123456789012", "role/AdminRole"),
+				PrincipalRoleArn:   arn.New("aws", "iam", "", "123456789012", "role/PrincipalRole"),
+				PrincipalPolicyArn: arn.New("aws", "iam", "", "123456789012", "policy/PrincipalPolicy"),
+				Status:             account.StatusNotReady.StatusPtr(),
+			},
+			newHash: ptrString("1234"),
+		},
+		{
+			name: "should upsert principal access with same hash",
+			input: &account.Account{
+				ID:                  ptrString("123456789012"),
+				AdminRoleArn:        arn.New("aws", "iam", "", "123456789012", "role/AdminRole"),
+				PrincipalRoleArn:    arn.New("aws", "iam", "", "123456789012", "role/PrincipalRole"),
+				PrincipalPolicyArn:  arn.New("aws", "iam", "", "123456789012", "policy/PrincipalPolicy"),
+				PrincipalPolicyHash: ptrString("12345"),
+				Status:              account.StatusNotReady.StatusPtr(),
+			},
+		},
+		{
+			name: "should return an error when save fails",
+			input: &account.Account{
+				ID:                 ptrString("123456789012"),
+				AdminRoleArn:       arn.New("aws", "iam", "", "123456789012", "role/AdminRole"),
+				PrincipalRoleArn:   arn.New("aws", "iam", "", "123456789012", "role/PrincipalRole"),
+				PrincipalPolicyArn: arn.New("aws", "iam", "", "123456789012", "policy/PrincipalPolicy"),
+				Status:             account.StatusNotReady.StatusPtr(),
+			},
+			newHash:  ptrString("123456"),
+			writeErr: errors.NewInternalServer("error", fmt.Errorf("failure")),
+			expErr:   errors.NewInternalServer("error", fmt.Errorf("failure")),
+		},
+		{
+			name: "should return an error when the manager fails",
+			input: &account.Account{
+				ID:                 ptrString("123456789012"),
+				AdminRoleArn:       arn.New("aws", "iam", "", "123456789012", "role/AdminRole"),
+				PrincipalRoleArn:   arn.New("aws", "iam", "", "123456789012", "role/PrincipalRole"),
+				PrincipalPolicyArn: arn.New("aws", "iam", "", "123456789012", "policy/PrincipalPolicy"),
+				Status:             account.StatusNotReady.StatusPtr(),
+			},
+			managerErr: errors.NewInternalServer("error", fmt.Errorf("failure")),
+			expErr:     errors.NewInternalServer("error", fmt.Errorf("failure")),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mocksRwd := &mocks.ReaderWriterDeleter{}
+			mocksManager := &mocks.Manager{}
+			mocksEventer := &mocks.Eventer{}
+
+			mocksRwd.On("Write",
+				mock.MatchedBy(func(input *account.Account) bool {
+					if tt.newHash != nil {
+						return input.PrincipalPolicyHash == tt.input.PrincipalPolicyHash
+					}
+					return true
+				}), mock.AnythingOfType("*int64")).Return(tt.writeErr)
+			mocksManager.On("UpsertPrincipalAccess", mock.MatchedBy(func(input *account.Account) bool {
+				if tt.newHash != nil {
+					input.PrincipalPolicyHash = tt.newHash
+				}
+				return true
+			})).Return(tt.managerErr)
+
+			accountSvc := account.NewService(
+				account.NewServiceInput{
+					DataSvc:           mocksRwd,
+					ManagerSvc:        mocksManager,
+					EventSvc:          mocksEventer,
+					PrincipalRoleName: "DCEPrincipal",
+				},
+			)
+
+			err := accountSvc.UpsertPrincipalAccess(tt.input)
+			assert.Truef(t, errors.Is(err, tt.expErr), "actual error %q doesn't match expected error %q", err, tt.expErr)
+		})
+	}
+}
