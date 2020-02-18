@@ -458,6 +458,52 @@ func TestCreate(t *testing.T) {
 			},
 		},
 		{
+			name: "should fail on budget details missing",
+			req: &lease.Lease{
+				PrincipalID:              ptrString("User1"),
+				AccountID:                ptrString("123456789012"),
+				Metadata:                 map[string]interface{}{},
+				ExpiresOn:                &leaseExpiresAfterAWeek,
+			},
+			exp: response{
+				data: nil,
+				err:  errors.NewValidation("lease", fmt.Errorf("budgetAmount: is required; budgetCurrency: is required; budgetNotificationEmails: is required.")),
+			},
+			getResponse: nil,
+		},
+		{
+			name: "should fail on principalId missing",
+			req: &lease.Lease{
+				AccountID:                ptrString("123456789012"),
+				BudgetAmount:             ptrFloat(200.00),
+				BudgetCurrency: ptrString("USD"),
+				BudgetNotificationEmails: ptrArrayString([]string{"test1@test.com", "test2@test.com"}),
+				Metadata:                 map[string]interface{}{},
+				ExpiresOn:                &leaseExpiresAfterAWeek,
+			},
+			exp: response{
+				data: nil,
+				err:  errors.NewValidation("lease", fmt.Errorf("principalId: must be a string.")),
+			},
+			getResponse: nil,
+		},
+		{
+			name: "should fail on accountId missing",
+			req: &lease.Lease{
+				PrincipalID:              ptrString("User1"),
+				BudgetAmount:             ptrFloat(200.00),
+				BudgetCurrency:           ptrString("USD"),
+				BudgetNotificationEmails: ptrArrayString([]string{"test1@test.com", "test2@test.com"}),
+				Metadata:                 map[string]interface{}{},
+				ExpiresOn:                &leaseExpiresAfterAWeek,
+			},
+			exp: response{
+				data: nil,
+				err:  errors.NewValidation("lease", fmt.Errorf("accountId: must be a string.")),
+			},
+			getResponse: nil,
+		},
+		{
 			name: "should fail on lease already exists",
 			req: &lease.Lease{
 				PrincipalID:              ptrString("User1"),
