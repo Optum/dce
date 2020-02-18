@@ -61,14 +61,14 @@ func isExpiresOnValid(a *Service) validation.RuleFunc {
 
 			// Validate requested lease end date is greater than today
 			if *e <= time.Now().Unix() {
-				return errors.New(fmt.Sprintf("Requested lease has a desired expiry date less than today: %d", *e))
+				return fmt.Errorf("Requested lease has a desired expiry date less than today: %d", *e)
 			}
 
 			// Validate requested lease budget period is less than MAX_LEASE_BUDGET_PERIOD
 			currentTime := time.Now()
 			maxLeaseExpiresOn := currentTime.Add(time.Second * time.Duration(a.maxLeasePeriod))
 			if *e > maxLeaseExpiresOn.Unix() {
-				return errors.New(fmt.Sprintf("Requested lease has a budget expires on of %d, which is greater than max lease period of %d", *e, a.maxLeasePeriod))
+				return fmt.Errorf("Requested lease has a budget expires on of %d, which is greater than max lease period of %d", *e, a.maxLeasePeriod)
 			}
 		}
 		return nil
@@ -82,7 +82,7 @@ func isBudgetAmountValid(a *Service) validation.RuleFunc {
 
 			// Validate requested lease budget amount is less than MAX_LEASE_BUDGET_AMOUNT
 			if *b > a.maxLeaseBudgetAmount {
-				return errors.New(fmt.Sprintf("Requested lease has a budget amount of %f, which is greater than max lease budget amount of %f", math.Round(*b), math.Round(a.maxLeaseBudgetAmount)))
+				return fmt.Errorf("Requested lease has a budget amount of %f, which is greater than max lease budget amount of %f", math.Round(*b), math.Round(a.maxLeaseBudgetAmount))
 			}
 
 			/*

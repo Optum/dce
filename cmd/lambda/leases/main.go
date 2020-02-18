@@ -54,24 +54,12 @@ var (
 	dao                db.DBer
 	snsSvc             common.Notificationer
 	usageSvc           usage.DBer
-	leaseAddedTopicARN string
 	//decommissionTopicARN     string
-	principalBudgetAmount    float64
-	principalBudgetPeriod    string
-	maxLeaseBudgetAmount     float64
-	maxLeasePeriod           int64
-	defaultLeaseLengthInDays int
 	baseRequest              url.URL
 	//cognitoUserPoolId        string
 	//cognitoAdminName         string
 )
 
-// messageBody is the structured object of the JSON Message to send
-// to an SNS Topic for lease creation/destruction
-type messageBody struct {
-	Default string `json:"default"`
-	Body    string `json:"Body"`
-}
 
 func init() {
 	initConfig()
