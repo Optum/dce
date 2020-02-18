@@ -378,9 +378,9 @@ func TestCreate(t *testing.T) {
 				},
 				err: nil,
 			},
-			getResponse:    nil,
-			writeErr:       nil,
-			leaseCreateErr: nil,
+			getResponse:          nil,
+			writeErr:             nil,
+			leaseCreateErr:       nil,
 			principalSpentAmount: 0.0,
 		},
 		{
@@ -501,7 +501,7 @@ func TestCreate(t *testing.T) {
 				data: nil,
 				err:  errors.NewValidation("lease", fmt.Errorf("budgetAmount: is required; budgetCurrency: is required; budgetNotificationEmails: is required.")),
 			},
-			getResponse: nil,
+			getResponse:          nil,
 			principalSpentAmount: 0.0,
 		},
 		{
@@ -518,7 +518,7 @@ func TestCreate(t *testing.T) {
 				data: nil,
 				err:  errors.NewValidation("lease", fmt.Errorf("principalId: must be a string.")),
 			},
-			getResponse: nil,
+			getResponse:          nil,
 			principalSpentAmount: 0.0,
 		},
 		{
@@ -535,7 +535,7 @@ func TestCreate(t *testing.T) {
 				data: nil,
 				err:  errors.NewValidation("lease", fmt.Errorf("accountId: must be a string.")),
 			},
-			getResponse: nil,
+			getResponse:          nil,
 			principalSpentAmount: 0.0,
 		},
 		{
@@ -554,7 +554,7 @@ func TestCreate(t *testing.T) {
 				data: nil,
 				err:  errors.NewValidation("lease", fmt.Errorf("id: must be empty.")),
 			},
-			getResponse: nil,
+			getResponse:          nil,
 			principalSpentAmount: 0.0,
 		},
 		{
@@ -574,7 +574,7 @@ func TestCreate(t *testing.T) {
 				data: nil,
 				err:  errors.NewValidation("lease", fmt.Errorf("leaseStatus: must be empty; leaseStatusReason: must be empty.")),
 			},
-			getResponse: nil,
+			getResponse:          nil,
 			principalSpentAmount: 0.0,
 		},
 		{
@@ -594,7 +594,7 @@ func TestCreate(t *testing.T) {
 				data: nil,
 				err:  errors.NewValidation("lease", fmt.Errorf("createdOn: must be empty; lastModifiedOn: must be empty.")),
 			},
-			getResponse: nil,
+			getResponse:          nil,
 			principalSpentAmount: 0.0,
 		},
 		{
