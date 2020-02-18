@@ -195,6 +195,7 @@ func (a *Service) Create(data *Lease) (*Lease, error) {
 	}
 
 	return data, nil
+}
 
 // ListPages runs a function on each page in a list
 func (a *Service) ListPages(query *Lease, fn func(*Leases) bool) error {
