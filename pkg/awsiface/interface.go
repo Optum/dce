@@ -13,6 +13,7 @@ package awsiface
 import (
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
+	"github.com/aws/aws-sdk-go/service/cloudwatchevents/cloudwatcheventsiface"
 	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider/cognitoidentityprovideriface"
 	"github.com/aws/aws-sdk-go/service/costexplorer/costexploreriface"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
@@ -76,4 +77,8 @@ type CognitoIdentityProviderAPI interface {
 
 type DynamoDBAPI interface {
 	dynamodbiface.DynamoDBAPI
+}
+
+type CloudWatchEventsAPI interface {
+	cloudwatcheventsiface.CloudWatchEventsAPI
 }

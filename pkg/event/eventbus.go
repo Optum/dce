@@ -9,12 +9,14 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudwatchevents/cloudwatcheventsiface"
 )
 
+const (
+	cweSource string = "dce"
+)
+
 // CloudWatchEvent is for publishing events to Event Bus
 type CloudWatchEvent struct {
 	cw         cloudwatcheventsiface.CloudWatchEventsAPI
-	eventBus   *string
 	detailType *string
-	source     *string
 }
 
 // Publish an event to the topic
@@ -28,10 +30,9 @@ func (c *CloudWatchEvent) Publish(i interface{}) error {
 	_, err = c.cw.PutEvents(&cloudwatchevents.PutEventsInput{
 		Entries: []*cloudwatchevents.PutEventsRequestEntry{
 			{
-				EventBusName: c.eventBus,
-				Detail:       aws.String(string(bodyJSON)),
-				DetailType:   c.detailType,
-				Source:       c.source,
+				Detail:     aws.String(string(bodyJSON)),
+				DetailType: c.detailType,
+				Source:     aws.String(cweSource),
 			},
 		},
 	})
@@ -42,12 +43,10 @@ func (c *CloudWatchEvent) Publish(i interface{}) error {
 }
 
 // NewCloudWatchEvent creates a new AWS Eventing Bus
-func NewCloudWatchEvent(cw cloudwatcheventsiface.CloudWatchEventsAPI, eventBus string, detailType string, source string) (*CloudWatchEvent, error) {
+func NewCloudWatchEvent(cw cloudwatcheventsiface.CloudWatchEventsAPI, detailType string) (*CloudWatchEvent, error) {
 
 	return &CloudWatchEvent{
 		cw:         cw,
-		eventBus:   &eventBus,
 		detailType: &detailType,
-		source:     &source,
 	}, nil
 }
