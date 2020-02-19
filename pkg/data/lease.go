@@ -116,9 +116,7 @@ func (a *Lease) GetByAccountIDAndPrincipalID(accountID string, principalID strin
 	return &lease, nil
 }
 
-// Get gets the Lease record by ID
-// Returns a NotFound (404)) Error if no matching record exists
-// Returns a InternalServerError (500) for all other errors
+// GetByID gets the Lease record by ID
 func (a *Lease) Get(leaseID string) (*lease.Lease, error) {
 
 	input := &dynamodb.QueryInput{

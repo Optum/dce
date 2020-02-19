@@ -5,7 +5,6 @@
 - Add `usage_ttl` Terraform var, to configure Usage DB record TTLs.
 - Added account pool status monitoring and dashboard widget
 - Allow `athena:*` for DCE Principal IAM role
-- Add `POST /leases/auth` endpoint, to login to the requesting user's active lease
 - Prevent non-admins from performing CRUD operations on other user's leases
 
 ## v0.27.0

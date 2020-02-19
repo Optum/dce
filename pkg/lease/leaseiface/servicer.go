@@ -9,8 +9,6 @@ import (
 // Servicer makes working with the Lease Service struct easier
 type Servicer interface {
 	// Get returns an lease from ID
-	// Returns a NotFound (404)) Error if no matching record exists
-	// Returns a InternalServerError (500) for all other errors
 	Get(ID string) (*lease.Lease, error)
 
 	//// Save writes the record to the dataSvc

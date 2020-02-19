@@ -1,13 +1,7 @@
 package accountmanager
 
 import (
-	"encoding/json"
 	"fmt"
-	"github.com/Optum/dce/pkg/accountmanager/accountmanageriface"
-	errors2 "github.com/pkg/errors"
-	"io/ioutil"
-	"net/http"
-	"net/url"
 	"strings"
 
 	"github.com/Optum/dce/pkg/account"
@@ -38,22 +32,11 @@ type ServiceConfig struct {
 	assumeRolePolicy            string
 }
 
-const (
-	consoleURL    = "https://console.aws.amazon.com/"
-	federationURL = "https://signin.aws.amazon.com/federation"
-)
-
-//go:generate mockery -name HTTPClienter
-type HTTPClienter interface {
-	Do(req *http.Request) (*http.Response, error)
-}
-
 // Service manages account resources
 type Service struct {
-	client     clienter
-	storager   common.Storager
-	config     ServiceConfig
-	httpClient HTTPClienter
+	client   clienter
+	storager common.Storager
+	config   ServiceConfig
 }
 
 // ValidateAccess creates a new Account instance
@@ -65,87 +48,6 @@ func (s *Service) ValidateAccess(role *arn.ARN) error {
 		return errors.NewValidation("account", err)
 	}
 	return nil
-}
-
-// Credentials assumes role into the provided ARN
-// and returns back a wrapper object for retrieving STS crednetials
-func (s *Service) Credentials(role *arn.ARN, roleSessionName string) accountmanageriface.Credentialer {
-	return s.client.Config(role, roleSessionName).Credentials
-}
-
-// ConsoleURL generates a URL that may be used
-// to login to the AWS web console for an account
-func (s *Service) ConsoleURL(creds accountmanageriface.Credentialer) (string, error) {
-	signinToken, err := s.signinToken(creds)
-	if err != nil {
-		return "", err
-	}
-
-	// have to use url.QueryEscape for the URL or its not properly escaped
-	req, err := http.NewRequest(
-		"GET",
-		fmt.Sprintf("%s?Destination=%s", federationURL, url.QueryEscape(consoleURL)),
-		nil)
-	if err != nil {
-		return "", err
-	}
-	q := req.URL.Query()
-	q.Add("Action", "login")
-	q.Add("Issuer", "DCE")
-	q.Add("SigninToken", signinToken)
-	req.URL.RawQuery = q.Encode()
-
-	return req.URL.String(), nil
-}
-
-func (s Service) signinToken(creds accountmanageriface.Credentialer) (string, error) {
-	// Retrieve the credentials
-	credsValue, err := creds.Get()
-	if err != nil {
-		return "", err
-	}
-	credentialString, err := json.Marshal(map[string]string{
-		"sessionId":    credsValue.AccessKeyID,
-		"sessionKey":   credsValue.SecretAccessKey,
-		"sessionToken": credsValue.SessionToken,
-	})
-	if err != nil {
-		return "", errors2.Wrap(err, "Failed to marshall credentials for signin token")
-	}
-
-	req, err := http.NewRequest("GET", federationURL, nil)
-	if err != nil {
-		return "", errors2.Wrap(err, "Error building Request for signin token")
-	}
-	q := req.URL.Query()
-	q.Add("Action", "getSigninToken")
-	q.Add("Session", string(credentialString))
-	req.URL.RawQuery = q.Encode()
-
-	str := req.URL.String()
-	qr := req.URL.Query()
-	_ = str
-	_ = qr
-
-	resSigninToken, err := s.httpClient.Do(req)
-	if err != nil {
-		return "", errors2.Wrap(err, "Error getting signin token")
-	}
-
-	defer resSigninToken.Body.Close()
-	bodySigninToken, err := ioutil.ReadAll(resSigninToken.Body)
-	if err != nil {
-		return "", errors2.Wrap(err, "Error getting signin token")
-	}
-
-	var signinToken struct {
-		SigninToken string `json:"SigninToken"`
-	}
-	err = json.Unmarshal(bodySigninToken, &signinToken)
-	if err != nil {
-		return "", errors2.Wrap(err, "Error unmarshalling signin token repsonse")
-	}
-	return signinToken.SigninToken, nil
 }
 
 // UpsertPrincipalAccess creates roles, policies and updates them as needed
@@ -237,9 +139,8 @@ func NewService(input NewServiceInput) (*Service, error) {
 			session: input.Session,
 			sts:     input.Sts,
 		},
-		storager:   input.Storager,
-		config:     input.Config,
-		httpClient: &http.Client{},
+		storager: input.Storager,
+		config:   input.Config,
 	}
 
 	new.config.tags = []*iam.Tag{
