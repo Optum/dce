@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/Optum/dce/pkg/api/response"
-	"log"
+	"fmt"
+	"github.com/Optum/dce/pkg/errors"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -24,8 +24,10 @@ func GetLeaseByID(w http.ResponseWriter, r *http.Request) {
 
 	//If user is not an admin, they can't get leases for other users
 	if user.Role != api.AdminGroupName && *lease.PrincipalID != user.Username {
-		log.Printf("User [%s] with role: [%s] attempted to get a lease for: [%s], but was not authorized", user.Username, user.Role, *lease.PrincipalID)
-		response.WriteUnauthorizedError(w)
+		m := fmt.Sprintf("User [%s] with role: [%s] attempted to get a lease for: [%s], but was not authorized",
+			user.Username, user.Role, *lease.PrincipalID)
+		api.WriteAPIErrorResponse(w,
+			errors.NewUnathorizedError(m))
 		return
 	}
 

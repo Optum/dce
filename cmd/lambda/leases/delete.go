@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/Optum/dce/pkg/api"
@@ -24,8 +23,10 @@ func DeleteLeaseByID(w http.ResponseWriter, r *http.Request) {
 
 	//If user is not an admin, they can't delete leases for other users
 	if user.Role != api.AdminGroupName && *_lease.PrincipalID != user.Username {
-		log.Printf("User [%s] with role: [%s] attempted to delete a lease for: [%s], but was not authorized", user.Username, user.Role, *_lease.PrincipalID)
-		response.WriteUnauthorizedError(w)
+		m := fmt.Sprintf("User [%s] with role: [%s] attempted to delete a lease for: [%s], but was not authorized",
+			user.Username, user.Role, *_lease.PrincipalID)
+		api.WriteAPIErrorResponse(w,
+			errors.NewUnathorizedError(m))
 		return
 	}
 
@@ -66,8 +67,10 @@ func DeleteLease(w http.ResponseWriter, r *http.Request) {
 
 	// If user is not an admin, they can't delete leases for other users
 	if user.Role != api.AdminGroupName && *queryLease.PrincipalID != user.Username {
-		log.Printf("User [%s] with role: [%s] attempted to delete a lease for: [%s], but was not authorized", user.Username, user.Role, *queryLease.PrincipalID)
-		response.WriteUnauthorizedError(w)
+		m := fmt.Sprintf("User [%s] with role: [%s] attempted to delete a lease for: [%s], but was not authorized",
+			user.Username, user.Role, *queryLease.PrincipalID)
+		api.WriteAPIErrorResponse(w,
+			errors.NewUnathorizedError(m))
 		return
 	}
 
