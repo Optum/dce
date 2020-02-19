@@ -24,10 +24,9 @@ func GetLeaseByID(w http.ResponseWriter, r *http.Request) {
 
 	//If user is not an admin, they can't get leases for other users
 	if user.Role != api.AdminGroupName && *lease.PrincipalID != user.Username {
-		m := fmt.Sprintf("User [%s] with role: [%s] attempted to get a lease for: [%s], but was not authorized",
-			user.Username, user.Role, *lease.PrincipalID)
-		api.WriteAPIErrorResponse(w,
-			errors.NewUnathorizedError(m))
+		err = errors.NewUnathorizedError(fmt.Sprintf("User [%s] with role: [%s] attempted to get a lease for: [%s], but was not authorized",
+			user.Username, user.Role, *lease.PrincipalID))
+		api.WriteAPIErrorResponse(w, err)
 		return
 	}
 
