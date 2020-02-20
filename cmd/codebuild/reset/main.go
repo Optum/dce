@@ -141,6 +141,9 @@ func nukeAccount(svc *service, isDryRun bool) error {
 	}
 
 	// Print the contents of the config file, for logging/debugging
+	/*
+		#nosec CWE-22: This value is derived from env vars. I.e. it is not populated with data from external users.
+	*/
 	conf, err := ioutil.ReadFile(configFile)
 	if err != nil {
 		return err

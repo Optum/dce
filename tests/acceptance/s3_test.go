@@ -62,30 +62,6 @@ func TestS3(t *testing.T) {
 		})
 	})
 
-	// Test Upload
-	t.Run("Upload", func(t *testing.T) {
-		t.Run("Should put an object to the bucket", func(t *testing.T) {
-			// Put the test file into the artifact bucket
-			err := s3Svc.Upload(artifactsBucket, artifactsKey,
-				artifactsFilePath)
-			require.Nil(t, err)
-			defer removeObject(t, s3Svc, &artifactsBucket, &artifactsKey)
-
-			// Get the test file from the artifact bucket and verify
-			obj, err := s3Svc.Client.GetObject(
-				&s3.GetObjectInput{
-					Bucket: &artifactsBucket,
-					Key:    &artifactsKey,
-				},
-			)
-			require.Nil(t, err)
-			buf := new(bytes.Buffer)
-			_, err = buf.ReadFrom(obj.Body)
-			require.Nil(t, err)
-			require.Equal(t, string(artifactsBody), buf.String())
-		})
-	})
-
 	// Test Download
 	t.Run("Download", func(t *testing.T) {
 		t.Run("Should download an object from a bucket as a file", func(t *testing.T) {

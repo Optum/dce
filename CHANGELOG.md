@@ -1,4 +1,5 @@
 ## vNext
+- Add `tag:*` to support finding resources by tag, and changing tags for existing resources.
 
 ## v0.28.0
 
