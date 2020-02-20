@@ -23,6 +23,7 @@ func GetLeases(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// If user is not an admin, they may only list their own leases
+	user := r.Context().Value(api.User{}).(*api.User)
 	if user.Role != api.AdminGroupName {
 		usersPrincipalID := user.Username
 		query.PrincipalID = &usersPrincipalID
