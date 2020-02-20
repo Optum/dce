@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"time"
 
-	errors2 "github.com/Optum/dce/pkg/errors"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
@@ -53,9 +52,8 @@ func CreateLease(w http.ResponseWriter, r *http.Request) {
 
 	// If user is not an admin, they can't create leases for other users
 	user := r.Context().Value(api.User{}).(*api.User)
-	if user.Role != api.AdminGroupName && principalID != user.Username {
-		err = errors2.NewUnathorizedError(fmt.Sprintf("User [%s] with role: [%s] attempted to create a lease for: [%s], but was not authorized",
-			user.Username, user.Role, principalID))
+	err = user.Authorize(principalID)
+	if err != nil {
 		api.WriteAPIErrorResponse(w, err)
 		return
 	}

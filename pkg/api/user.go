@@ -32,6 +32,16 @@ type User struct {
 	Role     string
 }
 
+// Authorize returns an error if the user is not authorized to act on the principalID
+func (u *User) Authorize(principalID string) error {
+	var err error
+	if u.Role != AdminGroupName && principalID != u.Username {
+		err = errors.NewUnathorizedError(fmt.Sprintf("User [%s] with role: [%s] attempted to act on a lease for: [%s], but was not authorized",
+			u.Username, u.Role, principalID))
+	}
+	return err
+}
+
 // UserDetailer - used for mocking tests
 //go:generate mockery -name UserDetailer
 type UserDetailer interface {
