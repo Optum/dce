@@ -52,6 +52,7 @@ func CreateLease(w http.ResponseWriter, r *http.Request) {
 	principalID := requestBody.PrincipalID
 
 	// If user is not an admin, they can't create leases for other users
+	user := r.Context().Value(api.User{}).(*api.User)
 	if user.Role != api.AdminGroupName && principalID != user.Username {
 		err = errors2.NewUnathorizedError(fmt.Sprintf("User [%s] with role: [%s] attempted to create a lease for: [%s], but was not authorized",
 			user.Username, user.Role, principalID))
