@@ -3,8 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/Optum/dce/pkg/errors"
-	"net/http"
 	"net/url"
 
 	"log"
@@ -66,7 +64,7 @@ var (
 	baseRequest              url.URL
 	//cognitoUserPoolId        string
 	//cognitoAdminName         string
-	user *api.User
+	userDetailsMiddleware api.UserDetailsMiddleware
 )
 
 // messageBody is the structured object of the JSON Message to send
@@ -74,23 +72,6 @@ var (
 type messageBody struct {
 	Default string `json:"default"`
 	Body    string `json:"Body"`
-}
-
-func userDetailsMiddleware(next http.Handler) http.Handler {
-
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reqCtx, err := muxLambda.GetAPIGatewayContext(r)
-		if err != nil {
-			log.Printf("Failed to parse context object from request: %s", err)
-			api.WriteAPIErrorResponse(w,
-				errors.NewInternalServer("Internal server error", err),
-			)
-			return
-		}
-		user = Services.UserDetailer().GetUser(&reqCtx)
-
-		next.ServeHTTP(w, r)
-	})
 }
 
 func init() {
@@ -136,7 +117,8 @@ func init() {
 	}
 	r := api.NewRouter(leasesRoutes)
 	muxLambda = gorillamux.New(r)
-	r.Use(userDetailsMiddleware)
+	userDetailsMiddleware = api.UserDetailsMiddleware{}
+	r.Use(userDetailsMiddleware.Middleware)
 }
 
 // initConfig configures package-level variables
@@ -178,10 +160,9 @@ func initConfig() {
 
 // Handler - Handle the lambda function
 func Handler(_ context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	// If no name is provided in the HTTP request body, throw an error
-	// requestUser := userDetails.GetUser(&req)
-	// ctxWithUser := context.WithValue(ctx, api.DceCtxKey, *requestUser)
-	// return muxLambda.ProxyWithContext(ctxWithUser, req)
+	// Provide configuration to middleware
+	userDetailsMiddleware.UserDetailer = Services.UserDetailer()
+	userDetailsMiddleware.GorillaMuxAdapter = muxLambda
 
 	// Set baseRequest information lost by integration with gorilla mux
 	baseRequest = url.URL{}

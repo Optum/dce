@@ -1,8 +1,12 @@
 package api
 
 import (
+	"context"
 	"fmt"
+	"github.com/Optum/dce/pkg/errors"
+	"github.com/awslabs/aws-lambda-go-api-proxy/gorillamux"
 	"log"
+	"net/http"
 	"strings"
 
 	"github.com/Optum/dce/pkg/awsiface"
@@ -123,4 +127,29 @@ func (u *UserDetails) isUserInAdminFromList(groups string) bool {
 		}
 	}
 	return false
+}
+
+type UserDetailsMiddleware struct {
+	GorillaMuxAdapter *gorillamux.GorillaMuxAdapter
+	UserDetailer UserDetailer
+}
+
+func (u *UserDetailsMiddleware) Middleware(next http.Handler) http.Handler {
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		reqCtx, err := u.GorillaMuxAdapter.GetAPIGatewayContext(r)
+		if err != nil {
+			log.Printf("Failed to parse context object from request: %s", err)
+			WriteAPIErrorResponse(w,
+				errors.NewInternalServer("Internal server error", err),
+			)
+			return
+		}
+
+		user := u.UserDetailer.GetUser(&reqCtx)
+		ctx := context.WithValue(r.Context(), User{}, user)
+		r = r.WithContext(ctx)
+
+		next.ServeHTTP(w, r)
+	})
 }
