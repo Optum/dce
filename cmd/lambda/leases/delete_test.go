@@ -2,19 +2,21 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/Optum/dce/pkg/api"
-	"github.com/stretchr/testify/mock"
-	"io/ioutil"
-	"net/http/httptest"
-	"testing"
-
+	apiMocks "github.com/Optum/dce/pkg/api/mocks"
 	"github.com/Optum/dce/pkg/config"
 	"github.com/Optum/dce/pkg/lease"
 	"github.com/Optum/dce/pkg/lease/leaseiface/mocks"
+	"github.com/aws/aws-lambda-go/events"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	"net/http"
+	"net/http/httptest"
+	"testing"
 )
 
 func TestDeleteLeaseByLeaseID(t *testing.T) {
@@ -81,7 +83,7 @@ func TestDeleteLeaseByLeaseID(t *testing.T) {
 			leaseID: "abc123",
 			expResp: response{
 				StatusCode: 401,
-				Body:       "{\"error\":{\"code\":\"Unauthorized\",\"message\":\"Could not access the resource requested.\"}}",
+				Body:       "{\"error\":{\"message\":\"User [user1] with role: [User] attempted to delete a lease for: [user2], but was not authorized\",\"code\":\"UnauthorizedError\"}}\n",
 			},
 			expLease: &lease.Lease{
 				ID:           ptrString("abc123"),
@@ -121,7 +123,7 @@ func TestDeleteLeaseByLeaseID(t *testing.T) {
 			r = mux.SetURLVars(r, map[string]string{
 				"leaseID": tt.leaseID,
 			})
-			w := httptest.NewRecorder()
+
 			cfgBldr := &config.ConfigurationBuilder{}
 			svcBldr := &config.ServiceBuilder{Config: cfgBldr}
 
@@ -133,6 +135,10 @@ func TestDeleteLeaseByLeaseID(t *testing.T) {
 				tt.expLease, tt.getErr,
 			)
 
+			userDetailSvc := apiMocks.UserDetailer{}
+			userDetailSvc.On("GetUser", mock.Anything).Return(tt.user)
+
+			svcBldr.Config.WithService(&userDetailSvc)
 			svcBldr.Config.WithService(&leaseSvc)
 			_, err := svcBldr.Build()
 
@@ -141,16 +147,16 @@ func TestDeleteLeaseByLeaseID(t *testing.T) {
 				Services = svcBldr
 			}
 
-			user = tt.user
-
-			DeleteLeaseByID(w, r)
-
-			resp := w.Result()
-			body, err := ioutil.ReadAll(resp.Body)
+			mockRequest := events.APIGatewayProxyRequest{
+				Path:                            "/leases/"+tt.leaseID,
+				HTTPMethod:                      http.MethodDelete,
+				RequestContext:                  events.APIGatewayProxyRequestContext{},
+			}
+			actualResponse, err := Handler(context.TODO(), mockRequest)
 
 			assert.Nil(t, err)
-			assert.Equal(t, tt.expResp.StatusCode, resp.StatusCode)
-			assert.Equal(t, tt.expResp.Body, string(body))
+			assert.Equal(t, tt.expResp.StatusCode, actualResponse.StatusCode)
+			assert.Equal(t, tt.expResp.Body, actualResponse.Body)
 		})
 	}
 
@@ -250,7 +256,7 @@ func TestDeleteLeaseByPrincipalIDAndAccountID(t *testing.T) {
 			},
 			expResp: response{
 				StatusCode: 401,
-				Body:       "{\"error\":{\"code\":\"Unauthorized\",\"message\":\"Could not access the resource requested.\"}}",
+				Body:       "{\"error\":{\"message\":\"User [user1] with role: [User] attempted to delete a lease for: [user2], but was not authorized\",\"code\":\"UnauthorizedError\"}}\n",
 			},
 			expLease: &lease.Lease{
 				ID:           ptrString("abc123"),
@@ -364,16 +370,6 @@ func TestDeleteLeaseByPrincipalIDAndAccountID(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r := httptest.NewRequest("DELETE", "http://example.com/leases", nil)
-
-			b := new(bytes.Buffer)
-			err := json.NewEncoder(b).Encode(tt.inputLease)
-			assert.Nil(t, err)
-
-			r.Body = ioutil.NopCloser(b)
-
-			w := httptest.NewRecorder()
-
 			cfgBldr := &config.ConfigurationBuilder{}
 			svcBldr := &config.ServiceBuilder{Config: cfgBldr}
 
@@ -385,25 +381,31 @@ func TestDeleteLeaseByPrincipalIDAndAccountID(t *testing.T) {
 			leaseSvc.On("Delete", *tt.expLease.ID).Return(
 				tt.expLease, tt.getErr,
 			)
-
+			userDetailSvc := apiMocks.UserDetailer{}
+			userDetailSvc.On("GetUser", mock.Anything).Return(tt.user)
+			svcBldr.Config.WithService(&userDetailSvc)
 			svcBldr.Config.WithService(&leaseSvc)
-			_, err = svcBldr.Build()
+			_, err := svcBldr.Build()
 
 			assert.Nil(t, err)
 			if err == nil {
 				Services = svcBldr
 			}
 
-			user = tt.user
-
-			DeleteLease(w, r)
-
-			resp := w.Result()
-			body, err := ioutil.ReadAll(resp.Body)
+			b := new(bytes.Buffer)
+			err = json.NewEncoder(b).Encode(tt.inputLease)
+			assert.Nil(t, err)
+			mockRequest := events.APIGatewayProxyRequest{
+				Path:                            "/leases",
+				HTTPMethod:                      http.MethodDelete,
+				RequestContext:                  events.APIGatewayProxyRequestContext{},
+				Body:                            b.String(),
+			}
+			actualResponse, err := Handler(context.TODO(), mockRequest)
 
 			assert.Nil(t, err)
-			assert.Equal(t, tt.expResp.StatusCode, resp.StatusCode)
-			assert.Equal(t, tt.expResp.Body, string(body))
+			assert.Equal(t, tt.expResp.StatusCode, actualResponse.StatusCode)
+			assert.Equal(t, tt.expResp.Body, actualResponse.Body)
 		})
 	}
 
