@@ -14,7 +14,6 @@ import (
 	"github.com/Optum/dce/pkg/lease/leaseiface/mocks"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
-	"io/ioutil"
 	"net/http/httptest"
 
 	"context"
@@ -77,7 +76,7 @@ func TestGetLeaseByID(t *testing.T) {
 			leaseID: "abc123",
 			expResp: response{
 				StatusCode: 401,
-				Body:       "{\"error\":{\"code\":\"Unauthorized\",\"message\":\"Could not access the resource requested.\"}}",
+				Body:       "{\"error\":{\"message\":\"User [user1] with role: [User] attempted to get a lease for: [user2], but was not authorized\",\"code\":\"UnauthorizedError\"}}\n",
 			},
 			retLease: &lease.Lease{
 				PrincipalID: ptrString("user2"),
@@ -107,7 +106,6 @@ func TestGetLeaseByID(t *testing.T) {
 			r = mux.SetURLVars(r, map[string]string{
 				"leaseID": tt.leaseID,
 			})
-			w := httptest.NewRecorder()
 
 			cfgBldr := &config.ConfigurationBuilder{}
 			svcBldr := &config.ServiceBuilder{Config: cfgBldr}
@@ -116,6 +114,9 @@ func TestGetLeaseByID(t *testing.T) {
 			leaseSvc.On("Get", tt.leaseID).Return(
 				tt.retLease, tt.retErr,
 			)
+			userDetailSvc := apiMocks.UserDetailer{}
+			userDetailSvc.On("GetUser", mock.Anything).Return(tt.user)
+			svcBldr.Config.WithService(&userDetailSvc)
 			svcBldr.Config.WithService(&leaseSvc)
 			_, err := svcBldr.Build()
 
@@ -124,16 +125,12 @@ func TestGetLeaseByID(t *testing.T) {
 				Services = svcBldr
 			}
 
-			user = tt.user
-
-			GetLeaseByID(w, r)
-
-			resp := w.Result()
-			body, err := ioutil.ReadAll(resp.Body)
+			mockRequest := events.APIGatewayProxyRequest{HTTPMethod: http.MethodGet, Path: "/leases/"+tt.leaseID}
+			actualResponse, err := Handler(context.TODO(), mockRequest)
 
 			assert.Nil(t, err)
-			assert.Equal(t, tt.expResp.StatusCode, resp.StatusCode)
-			assert.Equal(t, tt.expResp.Body, string(body))
+			assert.Equal(t, tt.expResp.StatusCode, actualResponse.StatusCode)
+			assert.Equal(t, tt.expResp.Body, actualResponse.Body)
 		})
 	}
 }
