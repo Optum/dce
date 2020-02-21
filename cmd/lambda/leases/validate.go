@@ -66,7 +66,7 @@ func validateLeaseFromRequest(context *leaseValidationContext, req *http.Request
 	// Validate requested lease budget amount is less than PRINCIPAL_BUDGET_AMOUNT for current principal billing period
 	_ = getBeginningOfCurrentBillingPeriod(context.principalBudgetPeriod)
 
-	var usageRecords []*usage.Usage
+	var usageRecords []*usage.Lease
 
 	// Group by PrincipalID to get sum of total spent for current billing period
 	spent := 0.0

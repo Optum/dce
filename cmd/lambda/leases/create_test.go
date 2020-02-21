@@ -23,7 +23,6 @@ import (
 	commonMock "github.com/Optum/dce/pkg/common/mocks"
 	"github.com/Optum/dce/pkg/db"
 	mockDB "github.com/Optum/dce/pkg/db/mocks"
-	mockUsage "github.com/Optum/dce/pkg/usage/mocks"
 	"github.com/aws/aws-lambda-go/events"
 )
 
@@ -60,7 +59,6 @@ func TestCreateController_Call(t *testing.T) {
 
 		dbMock := stubDb()
 		snsMock := &commonMock.Notificationer{}
-		usageMock := &mockUsage.DBer{}
 		sevenDaysOut := time.Now().AddDate(0, 0, 7).Unix()
 
 		// Should create/update the lease record
@@ -85,7 +83,6 @@ func TestCreateController_Call(t *testing.T) {
 
 		// Should publish SNS message
 		snsMock.On("PublishMessage", &leaseTopicARN, mock.Anything, true).Return(&messageID, nil)
-		usageMock.On("GetUsageByPrincipal", mock.Anything, mock.Anything).Return(nil, nil)
 
 		testFields := &fields{
 			Dao:                   dbMock,

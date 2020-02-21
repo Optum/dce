@@ -6,12 +6,10 @@ import (
 	"github.com/Optum/dce/pkg/usage"
 )
 
-// UsageData ...
-type UsageData interface {
+// UsageLease ...
+type UsageLease interface {
 	// Write the Lease record in DynamoDB
 	// This is an upsert operation in which the record will either
 	// be inserted or updated
-	Write(usg *usage.Usage) (*usage.Usage, error)
-	// Add to CostAmount
-	Add(usg *usage.Usage) (*usage.Usage, error)
+	Write(usg *usage.Lease) (*usage.Lease, error)
 }

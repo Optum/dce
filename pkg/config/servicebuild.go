@@ -739,10 +739,10 @@ func (bldr *ServiceBuilder) createLeaseService(config ConfigurationServiceBuilde
 
 func (bldr *ServiceBuilder) createUsageDataService(config ConfigurationServiceBuilder) error {
 	// Don't add the service twice
-	var api dataiface.UsageData
+	var api dataiface.UsageLease
 	err := bldr.Config.GetService(&api)
 	if err == nil {
-		log.Printf("Already added Usage Data service")
+		log.Printf("Already added Usage Lease Data service")
 		return nil
 	}
 
@@ -753,7 +753,7 @@ func (bldr *ServiceBuilder) createUsageDataService(config ConfigurationServiceBu
 		return err
 	}
 
-	dataSvcImpl := &data.Usage{}
+	dataSvcImpl := &data.UsageLease{}
 
 	err = bldr.Config.Unmarshal(dataSvcImpl)
 	if err != nil {
@@ -775,8 +775,8 @@ func (bldr *ServiceBuilder) createUsageService(config ConfigurationServiceBuilde
 		return nil
 	}
 
-	var dataSvc dataiface.UsageData
-	err = bldr.Config.GetService(&dataSvc)
+	var dataLeaseSvc dataiface.UsageLease
+	err = bldr.Config.GetService(&dataLeaseSvc)
 	if err != nil {
 		return err
 	}
@@ -787,7 +787,7 @@ func (bldr *ServiceBuilder) createUsageService(config ConfigurationServiceBuilde
 		return err
 	}
 
-	usageSvcInput.DataSvc = dataSvc
+	usageSvcInput.DataSvc = dataLeaseSvc
 	usageSvc := usage.NewService(usageSvcInput)
 
 	config.WithService(usageSvc)
