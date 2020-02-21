@@ -4,8 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/aws/aws-sdk-go/service/cognitoidentity"
+	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
 	"io/ioutil"
 	"math"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"os"
@@ -423,6 +426,167 @@ func TestApi(t *testing.T) {
 			assert.NotNil(t, data["lastModifiedOn"])
 			assert.NotNil(t, data["leaseStatusModifiedOn"])
 
+		})
+
+		t.Run("Cognito user should not be able to create, get, list, or delete a lease for another user", func(t *testing.T) {
+			///////////
+			// Setup //
+			///////////
+			// Create cognito users
+			cognitoUser1 := NewCognitoUser(t, tfOut, awsSession, accountID)
+			defer cognitoUser1.delete(t, tfOut, awsSession)
+			cognitoUser2 := NewCognitoUser(t, tfOut, awsSession, accountID)
+			defer cognitoUser2.delete(t, tfOut, awsSession)
+			// Create an Account Entry
+			leasedAccountID := "123"
+			timeNow := time.Now().Unix()
+			err := dbSvc.PutAccount(db.Account{
+				ID:             leasedAccountID,
+				AccountStatus:  db.Ready,
+				LastModifiedOn: timeNow,
+			})
+			require.Nil(t, err)
+
+			//////////////////
+			// Create Lease //
+			//////////////////
+			// Cognito User 2 tries to create lease for Cognito User 1 and gets 401
+			apiRequest(t, &apiRequestInput{
+				method: "POST",
+				url:    apiURL + "/leases",
+				json: struct {
+					PrincipalID              string   `json:"principalId"`
+					BudgetAmount             float64  `json:"budgetAmount"`
+					BudgetCurrency           string   `json:"budgetCurrency"`
+					BudgetNotificationEmails []string `json:"budgetNotificationEmails"`
+				}{
+					PrincipalID:              cognitoUser1.Username,
+					BudgetAmount:             100,
+					BudgetCurrency:           "USD",
+					BudgetNotificationEmails: []string{"test@optum.com"},
+				},
+				f: func(r *testutil.R, apiResp *apiResponse) {
+					assert.Equalf(r, http.StatusUnauthorized, apiResp.StatusCode, "%v", apiResp.json)
+				},
+				maxAttempts: 3,
+				creds:       credentials.NewStaticCredentialsFromCreds(cognitoUser2.UserCredsValue),
+			})
+			// Cognito User 1 creates a lease for themself
+			resp := apiRequest(t, &apiRequestInput{
+				method: "POST",
+				url:    apiURL + "/leases",
+				json: struct {
+					PrincipalID              string   `json:"principalId"`
+					BudgetAmount             float64  `json:"budgetAmount"`
+					BudgetCurrency           string   `json:"budgetCurrency"`
+					BudgetNotificationEmails []string `json:"budgetNotificationEmails"`
+				}{
+					PrincipalID:              cognitoUser1.Username,
+					BudgetAmount:             100,
+					BudgetCurrency:           "USD",
+					BudgetNotificationEmails: []string{"test@optum.com"},
+				},
+				f: func(r *testutil.R, apiResp *apiResponse) {
+					assert.Equalf(r, http.StatusCreated, apiResp.StatusCode, "%v", apiResp.json)
+				},
+				maxAttempts: 3,
+				creds:       credentials.NewStaticCredentialsFromCreds(cognitoUser1.UserCredsValue),
+			})
+			createLeaseOutput := parseResponseJSON(t, resp)
+			///////////////
+			// Get Lease //
+			///////////////
+			// Cognito User 2 should get 401
+			apiRequest(t, &apiRequestInput{
+				method: "GET",
+				url:    apiURL + fmt.Sprintf("/leases/%s", createLeaseOutput["id"]),
+				f: func(r *testutil.R, apiResp *apiResponse) {
+					assert.Equal(r, http.StatusUnauthorized, apiResp.StatusCode)
+				},
+				maxAttempts: 3,
+				creds:       credentials.NewStaticCredentialsFromCreds(cognitoUser2.UserCredsValue),
+			})
+			// Cognito User 1 should get 200
+			apiRequest(t, &apiRequestInput{
+				method: "GET",
+				url:    apiURL + fmt.Sprintf("/leases/%s", createLeaseOutput["id"]),
+				f: func(r *testutil.R, apiResp *apiResponse) {
+					assert.Equal(r, http.StatusOK, apiResp.StatusCode)
+				},
+				maxAttempts: 3,
+				creds:       credentials.NewStaticCredentialsFromCreds(cognitoUser1.UserCredsValue),
+			})
+
+			/////////////////
+			// List Leases //
+			/////////////////
+			// Cognito User 2 should get empty list when listing leases
+			apiRequest(t, &apiRequestInput{
+				method: "GET",
+				url:    apiURL + "/leases",
+				f: func(r *testutil.R, apiResp *apiResponse) {
+
+					// Assert
+					respList := parseResponseArrayJSON(t, apiResp)
+					assert.Equalf(r, 0, len(respList), "%v", apiResp.json)
+					assert.Equalf(r, http.StatusOK, apiResp.StatusCode, "%v", apiResp.json)
+				},
+				maxAttempts: 3,
+				creds:       credentials.NewStaticCredentialsFromCreds(cognitoUser2.UserCredsValue),
+			})
+			// Cognito User 1 should get a list containing their single lease
+			apiRequest(t, &apiRequestInput{
+				method: "GET",
+				url:    apiURL + "/leases",
+				f: func(r *testutil.R, apiResp *apiResponse) {
+
+					// Assert
+					respList := parseResponseArrayJSON(t, apiResp)
+					assert.Equalf(r, 1, len(respList), "%v", apiResp.json)
+					assert.Equalf(r, http.StatusOK, apiResp.StatusCode, "%v", apiResp.json)
+				},
+				maxAttempts: 3,
+				creds:       credentials.NewStaticCredentialsFromCreds(cognitoUser1.UserCredsValue),
+			})
+
+			//////////////////
+			// Delete Lease //
+			//////////////////
+			// Cognito User 2 should get 401
+			// -> Delete by accountID and PrincipalID
+			apiRequest(t, &apiRequestInput{
+				method: "DELETE",
+				url:    apiURL + "/leases",
+				json: leaseRequest{
+					PrincipalID: cognitoUser1.Username,
+					AccountID:   leasedAccountID,
+				},
+				f: func(r *testutil.R, apiResp *apiResponse) {
+					assert.Equal(r, http.StatusUnauthorized, apiResp.StatusCode)
+				},
+				maxAttempts: 3,
+				creds:       credentials.NewStaticCredentialsFromCreds(cognitoUser2.UserCredsValue),
+			})
+			// -> Delete by leaseID
+			apiRequest(t, &apiRequestInput{
+				method: "DELETE",
+				url:    apiURL + fmt.Sprintf("/leases/%s", createLeaseOutput["id"]),
+				f: func(r *testutil.R, apiResp *apiResponse) {
+					assert.Equal(r, http.StatusUnauthorized, apiResp.StatusCode)
+				},
+				maxAttempts: 3,
+				creds:       credentials.NewStaticCredentialsFromCreds(cognitoUser2.UserCredsValue),
+			})
+			// Cognito User 1 should delete their own lease
+			apiRequest(t, &apiRequestInput{
+				method: "DELETE",
+				url:    apiURL + fmt.Sprintf("/leases/%s", createLeaseOutput["id"]),
+				f: func(r *testutil.R, apiResp *apiResponse) {
+					assert.Equal(r, http.StatusOK, apiResp.StatusCode)
+				},
+				maxAttempts: 3,
+				creds:       credentials.NewStaticCredentialsFromCreds(cognitoUser1.UserCredsValue),
+			})
 		})
 
 		t.Run("Should be able to create and destroy and lease by ID", func(t *testing.T) {
@@ -2365,4 +2529,158 @@ func deletePolicy(t *testing.T, policyArn string) {
 		})
 		assert.Nil(t, err)
 	})
+}
+
+// https://stackoverflow.com/questions/22892120/how-to-generate-a-random-string-of-a-fixed-length-in-go
+func getRandString(t *testing.T, n int, letters string) string {
+	t.Helper()
+	rand.Seed(time.Now().UnixNano())
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = letters[rand.Int63()%int64(len(letters))]
+	}
+	return string(b)
+}
+
+type CognitoUser struct {
+	UserCredsValue credentials.Value
+	Username       string
+	UserPoolID     string
+}
+
+func (u CognitoUser) delete(t *testing.T, tfOut map[string]interface{}, adminSession *session.Session) {
+	userPoolSvc := cognitoidentityprovider.New(
+		adminSession,
+		aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
+	)
+
+	_, err := userPoolSvc.AdminDeleteUser(&cognitoidentityprovider.AdminDeleteUserInput{
+		UserPoolId: &u.UserPoolID,
+		Username:   &u.Username,
+	})
+	assert.Nil(t, err)
+}
+func NewCognitoUser(t *testing.T, tfOut map[string]interface{}, awsSession *session.Session, accountID string) CognitoUser {
+	cognitoUser := CognitoUser{}
+
+	userPoolSvc := cognitoidentityprovider.New(
+		awsSession,
+		aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
+	)
+
+	identityPoolSvc := cognitoidentity.New(
+		awsSession,
+		aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
+	)
+	// Create user
+	cognitoUser.Username = getRandString(t, 8, "abcdefghijklmnopqrstuvwxyz")
+	tempPassword := getRandString(t, 4, "abcdefghijklmnopqrstuvwxyz") +
+		getRandString(t, 2, "ABCDEFGHIJKLMNOPQRSTUVWXYZ") +
+		getRandString(t, 2, "123456789") +
+		getRandString(t, 1, "!^*")
+
+	supress := "SUPPRESS"
+	cognitoUser.UserPoolID = tfOut["cognito_user_pool_id"].(string)
+	_, err := userPoolSvc.AdminCreateUser(&cognitoidentityprovider.AdminCreateUserInput{
+		MessageAction:     &supress,
+		TemporaryPassword: &tempPassword,
+		UserPoolId:        &cognitoUser.UserPoolID,
+		Username:          &cognitoUser.Username,
+	})
+	if err != nil {
+		defer cognitoUser.delete(t, tfOut, awsSession)
+	}
+	require.Nil(t, err)
+
+	// Reset user's password
+	permPassword := getRandString(t, 4, "abcdefghijklmnopqrstuvwxyz") +
+		getRandString(t, 2, "ABCDEFGHIJKLMNOPQRSTUVWXYZ") +
+		getRandString(t, 2, "123456789") +
+		getRandString(t, 1, "!^*")
+	permanent := true
+	_, err = userPoolSvc.AdminSetUserPassword(&cognitoidentityprovider.AdminSetUserPasswordInput{
+		Password:   &permPassword,
+		Permanent:  &permanent,
+		UserPoolId: &cognitoUser.UserPoolID,
+		Username:   &cognitoUser.Username,
+	})
+	if err != nil {
+		defer cognitoUser.delete(t, tfOut, awsSession)
+	}
+	require.Nil(t, err)
+
+	// Update user pool client to allow ADMIN_USER_PASSWORD_AUTH
+	clientID := tfOut["cognito_user_pool_client_id"].(string)
+	describeUserPoolClientOutput, err := userPoolSvc.DescribeUserPoolClient(&cognitoidentityprovider.DescribeUserPoolClientInput{
+		ClientId:   &clientID,
+		UserPoolId: &cognitoUser.UserPoolID,
+	})
+	if err != nil {
+		defer cognitoUser.delete(t, tfOut, awsSession)
+	}
+	require.Nil(t, err)
+	ALLOW_REFRESH_TOKEN_AUTH := "ALLOW_REFRESH_TOKEN_AUTH"
+	ALLOW_ADMIN_USER_PASSWORD_AUTH := "ALLOW_ADMIN_USER_PASSWORD_AUTH"
+	allowedAuthFlows := []*string{&ALLOW_REFRESH_TOKEN_AUTH, &ALLOW_ADMIN_USER_PASSWORD_AUTH}
+	_, err = userPoolSvc.UpdateUserPoolClient(&cognitoidentityprovider.UpdateUserPoolClientInput{
+		ClientId:          &clientID,
+		ExplicitAuthFlows: allowedAuthFlows,
+		UserPoolId:        &cognitoUser.UserPoolID,
+		CallbackURLs:      describeUserPoolClientOutput.UserPoolClient.CallbackURLs,
+		LogoutURLs:        describeUserPoolClientOutput.UserPoolClient.LogoutURLs,
+	})
+	if err != nil {
+		defer cognitoUser.delete(t, tfOut, awsSession)
+	}
+	require.Nil(t, err)
+
+	// authenticate with use pool to get Access, Identity, and Refresh JWTs
+	userCreds := make(map[string]*string)
+	userCreds["USERNAME"] = &cognitoUser.Username
+	userCreds["PASSWORD"] = &permPassword
+	adminAuthFlow := "ADMIN_USER_PASSWORD_AUTH"
+	output, err := userPoolSvc.AdminInitiateAuth(&cognitoidentityprovider.AdminInitiateAuthInput{
+		AuthFlow:       &adminAuthFlow,
+		AuthParameters: userCreds,
+		ClientId:       &clientID,
+		UserPoolId:     &cognitoUser.UserPoolID,
+	})
+	if err != nil {
+		defer cognitoUser.delete(t, tfOut, awsSession)
+	}
+	require.Nil(t, err)
+
+	// Exchange Identity JWT with identity pool for iam creds
+	// https://github.com/aws/aws-sdk-go/issues/406#issuecomment-150666885
+	userPoolProviderName := tfOut["cognito_user_pool_endpoint"].(string)
+	identityPoolID := tfOut["cognito_identity_pool_id"].(string)
+	var logins = make(map[string]*string)
+	logins[userPoolProviderName] = output.AuthenticationResult.IdToken
+	identityID, err := identityPoolSvc.GetId(&cognitoidentity.GetIdInput{
+		AccountId:      &accountID,
+		IdentityPoolId: &identityPoolID,
+		Logins:         logins,
+	})
+	if err != nil {
+		defer cognitoUser.delete(t, tfOut, awsSession)
+	}
+	require.Nil(t, err)
+
+	idCredOutput, err := identityPoolSvc.GetCredentialsForIdentity(&cognitoidentity.GetCredentialsForIdentityInput{
+		IdentityId: identityID.IdentityId,
+		Logins:     logins,
+	})
+	if err != nil {
+		defer cognitoUser.delete(t, tfOut, awsSession)
+	}
+	require.Nil(t, err)
+
+	// Change session to use user creds
+	cognitoUser.UserCredsValue = credentials.Value{
+		AccessKeyID:     *idCredOutput.Credentials.AccessKeyId,
+		SecretAccessKey: *idCredOutput.Credentials.SecretKey,
+		SessionToken:    *idCredOutput.Credentials.SessionToken,
+	}
+
+	return cognitoUser
 }

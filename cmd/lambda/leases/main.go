@@ -62,6 +62,7 @@ var (
 	baseRequest              url.URL
 	//cognitoUserPoolId        string
 	//cognitoAdminName         string
+	userDetailsMiddleware api.UserDetailsMiddleware
 )
 
 // messageBody is the structured object of the JSON Message to send
@@ -114,6 +115,8 @@ func init() {
 	}
 	r := api.NewRouter(leasesRoutes)
 	muxLambda = gorillamux.New(r)
+	userDetailsMiddleware = api.UserDetailsMiddleware{}
+	r.Use(userDetailsMiddleware.Middleware)
 }
 
 // initConfig configures package-level variables
@@ -134,6 +137,7 @@ func initConfig() {
 
 	_, err = svcBldr.
 		WithLeaseService().
+		WithUserDetailer().
 		Build()
 	if err != nil {
 		panic(err)
@@ -153,11 +157,10 @@ func initConfig() {
 }
 
 // Handler - Handle the lambda function
-func Handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	// If no name is provided in the HTTP request body, throw an error
-	// requestUser := userDetails.GetUser(&req)
-	// ctxWithUser := context.WithValue(ctx, api.DceCtxKey, *requestUser)
-	// return muxLambda.ProxyWithContext(ctxWithUser, req)
+func Handler(_ context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	// Provide configuration to middleware
+	userDetailsMiddleware.UserDetailer = Services.UserDetailer()
+	userDetailsMiddleware.GorillaMuxAdapter = muxLambda
 
 	// Set baseRequest information lost by integration with gorilla mux
 	baseRequest = url.URL{}
@@ -165,7 +168,7 @@ func Handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 	baseRequest.Host = req.Headers["Host"]
 	baseRequest.Path = fmt.Sprintf("%s%s", req.RequestContext.Stage, req.Path)
 
-	return muxLambda.ProxyWithContext(ctx, req)
+	return muxLambda.Proxy(req)
 }
 
 func main() {

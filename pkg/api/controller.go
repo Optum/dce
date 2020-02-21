@@ -35,7 +35,7 @@ func (router *Router) Route(ctx context.Context, req *events.APIGatewayProxyRequ
 	var err error
 	strLen := len(router.ResourceName)
 
-	requestUser := router.UserDetails.GetUser(req)
+	requestUser := router.UserDetails.GetUser(&req.RequestContext)
 	ctxWithUser := context.WithValue(ctx, DceCtxKey, *requestUser)
 
 	switch {
