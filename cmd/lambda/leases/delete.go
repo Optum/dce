@@ -14,17 +14,29 @@ import (
 
 // DeleteLeaseByID - Deletes the given lease by Lease ID
 func DeleteLeaseByID(w http.ResponseWriter, r *http.Request) {
-
 	leaseID := mux.Vars(r)["leaseID"]
+	_lease, err := Services.LeaseService().Get(leaseID)
+	if err != nil {
+		api.WriteAPIErrorResponse(w, err)
+		return
+	}
 
-	lease, err := Services.LeaseService().Delete(leaseID)
+	//If user is not an admin, they can't delete leases for other users
+	user := r.Context().Value(api.User{}).(*api.User)
+	err = user.Authorize(*_lease.PrincipalID)
+	if err != nil {
+		api.WriteAPIErrorResponse(w, err)
+		return
+	}
+
+	deletedLease, err := Services.LeaseService().Delete(leaseID)
 
 	if err != nil {
 		api.WriteAPIErrorResponse(w, err)
 		return
 	}
 
-	api.WriteAPIResponse(w, http.StatusOK, lease)
+	api.WriteAPIResponse(w, http.StatusOK, deletedLease)
 }
 
 // DeleteLease - Deletes the given lease
@@ -52,6 +64,14 @@ func DeleteLease(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// If user is not an admin, they can't delete leases for other users
+	user := r.Context().Value(api.User{}).(*api.User)
+	err = user.Authorize(*queryLease.PrincipalID)
+	if err != nil {
+		api.WriteAPIErrorResponse(w, err)
+		return
+	}
+
 	leases, err := Services.LeaseService().List(queryLease)
 	if err != nil {
 		api.WriteAPIErrorResponse(w, err)
@@ -68,13 +88,13 @@ func DeleteLease(w http.ResponseWriter, r *http.Request) {
 		response.WriteRequestValidationError(w, fmt.Sprintf("Found more than one lease"))
 		return
 	}
-	leaseID := (*leases)[0].ID
-	lease, err := Services.LeaseService().Delete(*leaseID)
 
+	leaseID := (*leases)[0].ID
+	deletedLease, err := Services.LeaseService().Delete(*leaseID)
 	if err != nil {
 		api.WriteAPIErrorResponse(w, err)
 		return
 	}
 
-	api.WriteAPIResponse(w, http.StatusOK, lease)
+	api.WriteAPIResponse(w, http.StatusOK, deletedLease)
 }

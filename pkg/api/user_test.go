@@ -23,11 +23,9 @@ func TestUser(t *testing.T) {
 			CognitoClient:            mockCognitoIdp,
 		}
 
-		user := userGetter.GetUser(&events.APIGatewayProxyRequest{
-			RequestContext: events.APIGatewayProxyRequestContext{
-				Identity: events.APIGatewayRequestIdentity{
-					CognitoIdentityPoolID: "",
-				},
+		user := userGetter.GetUser(&events.APIGatewayProxyRequestContext{
+			Identity: events.APIGatewayRequestIdentity{
+				CognitoIdentityPoolID: "",
 			},
 		})
 		require.Equal(t, user.Username, "")
@@ -64,12 +62,10 @@ func TestUser(t *testing.T) {
 			},
 		}, nil)
 
-		user := userGetter.GetUser(&events.APIGatewayProxyRequest{
-			RequestContext: events.APIGatewayProxyRequestContext{
-				Identity: events.APIGatewayRequestIdentity{
-					CognitoIdentityPoolID:         "us_east_1-test",
-					CognitoAuthenticationProvider: "UserPoolID:CognitoSignIn:abcdef-123456",
-				},
+		user := userGetter.GetUser(&events.APIGatewayProxyRequestContext{
+			Identity: events.APIGatewayRequestIdentity{
+				CognitoIdentityPoolID:         "us_east_1-test",
+				CognitoAuthenticationProvider: "UserPoolID:CognitoSignIn:abcdef-123456",
 			},
 		})
 		require.Equal(t, user.Username, "testuser")
@@ -108,12 +104,10 @@ func TestUser(t *testing.T) {
 			Groups: []*cognitoidentityprovider.GroupType{},
 		}, nil)
 
-		user := userGetter.GetUser(&events.APIGatewayProxyRequest{
-			RequestContext: events.APIGatewayProxyRequestContext{
-				Identity: events.APIGatewayRequestIdentity{
-					CognitoIdentityPoolID:         "us_east_1-test",
-					CognitoAuthenticationProvider: "UserPoolID:CognitoSignIn:abcdef-123456",
-				},
+		user := userGetter.GetUser(&events.APIGatewayProxyRequestContext{
+			Identity: events.APIGatewayRequestIdentity{
+				CognitoIdentityPoolID:         "us_east_1-test",
+				CognitoAuthenticationProvider: "UserPoolID:CognitoSignIn:abcdef-123456",
 			},
 		})
 		require.Equal(t, user.Username, "testuser")
@@ -146,12 +140,10 @@ func TestUser(t *testing.T) {
 			},
 		}, nil)
 
-		user := userGetter.GetUser(&events.APIGatewayProxyRequest{
-			RequestContext: events.APIGatewayProxyRequestContext{
-				Identity: events.APIGatewayRequestIdentity{
-					CognitoIdentityPoolID:         "us_east_1-test",
-					CognitoAuthenticationProvider: "UserPoolID:CognitoSignIn:abcdef-123456",
-				},
+		user := userGetter.GetUser(&events.APIGatewayProxyRequestContext{
+			Identity: events.APIGatewayRequestIdentity{
+				CognitoIdentityPoolID:         "us_east_1-test",
+				CognitoAuthenticationProvider: "UserPoolID:CognitoSignIn:abcdef-123456",
 			},
 		})
 		require.Equal(t, user.Username, "testuser")
@@ -190,12 +182,10 @@ func TestUser(t *testing.T) {
 			Groups: []*cognitoidentityprovider.GroupType{},
 		}, nil)
 
-		user := userGetter.GetUser(&events.APIGatewayProxyRequest{
-			RequestContext: events.APIGatewayProxyRequestContext{
-				Identity: events.APIGatewayRequestIdentity{
-					CognitoIdentityPoolID:         "us_east_1-test",
-					CognitoAuthenticationProvider: "UserPoolID:CognitoSignIn:abcdef-123456",
-				},
+		user := userGetter.GetUser(&events.APIGatewayProxyRequestContext{
+			Identity: events.APIGatewayRequestIdentity{
+				CognitoIdentityPoolID:         "us_east_1-test",
+				CognitoAuthenticationProvider: "UserPoolID:CognitoSignIn:abcdef-123456",
 			},
 		})
 		require.Equal(t, user.Username, "testuser")
@@ -238,12 +228,10 @@ func TestUser(t *testing.T) {
 			},
 		}, nil)
 
-		user := userGetter.GetUser(&events.APIGatewayProxyRequest{
-			RequestContext: events.APIGatewayProxyRequestContext{
-				Identity: events.APIGatewayRequestIdentity{
-					CognitoIdentityPoolID:         "us_east_1-test",
-					CognitoAuthenticationProvider: "UserPoolID:CognitoSignIn:abcdef-123456",
-				},
+		user := userGetter.GetUser(&events.APIGatewayProxyRequestContext{
+			Identity: events.APIGatewayRequestIdentity{
+				CognitoIdentityPoolID:         "us_east_1-test",
+				CognitoAuthenticationProvider: "UserPoolID:CognitoSignIn:abcdef-123456",
 			},
 		})
 		require.Equal(t, user.Username, "testuser")
@@ -285,12 +273,10 @@ func TestUser(t *testing.T) {
 			},
 		}, nil)
 
-		user := userGetter.GetUser(&events.APIGatewayProxyRequest{
-			RequestContext: events.APIGatewayProxyRequestContext{
-				Identity: events.APIGatewayRequestIdentity{
-					CognitoIdentityPoolID:         "us_east_1-test",
-					CognitoAuthenticationProvider: "UserPoolID:CognitoSignIn:abcdef-123456",
-				},
+		user := userGetter.GetUser(&events.APIGatewayProxyRequestContext{
+			Identity: events.APIGatewayRequestIdentity{
+				CognitoIdentityPoolID:         "us_east_1-test",
+				CognitoAuthenticationProvider: "UserPoolID:CognitoSignIn:abcdef-123456",
 			},
 		})
 		require.Equal(t, user.Username, "testuser")
@@ -335,12 +321,10 @@ func TestUser(t *testing.T) {
 			},
 		}, nil)
 
-		user := userGetter.GetUser(&events.APIGatewayProxyRequest{
-			RequestContext: events.APIGatewayProxyRequestContext{
-				Identity: events.APIGatewayRequestIdentity{
-					CognitoIdentityPoolID:         "us_east_1-test",
-					CognitoAuthenticationProvider: "UserPoolID:CognitoSignIn:abcdef-123456",
-				},
+		user := userGetter.GetUser(&events.APIGatewayProxyRequestContext{
+			Identity: events.APIGatewayRequestIdentity{
+				CognitoIdentityPoolID:         "us_east_1-test",
+				CognitoAuthenticationProvider: "UserPoolID:CognitoSignIn:abcdef-123456",
 			},
 		})
 		require.Equal(t, user.Username, "testuser")
@@ -376,12 +360,10 @@ func TestUser(t *testing.T) {
 			UserPoolId: aws.String("us_east_1-test"),
 		}).Return(&cognitoidentityprovider.AdminListGroupsForUserOutput{}, fmt.Errorf("Fail"))
 
-		user := userGetter.GetUser(&events.APIGatewayProxyRequest{
-			RequestContext: events.APIGatewayProxyRequestContext{
-				Identity: events.APIGatewayRequestIdentity{
-					CognitoIdentityPoolID:         "us_east_1-test",
-					CognitoAuthenticationProvider: "UserPoolID:CognitoSignIn:abcdef-123456",
-				},
+		user := userGetter.GetUser(&events.APIGatewayProxyRequestContext{
+			Identity: events.APIGatewayRequestIdentity{
+				CognitoIdentityPoolID:         "us_east_1-test",
+				CognitoAuthenticationProvider: "UserPoolID:CognitoSignIn:abcdef-123456",
 			},
 		})
 		require.Equal(t, user.Username, "testuser")

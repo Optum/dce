@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/Optum/dce/pkg/api"
 	"log"
 	"net/http"
 	"time"
@@ -26,7 +27,6 @@ type createLeaseRequest struct {
 
 // CreateLease - Creates the lease
 func CreateLease(w http.ResponseWriter, r *http.Request) {
-
 	c := leaseValidationContext{
 		maxLeaseBudgetAmount:     maxLeaseBudgetAmount,
 		maxLeasePeriod:           maxLeasePeriod,
@@ -49,6 +49,15 @@ func CreateLease(w http.ResponseWriter, r *http.Request) {
 	}
 
 	principalID := requestBody.PrincipalID
+
+	// If user is not an admin, they can't create leases for other users
+	user := r.Context().Value(api.User{}).(*api.User)
+	err = user.Authorize(principalID)
+	if err != nil {
+		api.WriteAPIErrorResponse(w, err)
+		return
+	}
+
 	log.Printf("Creating lease for Principal %s", principalID)
 
 	// Fail if the Principal already has an active lease
