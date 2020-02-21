@@ -141,7 +141,7 @@ func (u *UserDetails) isUserInAdminFromList(groups string) bool {
 
 type UserDetailsMiddleware struct {
 	GorillaMuxAdapter *gorillamux.GorillaMuxAdapter
-	UserDetailer UserDetailer
+	UserDetailer      UserDetailer
 }
 
 func (u *UserDetailsMiddleware) Middleware(next http.Handler) http.Handler {

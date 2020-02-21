@@ -7,17 +7,14 @@ import (
 
 	"testing"
 
+	"context"
 	gErrors "errors"
 	"fmt"
 	"github.com/Optum/dce/pkg/config"
 	"github.com/Optum/dce/pkg/lease"
 	"github.com/Optum/dce/pkg/lease/leaseiface/mocks"
-	"github.com/gorilla/mux"
-	"github.com/stretchr/testify/assert"
-	"net/http/httptest"
-
-	"context"
 	"github.com/aws/aws-lambda-go/events"
+	"github.com/stretchr/testify/assert"
 	"net/http"
 )
 
@@ -76,7 +73,7 @@ func TestGetLeaseByID(t *testing.T) {
 			leaseID: "abc123",
 			expResp: response{
 				StatusCode: 401,
-				Body:       "{\"error\":{\"message\":\"User [user1] with role: [User] attempted to get a lease for: [user2], but was not authorized\",\"code\":\"UnauthorizedError\"}}\n",
+				Body:       "{\"error\":{\"message\":\"User [user1] with role: [User] attempted to act on a lease for [user2], but was not authorized\",\"code\":\"UnauthorizedError\"}}\n",
 			},
 			retLease: &lease.Lease{
 				PrincipalID: ptrString("user2"),
@@ -101,12 +98,6 @@ func TestGetLeaseByID(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r := httptest.NewRequest("GET", fmt.Sprintf("http://example.com/lease/%s", tt.leaseID), nil)
-
-			r = mux.SetURLVars(r, map[string]string{
-				"leaseID": tt.leaseID,
-			})
-
 			cfgBldr := &config.ConfigurationBuilder{}
 			svcBldr := &config.ServiceBuilder{Config: cfgBldr}
 
@@ -125,7 +116,7 @@ func TestGetLeaseByID(t *testing.T) {
 				Services = svcBldr
 			}
 
-			mockRequest := events.APIGatewayProxyRequest{HTTPMethod: http.MethodGet, Path: "/leases/"+tt.leaseID}
+			mockRequest := events.APIGatewayProxyRequest{HTTPMethod: http.MethodGet, Path: "/leases/" + tt.leaseID}
 			actualResponse, err := Handler(context.TODO(), mockRequest)
 
 			assert.Nil(t, err)

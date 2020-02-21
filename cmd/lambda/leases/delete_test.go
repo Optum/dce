@@ -11,11 +11,9 @@ import (
 	"github.com/Optum/dce/pkg/lease"
 	"github.com/Optum/dce/pkg/lease/leaseiface/mocks"
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 )
 
@@ -83,7 +81,7 @@ func TestDeleteLeaseByLeaseID(t *testing.T) {
 			leaseID: "abc123",
 			expResp: response{
 				StatusCode: 401,
-				Body:       "{\"error\":{\"message\":\"User [user1] with role: [User] attempted to delete a lease for: [user2], but was not authorized\",\"code\":\"UnauthorizedError\"}}\n",
+				Body:       "{\"error\":{\"message\":\"User [user1] with role: [User] attempted to act on a lease for [user2], but was not authorized\",\"code\":\"UnauthorizedError\"}}\n",
 			},
 			expLease: &lease.Lease{
 				ID:           ptrString("abc123"),
@@ -118,12 +116,6 @@ func TestDeleteLeaseByLeaseID(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r := httptest.NewRequest("DELETE", fmt.Sprintf("http://example.com/lease/%s", tt.leaseID), nil)
-
-			r = mux.SetURLVars(r, map[string]string{
-				"leaseID": tt.leaseID,
-			})
-
 			cfgBldr := &config.ConfigurationBuilder{}
 			svcBldr := &config.ServiceBuilder{Config: cfgBldr}
 
@@ -148,9 +140,9 @@ func TestDeleteLeaseByLeaseID(t *testing.T) {
 			}
 
 			mockRequest := events.APIGatewayProxyRequest{
-				Path:                            "/leases/"+tt.leaseID,
-				HTTPMethod:                      http.MethodDelete,
-				RequestContext:                  events.APIGatewayProxyRequestContext{},
+				Path:           "/leases/" + tt.leaseID,
+				HTTPMethod:     http.MethodDelete,
+				RequestContext: events.APIGatewayProxyRequestContext{},
 			}
 			actualResponse, err := Handler(context.TODO(), mockRequest)
 
@@ -256,7 +248,7 @@ func TestDeleteLeaseByPrincipalIDAndAccountID(t *testing.T) {
 			},
 			expResp: response{
 				StatusCode: 401,
-				Body:       "{\"error\":{\"message\":\"User [user1] with role: [User] attempted to delete a lease for: [user2], but was not authorized\",\"code\":\"UnauthorizedError\"}}\n",
+				Body:       "{\"error\":{\"message\":\"User [user1] with role: [User] attempted to act on a lease for [user2], but was not authorized\",\"code\":\"UnauthorizedError\"}}\n",
 			},
 			expLease: &lease.Lease{
 				ID:           ptrString("abc123"),
@@ -396,10 +388,10 @@ func TestDeleteLeaseByPrincipalIDAndAccountID(t *testing.T) {
 			err = json.NewEncoder(b).Encode(tt.inputLease)
 			assert.Nil(t, err)
 			mockRequest := events.APIGatewayProxyRequest{
-				Path:                            "/leases",
-				HTTPMethod:                      http.MethodDelete,
-				RequestContext:                  events.APIGatewayProxyRequestContext{},
-				Body:                            b.String(),
+				Path:           "/leases",
+				HTTPMethod:     http.MethodDelete,
+				RequestContext: events.APIGatewayProxyRequestContext{},
+				Body:           b.String(),
 			}
 			actualResponse, err := Handler(context.TODO(), mockRequest)
 

@@ -469,7 +469,7 @@ func TestApi(t *testing.T) {
 					assert.Equalf(r, http.StatusUnauthorized, apiResp.StatusCode, "%v", apiResp.json)
 				},
 				maxAttempts: 3,
-				creds: credentials.NewStaticCredentialsFromCreds(cognitoUser2.UserCredsValue),
+				creds:       credentials.NewStaticCredentialsFromCreds(cognitoUser2.UserCredsValue),
 			})
 			// Cognito User 1 creates a lease for themself
 			resp := apiRequest(t, &apiRequestInput{
@@ -490,7 +490,7 @@ func TestApi(t *testing.T) {
 					assert.Equalf(r, http.StatusCreated, apiResp.StatusCode, "%v", apiResp.json)
 				},
 				maxAttempts: 3,
-				creds: credentials.NewStaticCredentialsFromCreds(cognitoUser1.UserCredsValue),
+				creds:       credentials.NewStaticCredentialsFromCreds(cognitoUser1.UserCredsValue),
 			})
 			createLeaseOutput := parseResponseJSON(t, resp)
 			///////////////
@@ -504,7 +504,7 @@ func TestApi(t *testing.T) {
 					assert.Equal(r, http.StatusUnauthorized, apiResp.StatusCode)
 				},
 				maxAttempts: 3,
-				creds: credentials.NewStaticCredentialsFromCreds(cognitoUser2.UserCredsValue),
+				creds:       credentials.NewStaticCredentialsFromCreds(cognitoUser2.UserCredsValue),
 			})
 			// Cognito User 1 should get 200
 			apiRequest(t, &apiRequestInput{
@@ -514,7 +514,7 @@ func TestApi(t *testing.T) {
 					assert.Equal(r, http.StatusOK, apiResp.StatusCode)
 				},
 				maxAttempts: 3,
-				creds: credentials.NewStaticCredentialsFromCreds(cognitoUser1.UserCredsValue),
+				creds:       credentials.NewStaticCredentialsFromCreds(cognitoUser1.UserCredsValue),
 			})
 
 			/////////////////
@@ -532,7 +532,7 @@ func TestApi(t *testing.T) {
 					assert.Equalf(r, http.StatusOK, apiResp.StatusCode, "%v", apiResp.json)
 				},
 				maxAttempts: 3,
-				creds: credentials.NewStaticCredentialsFromCreds(cognitoUser2.UserCredsValue),
+				creds:       credentials.NewStaticCredentialsFromCreds(cognitoUser2.UserCredsValue),
 			})
 			// Cognito User 1 should get a list containing their single lease
 			apiRequest(t, &apiRequestInput{
@@ -546,7 +546,7 @@ func TestApi(t *testing.T) {
 					assert.Equalf(r, http.StatusOK, apiResp.StatusCode, "%v", apiResp.json)
 				},
 				maxAttempts: 3,
-				creds: credentials.NewStaticCredentialsFromCreds(cognitoUser1.UserCredsValue),
+				creds:       credentials.NewStaticCredentialsFromCreds(cognitoUser1.UserCredsValue),
 			})
 
 			//////////////////
@@ -565,7 +565,7 @@ func TestApi(t *testing.T) {
 					assert.Equal(r, http.StatusUnauthorized, apiResp.StatusCode)
 				},
 				maxAttempts: 3,
-				creds: credentials.NewStaticCredentialsFromCreds(cognitoUser2.UserCredsValue),
+				creds:       credentials.NewStaticCredentialsFromCreds(cognitoUser2.UserCredsValue),
 			})
 			// -> Delete by leaseID
 			apiRequest(t, &apiRequestInput{
@@ -575,7 +575,7 @@ func TestApi(t *testing.T) {
 					assert.Equal(r, http.StatusUnauthorized, apiResp.StatusCode)
 				},
 				maxAttempts: 3,
-				creds: credentials.NewStaticCredentialsFromCreds(cognitoUser2.UserCredsValue),
+				creds:       credentials.NewStaticCredentialsFromCreds(cognitoUser2.UserCredsValue),
 			})
 			// Cognito User 1 should delete their own lease
 			apiRequest(t, &apiRequestInput{
@@ -585,7 +585,7 @@ func TestApi(t *testing.T) {
 					assert.Equal(r, http.StatusOK, apiResp.StatusCode)
 				},
 				maxAttempts: 3,
-				creds: credentials.NewStaticCredentialsFromCreds(cognitoUser1.UserCredsValue),
+				creds:       credentials.NewStaticCredentialsFromCreds(cognitoUser1.UserCredsValue),
 			})
 		})
 
