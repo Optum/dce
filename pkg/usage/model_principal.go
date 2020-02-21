@@ -7,22 +7,20 @@ import (
 	validation "github.com/go-ozzo/ozzo-validation"
 )
 
-// Usage item
-type Usage struct {
+// Principal item
+type Principal struct {
 	PrincipalID     *string    `json:"principalId,omitempty" dynamodbav:"PrincipalId" schema:"principalId,omitempty"`              // User Principal ID
-	LeaseID         *string    `json:"leaseId,omitempty" dynamodbav:"LeaseId,omitempty" schema:"leaseId,omitempty"`                // Lease ID
 	Date            *time.Time `json:"date,omitempty" dynamodbav:"Date,unixtime" schema:"date,omitempty"`                          // Usage date
 	CostAmount      *float64   `json:"costAmount,omitempty" dynamodbav:"CostAmount,omitempty" schema:"costAmount,omitempty"`       // Cost Amount for given period
 	CostCurrency    *string    `json:"costCurrency,omitempty" dynamodbav:"CostCurrency,omitempty" schema:"costCurrency,omitempty"` // Cost currency
-	TimeToLive      *int64     `json:"timeToLive,omitempty" dynamodbav:"TimeToLive,omitempty" schema:"timeToLive,omitempty"`       // ttl attribute
 	SK              *string    `json:"-" dynamodbav:"SK" schema:"-"`
 	Limit           *int64     `json:"-" dynamodbav:"-" schema:"limit,omitempty"`
-	NextStartDate   *int64     `json:"-" dynamodbav:"-" schema:"nestSK,omitempty"`
+	NextSK          *int64     `json:"-" dynamodbav:"-" schema:"nestSK,omitempty"`
 	NextPrincipalID *string    `json:"-" dynamodbav:"-" schema:"nextPrincipalId,omitempty"`
 }
 
 // Validate the account data
-func (u *Usage) Validate() error {
+func (u *Principal) Validate() error {
 	err := validation.ValidateStruct(u,
 		validation.Field(&u.PrincipalID, validatePrincipalID...),
 		validation.Field(&u.CostAmount, validateFloat64...),
@@ -34,21 +32,19 @@ func (u *Usage) Validate() error {
 	return nil
 }
 
-// NewUsageInput has the input for create a new usage record
-type NewUsageInput struct {
+// NewPrincipalInput has the input for create a new principal usage record
+type NewPrincipalInput struct {
 	PrincipalID  string
-	LeaseID      string
 	Date         time.Time
 	CostAmount   float64
 	CostCurrency string
 }
 
-// NewUsage creates a new instance of usage
-func NewUsage(input NewUsageInput) (*Usage, error) {
+// NewPrincipal creates a new instance of usage
+func NewPrincipal(input NewPrincipalInput) (*Principal, error) {
 
-	new := &Usage{
+	new := &Principal{
 		PrincipalID:  &input.PrincipalID,
-		LeaseID:      &input.LeaseID,
 		Date:         &input.Date,
 		CostAmount:   &input.CostAmount,
 		CostCurrency: &input.CostCurrency,
@@ -62,5 +58,5 @@ func NewUsage(input NewUsageInput) (*Usage, error) {
 
 }
 
-// Usages is a list of type Usage
-type Usages []Usage
+// Principals is a list of Principal Usages
+type Principals []Principal

@@ -83,11 +83,11 @@ func handler(ctx context.Context, event lease.Lease) (lease.Lease, error) {
 		return event, nil
 	}
 
-	log.Printf("%+v", usages)
+	log.Printf("Got Usage for account %q: %+v", *acct.ID, usages)
 	for _, usg := range usages {
 		log.Printf("%+v", usg)
-		newUsg, err := usage.NewUsage(
-			usage.NewUsageInput{
+		newUsg, err := usage.NewLease(
+			usage.NewLeaseInput{
 				PrincipalID:  *event.PrincipalID,
 				LeaseID:      *event.ID,
 				Date:         usg.TimePeriod,

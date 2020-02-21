@@ -14,18 +14,19 @@ func TestValidate(t *testing.T) {
 	tests := []struct {
 		name   string
 		expErr error
-		usage  usage.NewUsageInput
+		usage  usage.NewPrincipalInput
 	}{
 		{
 			name: "should validate",
-			usage: usage.NewUsageInput{
-				Date:        time.Now(),
-				PrincipalID: "user1",
+			usage: usage.NewPrincipalInput{
+				Date:         time.Now(),
+				PrincipalID:  "user1",
+				CostCurrency: "USD",
 			},
 		},
 		{
 			name: "should not validate cost currency",
-			usage: usage.NewUsageInput{
+			usage: usage.NewPrincipalInput{
 				Date:         time.Now(),
 				CostCurrency: "BAD",
 			},
@@ -36,7 +37,7 @@ func TestValidate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			_, err := usage.NewUsage(tt.usage)
+			_, err := usage.NewPrincipal(tt.usage)
 			assert.True(t, errors.Is(err, tt.expErr), "actual error %q doesn't match expected error %q", err, tt.expErr)
 
 		})
