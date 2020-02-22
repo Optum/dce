@@ -11,24 +11,15 @@ type Servicer struct {
 }
 
 // UpsertLeaseUsage provides a mock function with given fields: data
-func (_m *Servicer) UpsertLeaseUsage(data *usage.Lease) (*usage.Lease, error) {
+func (_m *Servicer) UpsertLeaseUsage(data *usage.Lease) error {
 	ret := _m.Called(data)
 
-	var r0 *usage.Lease
-	if rf, ok := ret.Get(0).(func(*usage.Lease) *usage.Lease); ok {
+	var r0 error
+	if rf, ok := ret.Get(0).(func(*usage.Lease) error); ok {
 		r0 = rf(data)
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*usage.Lease)
-		}
+		r0 = ret.Error(0)
 	}
 
-	var r1 error
-	if rf, ok := ret.Get(1).(func(*usage.Lease) error); ok {
-		r1 = rf(data)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
+	return r0
 }
