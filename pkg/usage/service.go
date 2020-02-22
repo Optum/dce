@@ -10,7 +10,7 @@ const (
 
 // LeaseWriter put an item into the data store
 type LeaseWriter interface {
-	Write(i *Lease) (*Lease, error)
+	Write(i *Lease) error
 }
 
 // SingleReader Reads Usage information from the data store
@@ -39,19 +39,19 @@ type Service struct {
 }
 
 // UpsertLeaseUsage creates a new lease usage record
-func (a *Service) UpsertLeaseUsage(data *Lease) (*Lease, error) {
+func (a *Service) UpsertLeaseUsage(data *Lease) error {
 	// Validate the incoming record doesn't have unneeded fields
 	err := data.Validate()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	old, err := a.dataLeaseSvc.Write(data)
+	err = a.dataLeaseSvc.Write(data)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return old, nil
+	return nil
 }
 
 // NewServiceInput Input for creating a new Service
