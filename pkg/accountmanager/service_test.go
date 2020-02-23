@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Optum/dce/internal/types"
 	"github.com/Optum/dce/pkg/account"
 	"github.com/Optum/dce/pkg/accountmanager/mocks"
 	"github.com/Optum/dce/pkg/arn"
@@ -14,6 +15,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/costexplorer"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/stretchr/testify/assert"
@@ -476,6 +478,96 @@ func TestDeletePrincipalAccess(t *testing.T) {
 			err = amSvc.DeletePrincipalAccess(tt.input)
 
 			assert.True(t, errors.Is(err, tt.exp), "actual error %+v doesn't match expected error %+v", err, tt.exp)
+		})
+	}
+}
+
+func TestGetCostUsage(t *testing.T) {
+
+	type assumeRoleOutput struct {
+		output *sts.AssumeRoleOutput
+		err    error
+	}
+	type input struct {
+		account *account.Account
+		start   time.Time
+		end     time.Time
+	}
+	type output struct {
+		data types.Usages
+		err  error
+	}
+	tests := []struct {
+		name             string
+		exp              output
+		input            input
+		assumeRoleOutput assumeRoleOutput
+	}{
+		{
+			name: "should delete role and policy and pass",
+			input: input{
+				account: &account.Account{
+					AdminRoleArn: arn.New("aws", "iam", "", "1234567789012", "role/adminrole"),
+				},
+			},
+			assumeRoleOutput: assumeRoleOutput{
+				output: &sts.AssumeRoleOutput{
+					Credentials: &sts.Credentials{
+						AccessKeyId:     aws.String("AKID"),
+						SecretAccessKey: aws.String("SECRET"),
+						SessionToken:    aws.String(""),
+						Expiration:      aws.Time(time.Now()),
+					},
+				},
+				err: nil,
+			},
+			exp: output{
+				data: types.Usages{},
+				err:  nil,
+			},
+		},
+		{
+			name: "should fail validation",
+			input: input{
+				account: &account.Account{
+					PrincipalRoleArn: arn.New("aws", "iam", "", "1234567789012", "role/adminrole"),
+				},
+			},
+			exp: output{
+				data: nil,
+				err:  errors.NewValidation("account", fmt.Errorf("adminRoleArn: is required.")), //nolint golint
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			stsSvc := &awsMocks.STSAPI{}
+
+			stsSvc.On("AssumeRole", mock.AnythingOfType("*sts.AssumeRoleInput")).Return(tt.assumeRoleOutput.output, tt.assumeRoleOutput.err)
+
+			ceMocks := &awsMocks.CostExplorerAPI{}
+			ceMocks.On("GetCostAndUsage", mock.AnythingOfType("*costexplorer.GetCostAndUsageInput")).Return(&costexplorer.GetCostAndUsageOutput{
+				ResultsByTime: []*costexplorer.ResultByTime{},
+			}, nil)
+
+			clientSvc := &mocks.Clienter{}
+			clientSvc.On("CostExplorer", mock.Anything).Return(ceMocks)
+
+			ceSvc, err := NewService(NewServiceInput{
+				Session: session.Must(session.NewSession()),
+				Sts:     stsSvc,
+				Config:  testConfig,
+			})
+			ceSvc.client = clientSvc
+
+			assert.Nil(t, err)
+
+			usgs, err := ceSvc.GetUsageBetweenDates(tt.input.account, tt.input.start, tt.input.end)
+
+			assert.True(t, errors.Is(err, tt.exp.err), "actual error %+v doesn't match expected error %+v", err, tt.exp)
+			assert.Equal(t, tt.exp.data, usgs)
 		})
 	}
 }
