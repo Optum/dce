@@ -28,7 +28,8 @@ func (p *usageService) GetUsage(startDate time.Time, endDate time.Time) (types.U
 			Granularity: aws.String("DAILY"),
 			TimePeriod: &costexplorer.DateInterval{
 				Start: aws.String(startDate.Format(layoutISO)),
-				End:   aws.String(endDate.AddDate(0, 0, 1).Format(layoutISO)),
+				// add a date because CE is exlusive and we are designed for inclusive
+				End: aws.String(endDate.AddDate(0, 0, 1).Format(layoutISO)),
 			},
 		},
 	)
@@ -36,7 +37,7 @@ func (p *usageService) GetUsage(startDate time.Time, endDate time.Time) (types.U
 		return nil, errors.NewInternalServer("error getting usage information", err)
 	}
 
-	var result types.Usages
+	result := types.Usages{}
 	for _, usageOutput := range usageOutputs.ResultsByTime {
 		cost, err := strconv.ParseFloat(*usageOutput.Total["UnblendedCost"].Amount, 64)
 		if err != nil {
