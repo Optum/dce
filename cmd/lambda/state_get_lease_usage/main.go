@@ -85,7 +85,6 @@ func handler(ctx context.Context, event lease.Lease) (lease.Lease, error) {
 
 	log.Printf("Got Usage for account %q: %+v", *acct.ID, usages)
 	for _, usg := range usages {
-		log.Printf("%+v", usg)
 		newUsg, err := usage.NewLease(
 			usage.NewLeaseInput{
 				PrincipalID:  *event.PrincipalID,
@@ -99,7 +98,7 @@ func handler(ctx context.Context, event lease.Lease) (lease.Lease, error) {
 			log.Printf("Error: %+v", err)
 			return event, nil
 		}
-		_, err = services.UsageService().UpsertLeaseUsage(newUsg)
+		err = services.UsageService().UpsertLeaseUsage(newUsg)
 		if err != nil {
 			log.Printf("Error: %+v", err)
 			return event, err

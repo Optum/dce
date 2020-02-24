@@ -11,24 +11,15 @@ type LeaseWriter struct {
 }
 
 // Write provides a mock function with given fields: i
-func (_m *LeaseWriter) Write(i *usage.Lease) (*usage.Lease, error) {
+func (_m *LeaseWriter) Write(i *usage.Lease) error {
 	ret := _m.Called(i)
 
-	var r0 *usage.Lease
-	if rf, ok := ret.Get(0).(func(*usage.Lease) *usage.Lease); ok {
+	var r0 error
+	if rf, ok := ret.Get(0).(func(*usage.Lease) error); ok {
 		r0 = rf(i)
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*usage.Lease)
-		}
+		r0 = ret.Error(0)
 	}
 
-	var r1 error
-	if rf, ok := ret.Get(1).(func(*usage.Lease) error); ok {
-		r1 = rf(i)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
+	return r0
 }

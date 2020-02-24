@@ -129,7 +129,6 @@ func (s *Service) DeletePrincipalAccess(account *account.Account) error {
 func (s *Service) GetUsageBetweenDates(account *account.Account, startDate time.Time, endDate time.Time) (types.Usages, error) {
 	err := validation.ValidateStruct(account,
 		validation.Field(&account.AdminRoleArn, validation.NotNil),
-		validation.Field(&account.PrincipalRoleArn, validation.NotNil),
 	)
 	if err != nil {
 		return nil, errors.NewValidation("account", err)

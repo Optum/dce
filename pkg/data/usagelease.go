@@ -34,7 +34,7 @@ type UsageLease struct {
 // This is an upsert operation in which the record will either
 // be inserted or updated
 // Returns the old record
-func (a *UsageLease) Write(usg *usage.Lease) (*usage.Lease, error) {
+func (a *UsageLease) Write(usg *usage.Lease) error {
 
 	var err error
 	returnValue := "ALL_OLD"
@@ -54,7 +54,7 @@ func (a *UsageLease) Write(usg *usage.Lease) (*usage.Lease, error) {
 
 	old, err := a.DynamoDB.PutItem(input)
 	if err != nil {
-		return nil, errors.NewInternalServer(
+		return errors.NewInternalServer(
 			fmt.Sprintf("update failed for usage with PrincipalID %q and SK %s", *usgData.PrincipalID, usgData.SK),
 			err,
 		)
@@ -63,8 +63,7 @@ func (a *UsageLease) Write(usg *usage.Lease) (*usage.Lease, error) {
 	oldUsg := &usage.Lease{}
 	err = dynamodbattribute.UnmarshalMap(old.Attributes, oldUsg)
 	if err != nil {
-		fmt.Printf("Error: %+v", err)
-		return nil, err
+		return err
 	}
 
 	diffUsg := usage.Lease{
@@ -78,18 +77,19 @@ func (a *UsageLease) Write(usg *usage.Lease) (*usage.Lease, error) {
 		diffCost := *diffUsg.CostAmount - *oldUsg.CostAmount
 		diffUsg.CostAmount = &diffCost
 	}
+	if *diffUsg.CostAmount > 0 {
+		err = a.addLeaseUsage(diffUsg)
+		if err != nil {
+			return err
+		}
 
-	err = a.addLeaseUsage(diffUsg)
-	if err != nil {
-		return nil, err
+		err = a.addPrincipalUsage(diffUsg)
+		if err != nil {
+			return err
+		}
 	}
 
-	err = a.addPrincipalUsage(diffUsg)
-	if err != nil {
-		return nil, err
-	}
-
-	return oldUsg, nil
+	return nil
 
 }
 
