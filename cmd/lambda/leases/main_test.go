@@ -1,8 +1,11 @@
 package main
 
 import (
+	"github.com/Optum/dce/pkg/api"
+	apiMocks "github.com/Optum/dce/pkg/api/mocks"
 	"github.com/Optum/dce/pkg/lease"
 	"github.com/stretchr/testify/mock"
+
 	"os"
 	"testing"
 
@@ -63,7 +66,13 @@ func TestList(t *testing.T) {
 		leaseSvc.On("List", mock.Anything).Return(
 			expectedLeases, nil,
 		)
+		userDetailersvc := apiMocks.UserDetailer{}
+		userDetailersvc.On("GetUser", mock.Anything).Return(&api.User{
+			Username: "",
+			Role:     api.AdminGroupName})
+
 		svcBuilder.Config.WithService(&leaseSvc)
+		svcBuilder.Config.WithService(&userDetailersvc)
 		_, err := svcBuilder.Build()
 
 		assert.Nil(t, err)
@@ -98,7 +107,13 @@ func TestList(t *testing.T) {
 		leaseSvc.On("List", mock.Anything).Return(
 			expectedLeases, nil,
 		)
+		userDetailersvc := apiMocks.UserDetailer{}
+		userDetailersvc.On("GetUser", mock.Anything).Return(&api.User{
+			Username: "",
+			Role:     api.AdminGroupName})
+
 		svcBuilder.Config.WithService(&leaseSvc)
+		svcBuilder.Config.WithService(&userDetailersvc)
 		_, err := svcBuilder.Build()
 
 		assert.Nil(t, err)
@@ -124,7 +139,13 @@ func TestList(t *testing.T) {
 		leaseSvc.On("List", mock.Anything).Return(
 			nil, expectedError,
 		)
+		userDetailersvc := apiMocks.UserDetailer{}
+		userDetailersvc.On("GetUser", mock.Anything).Return(&api.User{
+			Username: "",
+			Role:     api.AdminGroupName})
+
 		svcBuilder.Config.WithService(&leaseSvc)
+		svcBuilder.Config.WithService(&userDetailersvc)
 		_, err := svcBuilder.Build()
 
 		assert.Nil(t, err)

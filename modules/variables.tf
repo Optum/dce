@@ -189,7 +189,7 @@ variable "cognito_identity_providers" {
 
 variable "cognito_roles_attribute_admin_name" {
   type    = string
-  default = ""
+  default = "Admin"
 }
 
 variable "max_lease_budget_amount" {

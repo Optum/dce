@@ -1,20 +1,20 @@
 package main
 
 import (
+	"github.com/Optum/dce/pkg/api"
+	apiMocks "github.com/Optum/dce/pkg/api/mocks"
+	"github.com/stretchr/testify/mock"
+
 	"testing"
 
+	"context"
 	gErrors "errors"
 	"fmt"
 	"github.com/Optum/dce/pkg/config"
 	"github.com/Optum/dce/pkg/lease"
 	"github.com/Optum/dce/pkg/lease/leaseiface/mocks"
-	"github.com/gorilla/mux"
-	"github.com/stretchr/testify/assert"
-	"io/ioutil"
-	"net/http/httptest"
-
-	"context"
 	"github.com/aws/aws-lambda-go/events"
+	"github.com/stretchr/testify/assert"
 	"net/http"
 )
 
@@ -26,23 +26,66 @@ func TestGetLeaseByID(t *testing.T) {
 	}
 	tests := []struct {
 		name     string
+		user     *api.User
 		expResp  response
 		leaseID  string
 		retLease *lease.Lease
 		retErr   error
 	}{
 		{
-			name:    "When Get lease service returns a success",
+			name: "When admin Get lease for other user service returns a success",
+			user: &api.User{
+				Username: "admin1",
+				Role:     api.AdminGroupName,
+			},
 			leaseID: "abc123",
 			expResp: response{
 				StatusCode: 200,
-				Body:       "{}\n",
+				Body:       "{\"principalId\":\"user1\"}\n",
 			},
-			retLease: &lease.Lease{},
-			retErr:   nil,
+			retLease: &lease.Lease{
+				PrincipalID: ptrString("user1"),
+			},
+			retErr: nil,
 		},
 		{
-			name:    "When Get lease service returns a failure",
+			name: "When user Get lease for self service returns a success",
+			user: &api.User{
+				Username: "user1",
+				Role:     api.UserGroupName,
+			},
+			leaseID: "abc123",
+			expResp: response{
+				StatusCode: 200,
+				Body:       "{\"principalId\":\"user1\"}\n",
+			},
+			retLease: &lease.Lease{
+				PrincipalID: ptrString("user1"),
+			},
+			retErr: nil,
+		},
+		{
+			name: "When user Get lease for other user service returns 401",
+			user: &api.User{
+				Username: "user1",
+				Role:     api.UserGroupName,
+			},
+			leaseID: "abc123",
+			expResp: response{
+				StatusCode: 401,
+				Body:       "{\"error\":{\"message\":\"User [user1] with role: [User] attempted to act on a lease for [user2], but was not authorized\",\"code\":\"UnauthorizedError\"}}\n",
+			},
+			retLease: &lease.Lease{
+				PrincipalID: ptrString("user2"),
+			},
+			retErr: nil,
+		},
+		{
+			name: "When Get lease service returns a failure",
+			user: &api.User{
+				Username: "admin1",
+				Role:     api.AdminGroupName,
+			},
 			leaseID: "abc123",
 			expResp: response{
 				StatusCode: 500,
@@ -55,13 +98,6 @@ func TestGetLeaseByID(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r := httptest.NewRequest("GET", fmt.Sprintf("http://example.com/lease/%s", tt.leaseID), nil)
-
-			r = mux.SetURLVars(r, map[string]string{
-				"leaseID": tt.leaseID,
-			})
-			w := httptest.NewRecorder()
-
 			cfgBldr := &config.ConfigurationBuilder{}
 			svcBldr := &config.ServiceBuilder{Config: cfgBldr}
 
@@ -69,6 +105,9 @@ func TestGetLeaseByID(t *testing.T) {
 			leaseSvc.On("Get", tt.leaseID).Return(
 				tt.retLease, tt.retErr,
 			)
+			userDetailSvc := apiMocks.UserDetailer{}
+			userDetailSvc.On("GetUser", mock.Anything).Return(tt.user)
+			svcBldr.Config.WithService(&userDetailSvc)
 			svcBldr.Config.WithService(&leaseSvc)
 			_, err := svcBldr.Build()
 
@@ -77,16 +116,17 @@ func TestGetLeaseByID(t *testing.T) {
 				Services = svcBldr
 			}
 
-			GetLeaseByID(w, r)
-
-			resp := w.Result()
-			body, err := ioutil.ReadAll(resp.Body)
+			mockRequest := events.APIGatewayProxyRequest{HTTPMethod: http.MethodGet, Path: "/leases/" + tt.leaseID}
+			actualResponse, err := Handler(context.TODO(), mockRequest)
 
 			assert.Nil(t, err)
-			assert.Equal(t, tt.expResp.StatusCode, resp.StatusCode)
-			assert.Equal(t, tt.expResp.Body, string(body))
+			assert.Equal(t, tt.expResp.StatusCode, actualResponse.StatusCode)
+			assert.Equal(t, tt.expResp.Body, actualResponse.Body)
 		})
 	}
+}
+
+func TestHandler(t *testing.T) {
 
 	t.Run("When the handler invoking get and there are no errors", func(t *testing.T) {
 		expectedLease := &lease.Lease{
@@ -104,7 +144,15 @@ func TestGetLeaseByID(t *testing.T) {
 		leaseSvc.On("Get", *expectedLease.ID).Return(
 			expectedLease, nil,
 		)
+
+		userDetailerMock := apiMocks.UserDetailer{}
+		userDetailerMock.On("GetUser", mock.Anything).Return(&api.User{
+			Username: "",
+			Role:     api.AdminGroupName})
+
 		svcBuilder.Config.WithService(&leaseSvc)
+		svcBuilder.Config.WithService(&userDetailerMock)
+
 		_, err := svcBuilder.Build()
 
 		assert.Nil(t, err)
@@ -134,7 +182,14 @@ func TestGetLeaseByID(t *testing.T) {
 		leaseSvc.On("Get", *expectedLease.ID).Return(
 			expectedLease, expectedError,
 		)
+
+		userDetailerMock := apiMocks.UserDetailer{}
+		userDetailerMock.On("GetUser", mock.Anything).Return(&api.User{
+			Username: "",
+			Role:     api.AdminGroupName})
+
 		svcBuilder.Config.WithService(&leaseSvc)
+		svcBuilder.Config.WithService(&userDetailerMock)
 		_, err := svcBuilder.Build()
 
 		assert.Nil(t, err)

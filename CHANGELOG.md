@@ -1,10 +1,12 @@
 ## vNext
+- Add `tag:*` to support finding resources by tag, and changing tags for existing resources.
 
 ## v0.28.0
 
 - Add `usage_ttl` Terraform var, to configure Usage DB record TTLs.
 - Added account pool status monitoring and dashboard widget
 - Allow `athena:*` for DCE Principal IAM role
+- Prevent non-admins from performing CRUD operations on other user's leases
 
 ## v0.27.0
 

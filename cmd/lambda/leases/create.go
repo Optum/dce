@@ -2,6 +2,9 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
+	"github.com/Optum/dce/pkg/api"
+	"log"
 	"net/http"
 	"time"
 
@@ -21,6 +24,7 @@ func CreateLease(w http.ResponseWriter, r *http.Request) {
 	newLease := &lease.Lease{}
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(newLease)
+
 	if err != nil {
 		api.WriteAPIErrorResponse(w,
 			errors.NewBadRequest("invalid request parameters"))
@@ -31,7 +35,23 @@ func CreateLease(w http.ResponseWriter, r *http.Request) {
 	query := &account.Account{
 		Status: account.StatusReady.StatusPtr(),
 	}
+
 	accounts, err := Services.AccountService().List(query)
+
+	principalID := requestBody.PrincipalID
+
+	// If user is not an admin, they can't create leases for other users
+	user := r.Context().Value(api.User{}).(*api.User)
+	err = user.Authorize(principalID)
+	if err != nil {
+		api.WriteAPIErrorResponse(w, err)
+		return
+	}
+
+	log.Printf("Creating lease for Principal %s", principalID)
+
+	// Fail if the Principal already has an active lease
+	principalLeases, err := dao.FindLeasesByPrincipal(requestBody.PrincipalID)
 	if err != nil {
 		api.WriteAPIErrorResponse(w, err)
 		return
