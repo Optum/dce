@@ -2,14 +2,11 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/Optum/dce/pkg/api"
-	"log"
 	"net/http"
 	"time"
 
 	"github.com/Optum/dce/pkg/account"
-	"github.com/Optum/dce/pkg/api"
 	"github.com/Optum/dce/pkg/errors"
 	"github.com/Optum/dce/pkg/lease"
 )
@@ -37,21 +34,6 @@ func CreateLease(w http.ResponseWriter, r *http.Request) {
 	}
 
 	accounts, err := Services.AccountService().List(query)
-
-	principalID := requestBody.PrincipalID
-
-	// If user is not an admin, they can't create leases for other users
-	user := r.Context().Value(api.User{}).(*api.User)
-	err = user.Authorize(principalID)
-	if err != nil {
-		api.WriteAPIErrorResponse(w, err)
-		return
-	}
-
-	log.Printf("Creating lease for Principal %s", principalID)
-
-	// Fail if the Principal already has an active lease
-	principalLeases, err := dao.FindLeasesByPrincipal(requestBody.PrincipalID)
 	if err != nil {
 		api.WriteAPIErrorResponse(w, err)
 		return
@@ -62,6 +44,10 @@ func CreateLease(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	availableAccount := (*accounts)[0]
+
+	// If user is not an admin, they can't create leases for other users
+	user := r.Context().Value(api.User{}).(*api.User)
+	err = user.Authorize(*newLease.PrincipalID)
 
 	// Mark the account as Status=Leased
 	availableAccount.Status = account.StatusLeased.StatusPtr()

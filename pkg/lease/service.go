@@ -36,7 +36,7 @@ type ReaderWriter interface {
 
 // Eventer for publishing events
 type Eventer interface {
-	Publish() error
+	LeaseCreate(lease *Lease) error
 }
 
 // Service is a type corresponding to a Lease table record
@@ -201,7 +201,12 @@ func (a *Service) Create(data *Lease, principalSpentAmount float64) (*Lease, err
 		return nil, err
 	}
 
-	return data, nil
+	err = a.eventSvc.LeaseCreate(new)
+	if err != nil {
+		return nil, err
+	}
+
+	return new, nil
 }
 
 // ListPages runs a function on each page in a list

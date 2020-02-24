@@ -39,19 +39,6 @@ var (
 var (
 	baseRequest url.URL
 	// Soon to be deprecated - Legacy support
-	Config             common.DefaultEnvConfig
-	awsSession         *session.Session
-	dao                db.DBer
-	snsSvc             common.Notificationer
-	usageSvc           usage.DBer
-	leaseAddedTopicARN string
-	//decommissionTopicARN     string
-	principalBudgetAmount    float64
-	principalBudgetPeriod    string
-	maxLeaseBudgetAmount     float64
-	maxLeasePeriod           int64
-	defaultLeaseLengthInDays int
-	baseRequest              url.URL
 	//cognitoUserPoolId        string
 	//cognitoAdminName         string
 	userDetailsMiddleware api.UserDetailsMiddleware

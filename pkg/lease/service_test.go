@@ -367,14 +367,16 @@ func TestCreate(t *testing.T) {
 			},
 			exp: response{
 				data: &lease.Lease{
-					//ID:                       ptrString("6d666a28-4f2c-43af-8c94-1b715ca079ae"),
+					ID:                       ptrString("6d666a28-4f2c-43af-8c94-1b715ca079ae"),
 					PrincipalID:              ptrString("User1"),
 					AccountID:                ptrString("123456789012"),
+					Status:                   lease.StatusActive.StatusPtr(),
 					BudgetAmount:             ptrFloat(200.00),
 					BudgetCurrency:           ptrString("USD"),
 					BudgetNotificationEmails: ptrArrayString([]string{"test1@test.com", "test2@test.com"}),
+					CreatedOn:                &timeNow,
+					LastModifiedOn:           &timeNow,
 					ExpiresOn:                &leaseExpiresAfterAWeek,
-					Metadata:                 map[string]interface{}{},
 				},
 				err: nil,
 			},
@@ -630,12 +632,16 @@ func TestCreate(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 
 			mocksRwd := &mocks.ReaderWriterDeleter{}
+			mocksEventer := &mocks.Eventer{}
+
 			mocksRwd.On("List", mock.AnythingOfType("*lease.Lease")).Return(tt.getResponse, nil)
 			mocksRwd.On("Write", mock.AnythingOfType("*lease.Lease"), mock.AnythingOfType("*int64")).Return(tt.writeErr)
+			mocksEventer.On("LeaseCreate", mock.AnythingOfType("*lease.Lease")).Return(nil)
 
 			leaseSvc := lease.NewService(
 				lease.NewServiceInput{
 					DataSvc:                  mocksRwd,
+					EventSvc:                 mocksEventer,
 					DefaultLeaseLengthInDays: 7,
 					PrincipalBudgetAmount:    1000.00,
 					PrincipalBudgetPeriod:    "Weekly",
@@ -647,6 +653,9 @@ func TestCreate(t *testing.T) {
 			result, err := leaseSvc.Create(tt.req, tt.principalSpentAmount)
 
 			assert.Truef(t, errors.Is(err, tt.exp.err), "actual error %q doesn't match expected error %q", err, tt.exp.err)
+			if result != nil {
+				result.ID = tt.exp.data.ID
+			}
 			assert.Equal(t, tt.exp.data, result)
 		})
 	}

@@ -4,6 +4,7 @@ package eventiface
 
 import (
 	"github.com/Optum/dce/pkg/account"
+	"github.com/Optum/dce/pkg/lease"
 )
 
 // Servicer makes work with the event Hub easier
@@ -17,7 +18,7 @@ type Servicer interface {
 	// AccountReset publish events
 	AccountReset(data *account.Account) error
 	// LeaseCreate publish events
-	LeaseCreate(i interface{}) error
+	LeaseCreate(data *lease.Lease) error
 	// LeaseEnd publish events
 	LeaseEnd(i interface{}) error
 	// LeaseUpdate publish events

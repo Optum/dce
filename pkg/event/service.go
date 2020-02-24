@@ -2,6 +2,7 @@ package event
 
 import (
 	"github.com/Optum/dce/pkg/account"
+	"github.com/Optum/dce/pkg/lease"
 	"github.com/aws/aws-sdk-go/service/sns/snsiface"
 	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
 )
@@ -63,8 +64,8 @@ func (e *Service) AccountReset(data *account.Account) error {
 }
 
 // LeaseCreate publish events
-func (e *Service) LeaseCreate(i interface{}) error {
-	return e.publish(i, e.leaseCreate...)
+func (e *Service) LeaseCreate(data *lease.Lease) error {
+	return e.publish(data, e.leaseCreate...)
 }
 
 // LeaseEnd publish events

@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"github.com/Optum/dce/pkg/account"
+	"github.com/Optum/dce/pkg/api"
 	"net/http"
 	"testing"
 
 	accountmocks "github.com/Optum/dce/pkg/account/accountiface/mocks"
+	apiMocks "github.com/Optum/dce/pkg/api/mocks"
 	"github.com/Optum/dce/pkg/config"
 	"github.com/Optum/dce/pkg/lease"
 	leasemocks "github.com/Optum/dce/pkg/lease/leaseiface/mocks"
@@ -25,6 +27,7 @@ func TestWhenCreate(t *testing.T) {
 
 	tests := []struct {
 		name        string
+		user        *api.User
 		expResp     events.APIGatewayProxyResponse
 		request     events.APIGatewayProxyRequest
 		retLease    *lease.Lease
@@ -34,6 +37,10 @@ func TestWhenCreate(t *testing.T) {
 	}{
 		{
 			name: "When given good values. Then success is returned.",
+			user: &api.User{
+				Username: "admin1",
+				Role:     api.AdminGroupName,
+			},
 			expResp: events.APIGatewayProxyResponse{
 				StatusCode:        http.StatusCreated,
 				Body:              "{}\n",
@@ -97,6 +104,10 @@ func TestWhenCreate(t *testing.T) {
 			leaseSvc := leasemocks.Servicer{}
 			accountSvc := accountmocks.Servicer{}
 			usageSvc := usagemocks.Servicer{}
+
+			userDetailSvc := apiMocks.UserDetailer{}
+			userDetailSvc.On("GetUser", mock.Anything).Return(tt.user)
+
 			accountSvc.On("List", mock.Anything).Return(
 				tt.retAccounts, tt.retErr,
 			)
@@ -109,7 +120,7 @@ func TestWhenCreate(t *testing.T) {
 			usageSvc.On("Get", mock.Anything, mock.Anything).Return(
 				nil, nil,
 			)
-			svcBldr.Config.WithService(&accountSvc).WithService(&leaseSvc).WithService(&usageSvc).WithEnv("PrincipalBudgetPeriod", "PRINCIPAL_BUDGET_PERIOD", "Weekly")
+			svcBldr.Config.WithService(&accountSvc).WithService(&leaseSvc).WithService(&usageSvc).WithEnv("PrincipalBudgetPeriod", "PRINCIPAL_BUDGET_PERIOD", "Weekly").WithService(&userDetailSvc)
 			_, err := svcBldr.Build()
 
 			assert.Nil(t, err)
