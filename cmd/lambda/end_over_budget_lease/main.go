@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/Optum/dce/pkg/common"
+	"github.com/Optum/dce/pkg/config"
 	errors2 "github.com/Optum/dce/pkg/errors"
+	"github.com/Optum/dce/pkg/lease"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -18,7 +20,35 @@ var (
 	principalBudgetAmount float64
 )
 
+type lambdaConfig struct {}
+
+var (
+	// Services handles the configuration of the AWS services
+	Services *config.ServiceBuilder
+	// Settings - the configuration settings for the controller
+	Settings *lambdaConfig
+)
+
 func init() {
+	cfgBldr := &config.ConfigurationBuilder{}
+	Settings = &lambdaConfig{}
+	if err := cfgBldr.Unmarshal(Settings); err != nil {
+		log.Fatalf("Could not load configuration: %s", err.Error())
+	}
+
+	// load up the values into the various settings...
+	err := cfgBldr.WithEnv("AWS_CURRENT_REGION", "AWS_CURRENT_REGION", "us-east-1").Build()
+	if err != nil {
+		log.Printf("Error: %+v", err)
+	}
+	svcBldr := &config.ServiceBuilder{Config: cfgBldr}
+
+	_, err = svcBldr.
+		WithLeaseService().
+		Build()
+	if err != nil {
+		panic(err)
+	}
 	principalBudgetAmount = Config.GetEnvFloatVar("PRINCIPAL_BUDGET_AMOUNT", 1000.00)
 }
 
@@ -80,25 +110,58 @@ func handleRecord(input *handleRecordInput) error {
 	}
 
 	sortKey := record.Change.NewImage["SK"].String()
-	leaseRegex := regexp.MustCompile(`(Usage-Lease)[-\w]+(-Summary)`)
+	leaseSummaryRegex := regexp.MustCompile(`(Usage-Lease)[-\w]+(-Summary)`)
 	principalRegex := regexp.MustCompile(`(Usage-Principal)[-\w]+`)
 	switch {
-	case leaseRegex.MatchString(sortKey):
+	case leaseSummaryRegex.MatchString(sortKey):
 		leaseSummary := leaseSummaryRecord{}
-		if err := UnmarshalStreamImage(record.Change.NewImage, &leaseSummary); err != nil {
-			log.Fatalln(err)
+		err := UnmarshalStreamImage(record.Change.NewImage, &leaseSummary)
+		if err != nil {
+			log.Printf("ERROR: Failed to unmarshal stream image")
+			return err
 		}
 		if isLeaseOverBudget(&leaseSummary) {
-			log.Println("TODO: lease over budget, end lease")
+			log.Printf("Lease ID %s over budget", leaseSummary.LeaseId)
+			_, err := Services.LeaseService().Delete(leaseSummary.LeaseId)
+			if err != nil {
+				log.Printf("ERROR: failed to delete lease for leaseID %s")
+				return err
+			}
 		}
 	case principalRegex.MatchString(sortKey):
 		principalSummary := principalSummaryRecord{}
-		if err := UnmarshalStreamImage(record.Change.NewImage, &principalSummary); err != nil {
-			log.Fatalln(err)
+		err := UnmarshalStreamImage(record.Change.NewImage, &principalSummary)
+		if err != nil {
+			log.Printf("ERROR: Failed to unmarshal stream image")
+			return err
 		}
 		if isPrincipalOverBudget(&principalSummary) {
-			log.Println("TODO: principal over budget, end lease")
+			log.Printf("Principal ID %s over budget", principalSummary.PrincipalId)
+			query := lease.Lease{
+				PrincipalID: &principalSummary.PrincipalId,
+				Status: lease.StatusActive.StatusPtr(),
+			}
+			deferredErrors := []error{}
+			deleteLeases :=  func(leases *lease.Leases) bool {
+				for _, _lease := range *leases {
+					_, err := Services.LeaseService().Delete(*_lease.ID)
+					if err != nil {
+						deferredErrors = append(deferredErrors, err)
+					}
+				}
+				return true
+			}
+			err := Services.LeaseService().ListPages(&query, deleteLeases)
+			if err != nil {
+				log.Printf("ERROR: Failed to delete one or more leases for principalID %s", principalSummary.PrincipalId)
+				return err
+			}
+			if len(deferredErrors) > 0 {
+				log.Printf("ERROR: Failed to delete one or more leases %v", deferredErrors)
+				return errors2.NewMultiError("Failed to handle DynDB Event", deferredErrors)
+			}
 		}
+	default:
 	}
 
 	return nil
@@ -124,13 +187,13 @@ func UnmarshalStreamImage(attribute map[string]events.DynamoDBAttributeValue, ou
 
 		var dbAttr dynamodb.AttributeValue
 
-		bytes, marshalErr := v.MarshalJSON(); if marshalErr != nil {
-			return marshalErr
+		bytes, err := v.MarshalJSON(); if err != nil {
+			return err
 		}
 
-		err := json.Unmarshal(bytes, &dbAttr)
+		err = json.Unmarshal(bytes, &dbAttr)
 		if err != nil {
-			log.Fatalln(err)
+			return err
 		}
 		dbAttrMap[k] = &dbAttr
 	}
