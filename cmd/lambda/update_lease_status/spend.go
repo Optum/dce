@@ -18,7 +18,7 @@ type calculateSpendInput struct {
 	lease                 *db.Lease
 	tokenSvc              common.TokenService
 	budgetSvc             budget.Service
-	usageSvc              usage.Service
+	usageSvc              usage.DBer
 	awsSession            awsiface.AwsSession
 	principalBudgetPeriod string
 	usageTTL              int // TTL in seconds for Usage DynamoDB records
@@ -52,7 +52,7 @@ func calculateLeaseSpend(input *calculateSpendInput) (float64, error) {
 	log.Printf("usage for today: %f", todayCostAmount)
 
 	// Write today's usage to DynamoDB
-	usageItem := usage.Usage{
+	usageItem, err := usage.NewUsage(usage.NewUsageInput{
 		StartDate:    usageStartTime.Unix(),
 		EndDate:      usageEndTime.Unix(),
 		PrincipalID:  input.lease.PrincipalID,
@@ -60,9 +60,12 @@ func calculateLeaseSpend(input *calculateSpendInput) (float64, error) {
 		CostAmount:   todayCostAmount,
 		CostCurrency: "USD",
 		TimeToLive:   usageStartTime.Add(time.Duration(input.usageTTL) * time.Second).Unix(),
+	})
+	if err != nil {
+		return 0, nil
 	}
 
-	err = input.usageSvc.PutUsage(usageItem)
+	err = input.usageSvc.PutUsage(*usageItem)
 	if err != nil {
 		return 0, nil
 	}
@@ -89,8 +92,8 @@ func calculateLeaseSpend(input *calculateSpendInput) (float64, error) {
 	spend := todayCostAmount
 	for _, usage := range usageRecords {
 		log.Printf("usage records retrieved: %v", usage)
-		if usage.PrincipalID == input.lease.PrincipalID && usage.AccountID == input.lease.AccountID {
-			spend = spend + usage.CostAmount
+		if *usage.PrincipalID == input.lease.PrincipalID && *usage.AccountID == input.lease.AccountID {
+			spend = spend + *usage.CostAmount
 		}
 	}
 
@@ -122,8 +125,8 @@ func calculatePrincipalSpend(input *calculateSpendInput) (float64, error) {
 	spend := 0.0
 	for _, usage := range usageRecords {
 		log.Printf("usage records retrieved: %v", usage)
-		if usage.PrincipalID == input.lease.PrincipalID {
-			spend = spend + usage.CostAmount
+		if *usage.PrincipalID == input.lease.PrincipalID {
+			spend = spend + *usage.CostAmount
 		}
 	}
 

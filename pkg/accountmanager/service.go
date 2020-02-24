@@ -73,6 +73,7 @@ func (s *Service) UpsertPrincipalAccess(account *account.Account) error {
 	if err != nil {
 		return err
 	}
+
 	err = principalSvc.MergePolicy()
 	if err != nil {
 		return err

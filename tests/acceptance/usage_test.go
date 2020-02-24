@@ -43,7 +43,7 @@ func TestUsageDb(t *testing.T) {
 
 	apiURL := tfOut["api_url"].(string)
 	// create usage for this lease and account
-	expectedUsage := createUsageForInputAmount(t, apiURL, "123", dbSvc, 20.00)
+	expectedUsage := createUsageForInputAmount(t, apiURL, "123456789012", dbSvc, 20.00)
 
 	t.Run("Verify Get Usage By Date Range", func(t *testing.T) {
 
@@ -57,22 +57,22 @@ func TestUsageDb(t *testing.T) {
 			require.Nil(t, err)
 
 			sort.Slice(expectedUsage, func(i, j int) bool {
-				if expectedUsage[i].StartDate < expectedUsage[j].StartDate {
+				if *expectedUsage[i].StartDate < *expectedUsage[j].StartDate {
 					return true
 				}
-				if expectedUsage[i].StartDate > expectedUsage[j].StartDate {
+				if *expectedUsage[i].StartDate > *expectedUsage[j].StartDate {
 					return false
 				}
-				return expectedUsage[i].PrincipalID < expectedUsage[j].PrincipalID
+				return *expectedUsage[i].PrincipalID < *expectedUsage[j].PrincipalID
 			})
 			sort.Slice(actualUsages, func(i, j int) bool {
-				if actualUsages[i].StartDate < actualUsages[j].StartDate {
+				if *actualUsages[i].StartDate < *actualUsages[j].StartDate {
 					return true
 				}
-				if actualUsages[i].StartDate > actualUsages[j].StartDate {
+				if *actualUsages[i].StartDate > *actualUsages[j].StartDate {
 					return false
 				}
-				return actualUsages[i].PrincipalID < actualUsages[j].PrincipalID
+				return *actualUsages[i].PrincipalID < *actualUsages[j].PrincipalID
 			})
 
 			assert.Equal(r, expectedUsage, actualUsages)
@@ -91,22 +91,22 @@ func TestUsageDb(t *testing.T) {
 			require.Nil(t, err)
 
 			sort.Slice(expectedUsage, func(i, j int) bool {
-				if expectedUsage[i].StartDate < expectedUsage[j].StartDate {
+				if *expectedUsage[i].StartDate < *expectedUsage[j].StartDate {
 					return true
 				}
-				if expectedUsage[i].StartDate > expectedUsage[j].StartDate {
+				if *expectedUsage[i].StartDate > *expectedUsage[j].StartDate {
 					return false
 				}
-				return expectedUsage[i].PrincipalID < expectedUsage[j].PrincipalID
+				return *expectedUsage[i].PrincipalID < *expectedUsage[j].PrincipalID
 			})
 			sort.Slice(actualUsage, func(i, j int) bool {
-				if actualUsage[i].StartDate < actualUsage[j].StartDate {
+				if *actualUsage[i].StartDate < *actualUsage[j].StartDate {
 					return true
 				}
-				if actualUsage[i].StartDate > actualUsage[j].StartDate {
+				if *actualUsage[i].StartDate > *actualUsage[j].StartDate {
 					return false
 				}
-				return actualUsage[i].PrincipalID < actualUsage[j].PrincipalID
+				return *actualUsage[i].PrincipalID < *actualUsage[j].PrincipalID
 			})
 
 			assert.Equal(r, expectedUsage, actualUsage)
@@ -127,12 +127,12 @@ func TestUsageDb(t *testing.T) {
 		})
 		assert.Nil(t, err)
 		assert.Equal(t, len(output.Results), 10, "should only return 10 usage records")
-		assert.Equal(t, output.Results[0].PrincipalID, "user", "should return the usage with the given principal ID")
+		assert.Equal(t, *output.Results[0].PrincipalID, "user", "should return the usage with the given principal ID")
 	})
 
 	t.Run("GetUsage - When there is an account ID filter only", func(t *testing.T) {
 		output, err := dbSvc.GetUsage(usage.GetUsageInput{
-			AccountID: "123",
+			AccountID: "123456789012",
 		})
 		assert.Nil(t, err)
 		assert.Equal(t, 10, len(output.Results), "should return the usage with the given account ID")
@@ -160,7 +160,7 @@ func TestUsageDb(t *testing.T) {
 		})
 		assert.Nil(t, err)
 		assert.Equal(t, 1, len(output), "should only return one usage record")
-		assert.Equal(t, "user", output[0].PrincipalID, "should return the usage with the given principal ID")
+		assert.Equal(t, "user", *output[0].PrincipalID, "should return the usage with the given principal ID")
 	})
 
 	t.Run("GetUsage - When there are no records matching filter", func(t *testing.T) {

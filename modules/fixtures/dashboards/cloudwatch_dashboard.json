@@ -2,8 +2,25 @@
   "widgets": [
     {
       "type": "metric",
-      "x": 0,
-      "y": 0,
+      "width": 24,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          [ "${metrics_namespace_var}", "LeasedAccounts", { "color": "#2ca02c", "label": "[last: $${LAST}] LeasedAccounts" } ],
+          [ ".", "ReadyAccounts", { "color": "#1f77b4", "label": "[last: $${LAST}] ReadyAccounts" } ],
+          [ ".", "NotReadyAccounts", { "color": "#ff7f0e", "label": "[last: $${LAST}] NotReadyAccounts" } ],
+          [ ".", "OrphanedAccounts", { "color": "#d62728" ,"label": "[last: $${LAST}] OrphanedAccounts" } ]
+        ],
+        "view": "timeSeries",
+        "stacked": true,
+        "title" : "Account Pool",
+        "region": "us-east-1",
+        "stat": "Average",
+        "period": ${account_pool_metrics_widget_period}
+      }
+    },
+    {
+      "type": "metric",
       "width": 24,
       "height": 6,
       "properties": {
@@ -25,8 +42,6 @@
     },
     {
       "type": "metric",
-      "x": 0,
-      "y": 6,
       "width": 12,
       "height": 6,
       "properties": {
@@ -44,8 +59,6 @@
     },
     {
       "type": "log",
-      "x": 12,
-      "y": 6,
       "width": 6,
       "height": 6,
       "properties": {
@@ -58,8 +71,6 @@
     },
     {
       "type": "log",
-      "x": 18,
-      "y": 6,
       "width": 6,
       "height": 6,
       "properties": {
@@ -72,12 +83,10 @@
     },
     {
       "type": "log",
-      "x": 0,
-      "y": 12,
       "width": 24,
       "height": 6,
       "properties": {
-        "query": "SOURCE '/aws/codebuild/${codebuild_name}' | ${error_scraper_query}",
+        "query": "SOURCE '/aws/codebuild/${codebuild_name}' | fields @timestamp, @message | sort @timestamp desc | filter @message like /(delete failed|Failed to execute aws-nuke on account)/ | display @timestamp, @message, @logStream| limit 50",
         "region": "us-east-1",
         "stacked": false,
         "view": "table",
@@ -86,8 +95,6 @@
     },
     {
       "type": "metric",
-      "x": 0,
-      "y": 18,
       "width": 12,
       "height": 6,
       "properties": {
@@ -105,8 +112,6 @@
     },
     {
       "type": "log",
-      "x": 12,
-      "y": 18,
       "width": 12,
       "height": 6,
       "properties": {
@@ -119,8 +124,6 @@
     },
     {
       "type": "metric",
-      "x": 0,
-      "y": 24,
       "width": 12,
       "height": 6,
       "properties": {
@@ -138,8 +141,6 @@
     },
     {
       "type": "log",
-      "x": 12,
-      "y": 24,
       "width": 12,
       "height": 6,
       "properties": {
@@ -152,8 +153,6 @@
     },
     {
       "type": "metric",
-      "x": 0,
-      "y": 30,
       "width": 12,
       "height": 6,
       "properties": {
@@ -171,8 +170,6 @@
     },
     {
       "type": "log",
-      "x": 12,
-      "y": 30,
       "width": 12,
       "height": 6,
       "properties": {
@@ -185,8 +182,6 @@
     },
     {
       "type": "metric",
-      "x": 0,
-      "y": 36,
       "width": 12,
       "height": 6,
       "properties": {
@@ -204,8 +199,6 @@
     },
     {
       "type": "log",
-      "x": 12,
-      "y": 36,
       "width": 12,
       "height": 6,
       "properties": {
@@ -218,8 +211,6 @@
     },
     {
       "type": "metric",
-      "x": 0,
-      "y": 42,
       "width": 12,
       "height": 6,
       "properties": {
@@ -236,8 +227,6 @@
     },
     {
       "type": "log",
-      "x": 12,
-      "y": 42,
       "width": 12,
       "height": 6,
       "properties": {
@@ -250,8 +239,6 @@
     },
     {
       "type": "metric",
-      "x": 0,
-      "y": 48,
       "width": 12,
       "height": 6,
       "properties": {
@@ -268,8 +255,6 @@
     },
     {
       "type": "log",
-      "x": 12,
-      "y": 48,
       "width": 12,
       "height": 6,
       "properties": {
@@ -282,8 +267,6 @@
     },
     {
       "type": "metric",
-      "x": 0,
-      "y": 54,
       "width": 12,
       "height": 6,
       "properties": {
@@ -300,8 +283,6 @@
     },
     {
       "type": "log",
-      "x": 12,
-      "y": 54,
       "width": 12,
       "height": 6,
       "properties": {
@@ -314,8 +295,6 @@
     },
     {
       "type": "metric",
-      "x": 0,
-      "y": 60,
       "width": 12,
       "height": 6,
       "properties": {
@@ -332,8 +311,6 @@
     },
     {
       "type": "log",
-      "x": 12,
-      "y": 60,
       "width": 12,
       "height": 6,
       "properties": {
@@ -346,8 +323,6 @@
     },
     {
       "type": "metric",
-      "x": 0,
-      "y": 66,
       "width": 12,
       "height": 6,
       "properties": {
@@ -364,8 +339,6 @@
     },
     {
       "type": "log",
-      "x": 12,
-      "y": 66,
       "width": 12,
       "height": 6,
       "properties": {
@@ -378,8 +351,6 @@
     },
     {
       "type": "metric",
-      "x": 0,
-      "y": 78,
       "width": 12,
       "height": 6,
       "properties": {
@@ -396,8 +367,6 @@
     },
     {
       "type": "log",
-      "x": 12,
-      "y": 78,
       "width": 12,
       "height": 6,
       "properties": {

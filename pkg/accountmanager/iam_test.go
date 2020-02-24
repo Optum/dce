@@ -134,6 +134,9 @@ func TestPrincipalMergePolicyAccess(t *testing.T) {
 
 			err := principalSvc.MergePolicy()
 			assert.True(t, errors.Is(err, tt.exp), "actual error %+v doesn't match expected error %+v", err, tt.exp)
+			if tt.exp == nil {
+				assert.Equal(t, *tt.account.PrincipalPolicyHash, "123")
+			}
 		})
 	}
 }

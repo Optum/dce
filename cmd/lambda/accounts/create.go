@@ -22,7 +22,7 @@ func CreateAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	account, err := Services.Config.AccountService().Create(newAccount)
+	account, err := Services.AccountService().Create(newAccount)
 	if err != nil {
 		api.WriteAPIErrorResponse(w, err)
 		return

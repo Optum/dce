@@ -1,8 +1,13 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"io/ioutil"
+	"github.com/Optum/dce/pkg/api"
+	apiMocks "github.com/Optum/dce/pkg/api/mocks"
+	"github.com/aws/aws-lambda-go/events"
+	"net/http"
+
 	"net/http/httptest"
 	"net/url"
 	"testing"
@@ -15,7 +20,7 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func TestGetLeases(t *testing.T) {
+func TestAdminGetLeases(t *testing.T) {
 
 	type response struct {
 		StatusCode int
@@ -23,6 +28,7 @@ func TestGetLeases(t *testing.T) {
 	}
 	tests := []struct {
 		name            string
+		user            *api.User
 		expResp         response
 		expLink         string
 		query           *lease.Lease
@@ -32,7 +38,11 @@ func TestGetLeases(t *testing.T) {
 		nextPrincipalID *string
 	}{
 		{
-			name:  "get all leases",
+			name: "admin gets empty list when no leases",
+			user: &api.User{
+				Username: "admin1",
+				Role:     api.AdminGroupName,
+			},
 			query: &lease.Lease{},
 			expResp: response{
 				StatusCode: 200,
@@ -42,7 +52,11 @@ func TestGetLeases(t *testing.T) {
 			retErr:    nil,
 		},
 		{
-			name:  "get paged leases",
+			name: "admin can get paged leases belonging to other users",
+			user: &api.User{
+				Username: "admin1",
+				Role:     api.AdminGroupName,
+			},
 			query: &lease.Lease{},
 			expResp: response{
 				StatusCode: 200,
@@ -56,11 +70,55 @@ func TestGetLeases(t *testing.T) {
 			},
 			nextAccountID:   ptrString("234567890123"),
 			nextPrincipalID: ptrString("User2"),
-			expLink:         "<https://example.com/unit/leases?limit=1&nextAccountId=234567890123&nextPrincipalId=User2>; rel=\"next\"",
+			expLink:         "</leases?limit=1&nextAccountId=234567890123&nextPrincipalId=User2>; rel=\"next\"",
 			retErr:          nil,
 		},
 		{
-			name: "fail to get leases",
+			name: "user gets empty list when no leases",
+			user: &api.User{
+				Username: "User1",
+				Role:     api.UserGroupName,
+			},
+			query: &lease.Lease{},
+			expResp: response{
+				StatusCode: 200,
+				Body:       "[]\n",
+			},
+			retLeases: &lease.Leases{},
+			retErr:    nil,
+		},
+		{
+			name: "user can get only their own paged leases",
+			user: &api.User{
+				Username: "User1",
+				Role:     api.UserGroupName,
+			},
+			query: &lease.Lease{},
+			expResp: response{
+				StatusCode: 200,
+				Body:       "[{\"accountId\":\"123456789012\",\"principalId\":\"User1\"},{\"accountId\":\"133456789012\",\"principalId\":\"User1\"}]\n",
+			},
+			retLeases: &lease.Leases{
+				lease.Lease{
+					AccountID:   ptrString("123456789012"),
+					PrincipalID: ptrString("User1"),
+				},
+				lease.Lease{
+					AccountID:   ptrString("133456789012"),
+					PrincipalID: ptrString("User1"),
+				},
+			},
+			nextAccountID:   ptrString("143456789012"),
+			nextPrincipalID: ptrString("User1"),
+			expLink:         "</leases?limit=1&nextAccountId=143456789012&nextPrincipalId=User1&principalId=User1>; rel=\"next\"",
+			retErr:          nil,
+		},
+		{
+			name: "admin gets 500 when error",
+			user: &api.User{
+				Username: "admin1",
+				Role:     api.AdminGroupName,
+			},
 			query: &lease.Lease{
 				AccountID:   ptrString("abc123"),
 				PrincipalID: ptrString("User2"),
@@ -88,7 +146,6 @@ func TestGetLeases(t *testing.T) {
 			assert.Nil(t, err)
 
 			r.URL.RawQuery = values.Encode()
-			w := httptest.NewRecorder()
 
 			cfgBldr := &config.ConfigurationBuilder{}
 			svcBldr := &config.ServiceBuilder{Config: cfgBldr}
@@ -96,7 +153,21 @@ func TestGetLeases(t *testing.T) {
 			leaseSvc := mocks.Servicer{}
 
 			leaseSvc.On("List", mock.MatchedBy(func(input *lease.Lease) bool {
-				if (input.AccountID != nil && tt.query.AccountID != nil && *input.AccountID == *tt.query.AccountID) || input.AccountID == tt.query.AccountID {
+				if tt.retErr != nil {
+					return true
+				}
+				var authorizationCorrectlyEnforced bool
+				if tt.user.Role == api.AdminGroupName {
+					// admins own principalID has NOT been added to the query
+					authorizationCorrectlyEnforced = input.PrincipalID == nil || *input.PrincipalID != tt.user.Username
+
+				} else {
+					// users own principalID has been added to the query
+					authorizationCorrectlyEnforced = *input.PrincipalID == tt.user.Username
+
+				}
+				accountIDsAreEqual := (input.AccountID != nil && tt.query.AccountID != nil && *input.AccountID == *tt.query.AccountID) || input.AccountID == tt.query.AccountID
+				if accountIDsAreEqual && authorizationCorrectlyEnforced {
 					if tt.nextAccountID != nil && tt.nextPrincipalID != nil {
 						input.NextAccountID = tt.nextAccountID
 						input.NextPrincipalID = tt.nextPrincipalID
@@ -108,6 +179,11 @@ func TestGetLeases(t *testing.T) {
 			})).Return(
 				tt.retLeases, tt.retErr,
 			)
+
+			userDetailSvc := apiMocks.UserDetailer{}
+			userDetailSvc.On("GetUser", mock.Anything).Return(tt.user)
+
+			svcBldr.Config.WithService(&userDetailSvc)
 			svcBldr.Config.WithService(&leaseSvc)
 			_, err = svcBldr.Build()
 
@@ -116,16 +192,14 @@ func TestGetLeases(t *testing.T) {
 				Services = svcBldr
 			}
 
-			GetLeases(w, r)
-
-			resp := w.Result()
-			body, err := ioutil.ReadAll(resp.Body)
-
+			mockRequest := events.APIGatewayProxyRequest{HTTPMethod: http.MethodGet, Path: "/leases"}
+			actualResponse, err := Handler(context.TODO(), mockRequest)
 			assert.Nil(t, err)
-			assert.Equal(t, tt.expResp.StatusCode, resp.StatusCode)
-			assert.Equal(t, tt.expResp.Body, string(body))
-			assert.Equal(t, tt.expLink, w.Header().Get("Link"))
+			assert.Equal(t, tt.expResp.StatusCode, actualResponse.StatusCode)
+			assert.Equal(t, tt.expResp.Body, actualResponse.Body)
+			if tt.expLink != "" {
+				assert.Equal(t, tt.expLink, actualResponse.MultiValueHeaders["Link"][0])
+			}
 		})
 	}
-
 }

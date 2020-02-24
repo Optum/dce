@@ -1,8 +1,12 @@
 package api
 
 import (
+	"context"
 	"fmt"
+	"github.com/Optum/dce/pkg/errors"
+	"github.com/awslabs/aws-lambda-go-api-proxy/gorillamux"
 	"log"
+	"net/http"
 	"strings"
 
 	"github.com/Optum/dce/pkg/awsiface"
@@ -28,29 +32,43 @@ type User struct {
 	Role     string
 }
 
+// Authorize returns an error if the user is not authorized to act on the principalID
+func (u *User) Authorize(principalID string) error {
+	var err error
+	if u.Role != AdminGroupName && principalID != u.Username {
+		err = errors.NewUnathorizedError(fmt.Sprintf("User [%s] with role: [%s] attempted to act on a lease for [%s], but was not authorized",
+			u.Username, u.Role, principalID))
+	}
+	return err
+}
+
 // UserDetailer - used for mocking tests
+//go:generate mockery -name UserDetailer
 type UserDetailer interface {
-	GetUser(event *events.APIGatewayProxyRequest) *User
+	GetUser(reqCtx *events.APIGatewayProxyRequestContext) *User
 }
 
 // UserDetails - Gets User information
 type UserDetails struct {
-	CognitoUserPoolID        string
-	RolesAttributesAdminName string
+	CognitoUserPoolID        string `env:"COGNITO_USER_POOL_ID" defaultEnv:"DefaultCognitoUserPoolId"`
+	RolesAttributesAdminName string `env:"COGNITO_ROLES_ATTRIBUTE_ADMIN_NAME" defaultEnv:"DefaultCognitoAdminName"`
 	CognitoClient            awsiface.CognitoIdentityProviderAPI
 }
 
-// GetUser - Gets the username and role out of an event
-func (u *UserDetails) GetUser(event *events.APIGatewayProxyRequest) *User {
-
-	if event.RequestContext.Identity.CognitoIdentityPoolID == "" {
+// GetUser - Gets the username and role out of an http request object
+// Assumes that the request is via a Lambda event.
+// Uses cognito metadata from the request to determine the user info.
+// If the request is not authenticated with cognito,
+// returns a generic admin user: User{ Username: "", Role: "Admin" }
+func (u *UserDetails) GetUser(reqCtx *events.APIGatewayProxyRequestContext) *User {
+	if reqCtx.Identity.CognitoIdentityPoolID == "" {
 		// No cognito authentication means the user is considered an admin
 		return &User{
 			Role: AdminGroupName,
 		}
 	}
 
-	congitoSubID := strings.Split(event.RequestContext.Identity.CognitoAuthenticationProvider, ":CognitoSignIn:")[1]
+	congitoSubID := strings.Split(reqCtx.Identity.CognitoAuthenticationProvider, ":CognitoSignIn:")[1]
 
 	filter := fmt.Sprintf("sub = \"%s\"", congitoSubID)
 	users, err := u.CognitoClient.ListUsers(&cognitoidentityprovider.ListUsersInput{
@@ -119,4 +137,29 @@ func (u *UserDetails) isUserInAdminFromList(groups string) bool {
 		}
 	}
 	return false
+}
+
+type UserDetailsMiddleware struct {
+	GorillaMuxAdapter *gorillamux.GorillaMuxAdapter
+	UserDetailer      UserDetailer
+}
+
+func (u *UserDetailsMiddleware) Middleware(next http.Handler) http.Handler {
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		reqCtx, err := u.GorillaMuxAdapter.GetAPIGatewayContext(r)
+		if err != nil {
+			log.Printf("Failed to parse context object from request: %s", err)
+			WriteAPIErrorResponse(w,
+				errors.NewInternalServer("Internal server error", err),
+			)
+			return
+		}
+
+		user := u.UserDetailer.GetUser(&reqCtx)
+		ctx := context.WithValue(r.Context(), User{}, user)
+		r = r.WithContext(ctx)
+
+		next.ServeHTTP(w, r)
+	})
 }

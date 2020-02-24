@@ -83,24 +83,25 @@ func TestGetLeaseByID(t *testing.T) {
 func TestDelete(t *testing.T) {
 	tests := []struct {
 		name      string
+		ID        string
 		expErr    error
 		returnErr error
-		lease     lease.Lease
+		expLease  *lease.Lease
 	}{
 		{
 			name: "should delete a lease",
-			lease: lease.Lease{
-				ID:     ptrString("70c2d96d-7938-4ec9-917d-476f2b09cc04"),
-				Status: lease.StatusActive.StatusPtr(),
+			ID:   "70c2d96d-7938-4ec9-917d-476f2b09cc04",
+			expLease: &lease.Lease{
+				ID:           ptrString("70c2d96d-7938-4ec9-917d-476f2b09cc04"),
+				Status:       lease.StatusActive.StatusPtr(),
+				StatusReason: lease.StatusReasonDestroyed.StatusReasonPtr(),
 			},
 			returnErr: nil,
 		},
 		{
-			name: "should error when delete fails",
-			lease: lease.Lease{
-				ID:     ptrString("70c2d96d-7938-4ec9-917d-476f2b09cc04"),
-				Status: lease.StatusActive.StatusPtr(),
-			},
+			name:      "should error when delete fails",
+			ID:        "70c2d96d-7938-4ec9-917d-476f2b09cc04",
+			expLease:  nil,
 			returnErr: errors.NewInternalServer("failure", fmt.Errorf("original failure")),
 			expErr:    errors.NewInternalServer("failure", nil),
 		},
@@ -109,7 +110,10 @@ func TestDelete(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mocksRwd := &mocks.ReaderWriterDeleter{}
-			mocksRwd.On("Delete", mock.Anything).
+			mocksRwd.On("Get", tt.ID).
+				Return(tt.expLease, tt.returnErr)
+
+			mocksRwd.On("Write", mock.Anything, mock.Anything).
 				Return(tt.returnErr)
 
 			leaseSvc := lease.NewService(
@@ -117,8 +121,9 @@ func TestDelete(t *testing.T) {
 					DataSvc: mocksRwd,
 				},
 			)
-			err := leaseSvc.Delete(&tt.lease)
+			actualLease, err := leaseSvc.Delete(tt.ID)
 			assert.True(t, errors.Is(err, tt.expErr), "actual error %q doesn't match expected error %q", err, tt.expErr)
+			assert.Equal(t, tt.expLease, actualLease)
 
 		})
 	}

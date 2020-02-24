@@ -1,6 +1,8 @@
 package config
 
 import (
+	"github.com/Optum/dce/pkg/api"
+	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"log"
 	"reflect"
 	"runtime"
@@ -20,6 +22,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/codebuild/codebuildiface"
 	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider/cognitoidentityprovideriface"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
+	"github.com/aws/aws-sdk-go/service/lambda"
+	"github.com/aws/aws-sdk-go/service/lambda/lambdaiface"
 	"github.com/aws/aws-sdk-go/service/s3/s3iface"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/aws/aws-sdk-go/service/sns/snsiface"
@@ -96,6 +100,12 @@ func (bldr *ServiceBuilder) WithS3() *ServiceBuilder {
 	return bldr
 }
 
+// WithCloudWatchService tells the builder to add an AWS Cognito service to the `DefaultConfigurater`
+func (bldr *ServiceBuilder) WithCloudWatchService() *ServiceBuilder {
+	bldr.handlers = append(bldr.handlers, bldr.createCloudWatch)
+	return bldr
+}
+
 // WithCognito tells the builder to add an AWS Cognito service to the `DefaultConfigurater`
 func (bldr *ServiceBuilder) WithCognito() *ServiceBuilder {
 	bldr.handlers = append(bldr.handlers, bldr.createCognito)
@@ -111,6 +121,12 @@ func (bldr *ServiceBuilder) WithCodeBuild() *ServiceBuilder {
 // WithSSM tells the builder to add an AWS SSM service to the `DefaultConfigurater`
 func (bldr *ServiceBuilder) WithSSM() *ServiceBuilder {
 	bldr.handlers = append(bldr.handlers, bldr.createSSM)
+	return bldr
+}
+
+// WithLambda tells the builder to add an AWS Lambda service to the `DefaultConfigurater`
+func (bldr *ServiceBuilder) WithLambda() *ServiceBuilder {
+	bldr.handlers = append(bldr.handlers, bldr.createLambda)
 	return bldr
 }
 
@@ -142,11 +158,31 @@ func (bldr *ServiceBuilder) WithAccountManagerService() *ServiceBuilder {
 	return bldr
 }
 
+func (bldr *ServiceBuilder) AccountManager() accountmanageriface.Servicer {
+	var accountManager accountmanageriface.Servicer
+	err := bldr.Config.GetService(&accountManager)
+	if err != nil {
+		panic(err)
+	}
+	return accountManager
+}
+
 // WithAccountService tells the builder to add the Account service to the `ConfigurationBuilder`
 func (bldr *ServiceBuilder) WithAccountService() *ServiceBuilder {
 	bldr.WithAccountManagerService().WithEventService().WithAccountDataService()
 	bldr.handlers = append(bldr.handlers, bldr.createAccountService)
 	return bldr
+}
+
+// AccountService returns the account Service for you
+func (bldr *ServiceBuilder) AccountService() accountiface.Servicer {
+
+	var accountService accountiface.Servicer
+	if err := bldr.Config.GetService(&accountService); err != nil {
+		panic(err)
+	}
+
+	return accountService
 }
 
 // WithLeaseService tells the builder to add the Account service to the `ConfigurationBuilder`
@@ -156,11 +192,38 @@ func (bldr *ServiceBuilder) WithLeaseService() *ServiceBuilder {
 	return bldr
 }
 
+// LeaseService returns the lease Service for you
+func (bldr *ServiceBuilder) LeaseService() leaseiface.Servicer {
+
+	var leaseSvc leaseiface.Servicer
+	if err := bldr.Config.GetService(&leaseSvc); err != nil {
+		panic(err)
+	}
+
+	return leaseSvc
+}
+
 // WithEventService tells the builder to add the Account service to the `ConfigurationBuilder`
 func (bldr *ServiceBuilder) WithEventService() *ServiceBuilder {
 	bldr.WithSQS().WithSNS()
 	bldr.handlers = append(bldr.handlers, bldr.createEventService)
 	return bldr
+}
+
+func (bldr *ServiceBuilder) WithUserDetailer() *ServiceBuilder {
+	bldr.WithCognito()
+	bldr.handlers = append(bldr.handlers, bldr.createUserDetailerService)
+	return bldr
+}
+
+func (bldr *ServiceBuilder) UserDetailer() api.UserDetailer {
+	var userDetailer api.UserDetailer
+	err := bldr.Config.GetService(&userDetailer)
+	if err != nil {
+		panic(err)
+	}
+
+	return userDetailer
 }
 
 // Build creates and returns a structue with AWS services
@@ -281,6 +344,20 @@ func (bldr *ServiceBuilder) createS3(config ConfigurationServiceBuilder) error {
 	return nil
 }
 
+func (bldr *ServiceBuilder) createCloudWatch(config ConfigurationServiceBuilder) error {
+	// Don't add the service twice
+	var api cloudwatch.CloudWatch
+	err := bldr.Config.GetService(&api)
+	if err == nil {
+		log.Printf("Already added CloudWatch service")
+		return nil
+	}
+
+	cloudWatchSvc := cloudwatch.New(bldr.awsSession)
+	config.WithService(cloudWatchSvc)
+	return nil
+}
+
 func (bldr *ServiceBuilder) createCognito(config ConfigurationServiceBuilder) error {
 	// Don't add the service twice
 	var api cognitoidentityprovideriface.CognitoIdentityProviderAPI
@@ -323,6 +400,20 @@ func (bldr *ServiceBuilder) createSSM(config ConfigurationServiceBuilder) error 
 	return nil
 }
 
+func (bldr *ServiceBuilder) createLambda(config ConfigurationServiceBuilder) error {
+	// Don't add the service twice
+	var lambdaAPI lambdaiface.LambdaAPI
+	err := bldr.Config.GetService(&lambdaAPI)
+	if err == nil {
+		log.Printf("Already added Lambda service")
+		return nil
+	}
+
+	lambdaSvc := lambda.New(bldr.awsSession)
+	config.WithService(lambdaSvc)
+	return nil
+}
+
 func (bldr *ServiceBuilder) createStorageService(config ConfigurationServiceBuilder) error {
 	// Don't add the service twice
 	var api common.Storager
@@ -338,6 +429,33 @@ func (bldr *ServiceBuilder) createStorageService(config ConfigurationServiceBuil
 	}
 
 	config.WithService(storageService)
+	return nil
+}
+
+func (bldr *ServiceBuilder) createUserDetailerService(config ConfigurationServiceBuilder) error {
+	// Don't add the service twice
+	var userDetailerAPI api.UserDetailer
+	err := bldr.Config.GetService(&userDetailerAPI)
+	if err == nil {
+		log.Printf("Already added UserDetailer service")
+		return nil
+	}
+
+	var cognitoSvc cognitoidentityprovider.CognitoIdentityProvider
+	err = bldr.Config.GetService(&cognitoSvc)
+	if err != nil {
+		return err
+	}
+
+	userDetailerImpl := &api.UserDetails{}
+	err = bldr.Config.Unmarshal(userDetailerImpl)
+	if err != nil {
+		return err
+	}
+
+	userDetailerImpl.CognitoClient = &cognitoSvc
+
+	config.WithService(userDetailerImpl)
 	return nil
 }
 

@@ -3,12 +3,10 @@ package common
 import (
 	"bytes"
 	"html/template"
-	"io/ioutil"
 	"os"
 	"strings"
 
 	"github.com/Optum/dce/pkg/errors"
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
@@ -18,7 +16,6 @@ import (
 type Storager interface {
 	GetObject(bucket string, key string) (string, error)
 	GetTemplateObject(bucket string, key string, input interface{}) (string, string, error)
-	Upload(bucket string, key string, filepath string) error
 	Download(bukcet string, key string, filepath string) error
 }
 
@@ -101,26 +98,6 @@ func (stor S3) GetTemplateObject(bucket string, key string, input interface{}) (
 	err1 := templParsed.Execute(buf, input)
 
 	return strings.TrimSpace(buf.String()), templateETag, err1
-}
-
-// Upload puts an object to the provided S3 bucket based on the body provided
-// and returns any errors if any
-func (stor S3) Upload(bucket string, key string, filepath string) error {
-	// Create a reader for the file
-	buf, err := ioutil.ReadFile(filepath)
-	if err != nil {
-		return err
-	}
-	body := aws.ReadSeekCloser(bytes.NewReader(buf))
-
-	putInput := s3.PutObjectInput{
-		Bucket:               &bucket,
-		Key:                  &key,
-		Body:                 body,
-		ServerSideEncryption: aws.String("AES256"),
-	}
-	_, err = stor.Client.PutObject(&putInput)
-	return err
 }
 
 // Download downloads an S3 Bucket object to the file path provided and returns

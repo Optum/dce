@@ -286,7 +286,7 @@ func TestGetLeaseAuth(t *testing.T) {
 				)
 
 				mockUserDetailer := apiMocks.UserDetailer{}
-				mockUserDetailer.On("GetUser", &mockRequest).Return(&api.User{
+				mockUserDetailer.On("GetUser", &mockRequest.RequestContext).Return(&api.User{
 					Role:     tt.userRole,
 					Username: tt.userName,
 				})
