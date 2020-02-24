@@ -52,7 +52,7 @@ func TestWhenCreate(t *testing.T) {
 			request: events.APIGatewayProxyRequest{
 				HTTPMethod: http.MethodPost,
 				Path:       "/leases",
-				Body:       "{ \"principalID\": \"User1\", \"adminRoleArn\": \"arn:aws:iam::123456789012:role/AdminRoleArn\" }",
+				Body:       "{ \"principalId\": \"User1\", \"budgetAmount\": 200.00 }",
 			},
 			retAccounts: &account.Accounts{
 				account.Account{
@@ -68,16 +68,51 @@ func TestWhenCreate(t *testing.T) {
 			retErr:   nil,
 		},
 		{
+			name: "When non admin. Then an unauthorized error is returned.",
+			user: &api.User{
+				Username: "admin1",
+				Role:     api.UserGroupName,
+			},
+			request: events.APIGatewayProxyRequest{
+				HTTPMethod: http.MethodPost,
+				Path:       "/leases",
+				Body:       "{ \"principalId\": \"User1\", \"budgetAmount\": 200.00 }",
+			},
+			expResp: events.APIGatewayProxyResponse{
+				StatusCode:        http.StatusUnauthorized,
+				Body:              "{\"error\":{\"message\":\"User [admin1] with role: [User] attempted to act on a lease for [User1], but was not authorized\",\"code\":\"UnauthorizedError\"}}\n",
+				MultiValueHeaders: standardHeaders,
+			},
+			retAccounts: &account.Accounts{
+				account.Account{
+					ID:     ptrString("1234567890"),
+					Status: account.StatusReady.StatusPtr(),
+				},
+			},
+			retLease: &lease.Lease{},
+			retErr:   nil,
+		},
+		{
 			name: "When given bad values. Then a syntax error is returned.",
+			user: &api.User{
+				Username: "admin1",
+				Role:     api.AdminGroupName,
+			},
+			request: events.APIGatewayProxyRequest{
+				HTTPMethod: http.MethodPost,
+				Path:       "/leases",
+				Body:       "{ \"principalId\": \"User1\", \"budgetAmount\": \"200.00\", }",
+			},
 			expResp: events.APIGatewayProxyResponse{
 				StatusCode:        http.StatusBadRequest,
 				Body:              "{\"error\":{\"message\":\"invalid request parameters\",\"code\":\"ClientError\"}}\n",
 				MultiValueHeaders: standardHeaders,
 			},
-			request: events.APIGatewayProxyRequest{
-				HTTPMethod: http.MethodPost,
-				Path:       "/leases",
-				Body:       "{ \"id: \"123456789012\", \"adminRoleArn\": \"arn:aws:iam::123456789012:role/AdminRoleArn\" }",
+			retAccounts: &account.Accounts{
+				account.Account{
+					ID:     ptrString("1234567890"),
+					Status: account.StatusReady.StatusPtr(),
+				},
 			},
 			retLease: &lease.Lease{},
 			retErr:   nil,
