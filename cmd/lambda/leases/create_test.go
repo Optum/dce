@@ -26,7 +26,7 @@ func TestWhenCreate(t *testing.T) {
 	}
 
 	usageSvcMock := &mockUsage.DBer{}
-	usageSvcMock.On("GetUsageByPrincipal", mock.Anything, mock.Anything).Return(nil,nil)
+	usageSvcMock.On("GetUsageByPrincipal", mock.Anything, mock.Anything).Return(nil, nil)
 
 	tests := []struct {
 		name        string
