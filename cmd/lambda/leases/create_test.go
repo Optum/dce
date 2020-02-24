@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/Optum/dce/pkg/account"
 	"github.com/Optum/dce/pkg/api"
-	mockUsage "github.com/Optum/dce/pkg/usage/mocks"
 	"net/http"
 	"testing"
 
@@ -14,6 +13,7 @@ import (
 	"github.com/Optum/dce/pkg/config"
 	"github.com/Optum/dce/pkg/lease"
 	leasemocks "github.com/Optum/dce/pkg/lease/leaseiface/mocks"
+	mockUsage "github.com/Optum/dce/pkg/usage/mocks"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -24,6 +24,9 @@ func TestWhenCreate(t *testing.T) {
 		"Access-Control-Allow-Origin": []string{"*"},
 		"Content-Type":                []string{"application/json"},
 	}
+
+	usageSvcMock := &mockUsage.DBer{}
+	usageSvcMock.On("GetUsageByPrincipal", mock.Anything, mock.Anything).Return(nil,nil)
 
 	tests := []struct {
 		name        string
@@ -103,8 +106,6 @@ func TestWhenCreate(t *testing.T) {
 
 			leaseSvc := leasemocks.Servicer{}
 			accountSvc := accountmocks.Servicer{}
-			usageSvc := &mockUsage.DBer{}
-			usageSvc.On("GetUsageByPrincipal", mock.Anything, mock.Anything).Return(nil,nil)
 
 			userDetailSvc := apiMocks.UserDetailer{}
 			userDetailSvc.On("GetUser", mock.Anything).Return(tt.user)
@@ -127,6 +128,7 @@ func TestWhenCreate(t *testing.T) {
 				Services = svcBldr
 			}
 
+			usageSvc = usageSvcMock
 			resp, err := Handler(context.TODO(), tt.request)
 
 			assert.Nil(t, err)
