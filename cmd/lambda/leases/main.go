@@ -9,6 +9,7 @@ import (
 
 	"github.com/Optum/dce/pkg/api"
 	"github.com/Optum/dce/pkg/config"
+	"github.com/Optum/dce/pkg/usage"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/awslabs/aws-lambda-go-api-proxy/gorillamux"
@@ -38,6 +39,7 @@ var (
 
 var (
 	baseRequest url.URL
+	usageSvc    usage.DBer
 	// Soon to be deprecated - Legacy support
 	//cognitoUserPoolId        string
 	//cognitoAdminName         string
@@ -110,7 +112,6 @@ func initConfig() {
 	_, err = svcBldr.
 		WithLeaseService().
 		WithAccountService().
-		WithUsageService().
 		WithUserDetailer().
 		Build()
 	if err != nil {
@@ -118,7 +119,6 @@ func initConfig() {
 	}
 
 	Services = svcBldr
-
 }
 
 // Handler - Handle the lambda function
@@ -137,5 +137,14 @@ func Handler(_ context.Context, req events.APIGatewayProxyRequest) (events.APIGa
 }
 
 func main() {
+
+	usageService, err := usage.NewFromEnv()
+	if err != nil {
+		errorMessage := fmt.Sprintf("Failed to initialize usage service: %s", err)
+		log.Fatal(errorMessage)
+	}
+
+	usageSvc = usageService
+
 	lambda.Start(Handler)
 }

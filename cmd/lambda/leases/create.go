@@ -68,18 +68,17 @@ func CreateLease(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	usageStartTime := getBeginningOfCurrentBillingPeriod(principalBudgetPeriod).Unix()
-	usageRecords, err := Services.UsageService().Get(usageStartTime, *newLease.PrincipalID)
+	usageStartTime := getBeginningOfCurrentBillingPeriod(principalBudgetPeriod)
+	usageRecords, err := usageSvc.GetUsageByPrincipal(usageStartTime, *newLease.PrincipalID)
 	if err != nil {
 		api.WriteAPIErrorResponse(w, err)
 		return
 	}
+
 	// Group by PrincipalID to get sum of total spent for current billing period
 	spent := 0.0
-	if usageRecords != nil {
-		for _, usageItem := range *usageRecords {
-			spent = spent + *usageItem.CostAmount
-		}
+	for _, usageItem := range usageRecords {
+		spent = spent + *usageItem.CostAmount
 	}
 
 	// Create lease

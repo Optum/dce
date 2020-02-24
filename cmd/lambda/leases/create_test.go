@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/Optum/dce/pkg/account"
 	"github.com/Optum/dce/pkg/api"
+	mockUsage "github.com/Optum/dce/pkg/usage/mocks"
 	"net/http"
 	"testing"
 
@@ -13,7 +14,6 @@ import (
 	"github.com/Optum/dce/pkg/config"
 	"github.com/Optum/dce/pkg/lease"
 	leasemocks "github.com/Optum/dce/pkg/lease/leaseiface/mocks"
-	usagemocks "github.com/Optum/dce/pkg/usage/usageiface/mocks"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -103,7 +103,8 @@ func TestWhenCreate(t *testing.T) {
 
 			leaseSvc := leasemocks.Servicer{}
 			accountSvc := accountmocks.Servicer{}
-			usageSvc := usagemocks.Servicer{}
+			usageSvc := &mockUsage.DBer{}
+			usageSvc.On("GetUsageByPrincipal", mock.Anything, mock.Anything).Return(nil,nil)
 
 			userDetailSvc := apiMocks.UserDetailer{}
 			userDetailSvc.On("GetUser", mock.Anything).Return(tt.user)
@@ -117,10 +118,8 @@ func TestWhenCreate(t *testing.T) {
 			leaseSvc.On("Create", mock.AnythingOfType("*lease.Lease"), mock.Anything).Return(
 				tt.retLease, tt.retErr,
 			)
-			usageSvc.On("Get", mock.Anything, mock.Anything).Return(
-				nil, nil,
-			)
-			svcBldr.Config.WithService(&accountSvc).WithService(&leaseSvc).WithService(&usageSvc).WithEnv("PrincipalBudgetPeriod", "PRINCIPAL_BUDGET_PERIOD", "Weekly").WithService(&userDetailSvc)
+
+			svcBldr.Config.WithService(&accountSvc).WithService(&leaseSvc).WithEnv("PrincipalBudgetPeriod", "PRINCIPAL_BUDGET_PERIOD", "Weekly").WithService(&userDetailSvc)
 			_, err := svcBldr.Build()
 
 			assert.Nil(t, err)
