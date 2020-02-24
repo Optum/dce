@@ -1,6 +1,7 @@
 package config
 
 import (
+	"github.com/Optum/dce/pkg/api"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"log"
 	"reflect"
@@ -157,6 +158,15 @@ func (bldr *ServiceBuilder) WithAccountManagerService() *ServiceBuilder {
 	return bldr
 }
 
+func (bldr *ServiceBuilder) AccountManager() accountmanageriface.Servicer {
+	var accountManager accountmanageriface.Servicer
+	err := bldr.Config.GetService(&accountManager)
+	if err != nil {
+		panic(err)
+	}
+	return accountManager
+}
+
 // WithAccountService tells the builder to add the Account service to the `ConfigurationBuilder`
 func (bldr *ServiceBuilder) WithAccountService() *ServiceBuilder {
 	bldr.WithAccountManagerService().WithEventService().WithAccountDataService()
@@ -198,6 +208,22 @@ func (bldr *ServiceBuilder) WithEventService() *ServiceBuilder {
 	bldr.WithSQS().WithSNS()
 	bldr.handlers = append(bldr.handlers, bldr.createEventService)
 	return bldr
+}
+
+func (bldr *ServiceBuilder) WithUserDetailer() *ServiceBuilder {
+	bldr.WithCognito()
+	bldr.handlers = append(bldr.handlers, bldr.createUserDetailerService)
+	return bldr
+}
+
+func (bldr *ServiceBuilder) UserDetailer() api.UserDetailer {
+	var userDetailer api.UserDetailer
+	err := bldr.Config.GetService(&userDetailer)
+	if err != nil {
+		panic(err)
+	}
+
+	return userDetailer
 }
 
 // Build creates and returns a structue with AWS services
@@ -403,6 +429,33 @@ func (bldr *ServiceBuilder) createStorageService(config ConfigurationServiceBuil
 	}
 
 	config.WithService(storageService)
+	return nil
+}
+
+func (bldr *ServiceBuilder) createUserDetailerService(config ConfigurationServiceBuilder) error {
+	// Don't add the service twice
+	var userDetailerAPI api.UserDetailer
+	err := bldr.Config.GetService(&userDetailerAPI)
+	if err == nil {
+		log.Printf("Already added UserDetailer service")
+		return nil
+	}
+
+	var cognitoSvc cognitoidentityprovider.CognitoIdentityProvider
+	err = bldr.Config.GetService(&cognitoSvc)
+	if err != nil {
+		return err
+	}
+
+	userDetailerImpl := &api.UserDetails{}
+	err = bldr.Config.Unmarshal(userDetailerImpl)
+	if err != nil {
+		return err
+	}
+
+	userDetailerImpl.CognitoClient = &cognitoSvc
+
+	config.WithService(userDetailerImpl)
 	return nil
 }
 

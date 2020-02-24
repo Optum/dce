@@ -16,6 +16,7 @@ const (
 	validationError    = "RequestValidationError"
 	alreadyExistsError = "AlreadyExistsError"
 	notFoundError      = "NotFoundError"
+	unauthorizedError  = "UnauthorizedError"
 	conflictError      = "ConflictError"
 )
 
@@ -162,6 +163,18 @@ func NewBadRequest(m string) *StatusError {
 		Details: detailError{
 			Message: m,
 			Code:    clientError,
+		},
+		stack: callers(),
+	}
+}
+
+// NewUnathorizedError returns an a NewUnathorizedError error with standard messaging
+func NewUnathorizedError(m string) *StatusError {
+	return &StatusError{
+		httpCode: http.StatusUnauthorized,
+		Details: detailError{
+			Message: m,
+			Code:    unauthorizedError,
 		},
 		stack: callers(),
 	}

@@ -7,8 +7,6 @@ There are two ways to authenticate against the DCE APIs:
 
 ## Roles
 
-Note: The enforcement of roles is currently a `work in progress <https://github.com/Optum/dce/issues/137>`_.
-
 ### Admins
 
 Admins have full access to all APIs and will not get back filtered results when querying APIs.
@@ -21,7 +19,7 @@ There are three different ways a user is considered an admin:
 
 ### Users
 
-Users (by default) are given access to the leasing and usage APIs.  This is done so they can request their own lease and look at the usage of their leases.  Any user authenticated through Cognito will automatically fall into the `Users` role unless designated as an Admin.
+Users are given access to the leases and usage APIs.  This is done so they can request their own lease and look at the usage of their leases.  Any user authenticated through Cognito will automatically fall into the `Users` role unless designated as an Admin.
 
 ## Using AWS Cognito
 
