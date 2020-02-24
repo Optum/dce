@@ -53,8 +53,8 @@ func (a *Usage) Write(usg *usage.Usage) error {
 
 }
 
-// Get gets the Usage record by StartDate and PrincipalID
-func (a *Usage) Get(startDate int64, principalID string) (*usage.Usage, error) {
+// GetByStartDateAndPrincipalID gets the Usage record by StartDate and PrincipalID
+func (a *Usage) GetByStartDateAndPrincipalID(startDate int64, principalID string) (*usage.Usage, error) {
 
 	input := &dynamodb.GetItemInput{
 		// Query in Lease Table
