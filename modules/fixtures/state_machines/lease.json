@@ -5,7 +5,7 @@
         "Wait": {
             "Comment": "Wait 6 hours before next check.",
             "Type": "Wait",
-            "Seconds": 21600,
+            "Seconds": ${WAIT_SECONDS},
             "Next": "GetLease"
         },
         "GetLease": {
