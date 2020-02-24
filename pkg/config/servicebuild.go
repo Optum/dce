@@ -18,8 +18,6 @@ import (
 	"github.com/Optum/dce/pkg/event/eventiface"
 	"github.com/Optum/dce/pkg/lease"
 	"github.com/Optum/dce/pkg/lease/leaseiface"
-	"github.com/Optum/dce/pkg/usage"
-	"github.com/Optum/dce/pkg/usage/usageiface"
 
 	"github.com/aws/aws-sdk-go/service/codebuild/codebuildiface"
 	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider/cognitoidentityprovideriface"
@@ -663,84 +661,5 @@ func (bldr *ServiceBuilder) createLeaseService(config ConfigurationServiceBuilde
 	)
 
 	config.WithService(leaseSvc)
-	return nil
-}
-
-// WithUsageService tells the builder to add the usage service to the `ConfigurationBuilder`
-func (bldr *ServiceBuilder) WithUsageService() *ServiceBuilder {
-	bldr.WithUsageDataService()
-	bldr.handlers = append(bldr.handlers, bldr.createUsageService)
-	return bldr
-}
-
-// UsageService returns the usage Service for you
-func (bldr *ServiceBuilder) UsageService() usageiface.Servicer {
-
-	var usageSvc usageiface.Servicer
-	if err := bldr.Config.GetService(&usageSvc); err != nil {
-		panic(err)
-	}
-
-	return usageSvc
-}
-
-// WithUsageDataService tells the builder to add the Data service to the `ConfigurationBuilder`
-func (bldr *ServiceBuilder) WithUsageDataService() *ServiceBuilder {
-	bldr.WithDynamoDB()
-	bldr.handlers = append(bldr.handlers, bldr.createUsageDataService)
-	return bldr
-}
-
-func (bldr *ServiceBuilder) createUsageDataService(config ConfigurationServiceBuilder) error {
-	// Don't add the service twice
-	var api dataiface.UsageData
-	err := bldr.Config.GetService(&api)
-	if err == nil {
-		log.Printf("Already added Usage Data service")
-		return nil
-	}
-
-	var dynamodbSvc dynamodbiface.DynamoDBAPI
-	err = bldr.Config.GetService(&dynamodbSvc)
-
-	if err != nil {
-		return err
-	}
-
-	dataSvcImpl := &data.Usage{}
-
-	err = bldr.Config.Unmarshal(dataSvcImpl)
-	if err != nil {
-		return err
-	}
-
-	dataSvcImpl.DynamoDB = dynamodbSvc
-
-	config.WithService(dataSvcImpl)
-	return nil
-}
-
-func (bldr *ServiceBuilder) createUsageService(config ConfigurationServiceBuilder) error {
-	// Don't add the service twice
-	var api usageiface.Servicer
-	err := bldr.Config.GetService(&api)
-	if err == nil {
-		log.Printf("Already added Usage service")
-		return nil
-	}
-
-	var dataSvc dataiface.UsageData
-	err = bldr.Config.GetService(&dataSvc)
-	if err != nil {
-		return err
-	}
-
-	usageSvc := usage.NewService(
-		usage.NewServiceInput{
-			DataSvc: dataSvc,
-		},
-	)
-
-	config.WithService(usageSvc)
 	return nil
 }
