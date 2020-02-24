@@ -48,6 +48,10 @@ func CreateLease(w http.ResponseWriter, r *http.Request) {
 	// If user is not an admin, they can't create leases for other users
 	user := r.Context().Value(api.User{}).(*api.User)
 	err = user.Authorize(*newLease.PrincipalID)
+	if err != nil {
+		api.WriteAPIErrorResponse(w, err)
+		return
+	}
 
 	// Mark the account as Status=Leased
 	availableAccount.Status = account.StatusLeased.StatusPtr()
