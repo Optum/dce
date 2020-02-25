@@ -109,8 +109,8 @@ func (a *UsageLease) addLeaseUsage(usg usage.Lease) error {
 		getTTL(*usg.Date, a.TimeToLive),
 	}
 
-	updateBldr = updateBldr.Add(expression.Name("LeaseID"), expression.Value(usgData.LeaseID))
 	updateBldr = updateBldr.Add(expression.Name("CostAmount"), expression.Value(usgData.CostAmount))
+	updateBldr = updateBldr.Set(expression.Name("LeaseId"), expression.Value(usgData.LeaseID))
 	updateBldr = updateBldr.Set(expression.Name("CostCurrency"), expression.Value(usgData.CostCurrency))
 	updateBldr = updateBldr.Set(expression.Name("Date"), expression.Value(usgData.Date.Unix()))
 	updateBldr = updateBldr.Set(expression.Name("TimeToLive"), expression.Value(usgData.TimeToLive))
