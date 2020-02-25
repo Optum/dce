@@ -92,6 +92,7 @@ func handler(ctx context.Context, event lease.Lease) (lease.Lease, error) {
 				Date:         usg.TimePeriod,
 				CostAmount:   usg.Amount,
 				CostCurrency: *event.BudgetCurrency,
+				BudgetAmount: *event.BudgetAmount,
 			},
 		)
 		if err != nil {

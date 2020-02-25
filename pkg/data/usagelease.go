@@ -72,6 +72,7 @@ func (a *UsageLease) Write(usg *usage.Lease) error {
 		CostAmount:   usg.CostAmount,
 		CostCurrency: usg.CostCurrency,
 		LeaseID:      usg.LeaseID,
+		BudgetAmount: usg.BudgetAmount,
 	}
 	if oldUsg.CostAmount != nil {
 		diffCost := *diffUsg.CostAmount - *oldUsg.CostAmount
@@ -108,10 +109,12 @@ func (a *UsageLease) addLeaseUsage(usg usage.Lease) error {
 		getTTL(*usg.Date, a.TimeToLive),
 	}
 
+	updateBldr = updateBldr.Add(expression.Name("LeaseID"), expression.Value(usgData.LeaseID))
 	updateBldr = updateBldr.Add(expression.Name("CostAmount"), expression.Value(usgData.CostAmount))
 	updateBldr = updateBldr.Set(expression.Name("CostCurrency"), expression.Value(usgData.CostCurrency))
 	updateBldr = updateBldr.Set(expression.Name("Date"), expression.Value(usgData.Date.Unix()))
 	updateBldr = updateBldr.Set(expression.Name("TimeToLive"), expression.Value(usgData.TimeToLive))
+	updateBldr = updateBldr.Set(expression.Name("BudgetAmount"), expression.Value(usgData.BudgetAmount))
 	expr, err = expression.NewBuilder().WithUpdate(updateBldr).Build()
 
 	input := &dynamodb.UpdateItemInput{
