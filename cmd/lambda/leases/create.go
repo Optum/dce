@@ -28,6 +28,21 @@ func CreateLease(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// if principalId is missing, then throw an error
+	if newLease.PrincipalID == nil {
+		api.WriteAPIErrorResponse(w,
+			errors.NewBadRequest("invalid request parameters: missing principalId"))
+		return
+	}
+
+	// If user is not an admin, they can't create leases for other users
+	user := r.Context().Value(api.User{}).(*api.User)
+	err = user.Authorize(*newLease.PrincipalID)
+	if err != nil {
+		api.WriteAPIErrorResponse(w, err)
+		return
+	}
+
 	// Get the First available Ready Account
 	query := &account.Account{
 		Status: account.StatusReady.StatusPtr(),
@@ -44,14 +59,6 @@ func CreateLease(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	availableAccount := (*accounts)[0]
-
-	// If user is not an admin, they can't create leases for other users
-	user := r.Context().Value(api.User{}).(*api.User)
-	err = user.Authorize(*newLease.PrincipalID)
-	if err != nil {
-		api.WriteAPIErrorResponse(w, err)
-		return
-	}
 
 	// Mark the account as Status=Leased
 	availableAccount.Status = account.StatusLeased.StatusPtr()

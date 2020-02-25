@@ -68,32 +68,26 @@ func TestWhenCreate(t *testing.T) {
 			retErr:   nil,
 		},
 		{
-			name: "When non admin. Then an unauthorized error is returned.",
+			name: "When principalId is missing. Then an internal server error is returned.",
 			user: &api.User{
 				Username: "admin1",
-				Role:     api.UserGroupName,
+				Role:     api.AdminGroupName,
 			},
 			request: events.APIGatewayProxyRequest{
 				HTTPMethod: http.MethodPost,
 				Path:       "/leases",
-				Body:       "{ \"principalId\": \"User1\", \"budgetAmount\": 200.00 }",
+				Body:       "{\"budgetAmount\": 200.00 }",
 			},
 			expResp: events.APIGatewayProxyResponse{
-				StatusCode:        http.StatusUnauthorized,
-				Body:              "{\"error\":{\"message\":\"User [admin1] with role: [User] attempted to act on a lease for [User1], but was not authorized\",\"code\":\"UnauthorizedError\"}}\n",
+				StatusCode:        http.StatusBadRequest,
+				Body:              "{\"error\":{\"message\":\"invalid request parameters: missing principalId\",\"code\":\"ClientError\"}}\n",
 				MultiValueHeaders: standardHeaders,
 			},
-			retAccounts: &account.Accounts{
-				account.Account{
-					ID:     ptrString("1234567890"),
-					Status: account.StatusReady.StatusPtr(),
-				},
-			},
-			retLease: &lease.Lease{},
-			retErr:   nil,
+			retLease: nil,
+			retErr:   fmt.Errorf("failure"),
 		},
 		{
-			name: "When given bad values. Then a syntax error is returned.",
+			name: "When given bad values like budget amount is a string. Then a syntax error is returned.",
 			user: &api.User{
 				Username: "admin1",
 				Role:     api.AdminGroupName,
@@ -118,11 +112,40 @@ func TestWhenCreate(t *testing.T) {
 			retErr:   nil,
 		},
 		{
-			name: "Given internal failure. Then an internal server error is returned.",
+			name: "When non admin makes creates lease request. Then an unauthorized error is returned.",
+			user: &api.User{
+				Username: "admin1",
+				Role:     api.UserGroupName,
+			},
 			request: events.APIGatewayProxyRequest{
 				HTTPMethod: http.MethodPost,
 				Path:       "/leases",
-				Body:       "{ \"id\": \"123456789012\", \"adminRoleArn\": \"arn:aws:iam::123456789012:role/AdminRoleArn\" }",
+				Body:       "{ \"principalId\": \"User1\", \"budgetAmount\": 200.00 }",
+			},
+			expResp: events.APIGatewayProxyResponse{
+				StatusCode:        http.StatusUnauthorized,
+				Body:              "{\"error\":{\"message\":\"User [admin1] with role: [User] attempted to act on a lease for [User1], but was not authorized\",\"code\":\"UnauthorizedError\"}}\n",
+				MultiValueHeaders: standardHeaders,
+			},
+			retAccounts: &account.Accounts{
+				account.Account{
+					ID:     ptrString("1234567890"),
+					Status: account.StatusReady.StatusPtr(),
+				},
+			},
+			retLease: &lease.Lease{},
+			retErr:   nil,
+		},
+		{
+			name: "Given internal failure. Then an internal server error is returned.",
+			user: &api.User{
+				Username: "admin1",
+				Role:     api.AdminGroupName,
+			},
+			request: events.APIGatewayProxyRequest{
+				HTTPMethod: http.MethodPost,
+				Path:       "/leases",
+				Body:       "{ \"principalId\": \"User1\", \"budgetAmount\": 200.00 }",
 			},
 			expResp: events.APIGatewayProxyResponse{
 				StatusCode:        http.StatusInternalServerError,
