@@ -90,13 +90,13 @@ func CreateLease(w http.ResponseWriter, r *http.Request) {
 
 	// Create lease
 	newLease.AccountID = leasedAccount.ID
-	lease, err := Services.LeaseService().Create(newLease, spent)
+	leaseCreated, err := Services.LeaseService().Create(newLease, spent)
 	if err != nil {
 		api.WriteAPIErrorResponse(w, err)
 		return
 	}
 
-	api.WriteAPIResponse(w, http.StatusCreated, lease)
+	api.WriteAPIResponse(w, http.StatusCreated, leaseCreated)
 }
 
 // getBeginningOfCurrentBillingPeriod returns starts of the billing period based on budget period

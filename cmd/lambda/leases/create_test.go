@@ -134,7 +134,7 @@ func TestWhenCreateError(t *testing.T) {
 		retCreateErr error
 	}{
 		{
-			name: "When principalId is missing. Then an internal server error is returned.",
+			name: "When principalId is missing. Then a client error is returned.",
 			user: &api.User{
 				Username: "admin1",
 				Role:     api.AdminGroupName,

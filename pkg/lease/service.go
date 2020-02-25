@@ -184,7 +184,7 @@ func (a *Service) Create(data *Lease, principalSpentAmount float64) (*Lease, err
 		return nil, errors.NewAlreadyExists("lease", *data.PrincipalID)
 	}
 
-	new := NewLease(NewLeaseInput{
+	newLeaseRecord := NewLease(NewLeaseInput{
 		AccountID:                *data.AccountID,
 		PrincipalID:              *data.PrincipalID,
 		BudgetAmount:             *data.BudgetAmount,
@@ -196,17 +196,17 @@ func (a *Service) Create(data *Lease, principalSpentAmount float64) (*Lease, err
 		return nil, err
 	}
 
-	err = a.Save(new)
+	err = a.Save(newLeaseRecord)
 	if err != nil {
 		return nil, err
 	}
 
-	err = a.eventSvc.LeaseCreate(new)
+	err = a.eventSvc.LeaseCreate(newLeaseRecord)
 	if err != nil {
 		return nil, err
 	}
 
-	return new, nil
+	return newLeaseRecord, nil
 }
 
 // ListPages runs a function on each page in a list

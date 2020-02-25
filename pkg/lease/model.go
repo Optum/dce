@@ -117,12 +117,6 @@ func (c StatusReason) StatusReasonPtr() *StatusReason {
 	return &v
 }
 
-// StringPtr returns a pointer to the input string value
-func StringPtr(c string) *string {
-	v := c
-	return &v
-}
-
 // NewLeaseInput contains all the data for creating a new Lease
 type NewLeaseInput struct {
 	AccountID                string
