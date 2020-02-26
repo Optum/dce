@@ -278,3 +278,9 @@ variable "usage_table_wcu" {
   default     = 5
   description = "DynamoDB Usage table provisioned Write Capacity Units (WCUs). See https://aws.amazon.com/dynamodb/pricing/provisioned/"
 }
+
+variable "lease_state_machine_wait_seconds" {
+  type        = number
+  default     = 21600
+  description = "Number of seconds the lease usage state machine will wait between runs. Defaults to 6 hours (21600 seconds)"
+}

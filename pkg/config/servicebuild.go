@@ -2,6 +2,7 @@ package config
 
 import (
 	"github.com/Optum/dce/pkg/api"
+
 	"log"
 	"reflect"
 	"runtime"
@@ -213,22 +214,6 @@ func (bldr *ServiceBuilder) WithEventService() *ServiceBuilder {
 	return bldr
 }
 
-<<<<<<< HEAD
-func (bldr *ServiceBuilder) WithUserDetailer() *ServiceBuilder {
-	bldr.WithCognito()
-	bldr.handlers = append(bldr.handlers, bldr.createUserDetailerService)
-	return bldr
-}
-
-func (bldr *ServiceBuilder) UserDetailer() api.UserDetailer {
-	var userDetailer api.UserDetailer
-	err := bldr.Config.GetService(&userDetailer)
-	if err != nil {
-		panic(err)
-	}
-
-	return userDetailer
-=======
 // WithUsageDataService tells the builder to add the Usage Data service to the `ConfigurationBuilder`
 func (bldr *ServiceBuilder) WithUsageDataService() *ServiceBuilder {
 	bldr.WithDynamoDB()
@@ -252,7 +237,22 @@ func (bldr *ServiceBuilder) UsageService() usageiface.Servicer {
 	}
 
 	return usageSvc
->>>>>>> new usage methodologies
+}
+
+func (bldr *ServiceBuilder) WithUserDetailer() *ServiceBuilder {
+	bldr.WithCognito()
+	bldr.handlers = append(bldr.handlers, bldr.createUserDetailerService)
+	return bldr
+}
+
+func (bldr *ServiceBuilder) UserDetailer() api.UserDetailer {
+	var userDetailer api.UserDetailer
+	err := bldr.Config.GetService(&userDetailer)
+	if err != nil {
+		panic(err)
+	}
+
+	return userDetailer
 }
 
 // Build creates and returns a structue with AWS services
