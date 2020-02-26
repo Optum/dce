@@ -106,26 +106,6 @@ func (a *Service) Save(data *Account) error {
 	return nil
 }
 
-// EndLease indicates that the provided account is no longer leased.
-// The account status changes from `Leased` --> `NotReady`,
-// and the account is added to the reset queue.
-func (a *Service) EndLease(id string) (*Account, error) {
-	// Mark the account as `NotReady`
-	acct, err := a.Update(id, &Account{
-		Status: StatusNotReady.StatusPtr(),
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	// Add the account to the reset queue
-	acct.Status = StatusNotReady.StatusPtr()
-	log.Printf("Adding account to reset queue: %+v", acct)
-	err = a.Reset(acct)
-
-	return acct, err
-}
-
 // Update the Account record in DynamoDB
 func (a *Service) Update(ID string, data *Account) (*Account, error) {
 	err := validation.ValidateStruct(data,
@@ -185,7 +165,7 @@ func (a *Service) Create(data *Account) (*Account, error) {
 		}
 	}
 
-	newAcct, err := NewAccount(NewAccountInput{
+	new, err := NewAccount(NewAccountInput{
 		ID:                *data.ID,
 		AdminRoleArn:      *data.AdminRoleArn,
 		Metadata:          data.Metadata,
@@ -195,27 +175,27 @@ func (a *Service) Create(data *Account) (*Account, error) {
 		return nil, err
 	}
 
-	err = a.UpsertPrincipalAccess(newAcct)
+	err = a.UpsertPrincipalAccess(new)
 	if err != nil {
 		return nil, err
 	}
 
-	err = a.Save(newAcct)
+	err = a.Save(new)
 	if err != nil {
 		return nil, err
 	}
 
-	err = a.eventSvc.AccountCreate(newAcct)
+	err = a.eventSvc.AccountCreate(new)
 	if err != nil {
 		return nil, err
 	}
 
-	err = a.eventSvc.AccountReset(newAcct)
+	err = a.eventSvc.AccountReset(new)
 	if err != nil {
 		return nil, err
 	}
 
-	return newAcct, nil
+	return new, nil
 }
 
 // Delete finds a given account and deletes it if it is not of status `Leased`. Returns the account.
