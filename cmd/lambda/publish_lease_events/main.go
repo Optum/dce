@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 
 	"github.com/Optum/dce/pkg/common"
@@ -12,7 +11,6 @@ import (
 	errors2 "github.com/Optum/dce/pkg/errors"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
@@ -110,47 +108,6 @@ func handleRecord(input *handleRecordInput) error {
 		// Lease is now expired if it transitioned from "Active" --> "Inactive"
 		didBecomeInactive := isActiveStatus(prevLeaseStatus) && !isActiveStatus(nextLeaseStatus)
 
-		if didBecomeInactive {
-			// Before adding the account to any queues, make sure the account is
-			// updated to NotReady state.
-			var acct *db.Account
-			acct, err := input.dbSvc.TransitionAccountStatus(lease.AccountID, db.Leased, db.NotReady)
-			if err != nil {
-				log.Printf("ERROR: Failed to mark AccountStatus=NotReady for %s, after lease for %s became inactive",
-					lease.AccountID, lease.PrincipalID)
-			}
-
-			if acct == nil {
-				acct, err = input.dbSvc.GetAccount(lease.AccountID)
-				if err != nil {
-					log.Printf("ERROR: Failed to mark get account %q", lease.AccountID)
-					return err
-				}
-			}
-
-			// Put the message on the SQS queue ONLY IF the status has gone
-			// to Inactive.
-			log.Printf("Adding account %s to the reset queue", lease.AccountID)
-			body, err := json.Marshal(acct)
-			if err != nil {
-				return err
-			}
-			sBody := string(body)
-			err = input.sqsSvc.SendMessage(
-				aws.String(input.resetQueueURL),
-				aws.String(sBody),
-			)
-
-			if err != nil {
-				errMsg := fmt.Sprintf("Failed to add account to reset queue for lease %s @ %s: %s", lease.PrincipalID, lease.AccountID, err)
-				log.Println(errMsg)
-				// throw the error. Because if we could not enqueue the lease reset, we want
-				// the Lambda to error out so it can be re-tried per the retry policy of
-				// the event source.
-				return errors.New(errMsg)
-			}
-		}
-
 		publishInput := publishLeaseInput{
 			lease:  lease,
 			snsSvc: input.snsSvc,
@@ -168,6 +125,11 @@ func handleRecord(input *handleRecordInput) error {
 		}
 	default:
 	}
+
+
+	log.Println("Handler complete. Let's see what's up with the account")
+	acc2, err := input.dbSvc.GetAccount(lease.AccountID)
+	log.Printf("%+v, %s", acc2, err)
 
 	return nil
 }

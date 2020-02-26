@@ -26,4 +26,8 @@ type Servicer interface {
 	Reset(data *account.Account) error
 	// UpsertPrincipalAccess merges principal access to make sure its
 	UpsertPrincipalAccess(data *account.Account) error
+	// EndLease indicates that the provided account is no longer leased.
+	// The account status changes from `Leased` --> `NotReady`,
+	// and the account is added to the reset queue.
+	EndLease(id string) (*account.Account, error)
 }

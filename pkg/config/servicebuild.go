@@ -187,7 +187,12 @@ func (bldr *ServiceBuilder) AccountService() accountiface.Servicer {
 
 // WithLeaseService tells the builder to add the Account service to the `ConfigurationBuilder`
 func (bldr *ServiceBuilder) WithLeaseService() *ServiceBuilder {
-	bldr.WithLeaseDataService().WithEventService()
+	// Make sure dependencies are configured
+	bldr.
+		WithLeaseDataService().
+		WithAccountService().
+		WithEventService()
+
 	bldr.handlers = append(bldr.handlers, bldr.createLeaseService)
 	return bldr
 }
@@ -654,9 +659,16 @@ func (bldr *ServiceBuilder) createLeaseService(config ConfigurationServiceBuilde
 		return err
 	}
 
+	var accountSvc lease.AccountServicer
+	err = bldr.Config.GetService(&accountSvc)
+	if err != nil {
+		return err
+	}
+
 	leaseSvc := lease.NewService(
 		lease.NewServiceInput{
 			DataSvc: dataSvc,
+			AccountSvc: accountSvc,
 		},
 	)
 
