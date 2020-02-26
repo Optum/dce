@@ -15,3 +15,5 @@ go get github.com/axw/gocov/gocov
 go get github.com/AlekSi/gocov-xml
 go get github.com/matm/gocov-html
 go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
+
+go get github.com/securego/gosec/cmd/gosec
