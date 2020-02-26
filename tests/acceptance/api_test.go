@@ -1357,7 +1357,7 @@ func TestApi(t *testing.T) {
 		waitForAccountStatus(t, apiURL, accountID, "Ready")
 
 		// Make 3 leases in a row
-		for i := range [10]int{} {
+		for i := range [3]int{} {
 			log.Printf("Lease attempt %d", i)
 
 			// Create a lease
