@@ -654,10 +654,14 @@ func (bldr *ServiceBuilder) createLeaseService(config ConfigurationServiceBuilde
 		return err
 	}
 
+	leaseSvcInput := lease.NewServiceInput{}
+	if err := bldr.Config.Unmarshal(&leaseSvcInput); err != nil {
+		log.Printf("Could not load configuration: %s", err.Error())
+		return nil
+	}
+	leaseSvcInput.DataSvc = dataSvc
 	leaseSvc := lease.NewService(
-		lease.NewServiceInput{
-			DataSvc: dataSvc,
-		},
+		leaseSvcInput,
 	)
 
 	config.WithService(leaseSvc)

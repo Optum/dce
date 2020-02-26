@@ -438,10 +438,11 @@ func TestApi(t *testing.T) {
 			cognitoUser2 := NewCognitoUser(t, tfOut, awsSession, accountID)
 			defer cognitoUser2.delete(t, tfOut, awsSession)
 			// Create an Account Entry
-			leasedAccountID := "123"
+			leasedAccountID := "123456789012"
 			timeNow := time.Now().Unix()
 			err := dbSvc.PutAccount(db.Account{
 				ID:             leasedAccountID,
+				AdminRoleArn:   "arn:aws:iam::123456789012:user/test",
 				AccountStatus:  db.Ready,
 				LastModifiedOn: timeNow,
 			})
@@ -482,7 +483,7 @@ func TestApi(t *testing.T) {
 					BudgetNotificationEmails []string `json:"budgetNotificationEmails"`
 				}{
 					PrincipalID:              cognitoUser1.Username,
-					BudgetAmount:             100,
+					BudgetAmount:             100.29,
 					BudgetCurrency:           "USD",
 					BudgetNotificationEmails: []string{"test@optum.com"},
 				},

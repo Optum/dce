@@ -109,11 +109,9 @@ func (a *Service) Save(data *Account) error {
 // Update the Account record in DynamoDB
 func (a *Service) Update(ID string, data *Account) (*Account, error) {
 	err := validation.ValidateStruct(data,
-		// ID has to be empty
-		validation.Field(&data.ID, validation.NilOrNotEmpty, validation.In(ID)),
-		validation.Field(&data.AdminRoleArn, validation.By(isNilOrUsableAdminRole(a.managerSvc))),
-		validation.Field(&data.LastModifiedOn, validation.By(isNil)),
-		validation.Field(&data.CreatedOn, validation.By(isNil)),
+	// ID has to be empty
+	validation.Field(&data.ID, validation.NilOrNotEmpty, validation.In(ID)),
+	validation.Field(&data.AdminRoleArn, validation.By(isNilOrUsableAdminRole(a.managerSvc))),
 	)
 	if err != nil {
 		return nil, errors.NewValidation("account", err)

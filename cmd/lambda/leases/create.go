@@ -69,13 +69,7 @@ func CreateLease(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get user principal's current spend
-	principalBudgetPeriod, err := Services.Config.GetStringVal("PrincipalBudgetPeriod")
-	if err != nil {
-		api.WriteAPIErrorResponse(w, err)
-		return
-	}
-
-	usageStartTime := getBeginningOfCurrentBillingPeriod(principalBudgetPeriod)
+	usageStartTime := getBeginningOfCurrentBillingPeriod(Settings.PrincipalBudgetPeriod)
 	usageRecords, err := usageSvc.GetUsageByPrincipal(usageStartTime, *newLease.PrincipalID)
 	if err != nil {
 		api.WriteAPIErrorResponse(w, err)
