@@ -31,7 +31,7 @@ EOF
 function printTestBanner() {
 cat <<EOF >> "${tmpdir}/test.log" 2>&1
 ###############################################################################
-Running test: "$1" 
+Running test: "$1"
 EOF
     echo -n "Running test: \"${1}\"..."
     return 0
@@ -45,6 +45,43 @@ EOF
     echo "...$1!"
     return 0
 }
+
+# cleanup ends all leases and removes all accounts from dce master
+function cleanup() {
+    printTestBanner "Cleanup"
+
+    active_leases=$("${dce_cmd}" leases list 2>&1 | jq -c -r '.[] | select(.leaseStatus=="Active")')
+    for lease in $active_leases
+    do
+        account_id=$(echo $lease | jq -r '.accountId')
+        principal_id=$(echo $lease | jq -r '.principalId')
+        "${dce_cmd}" leases end --account-id $account_id --principal-id $principal_id >> "${tmpdir}/test.log" 2>&1
+        if [[ $? -ne 0 ]]; then
+            lease_id=$(echo $lease | jq -r '.id')
+            echo "Error while trying to end lease id \"${lease_id}\". Retrying...". 1>&2
+            "${dce_cmd}" leases end --account-id $account_id --principal-id $principal_id >> "${tmpdir}/test.log" 2>&1
+            if [[ $? -ne 0 ]]; then
+                echo "Unable to end lease id \"${lease_id}\"." 1>&2
+            fi
+        fi
+    done
+
+    accounts_ids=$("${dce_cmd}" accounts list 2>&1 | jq -c -r '.[].id')
+    for id in $accounts_ids
+    do
+        "${dce_cmd}" accounts remove $id >> "${tmpdir}/test.log" 2>&1
+        if [[ $? -ne 0 ]]; then
+            echo "Error while trying to remove account id \"${id}\". Retrying...". 1>&2
+            "${dce_cmd}" accounts remove $id >> "${tmpdir}/test.log" 2>&1
+            if [[ $? -ne 0 ]]; then
+                echo "Unable to remove account id \"${id}\"." 1>&2
+            fi
+        fi
+    done
+    printTestResult "Finished"
+}
+
+trap cleanup EXIT
 
 # assertExists makes sure the given command exists on the path and is executable.
 # Like all of the other assert* functions, this will print a "Failed. ..."
@@ -64,14 +101,14 @@ function assertExists() {
 # Like all of the other assert* functions, this will print a "Failed. ..."
 # message and exit
 # args:
-#     1 - The tag in the output for the logs. This is used later to find 
+#     1 - The tag in the output for the logs. This is used later to find
 #         messages in the output with assertInLog or assertNotInLog
 #     2.. - The command and all of its arguments
 function assertSuccess() {
 cat <<EOF >> "${tmpdir}/test.log" 2>&1
-Running command "${@:2}": 
+Running command "${@:2}":
 EOF
-    ${@:2} 2>&1 | sed -l "s/^/$1: /" >> "${tmpdir}/test.log" 
+    ${@:2} 2>&1 | sed -l "s/^/$1: /" >> "${tmpdir}/test.log"
     if [[ $? -ne 0 ]]; then
         echo "Failed. Error while trying to run \"${@:2}\". check logs." 1>&2
         exit -1
@@ -131,7 +168,7 @@ echo -n "Downloading DCE..."
 
 [[ -f ${workdir}/test.cfg ]] && source $workdir/test.cfg
 
-if [[ ${DCE_CLI_VERSION-latest} == "latest" ]]; then 
+if [[ ${DCE_CLI_VERSION-latest} == "latest" ]]; then
     echo "Version not specified, so using latest."
     dce_bin_url="https://github.com/Optum/dce-cli/releases/latest/download/dce_darwin_amd64.zip"
 else
@@ -157,22 +194,46 @@ writeConfig ${dce_config_file}
 #------------------------------------------------------------------------------
 # Test 1 - Make sure command works and usage works
 #------------------------------------------------------------------------------
-printTestBanner "Get help"
-assertSuccess "help" "${dce_cmd}" --help
-assertInLog "help" "Disposable Cloud Environment"
-assertInLog "help" "Usage:"
+# printTestBanner "Get help"
+# assertSuccess "help" "${dce_cmd}" --help
+# assertInLog "help" "Disposable Cloud Environment"
+# assertInLog "help" "Usage:"
+
+# #------------------------------------------------------------------------------
+# # Test 2 - Test deployment
+# #------------------------------------------------------------------------------
+# printTestBanner "Deploy"
+# assertSuccess "deploy" "${dce_cmd}" system deploy -b ${dce_opts}
+# assertNotInLog "deploy" "fail"
+# assertInLog "deploy" "Initializing"
+# assertInLog "deploy" "Creating DCE infrastructure"
 
 #------------------------------------------------------------------------------
 # Test 2 - Test deployment
 #------------------------------------------------------------------------------
-printTestBanner "Deploy"
-assertSuccess "deploy" "${dce_cmd}" system deploy -b ${dce_opts}
-assertNotInLog "deploy" "fail"
-assertInLog "deploy" "Initializing"
-assertInLog "deploy" "Creating DCE infrastructure"
+function waitForAccountReady() {
+    echo "Waiting for account to be ready" | tee -a "${tmpdir}/test.log"
+    ready_account=$("${dce_cmd}" accounts describe "${CHILD_ACCOUNT_ID}" 2>&1 | jq -c -r 'select(.accountStatus=="Ready")')
+    while [[ -z "${ready_account}" ]]
+    do
+        sleep 2
+        echo "Account is not ready" | tee -a "${tmpdir}/test.log"
+        ready_account=$("${dce_cmd}" accounts describe "${CHILD_ACCOUNT_ID}" 2>&1 | jq -c -r 'select(.accountStatus=="Ready")')
+    done
+    echo "Account is ready" | tee -a "${tmpdir}/test.log"
+    return 0
+}
+
+function test_deployment() {
+    printTestBanner "WHEN an account is leased with 0 lease budget AND the usage state machine wait period is set to 10 seconds THEN the lease should be ended within 15 seconds."
+    assertSuccess "adding account" "${dce_cmd}" accounts add --account-id "${CHILD_ACCOUNT_ID}" --admin-role-arn arn:aws:iam::"${CHILD_ACCOUNT_ID}":role/DCEMasterAccess
+    assertNotInLog "adding account" "err"
+    waitForAccountReady
+    assertSuccess "creating lease" "${dce_cmd}" leases create --budget-amount 0 --budget-currency USD --email jane.doe@email.com --principal-id user1
+    assertNotInLog "creating lease" "err"
+}
 
 
-# TODO: Currently, the test does not clean up after itself. Not certain if that
-# should be a part of this script or should be something different.
+test_deployment
 
 exit 0
