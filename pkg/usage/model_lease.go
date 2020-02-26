@@ -14,7 +14,7 @@ type Lease struct {
 	Date            *time.Time `json:"date,omitempty" dynamodbav:"Date,unixtime" schema:"date,omitempty"`                          // Usage date
 	CostAmount      *float64   `json:"costAmount,omitempty" dynamodbav:"CostAmount,omitempty" schema:"costAmount,omitempty"`       // Cost Amount for given period
 	CostCurrency    *string    `json:"costCurrency,omitempty" dynamodbav:"CostCurrency,omitempty" schema:"costCurrency,omitempty"` // Cost currency
-	BudgetAmount	*float64	`json:"-" dynamodbav:"-" schema:"BudgetAmount,omitempty"`
+	BudgetAmount	*float64   `json:"budgetAmount" dynamodbav:"BudgetAmount,omitempty" schema:"budgetAmount,omitempty"`
 	NextStartDate   *int64     `json:"-" dynamodbav:"-" schema:"nestSK,omitempty"`
 	NextPrincipalID *string    `json:"-" dynamodbav:"-" schema:"nextPrincipalId,omitempty"`
 }
