@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cognitoidentity"
 	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
 	"io/ioutil"
+	"log"
 	"math"
 	"math/rand"
 	"net/http"
@@ -398,17 +399,10 @@ func TestApi(t *testing.T) {
 			require.NotNil(t, data["leaseStatusModifiedOn"])
 
 			// Account should be marked as status=Leased
-			resp = apiRequest(t, &apiRequestInput{
-				method: "GET",
-				url:    apiURL + "/accounts/" + acctID,
-				f: func(r *testutil.R, apiResp *apiResponse) {
-					status := responseJSONString(r, apiResp, "accountStatus")
-					assert.Equal(r, "Leased", status)
-				},
-			})
+			waitForAccountStatus(t, apiURL, acctID, "Leased")
 
 			// Delete the lease
-			resp = apiRequest(t, &apiRequestInput{
+			apiRequest(t, &apiRequestInput{
 				method: "DELETE",
 				url:    apiURL + "/leases",
 				json: leaseRequest{
@@ -434,14 +428,7 @@ func TestApi(t *testing.T) {
 			assert.NotNil(t, data["leaseStatusModifiedOn"])
 
 			// Account should be marked as status=NotReady
-			resp = apiRequest(t, &apiRequestInput{
-				method: "GET",
-				url:    apiURL + "/accounts/" + acctID,
-				f: func(r *testutil.R, apiResp *apiResponse) {
-					status := responseJSONString(r, apiResp, "accountStatus")
-					assert.Equal(r, "NotReady", status)
-				},
-			})
+			waitForAccountStatus(t, apiURL, acctID, "NotReady")
 		})
 
 		t.Run("Cognito user should not be able to create, get, list, or delete a lease for another user", func(t *testing.T) {
@@ -1052,10 +1039,8 @@ func TestApi(t *testing.T) {
 			})
 
 			t.Run("STEP: Create Lease", func(t *testing.T) {
-				// Account is being reset, so it's not marked as "Ready".
-				// Update the DB to be ready, so we can create a lease
-				_, err := dbSvc.TransitionAccountStatus(accountID, db.NotReady, db.Ready)
-				require.Nil(t, err)
+				// Wait for the account to be reset, so we can lease it
+				waitForAccountStatus(t, apiURL, accountID, "Ready")
 
 				var budgetAmount float64 = 300
 				var budgetNotificationEmails = []string{"test@test.com"}
@@ -1178,15 +1163,9 @@ func TestApi(t *testing.T) {
 					})
 
 					t.Run("STEP: Recreate lease against same account", func(t *testing.T) {
-						// Account is being reset, so it's not marked as "Ready".
-						// Update the DB to be ready, so we can create a lease
-
-						_, err := dbSvc.TransitionAccountStatus(accountID, db.Leased, db.Ready)
-
-						// Ignore error from this, since reset might have happened
-						if err != nil {
-							_, _ = dbSvc.TransitionAccountStatus(accountID, db.NotReady, db.Ready)
-						}
+						// Wait for the account to be reset and marked as "Ready",
+						// so we cna lease it again
+						waitForAccountStatus(t, apiURL, accountID, "Ready")
 
 						// Request a lease
 						// Because we only have one account in our system,
@@ -1355,6 +1334,79 @@ func TestApi(t *testing.T) {
 			},
 			"hello": "you",
 		}, getResJSON["metadata"])
+	})
+
+	t.Run("Create multiple leases on one account", func(t *testing.T) {
+
+		// Create an account
+		apiRequest(t, &apiRequestInput{
+			method: "POST",
+			url:    apiURL + "/accounts",
+			json: createAccountRequest{
+				ID:           accountID,
+				AdminRoleArn: adminRoleArn,
+			},
+			maxAttempts: 1,
+			f: func(r *testutil.R, apiResp *apiResponse) {
+				assert.Equal(r, 201, apiResp.StatusCode)
+			},
+		})
+
+		// Wait for the account to be ready
+		log.Printf("Account created. Waiting for initial reset to complete")
+		waitForAccountStatus(t, apiURL, accountID, "Ready")
+
+		// Make 3 leases in a row
+		for i := range [3]int{} {
+			log.Printf("Lease attempt %d", i)
+
+			// Create a lease
+			res := apiRequest(t, &apiRequestInput{
+				method: "POST",
+				url:    apiURL + "/leases",
+				json: map[string]interface{}{
+					"principalId":    "test-user",
+					"budgetAmount":   500,
+					"budgetCurrency": "EUR",
+					"expiresOn":      time.Now().Unix() + 1000,
+				},
+				maxAttempts: 1,
+				f: func(r *testutil.R, apiResp *apiResponse) {
+					assert.Equal(r, 201, apiResp.StatusCode)
+				},
+			})
+			require.Equal(t, 201, res.StatusCode)
+
+			// Account should be Leased
+			log.Println("Lease created. Waiting for account to be marked 'Leased'")
+			waitForAccountStatus(t, apiURL, accountID, "Leased")
+
+			// Destroy the lease
+			res = apiRequest(t, &apiRequestInput{
+				method:      "DELETE",
+				url:         apiURL + "/leases",
+				maxAttempts: 1,
+				json: map[string]interface{}{
+					"principalId": "test-user",
+					"accountId":   accountID,
+				},
+				f: func(r *testutil.R, apiResp *apiResponse) {
+					assert.Equal(r, 200, apiResp.StatusCode, apiResp.json)
+				},
+			})
+			require.Equal(t, 200, res.StatusCode)
+
+			// Account should be NotReady, while nuke runs
+			log.Println("Lease ended. Waiting for account to be marked 'NotReady'")
+			waitForAccountStatus(t, apiURL, accountID, "NotReady")
+
+			// Account should go back to Ready, after nuke is complete
+			log.Println("Lease ended. Waiting for nuke to complete")
+			waitForAccountStatus(t, apiURL, accountID, "Ready")
+
+			time.Sleep(10)
+		}
+
 	})
 
 	t.Run("Delete Account", func(t *testing.T) {
@@ -2475,8 +2527,14 @@ func createAdminRole(t *testing.T, awsSession client.ConfigProvider, adminRoleNa
 		})
 		require.Nil(t, err)
 	}
-	// IAM Role takes a while to propagate....
-	//time.Sleep(10 * time.Second)
+
+	// Wait for the role to be assumable
+	log.Println("Created admin test role. Waiting for role to be assumeable")
+	testutil.Retry(t, 30, time.Millisecond*500, func(r *testutil.R) {
+		creds := stscreds.NewCredentials(awsSession, adminRoleArn)
+		_, err := creds.Get()
+		assert.Nilf(r, err, "Unable to assume admin test role: %s", err)
+	})
 
 	return &createAdminRoleOutput{
 		adminRoleArn: adminRoleArn,
@@ -2743,4 +2801,48 @@ func NewCognitoUser(t *testing.T, tfOut map[string]interface{}, awsSession *sess
 	}
 
 	return cognitoUser
+}
+
+func waitForAccountStatus(t *testing.T, apiURL, accountID, expectedStatus string) *apiResponse {
+	res := apiRequest(t, &apiRequestInput{
+		method:      "GET",
+		url:         apiURL + "/accounts/" + accountID,
+		maxAttempts: 120,
+		f: func(r *testutil.R, res *apiResponse) {
+			assert.Equalf(r, 200, res.StatusCode, "%v", res.json)
+
+			actualStatus := responseJSONString(t, res, "accountStatus")
+			log.Printf("Waiting for account to be %s. Account is %s", expectedStatus, actualStatus)
+			assert.Equalf(r, expectedStatus, actualStatus,
+				"Expected account status to change to %s", expectedStatus)
+		},
+	})
+
+	// Fail now if the status change never happened
+	actualStatus := responseJSONString(t, res, "accountStatus")
+	if actualStatus != expectedStatus {
+		log.Println("Test failed. What's going on?")
+		awsSession, err := session.NewSession()
+		require.Nil(t, err)
+		tfOut := terraform.OutputAll(t, &terraform.Options{
+			TerraformDir: "../../modules",
+		})
+		dbSvc := db.New(
+			dynamodb.New(
+				awsSession,
+				aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
+			),
+			tfOut["accounts_table_name"].(string),
+			tfOut["leases_table_name"].(string),
+			7,
+		)
+		acct, err := dbSvc.GetAccount(accountID)
+		log.Printf("Account: %+v \nError: %s", acct, err)
+	}
+	require.Equalf(t, expectedStatus, actualStatus,
+		"Expected account status to change to %s", expectedStatus)
+
+	time.Sleep(time.Second * 5)
+
+	return res
 }
