@@ -19,6 +19,10 @@ resource "aws_lambda_event_source_mapping" "principal_events_from_dynamo_db" {
   function_name     = module.end_over_budget_lease_lambda.name
   batch_size        = 1
   starting_position = "LATEST"
+  // workaround until aws_lambda_event_source_mapping.maximum_retry_attempts is implemented in AWS provider
+  provisioner "local-exec" {
+    command = "aws lambda update-event-source-mapping --uuid ${aws_lambda_event_source_mapping.principal_events_from_dynamo_db.uuid} --maximum-retry-attempts 0"
+  }
 }
 
 resource "aws_iam_role_policy" "end_over_budget_lease_lambda_dynamo_db" {
