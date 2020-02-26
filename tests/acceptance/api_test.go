@@ -438,11 +438,10 @@ func TestApi(t *testing.T) {
 			cognitoUser2 := NewCognitoUser(t, tfOut, awsSession, accountID)
 			defer cognitoUser2.delete(t, tfOut, awsSession)
 			// Create an Account Entry
-			leasedAccountID := "123456789012"
 			timeNow := time.Now().Unix()
 			err := dbSvc.PutAccount(db.Account{
-				ID:             leasedAccountID,
-				AdminRoleArn:   "arn:aws:iam::123456789012:user/test",
+				ID:             accountID,
+				AdminRoleArn:   adminRoleArn,
 				AccountStatus:  db.Ready,
 				LastModifiedOn: timeNow,
 			})
@@ -560,7 +559,7 @@ func TestApi(t *testing.T) {
 				url:    apiURL + "/leases",
 				json: leaseRequest{
 					PrincipalID: cognitoUser1.Username,
-					AccountID:   leasedAccountID,
+					AccountID:   accountID,
 				},
 				f: func(r *testutil.R, apiResp *apiResponse) {
 					assert.Equal(r, http.StatusUnauthorized, apiResp.StatusCode)
