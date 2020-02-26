@@ -37,6 +37,7 @@ resource "aws_sfn_state_machine" "lease_usage" {
   role_arn = aws_iam_role.state.arn
 
   definition = templatefile("${path.module}/fixtures/state_machines/lease.json", {
+    WAIT_SECONDS = var.lease_state_machine_wait_seconds
     GET_USAGE_LAMBDA_ARN = module.state_get_lease_usage_lambda.arn
     GET_LEASE_LAMBDA_ARN = module.state_get_lease_lambda.arn
   })

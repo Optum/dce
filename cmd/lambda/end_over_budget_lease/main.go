@@ -7,12 +7,14 @@ import (
 	"github.com/Optum/dce/pkg/config"
 	errors2 "github.com/Optum/dce/pkg/errors"
 	"github.com/Optum/dce/pkg/lease"
+	"github.com/Optum/dce/pkg/usage"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"log"
 	"regexp"
+	"strings"
 )
 
 var (
@@ -49,27 +51,10 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
+
+	Services = svcBldr
+
 	principalBudgetAmount = Config.GetEnvFloatVar("PRINCIPAL_BUDGET_AMOUNT", 1000.00)
-}
-
-type leaseSummaryRecord struct {
-	CostAmount   float64
-	Budget       float64
-	CostCurrency string
-	Date         int64
-	LeaseId      string
-	PrincipalId  string
-	SK           string
-	TimeToLive   string
-}
-
-type principalSummaryRecord struct {
-	CostAmount   float64
-	CostCurrency string
-	Date         int64
-	PrincipalId  string
-	SK           string
-	TimeToLive   string
 }
 
 // Start the Lambda Handler
@@ -114,31 +99,35 @@ func handleRecord(input *handleRecordInput) error {
 	principalRegex := regexp.MustCompile(`(Usage-Principal)[-\w]+`)
 	switch {
 	case leaseSummaryRegex.MatchString(sortKey):
-		leaseSummary := leaseSummaryRecord{}
+		leaseSummary := usage.Lease{}
 		err := UnmarshalStreamImage(record.Change.NewImage, &leaseSummary)
 		if err != nil {
 			log.Printf("ERROR: Failed to unmarshal stream image")
 			return err
 		}
+
 		if isLeaseOverBudget(&leaseSummary) {
-			log.Printf("Lease ID %s over budget", leaseSummary.LeaseId)
-			_, err := Services.LeaseService().Delete(leaseSummary.LeaseId)
+			leaseID := strings.TrimSuffix(strings.TrimPrefix(sortKey, "Usage-Lease-"),"-Summary")
+			log.Printf("lease id %s is over budget", leaseID)
+			_, err := Services.LeaseService().Delete(leaseID)
 			if err != nil {
-				log.Printf("ERROR: failed to delete lease for leaseID %s")
+				log.Printf("ERROR: failed to delete lease for leaseID %s", leaseID)
 				return err
 			}
+			log.Printf("ended lease id %s", leaseID)
 		}
 	case principalRegex.MatchString(sortKey):
-		principalSummary := principalSummaryRecord{}
+		principalSummary := usage.Principal{}
 		err := UnmarshalStreamImage(record.Change.NewImage, &principalSummary)
 		if err != nil {
 			log.Printf("ERROR: Failed to unmarshal stream image")
 			return err
 		}
+
 		if isPrincipalOverBudget(&principalSummary) {
-			log.Printf("Principal ID %s over budget", principalSummary.PrincipalId)
+			log.Printf("principal id %s is over budget", *principalSummary.PrincipalID)
 			query := lease.Lease{
-				PrincipalID: &principalSummary.PrincipalId,
+				PrincipalID: principalSummary.PrincipalID,
 				Status: lease.StatusActive.StatusPtr(),
 			}
 			deferredErrors := []error{}
@@ -148,12 +137,13 @@ func handleRecord(input *handleRecordInput) error {
 					if err != nil {
 						deferredErrors = append(deferredErrors, err)
 					}
+					log.Printf("ended lease id %s because principal id %s is over budget", *_lease.ID, *principalSummary.PrincipalID)
 				}
 				return true
 			}
 			err := Services.LeaseService().ListPages(&query, deleteLeases)
 			if err != nil {
-				log.Printf("ERROR: Failed to delete one or more leases for principalID %s", principalSummary.PrincipalId)
+				log.Printf("ERROR: Failed to delete one or more leases for principalID %s", *principalSummary.PrincipalID)
 				return err
 			}
 			if len(deferredErrors) > 0 {
@@ -167,20 +157,19 @@ func handleRecord(input *handleRecordInput) error {
 	return nil
 }
 
-func isLeaseOverBudget(leaseSummary *leaseSummaryRecord) bool {
-	log.Printf("Lease usage was %6.2f out of a %6.2f budget", leaseSummary.CostAmount, leaseSummary.Budget)
-	return leaseSummary.CostAmount >= leaseSummary.Budget
+func isLeaseOverBudget(leaseSummary *usage.Lease) bool {
+	log.Printf("lease id %s usage is %6.2f out of a %6.2f budget", *leaseSummary.LeaseID, *leaseSummary.CostAmount, *leaseSummary.BudgetAmount)
+	return *leaseSummary.CostAmount >= *leaseSummary.BudgetAmount
 }
 
-func isPrincipalOverBudget(principalSummary *principalSummaryRecord) bool {
-	log.Printf("Principal usage was %6.2f out of a %6.2f budget", principalSummary.CostAmount, principalBudgetAmount)
-	return principalSummary.CostAmount >= principalBudgetAmount
+func isPrincipalOverBudget(principalSummary *usage.Principal) bool {
+	log.Printf("principal id %s usage is %6.2f out of a %6.2f budget", *principalSummary.PrincipalID, *principalSummary.CostAmount, principalBudgetAmount)
+	return *principalSummary.CostAmount >= principalBudgetAmount
 }
 
 // https://stackoverflow.com/questions/49129534/unmarshal-mapstringdynamodbattributevalue-into-a-struct
 // UnmarshalStreamImage converts events.DynamoDBAttributeValue to struct
 func UnmarshalStreamImage(attribute map[string]events.DynamoDBAttributeValue, out interface{}) error {
-
 	dbAttrMap := make(map[string]*dynamodb.AttributeValue)
 
 	for k, v := range attribute {
@@ -195,6 +184,7 @@ func UnmarshalStreamImage(attribute map[string]events.DynamoDBAttributeValue, ou
 		if err != nil {
 			return err
 		}
+
 		dbAttrMap[k] = &dbAttr
 	}
 
