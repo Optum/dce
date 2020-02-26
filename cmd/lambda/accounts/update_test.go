@@ -46,7 +46,7 @@ func TestUpdateAccountByID(t *testing.T) {
 		{
 			name:      "success",
 			accountID: "123456789012",
-			reqBody:   fmt.Sprintf("{\"metadata\": {\"key\": \"value\"}}"),
+			reqBody:   "{\"metadata\": {\"key\": \"value\"}}",
 			reqAccount: &account.Account{
 				Metadata: map[string]interface{}{
 					"key": "value",
@@ -72,7 +72,7 @@ func TestUpdateAccountByID(t *testing.T) {
 		{
 			name:       "failure validation",
 			accountID:  "123456789012",
-			reqBody:    fmt.Sprintf("{\"accountStatus\": \"NotReady\""),
+			reqBody:    "{\"accountStatus\": \"NotReady\"",
 			reqAccount: &account.Account{},
 			expResp: response{
 				StatusCode: 400,
@@ -84,7 +84,7 @@ func TestUpdateAccountByID(t *testing.T) {
 		{
 			name:      "failure db",
 			accountID: "123456789012",
-			reqBody:   fmt.Sprintf("{\"metadata\": {\"key\": \"value\"}}"),
+			reqBody:   "{\"metadata\": {\"key\": \"value\"}}",
 			reqAccount: &account.Account{
 				Metadata: map[string]interface{}{
 					"key": "value",
@@ -100,7 +100,7 @@ func TestUpdateAccountByID(t *testing.T) {
 		{
 			name:      "failure decode",
 			accountID: "123456789012",
-			reqBody:   fmt.Sprintf("{\"metadata\": \"key\": \"value\"}}"),
+			reqBody:   "{\"metadata\": \"key\": \"value\"}}",
 			reqAccount: &account.Account{
 				Metadata: map[string]interface{}{
 					"key": "value",

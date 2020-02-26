@@ -1357,7 +1357,7 @@ func TestApi(t *testing.T) {
 		waitForAccountStatus(t, apiURL, accountID, "Ready")
 
 		// Make 3 leases in a row
-		for i := range [3]int{} {
+		for i := range [10]int{} {
 			log.Printf("Lease attempt %d", i)
 
 			// Create a lease
@@ -1403,8 +1403,6 @@ func TestApi(t *testing.T) {
 			// Account should go back to Ready, after nuke is complete
 			log.Println("Lease ended. Waiting for nuke to complete")
 			waitForAccountStatus(t, apiURL, accountID, "Ready")
-
-			time.Sleep(10)
 		}
 
 	})
@@ -1491,7 +1489,7 @@ func TestApi(t *testing.T) {
 			require.Equal(t, map[string]interface{}{
 				"error": map[string]interface{}{
 					"code":    "RequestValidationError",
-					"message": fmt.Sprintf("account validation error: adminRoleArn: must be an admin role arn that can be assumed."),
+					"message": "account validation error: adminRoleArn: must be an admin role arn that can be assumed.",
 				},
 			}, resJSON)
 		})

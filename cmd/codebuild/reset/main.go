@@ -35,7 +35,6 @@ func main() {
 	}
 	_config.parentAccountID = *caller.Account
 
-
 	if config.isNukeEnabled {
 		// Execute aws-nuke, to delete all resources from the account
 		err = nukeAccount(
@@ -52,7 +51,6 @@ func main() {
 			"any resources and cannot set back the state of the DCE child account " +
 			"Please set 'RESET_NUKE_TOGGLE' to not 'true' to enable aws-nuke.")
 	}
-
 
 	// Update the DB with Account/Lease statuses
 	err = updateDBPostReset(svc.db(), svc.snsService(), config.childAccountID, common.RequireEnv("RESET_COMPLETE_TOPIC_ARN"))
