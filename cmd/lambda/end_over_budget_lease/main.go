@@ -51,6 +51,9 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
+
+	Services = svcBldr
+
 	principalBudgetAmount = Config.GetEnvFloatVar("PRINCIPAL_BUDGET_AMOUNT", 1000.00)
 }
 
@@ -105,12 +108,13 @@ func handleRecord(input *handleRecordInput) error {
 
 		if isLeaseOverBudget(&leaseSummary) {
 			leaseID := strings.TrimSuffix(strings.TrimPrefix(sortKey, "Usage-Lease-"),"-Summary")
-			log.Printf("lease ID %s is over budget", leaseID)
+			log.Printf("lease id %s is over budget", leaseID)
 			_, err := Services.LeaseService().Delete(leaseID)
 			if err != nil {
 				log.Printf("ERROR: failed to delete lease for leaseID %s", leaseID)
 				return err
 			}
+			log.Printf("ended lease id %s", leaseID)
 		}
 	case principalRegex.MatchString(sortKey):
 		principalSummary := usage.Principal{}
@@ -121,7 +125,7 @@ func handleRecord(input *handleRecordInput) error {
 		}
 
 		if isPrincipalOverBudget(&principalSummary) {
-			log.Printf("principal ID %s is over budget", *principalSummary.PrincipalID)
+			log.Printf("principal id %s is over budget", *principalSummary.PrincipalID)
 			query := lease.Lease{
 				PrincipalID: principalSummary.PrincipalID,
 				Status: lease.StatusActive.StatusPtr(),
@@ -133,6 +137,7 @@ func handleRecord(input *handleRecordInput) error {
 					if err != nil {
 						deferredErrors = append(deferredErrors, err)
 					}
+					log.Printf("ended lease id %s because principal id %s is over budget", *_lease.ID, *principalSummary.PrincipalID)
 				}
 				return true
 			}
@@ -153,12 +158,12 @@ func handleRecord(input *handleRecordInput) error {
 }
 
 func isLeaseOverBudget(leaseSummary *usage.Lease) bool {
-	log.Printf("lease ID %s usage is %6.2f out of a %6.2f budget", *leaseSummary.LeaseID, *leaseSummary.CostAmount, *leaseSummary.BudgetAmount)
+	log.Printf("lease id %s usage is %6.2f out of a %6.2f budget", *leaseSummary.LeaseID, *leaseSummary.CostAmount, *leaseSummary.BudgetAmount)
 	return *leaseSummary.CostAmount >= *leaseSummary.BudgetAmount
 }
 
 func isPrincipalOverBudget(principalSummary *usage.Principal) bool {
-	log.Printf("principal ID %s usage is %6.2f out of a %6.2f budget", *principalSummary.PrincipalID, *principalSummary.CostAmount, principalBudgetAmount)
+	log.Printf("principal id %s usage is %6.2f out of a %6.2f budget", *principalSummary.PrincipalID, *principalSummary.CostAmount, principalBudgetAmount)
 	return *principalSummary.CostAmount >= principalBudgetAmount
 }
 
