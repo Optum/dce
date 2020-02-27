@@ -1,7 +1,6 @@
 package tests
 
 import (
-	"net/http"
 	"testing"
 	"time"
 
@@ -17,7 +16,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/Optum/dce/pkg/db"
-	"github.com/Optum/dce/pkg/usage"
 	"github.com/Optum/dce/tests/testutils"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 )
@@ -69,17 +67,6 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 		tfOut["accounts_table_name"].(string),
 		tfOut["leases_table_name"].(string),
 		7,
-	)
-
-	// Configure the usage service
-	usageSvc := usage.New(
-		dynamodb.New(
-			awsSession,
-			aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
-		),
-		tfOut["principal_table_name"].(string),
-		"StartDate",
-		"PrincipalId",
 	)
 
 	// Create Lambda service client
@@ -274,9 +261,6 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 			},
 		})
 
-		// create usage for this lease and account
-		createUsageForInputAmount(t, apiURL, accountID, usageSvc, 200.00)
-
 		// Invoke update_lease_status lambda
 		request := db.Lease{
 			AccountID:             accountID,
@@ -340,9 +324,6 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 				assert.Equal(r, 201, apiResp.StatusCode)
 			},
 		})
-
-		// create usage for this lease and account
-		createUsageForInputAmount(t, apiURL, accountID, usageSvc, 2000.00)
 
 		// Invoke update_lease_status lambda
 		request := db.Lease{
@@ -408,9 +389,6 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 			},
 		})
 
-		// create usage for this lease and account
-		createUsageForInputAmount(t, apiURL, accountID, usageSvc, 2000.00)
-
 		// Invoke update_lease_status lambda
 		request := db.Lease{
 			AccountID:             accountID,
@@ -437,77 +415,4 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 		require.Equal(t, db.LeaseStatusReason("OverBudget"), lease.LeaseStatusReason)
 	})
 
-}
-
-func createUsageForInputAmount(t *testing.T, apiURL string, accountID string, usageSvc usage.DBer, costAmount float64) []*usage.Usage {
-	// Create usage
-	// Setup usage dates
-	const ttl int = 3
-	currentDate := time.Now()
-	testStartDate := time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), 0, 0, 0, 0, time.UTC)
-	testEndDate := time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), 23, 59, 59, 59, time.UTC)
-
-	// Create mock usage
-	var expectedUsages []*usage.Usage
-
-	usageStartDate := testStartDate
-	usageEndDate := testEndDate
-	startDate := testStartDate
-	endDate := testEndDate
-
-	timeToLive := startDate.AddDate(0, 0, ttl)
-
-	var testPrincipalID = "user"
-	var testAccountID = accountID
-
-	for i := 1; i <= 10; i++ {
-
-		input, err := usage.NewUsage(
-			usage.NewUsageInput{
-				PrincipalID:  testPrincipalID,
-				AccountID:    testAccountID,
-				StartDate:    startDate.Unix(),
-				EndDate:      endDate.Unix(),
-				CostAmount:   costAmount,
-				CostCurrency: "USD",
-				TimeToLive:   timeToLive.Unix(),
-			},
-		)
-		require.Nil(t, err)
-		err = usageSvc.PutUsage(*input)
-		require.Nil(t, err)
-
-		expectedUsages = append(expectedUsages, input)
-
-		usageEndDate = endDate
-		startDate = startDate.AddDate(0, 0, -1)
-		endDate = endDate.AddDate(0, 0, -1)
-	}
-
-	queryString := fmt.Sprintf("/usage?startDate=%d&endDate=%d", usageStartDate.Unix(), usageEndDate.Unix())
-
-	testutils.Retry(t, 10, 10*time.Millisecond, func(r *testutils.R) {
-
-		resp := apiRequest(t, &apiRequestInput{
-			method: "GET",
-			url:    apiURL + queryString,
-			json:   nil,
-		})
-
-		// Verify response code
-		assert.Equal(r, http.StatusOK, resp.StatusCode)
-
-		// Parse response json
-		data := parseResponseArrayJSON(t, resp)
-
-		//Verify response json
-		if len(data) > 0 && data[0] != nil {
-			usageJSON := data[0]
-			assert.Equal(r, "TestUser1", usageJSON["principalId"].(string))
-			assert.Equal(r, "TestAcct1", usageJSON["accountId"].(string))
-			assert.Equal(r, 1000.00, usageJSON["costAmount"].(float64))
-		}
-	})
-
-	return expectedUsages
 }

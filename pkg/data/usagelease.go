@@ -41,7 +41,7 @@ func (a *UsageLease) Write(usg *usage.Lease) error {
 
 	usgData := usageLeaseData{
 		*usg,
-		fmt.Sprintf("%s-%s-%d", usageLeaseSkPrefix, *usg.LeaseID, usg.Date.Unix()),
+		fmt.Sprintf("%s-%s-Daily-%d", usageLeaseSkPrefix, *usg.LeaseID, usg.Date.Unix()),
 		getTTL(*usg.Date, a.TimeToLive),
 	}
 
@@ -116,6 +116,9 @@ func (a *UsageLease) addLeaseUsage(usg usage.Lease) error {
 	updateBldr = updateBldr.Set(expression.Name("TimeToLive"), expression.Value(usgData.TimeToLive))
 	updateBldr = updateBldr.Set(expression.Name("BudgetAmount"), expression.Value(usgData.BudgetAmount))
 	expr, err = expression.NewBuilder().WithUpdate(updateBldr).Build()
+	if err != nil {
+		return err
+	}
 
 	input := &dynamodb.UpdateItemInput{
 		Key: map[string]*dynamodb.AttributeValue{
@@ -180,6 +183,9 @@ func (a *UsageLease) addPrincipalUsage(usg usage.Lease) error {
 	updateBldr = updateBldr.Set(expression.Name("Date"), expression.Value(usgData.Date.Unix()))
 	updateBldr = updateBldr.Set(expression.Name("TimeToLive"), expression.Value(usgData.TimeToLive))
 	expr, err = expression.NewBuilder().WithUpdate(updateBldr).Build()
+	if err != nil {
+		return err
+	}
 
 	input := &dynamodb.UpdateItemInput{
 		Key: map[string]*dynamodb.AttributeValue{
@@ -214,4 +220,9 @@ func (a *UsageLease) addPrincipalUsage(usg usage.Lease) error {
 
 	return nil
 
+}
+
+// Get usage Lease summary
+func (a *UsageLease) Get(id string) (*usage.Lease, error) {
+	return &usage.Lease{}, nil
 }

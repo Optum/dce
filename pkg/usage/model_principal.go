@@ -15,7 +15,7 @@ type Principal struct {
 	CostCurrency    *string    `json:"costCurrency,omitempty" dynamodbav:"CostCurrency,omitempty" schema:"costCurrency,omitempty"` // Cost currency
 	SK              *string    `json:"-" dynamodbav:"SK" schema:"-"`
 	Limit           *int64     `json:"-" dynamodbav:"-" schema:"limit,omitempty"`
-	NextSK          *int64     `json:"-" dynamodbav:"-" schema:"nestSK,omitempty"`
+	NextDate        *int64     `json:"-" dynamodbav:"-" schema:"nextDate,omitempty"`
 	NextPrincipalID *string    `json:"-" dynamodbav:"-" schema:"nextPrincipalId,omitempty"`
 }
 

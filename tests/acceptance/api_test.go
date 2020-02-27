@@ -20,6 +20,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/codebuild/codebuildiface"
 	"github.com/aws/aws-sdk-go/service/cognitoidentity"
 	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
+	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
 
@@ -41,7 +42,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/Optum/dce/pkg/db"
-	"github.com/Optum/dce/pkg/usage"
 	"github.com/Optum/dce/tests/testutils"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 )
@@ -53,11 +53,12 @@ func TestMain(m *testing.M) {
 
 var (
 	dbSvc              *db.DB
-	usageSvc           *usage.DB
 	sqsSvc             sqsiface.SQSAPI
 	codeBuildSvc       codebuildiface.CodeBuildAPI
+	dynamoDbSvc        dynamodbiface.DynamoDBAPI
 	sqsResetURL        string
 	codeBuildResetName string
+	principalTableName string
 )
 
 func TestApi(t *testing.T) {
@@ -83,16 +84,12 @@ func TestApi(t *testing.T) {
 	)
 	dbSvc.ConsistentRead = true
 
-	// Configure the usage service
-	usageSvc = usage.New(
-		dynamodb.New(
-			awsSession,
-			aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
-		),
-		tfOut["principal_table_name"].(string),
-		"StartDate",
-		"PrincipalId",
+	dynamoDbSvc = dynamodb.New(
+		awsSession,
+		aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
 	)
+
+	principalTableName = tfOut["principal_table_name"].(string)
 
 	sqsSvc = sqs.New(
 		awsSession,
@@ -1497,8 +1494,7 @@ func TestApi(t *testing.T) {
 
 		t.Run("Should be able to get usage", func(t *testing.T) {
 
-			defer truncateUsageTable(t, usageSvc)
-			createUsage(t, apiURL, usageSvc)
+			defer truncatePrincipalTable(t)
 
 			currentDate := time.Now()
 			testStartDate := time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), 0, 0, 0, 0, time.UTC)
@@ -2035,9 +2031,8 @@ func TestApi(t *testing.T) {
 		})
 
 		t.Run("Should validate requested budget amount against principal budget amount", func(t *testing.T) {
-			truncateUsageTable(t, usageSvc)
-			defer truncateUsageTable(t, usageSvc)
-			createUsage(t, apiURL, usageSvc)
+			truncatePrincipalTable(t)
+			defer truncatePrincipalTable(t)
 
 			principalID := "TestUser1"
 			expiresOn := time.Now().AddDate(0, 0, 6).Unix()
@@ -2485,72 +2480,6 @@ func createAdminRole(t *testing.T, awsSession client.ConfigProvider, adminRoleNa
 		roleName:     adminRoleName,
 		accountID:    currentAccountID,
 	}
-}
-
-func createUsage(t *testing.T, apiURL string, usageSvc usage.DBer) {
-	// Create usage
-	// Setup usage dates
-	const ttl int = 3
-	currentDate := time.Now()
-	testStartDate := time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), 0, 0, 0, 0, time.UTC)
-	testEndDate := time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), 23, 59, 59, 59, time.UTC)
-
-	usageStartDate := testStartDate
-	usageEndDate := testEndDate
-	startDate := testStartDate
-	endDate := testEndDate
-
-	timeToLive := startDate.AddDate(0, 0, ttl)
-
-	var testPrincipalID = "TestUser1"
-	var testAccountID = "123456789012"
-
-	for i := 1; i <= 5; i++ {
-
-		input, err := usage.NewUsage(
-			usage.NewUsageInput{
-				PrincipalID:  testPrincipalID,
-				AccountID:    testAccountID,
-				StartDate:    startDate.Unix(),
-				EndDate:      endDate.Unix(),
-				CostAmount:   2000.00,
-				CostCurrency: "USD",
-				TimeToLive:   timeToLive.Unix(),
-			},
-		)
-		require.Nil(t, err)
-		err = usageSvc.PutUsage(*input)
-		require.Nil(t, err)
-
-		usageEndDate = endDate
-		startDate = startDate.AddDate(0, 0, -1)
-		endDate = endDate.AddDate(0, 0, -1)
-	}
-
-	queryString := fmt.Sprintf("/usage?startDate=%d&endDate=%d", usageStartDate.Unix(), usageEndDate.Unix())
-
-	testutils.Retry(t, 10, 10*time.Millisecond, func(r *testutils.R) {
-
-		resp := apiRequest(t, &apiRequestInput{
-			method: "GET",
-			url:    apiURL + queryString,
-			json:   nil,
-		})
-
-		// Verify response code
-		assert.Equal(r, http.StatusOK, resp.StatusCode)
-
-		// Parse response json
-		data := parseResponseArrayJSON(t, resp)
-
-		//Verify response json
-		if len(data) > 0 && data[0] != nil {
-			usageJSON := data[0]
-			assert.Equal(r, "TestUser1", usageJSON["principalId"].(string))
-			assert.Equal(r, "TestAcct1", usageJSON["accountId"].(string))
-			assert.Equal(r, 10000.00, usageJSON["costAmount"].(float64))
-		}
-	})
 }
 
 func NewCredentials(t *testing.T, awsSession *session.Session, roleArn string) *credentials.Credentials {

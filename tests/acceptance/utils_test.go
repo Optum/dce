@@ -7,8 +7,7 @@ import (
 )
 
 func givenEmptySystem(t *testing.T) {
-	truncateDBTables(t, dbSvc)
-	truncateUsageTable(t, usageSvc)
+	truncateDBTables(t)
 	testutils.GivenSqsIsEmpty(t, sqsSvc, sqsResetURL)
 	testutils.GivenCodeBuildIsEmpty(t, codeBuildSvc, codeBuildResetName)
 }

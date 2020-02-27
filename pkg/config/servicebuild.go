@@ -225,13 +225,20 @@ func (bldr *ServiceBuilder) WithEventService() *ServiceBuilder {
 // WithUsageDataService tells the builder to add the Usage Data service to the `ConfigurationBuilder`
 func (bldr *ServiceBuilder) WithUsageDataService() *ServiceBuilder {
 	bldr.WithDynamoDB()
-	bldr.handlers = append(bldr.handlers, bldr.createUsageDataService)
+	bldr.handlers = append(bldr.handlers, bldr.createUsageLeaseDataService)
+	return bldr
+}
+
+// WithUsagePrincipalDataService tells the builder to add the Usage Data service to the `ConfigurationBuilder`
+func (bldr *ServiceBuilder) WithUsagePrincipalDataService() *ServiceBuilder {
+	bldr.WithDynamoDB()
+	bldr.handlers = append(bldr.handlers, bldr.createUsagePrincipalDataService)
 	return bldr
 }
 
 // WithUsageService tells the builder to add the Usage service to the `ConfigurationBuilder`
 func (bldr *ServiceBuilder) WithUsageService() *ServiceBuilder {
-	bldr.WithAccountService().WithUsageDataService()
+	bldr.WithAccountService().WithUsageLeaseDataService().WithUsagePrincipalDataService()
 	bldr.handlers = append(bldr.handlers, bldr.createUsageService)
 	return bldr
 }
@@ -247,12 +254,14 @@ func (bldr *ServiceBuilder) UsageService() usageiface.Servicer {
 	return usageSvc
 }
 
+// WithUserDetailer adds the user detail service
 func (bldr *ServiceBuilder) WithUserDetailer() *ServiceBuilder {
 	bldr.WithCognito()
 	bldr.handlers = append(bldr.handlers, bldr.createUserDetailerService)
 	return bldr
 }
 
+// UserDetailer provides quick access to the user detailer service
 func (bldr *ServiceBuilder) UserDetailer() api.UserDetailer {
 	var userDetailer api.UserDetailer
 	err := bldr.Config.GetService(&userDetailer)
@@ -736,7 +745,7 @@ func (bldr *ServiceBuilder) createLeaseService(config ConfigurationServiceBuilde
 	return nil
 }
 
-func (bldr *ServiceBuilder) createUsageDataService(config ConfigurationServiceBuilder) error {
+func (bldr *ServiceBuilder) createUsageLeaseDataService(config ConfigurationServiceBuilder) error {
 	// Don't add the service twice
 	var api dataiface.UsageLease
 	err := bldr.Config.GetService(&api)
@@ -765,6 +774,35 @@ func (bldr *ServiceBuilder) createUsageDataService(config ConfigurationServiceBu
 	return nil
 }
 
+func (bldr *ServiceBuilder) createUsagePrincipalDataService(config ConfigurationServiceBuilder) error {
+	// Don't add the service twice
+	var api dataiface.UsagePrincipal
+	err := bldr.Config.GetService(&api)
+	if err == nil {
+		log.Printf("Already added Usage Lease Data service")
+		return nil
+	}
+
+	var dynamodbSvc dynamodbiface.DynamoDBAPI
+	err = bldr.Config.GetService(&dynamodbSvc)
+
+	if err != nil {
+		return err
+	}
+
+	dataSvcImpl := &data.UsagePrincipal{}
+
+	err = bldr.Config.Unmarshal(dataSvcImpl)
+	if err != nil {
+		return err
+	}
+
+	dataSvcImpl.DynamoDB = dynamodbSvc
+
+	config.WithService(dataSvcImpl)
+	return nil
+}
+
 func (bldr *ServiceBuilder) createUsageService(config ConfigurationServiceBuilder) error {
 	// Don't add the service twice
 	var api usageiface.Servicer
@@ -780,13 +818,20 @@ func (bldr *ServiceBuilder) createUsageService(config ConfigurationServiceBuilde
 		return err
 	}
 
+	var dataPrincipalSvc dataiface.UsagePrincipal
+	err = bldr.Config.GetService(&dataPrincipalSvc)
+	if err != nil {
+		return err
+	}
+
 	var usageSvcInput usage.NewServiceInput
 	err = bldr.Config.Unmarshal(&usageSvcInput)
 	if err != nil {
 		return err
 	}
 
-	usageSvcInput.DataSvc = dataLeaseSvc
+	usageSvcInput.DataLeaseSvc = dataLeaseSvc
+	usageSvcInput.DataPrincipalSvc = dataPrincipalSvc
 	usageSvc := usage.NewService(usageSvcInput)
 
 	config.WithService(usageSvc)

@@ -13,11 +13,21 @@ type stringer interface {
 	String() string
 }
 
-func getFiltersFromStruct(input interface{}, keyName *string) (*expression.KeyConditionBuilder, *expression.ConditionBuilder) {
+type sortKey struct {
+	keyName    string
+	typeSearch string
+}
+
+func getFiltersFromStruct(input interface{}, partitionKey *string, sortKey *sortKey) (*expression.KeyConditionBuilder, *expression.ConditionBuilder) {
 	var cb *expression.ConditionBuilder
 	var kb *expression.KeyConditionBuilder
 	var dValue interface{}
 	v := reflect.ValueOf(input).Elem()
+
+	if partitionKey != nil {
+		kb = &expression.KeyConditionBuilder{}
+	}
+
 	for i := 0; i < v.NumField(); i++ {
 		dField := strings.Split(v.Type().Field(i).Tag.Get("dynamodbav"), ",")[0]
 		if dField != "-" {
@@ -31,10 +41,22 @@ func getFiltersFromStruct(input interface{}, keyName *string) (*expression.KeyCo
 					} else {
 						dValue = reflect.Indirect(v.Field(i)).Interface()
 					}
-					if keyName != nil {
-						if dField == *keyName {
-							newFilter := expression.Key(dField).Equal(expression.Value(dValue))
-							kb = &newFilter
+					if partitionKey != nil {
+						if dField == *partitionKey {
+							*kb = kb.And(expression.Key(dField).Equal(expression.Value(dValue)))
+							continue
+						}
+					}
+					if sortKey != nil {
+						if dField == sortKey.keyName {
+							switch typeSearch := sortKey.typeSearch; typeSearch {
+							case "Equal":
+								*kb = kb.And(expression.Key(dField).Equal(expression.Value(dValue)))
+							case "BeginsWith":
+								if s, ok := dValue.(string); ok {
+									*kb = kb.And(expression.Key(dField).BeginsWith(s))
+								}
+							}
 							continue
 						}
 					}
