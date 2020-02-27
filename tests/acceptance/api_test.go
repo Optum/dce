@@ -1239,7 +1239,7 @@ func TestApi(t *testing.T) {
 					// Account status should change "Leased" to "NotReady"
 					apiRequest(t, &apiRequestInput{
 						method: "GET",
-						url: apiURL + "/accounts" + accountID,
+						url:    apiURL + "/accounts" + accountID,
 						f: func(r *testutil.R, apiResp *apiResponse) {
 							resJSON := apiResp.json.(map[string]interface{})
 							status, ok := resJSON["accountStatus"]
