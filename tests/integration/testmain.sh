@@ -213,7 +213,7 @@ function createLease() {
 # There are a couple things to make sure the user has installed. Like curl and jq (maybe?)
 assertExists "curl"
 assertExists "unzip"
-# assertExists "jq"
+assertExists "jq"
 
 echo -n "Downloading DCE..."
 
