@@ -161,16 +161,55 @@ function assertNotInLog() {
 
 # waitForAccountStatus waits until the account is in the given status
 function waitForAccountStatus() {
-    echo "Waiting for account to be '${2}'" | tee -a "${tmpdir}/test.log"
-    matching_account=$("${dce_cmd}" accounts describe "${1}" 2>&1 | jq -c -r 'select(.accountStatus=="'${2}'")')
+    accountId="${1}"
+    status="${2}"
+    maxWait="${3}"
+    echo "Waiting for account to be ${status}" | tee -a "${tmpdir}/test.log"
+
+    matching_account=$("${dce_cmd}" accounts describe "${accountId}" 2>&1 | jq -c -r 'select(.accountStatus=="'${status}'")')
+    t=0
     while [[ -z "${matching_account}" ]]
+#    until (( t >= maxWait )) || [[ ! -z "${matching_leases}" ]]
     do
+        if ((t >= maxWait)); then
+            echo "Ran out of time while waiting for account to become '${status}'" | tee -a "${tmpdir}/test.log"
+            exit 1
+        fi
         sleep 2
-        echo "Account is not '${2}'" | tee -a "${tmpdir}/test.log"
-        matching_account=$("${dce_cmd}" accounts describe "${1}" 2>&1 | jq -c -r 'select(.accountStatus=="'${2}'")')
+        echo "Account is not '${status}'" | tee -a "${tmpdir}/test.log"
+        matching_account=$("${dce_cmd}" accounts describe "${accountId}" 2>&1 | jq -c -r 'select(.accountStatus=="'${status}'")')
+        ((t=t+2))
     done
-    echo "Account is '${2}'" | tee -a "${tmpdir}/test.log"
+
+    echo "Account is '${status}'" | tee -a "${tmpdir}/test.log"
     echo "${matching_account}" >> "${tmpdir}/test.log"
+    return 0
+}
+
+# waitForLeaseStatus waits until the account is ready
+function waitForLeaseStatus() {
+    leaseId="${1}"
+    status="${2}"
+    maxWait="${3}"
+    echo "Waiting for lease to be '${status}'" | tee -a "${tmpdir}/test.log"
+
+    matching_leases=$("${dce_cmd}" leases describe "${1}" 2>&1 | jq -c -r 'select(.leaseStatus=="'${status}'")')
+    t=0
+    while [[ -z "${matching_leases}" ]]
+#    until (( t >= maxWait )) || [[ ! -z "${matching_leases}" ]]
+    do
+        if ((t >= maxWait)); then
+            echo "Ran out of time while waiting for lease to become '${status}'" | tee -a "${tmpdir}/test.log"
+            exit 1
+        fi
+        sleep 2
+        echo "Lease is not '${status}'" | tee -a "${tmpdir}/test.log"
+        matching_leases=$("${dce_cmd}" leases describe "${leaseId}" 2>&1 | jq -c -r 'select(.leaseStatus=="'${status}'")')
+        ((t=t+2))
+    done
+
+    echo "Lease is '${status}'" | tee -a "${tmpdir}/test.log"
+    echo "${matching_leases}" >> "${tmpdir}/test.log"
     return 0
 }
 
@@ -178,7 +217,7 @@ function waitForAccountStatus() {
 function waitForStateMachine() {
     echo "Waiting for state machine to be ready" | tee -a "${tmpdir}/test.log"
     sleepTime=$(aws stepfunctions describe-state-machine --state-machine-arn arn:aws:states:us-east-1:828880465464:stateMachine:lease-usage-usg1 | jq -r '.definition' | jq '.States.Wait.Seconds')
-    ((sleepTime=sleepTime+2))
+    ((sleepTime=sleepTime+5))
     t=1
     until (( t >= sleepTime ))
     do
@@ -188,26 +227,26 @@ function waitForStateMachine() {
     done
 }
 
-# waitForLeaseStatus waits until the account is ready
-function waitForLeaseStatus() {
-    echo "Waiting for lease to be '${2}'" | tee -a "${tmpdir}/test.log"
-    matching_leases=$("${dce_cmd}" leases describe "${1}" 2>&1 | jq -c -r 'select(.leaseStatus=="'${2}'")')
-    while [[ -z "${matching_leases}" ]]
-    do
-        sleep 2
-        echo "Lease is not '${2}'" | tee -a "${tmpdir}/test.log"
-        matching_leases=$("${dce_cmd}" leases describe "${1}" 2>&1 | jq -c -r 'select(.leaseStatus=="'${2}'")')
-    done
-    echo "Lease is ready" | tee -a "${tmpdir}/test.log"
+# createLease creates a lease and echos the id
+function createLease() {
+    principalId="${1}"
+    budget="${2}"
+    leaseDescription=$("${dce_cmd}" leases create --budget-amount "${budget}" --budget-currency USD --email jane.doe@email.com --principal-id "${principalId}" 2>&1)
+    leaseId=$(echo "${leaseDescription//Lease created: /}" | jq -r '.id')
+    echo "${leaseId}"
     return 0
 }
 
-# createLease creates a lease and echos the id
-function createLease() {
-    leaseDescription=$("${dce_cmd}" leases create --budget-amount 0 --budget-currency USD --email jane.doe@email.com --principal-id user1 2>&1)
-    leaseId=$(echo "${leaseDescription//Lease created: /}" | jq -r '.id')
-    echo $leaseId
-    return 0
+#generateRandString generates a random alphanumeric string
+function generateRandString() {
+  length="${1}"
+  openssl rand -base64 "${length}" | tr -dc A-Za-z0-9
+}
+
+# getUsageRecord gets a single usage record for the principalID and LeaseID
+function getUsageRecord() {
+  timestammpPrefix=$(x=$(date +%s); echo ${x:0:3})
+  aws dynamodb query --table-name PrincipalUsg1 --key-condition-expression "PrincipalId = :name and begins_with(SK, :sk)" --expression-attribute-values  '{":name":{"S":"'${1}'"}, ":sk":{"S":"Usage-Lease-'${2}'-'${timestammpPrefix}'"}}' | jq -r '.Items[0]'
 }
 
 # There are a couple things to make sure the user has installed. Like curl and jq (maybe?)
@@ -260,20 +299,33 @@ writeConfig ${dce_config_file}
 # assertInLog "deploy" "Creating DCE infrastructure"
 
 #------------------------------------------------------------------------------
-# Test 2 - Test
+# Test 2 - Test Lease with 0 Budget is Ended
 #------------------------------------------------------------------------------
 
-function test_lease_with_no_budget_is_ended() {
-    printTestBanner "WHEN an account is leased with 0 lease budget AND the usage state machine wait period is set to 10 seconds THEN the lease should be ended within 15 seconds."
+function test_lease_should_end_when_over_lease_budget() {
+    printTestBanner "WHEN a lease goes over the lease budget THEN it should be ended."
+
     assertSuccess "adding account" "${dce_cmd}" accounts add --account-id "${CHILD_ACCOUNT_ID}" --admin-role-arn arn:aws:iam::"${CHILD_ACCOUNT_ID}":role/DCEMasterAccess
     assertNotInLog "adding account" "err"
-    waitForAccountStatus "${CHILD_ACCOUNT_ID}" "Ready"
-    leaseId=$(createLease)
+    waitForAccountStatus "${CHILD_ACCOUNT_ID}" "Ready" 60
+
+    principalId=$(generateRandString 10)
+    echo "principalId is ${principalId}" | tee -a "${tmpdir}/test.log"
+    leaseId=$(createLease "${principalId}" 1)
+    echo "leaseId is ${leaseId}" | tee -a "${tmpdir}/test.log"
     assertNotInLog "creating lease" "err"
+
     waitForStateMachine
-    waitForLeaseStatus "${leaseId}" "Inactive"
+    echo "Simulating new usage by setting daily usage record CostAmount to -10" | tee -a "${tmpdir}/test.log"
+    usageRecord=$(getUsageRecord "${principalId}" "${leaseId}")
+    subtractedCostAmountRecord=$( echo "${usageRecord}" | jq 'setpath(["CostAmount", "N"]; "-10")')
+    aws dynamodb put-item --table-name "PrincipalUsg1" --item "${subtractedCostAmountRecord}"
+
+    waitForStateMachine
+    waitForLeaseStatus "${leaseId}" "Inactive" 5
 }
 
-test_deployment
+# TODO: run select test cases from args OR run all
+test_lease_should_end_when_over_lease_budget
 
 exit 0
