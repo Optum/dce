@@ -85,7 +85,7 @@ func DeleteLease(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(*leases) > 1 {
-		response.WriteRequestValidationError(w, fmt.Sprintf("Found more than one lease"))
+		response.WriteRequestValidationError(w, "Found more than one lease")
 		return
 	}
 
