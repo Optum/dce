@@ -159,6 +159,57 @@ function assertNotInLog() {
     return 0
 }
 
+# waitForAccountStatus waits until the account is in the given status
+function waitForAccountStatus() {
+    echo "Waiting for account to be '${2}'" | tee -a "${tmpdir}/test.log"
+    matching_account=$("${dce_cmd}" accounts describe "${1}" 2>&1 | jq -c -r 'select(.accountStatus=="'${2}'")')
+    while [[ -z "${matching_account}" ]]
+    do
+        sleep 2
+        echo "Account is not '${2}'" | tee -a "${tmpdir}/test.log"
+        matching_account=$("${dce_cmd}" accounts describe "${1}" 2>&1 | jq -c -r 'select(.accountStatus=="'${2}'")')
+    done
+    echo "Account is '${2}'" | tee -a "${tmpdir}/test.log"
+    echo "${matching_account}" >> "${tmpdir}/test.log"
+    return 0
+}
+
+# waitForStateMachine sleeps for the wait period of the state machine
+function waitForStateMachine() {
+    echo "Waiting for state machine to be ready" | tee -a "${tmpdir}/test.log"
+    sleepTime=$(aws stepfunctions describe-state-machine --state-machine-arn arn:aws:states:us-east-1:828880465464:stateMachine:lease-usage-usg1 | jq -r '.definition' | jq '.States.Wait.Seconds')
+    ((sleepTime=sleepTime+2))
+    t=1
+    until (( t >= sleepTime ))
+    do
+        echo "Waiting for state machine "${t}"/""${sleepTime}"" seconds."
+        sleep 1
+        ((t++))
+    done
+}
+
+# waitForLeaseStatus waits until the account is ready
+function waitForLeaseStatus() {
+    echo "Waiting for lease to be '${2}'" | tee -a "${tmpdir}/test.log"
+    matching_leases=$("${dce_cmd}" leases describe "${1}" 2>&1 | jq -c -r 'select(.leaseStatus=="'${2}'")')
+    while [[ -z "${matching_leases}" ]]
+    do
+        sleep 2
+        echo "Lease is not '${2}'" | tee -a "${tmpdir}/test.log"
+        matching_leases=$("${dce_cmd}" leases describe "${1}" 2>&1 | jq -c -r 'select(.leaseStatus=="'${2}'")')
+    done
+    echo "Lease is ready" | tee -a "${tmpdir}/test.log"
+    return 0
+}
+
+# createLease creates a lease and echos the id
+function createLease() {
+    leaseDescription=$("${dce_cmd}" leases create --budget-amount 0 --budget-currency USD --email jane.doe@email.com --principal-id user1 2>&1)
+    leaseId=$(echo "${leaseDescription//Lease created: /}" | jq -r '.id')
+    echo $leaseId
+    return 0
+}
+
 # There are a couple things to make sure the user has installed. Like curl and jq (maybe?)
 assertExists "curl"
 assertExists "unzip"
@@ -209,30 +260,19 @@ writeConfig ${dce_config_file}
 # assertInLog "deploy" "Creating DCE infrastructure"
 
 #------------------------------------------------------------------------------
-# Test 2 - Test deployment
+# Test 2 - Test
 #------------------------------------------------------------------------------
-function waitForAccountReady() {
-    echo "Waiting for account to be ready" | tee -a "${tmpdir}/test.log"
-    ready_account=$("${dce_cmd}" accounts describe "${CHILD_ACCOUNT_ID}" 2>&1 | jq -c -r 'select(.accountStatus=="Ready")')
-    while [[ -z "${ready_account}" ]]
-    do
-        sleep 2
-        echo "Account is not ready" | tee -a "${tmpdir}/test.log"
-        ready_account=$("${dce_cmd}" accounts describe "${CHILD_ACCOUNT_ID}" 2>&1 | jq -c -r 'select(.accountStatus=="Ready")')
-    done
-    echo "Account is ready" | tee -a "${tmpdir}/test.log"
-    return 0
-}
 
-function test_deployment() {
+function test_lease_with_no_budget_is_ended() {
     printTestBanner "WHEN an account is leased with 0 lease budget AND the usage state machine wait period is set to 10 seconds THEN the lease should be ended within 15 seconds."
     assertSuccess "adding account" "${dce_cmd}" accounts add --account-id "${CHILD_ACCOUNT_ID}" --admin-role-arn arn:aws:iam::"${CHILD_ACCOUNT_ID}":role/DCEMasterAccess
     assertNotInLog "adding account" "err"
-    waitForAccountReady
-    assertSuccess "creating lease" "${dce_cmd}" leases create --budget-amount 0 --budget-currency USD --email jane.doe@email.com --principal-id user1
+    waitForAccountStatus "${CHILD_ACCOUNT_ID}" "Ready"
+    leaseId=$(createLease)
     assertNotInLog "creating lease" "err"
+    waitForStateMachine
+    waitForLeaseStatus "${leaseId}" "Inactive"
 }
-
 
 test_deployment
 
