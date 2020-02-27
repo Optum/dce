@@ -86,7 +86,7 @@
       "width": 24,
       "height": 6,
       "properties": {
-        "query": "SOURCE '/aws/codebuild/${codebuild_name}' | ${error_scraper_query}",
+        "query": "SOURCE '/aws/codebuild/${codebuild_name}' | fields @timestamp, @message | sort @timestamp desc | filter @message like /(delete failed|Failed to execute aws-nuke on account)/ | display @timestamp, @message, @logStream| limit 50",
         "region": "us-east-1",
         "stacked": false,
         "view": "table",

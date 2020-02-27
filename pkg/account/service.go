@@ -122,7 +122,7 @@ func (a *Service) Update(ID string, data *Account) (*Account, error) {
 		return nil, err
 	}
 
-	err = mergo.Merge(account, *data)
+	err = mergo.Merge(account, *data, mergo.WithOverride)
 	if err != nil {
 		return nil, errors.NewInternalServer("unexpected error updating account", err)
 	}

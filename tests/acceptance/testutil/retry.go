@@ -62,6 +62,10 @@ func (r *R) Fail() {
 	r.failed = true
 }
 
+func (r *R) FailNow() {
+	r.failed = true
+}
+
 // Errorf is equivalent to Logf followed by Fail.
 func (r *R) Errorf(s string, v ...interface{}) {
 	r.logf(s, v...)

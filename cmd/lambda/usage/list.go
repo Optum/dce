@@ -21,7 +21,7 @@ func GetUsage(w http.ResponseWriter, r *http.Request) {
 	getUsageInput, err := parseGetUsageInput(r)
 
 	if err != nil {
-		response.WriteRequestValidationError(w, fmt.Sprintf("Error parsing query params"))
+		response.WriteRequestValidationError(w, fmt.Sprintf("Error parsing query params: %s", err))
 		return
 	}
 
