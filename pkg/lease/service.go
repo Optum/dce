@@ -232,11 +232,11 @@ func (a *Service) ListPages(query *Lease, fn func(*Leases) bool) error {
 type NewServiceInput struct {
 	DataSvc                  ReaderWriter
 	EventSvc                 Eventer
-	DefaultLeaseLengthInDays int     `env:"DEFAULT_LEASE_LENGTH_IN_DAYS" defaultEnv:"7"`
-	PrincipalBudgetAmount    float64 `env:"PRINCIPAL_BUDGET_AMOUNT" defaultEnv:"1000.00"`
-	PrincipalBudgetPeriod    string  `env:"PRINCIPAL_BUDGET_PERIOD" defaultEnv:"Weekly"`
-	MaxLeaseBudgetAmount     float64 `env:"MAX_LEASE_BUDGET_AMOUNT" defaultEnv:"1000.00"`
-	MaxLeasePeriod           int64   `env:"MAX_LEASE_PERIOD" defaultEnv:"704800"`
+	DefaultLeaseLengthInDays int     `env:"DEFAULT_LEASE_LENGTH_IN_DAYS" envDefault:"7"`
+	PrincipalBudgetAmount    float64 `env:"PRINCIPAL_BUDGET_AMOUNT" envDefault:"1000.00"`
+	PrincipalBudgetPeriod    string  `env:"PRINCIPAL_BUDGET_PERIOD" envDefault:"Weekly"`
+	MaxLeaseBudgetAmount     float64 `env:"MAX_LEASE_BUDGET_AMOUNT" envDefault:"1000.00"`
+	MaxLeasePeriod           int64   `env:"MAX_LEASE_PERIOD" envDefault:"704800"`
 }
 
 // NewService creates a new instance of the Service
