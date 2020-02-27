@@ -1040,6 +1040,7 @@ func TestApi(t *testing.T) {
 				_, err = uuid.Parse(fmt.Sprintf("%v", resJSON["id"]))
 				require.Nil(t, err)
 				require.NotNil(t, resJSON["leaseStatusModifiedOn"])
+				leaseID := resJSON["id"].(string)
 
 				// Check the lease is created
 				res = apiRequest(t, &apiRequestInput{
@@ -1100,7 +1101,7 @@ func TestApi(t *testing.T) {
 					res = apiRequest(t, &apiRequestInput{
 						method:      "POST",
 						maxAttempts: 3,
-						url:         fmt.Sprintf("%s/leases/%s/auth", apiURL, lease.ID),
+						url:         fmt.Sprintf("%s/leases/%s/auth", apiURL, leaseID),
 						f: func(r *testutil.R, apiResp *apiResponse) {
 							assert.Equal(r, 201, apiResp.StatusCode)
 						},
