@@ -31,6 +31,7 @@ type leaseControllerConfiguration struct {
 	MaxLeaseBudgetAmount     float64 `env:"MAX_LEASE_BUDGET_AMOUNT" defaultEnv:"1000.00"`
 	MaxLeasePeriod           int64   `env:"MAX_LEASE_PERIOD" defaultEnv:"704800"`
 	DefaultLeaseLengthInDays int     `env:"DEFAULT_LEASE_LENGTH_IN_DAYS" defaultEnv:"7"`
+	UsageStepFunctionArn     string  `env:"USAGE_STEP_FUNCTION_ARN" defaultEnv:"DefaultUsageStepFunctionArn"`
 }
 
 const (
@@ -136,6 +137,7 @@ func initConfig() {
 	svcBldr := &config.ServiceBuilder{Config: cfgBldr}
 
 	_, err = svcBldr.
+		WithStepFunctions().
 		WithLeaseService().
 		WithUserDetailer().
 		Build()

@@ -2,6 +2,8 @@ package config
 
 import (
 	"github.com/Optum/dce/pkg/api"
+	"github.com/aws/aws-sdk-go/service/sfn"
+	"github.com/aws/aws-sdk-go/service/sfn/sfniface"
 
 	"log"
 	"reflect"
@@ -131,6 +133,12 @@ func (bldr *ServiceBuilder) WithSSM() *ServiceBuilder {
 // WithLambda tells the builder to add an AWS Lambda service to the `DefaultConfigurater`
 func (bldr *ServiceBuilder) WithLambda() *ServiceBuilder {
 	bldr.handlers = append(bldr.handlers, bldr.createLambda)
+	return bldr
+}
+
+// WithLambda tells the builder to add an AWS Lambda service to the `DefaultConfigurater`
+func (bldr *ServiceBuilder) WithStepFunctions() *ServiceBuilder {
+	bldr.handlers = append(bldr.handlers, bldr.createStepFunctions)
 	return bldr
 }
 
@@ -440,6 +448,20 @@ func (bldr *ServiceBuilder) createLambda(config ConfigurationServiceBuilder) err
 
 	lambdaSvc := lambda.New(bldr.awsSession)
 	config.WithService(lambdaSvc)
+	return nil
+}
+
+func (bldr *ServiceBuilder) createStepFunctions(config ConfigurationServiceBuilder) error {
+	// Don't add the service twice
+	var sfnAPI sfniface.SFNAPI
+	err := bldr.Config.GetService(&sfnAPI)
+	if err == nil {
+		log.Printf("Already added Step Functions service")
+		return nil
+	}
+
+	sfnSvc := sfn.New(bldr.awsSession)
+	config.WithService(sfnSvc)
 	return nil
 }
 
