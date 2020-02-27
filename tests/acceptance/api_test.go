@@ -2856,7 +2856,5 @@ func waitForAccountStatus(t *testing.T, apiURL, accountID, expectedStatus string
 	require.Equalf(t, expectedStatus, actualStatus,
 		"Expected account status to change from %s to %s", actualStatus, expectedStatus)
 
-	time.Sleep(time.Second * 5)
-
 	return res
 }
