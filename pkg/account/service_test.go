@@ -198,6 +198,30 @@ func TestUpdate(t *testing.T) {
 			returnErr: nil,
 		},
 		{
+			name: "should override existing values",
+			origAccount: account.Account{
+				ID:             ptrString("123456789012"),
+				AdminRoleArn:   arn.New("aws", "iam", "", "123456789012", "role/AdminRoleArn"),
+				Status:         account.StatusLeased.StatusPtr(),
+				CreatedOn:      &now,
+				LastModifiedOn: &now,
+			},
+			updAccount: account.Account{
+				Status: account.StatusNotReady.StatusPtr(),
+			},
+			exp: response{
+				data: &account.Account{
+					ID:             ptrString("123456789012"),
+					AdminRoleArn:   arn.New("aws", "iam", "", "123456789012", "role/AdminRoleArn"),
+					Status:         account.StatusNotReady.StatusPtr(),
+					CreatedOn:      &now,
+					LastModifiedOn: &now,
+				},
+				err: nil,
+			},
+			returnErr: nil,
+		},
+		{
 			name: "should fail validation on update",
 			origAccount: account.Account{
 				ID:     ptrString("123456789012"),

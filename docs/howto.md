@@ -672,7 +672,7 @@ Then configure reset using `Terraform variables <terraform.html#configuring-terr
 | --- | --- | --- |
 | `reset_nuke_template_bucket` | See [default-nuke-config-template.yml](https://github.com/Optum/dce/blob/master/cmd/codebuild/reset/default-nuke-config-template.yml) | S3 bucket where a custom [aws-nuke](https://github.com/rebuy-de/aws-nuke) configuration is located |
 | `reset_nuke_template_key` | See [default-nuke-config-template.yml](https://github.com/Optum/dce/blob/master/cmd/codebuild/reset/default-nuke-config-template.yml) | S3 key within the `reset_nuke_template_bucket` where a custom [aws-nuke](https://github.com/rebuy-de/aws-nuke) configuration is located |
-| `reset_nuke_toggle` | `true` | Set to false to run `aws-nuke` in dry run mode |
+| `reset_nuke_toggle` | `true` | Set to false to disable aws-nuke |
 | `allowed_regions` | _all AWS regions_ | AWS regions which will be nuked. Allowing fewer regions will drastically reduce the run time of aws-nuke | 
 
 
