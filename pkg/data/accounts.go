@@ -21,7 +21,7 @@ func (a *Account) queryAccounts(query *account.Account, keyName string, index st
 	var err error
 	var res *dynamodb.QueryOutput
 
-	keyCondition, filters := getFiltersFromStruct(query, &keyName)
+	keyCondition, filters := getFiltersFromStruct(query, &keyName, nil)
 	bldr = expression.NewBuilder().WithKeyCondition(*keyCondition)
 	if filters != nil {
 		bldr = bldr.WithFilter(*filters)
@@ -72,7 +72,7 @@ func (a *Account) scanAccounts(query *account.Account) (*queryScanOutput, error)
 	var err error
 	var res *dynamodb.ScanOutput
 
-	_, filters := getFiltersFromStruct(query, nil)
+	_, filters := getFiltersFromStruct(query, nil, nil)
 	if filters != nil {
 		expr, err = expression.NewBuilder().WithFilter(*filters).Build()
 		if err != nil {

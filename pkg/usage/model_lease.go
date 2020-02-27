@@ -14,10 +14,12 @@ type Lease struct {
 	Date            *time.Time `json:"date,omitempty" dynamodbav:"Date,unixtime" schema:"date,omitempty"`                          // Usage date
 	CostAmount      *float64   `json:"costAmount,omitempty" dynamodbav:"CostAmount,omitempty" schema:"costAmount,omitempty"`       // Cost Amount for given period
 	CostCurrency    *string    `json:"costCurrency,omitempty" dynamodbav:"CostCurrency,omitempty" schema:"costCurrency,omitempty"` // Cost currency
-	BudgetAmount	*float64   `json:"budgetAmount" dynamodbav:"BudgetAmount,omitempty" schema:"budgetAmount,omitempty"`
+	BudgetAmount    *float64   `json:"budgetAmount" dynamodbav:"BudgetAmount,omitempty" schema:"budgetAmount,omitempty"`
+	TTL             *int64     `json:"-,omitempty" dynamodbav:"TimeToLive,omitempty" schema:"-,omitempty"`
 	Limit           *int64     `json:"-" dynamodbav:"-" schema:"limit,omitempty"`
-	NextStartDate   *int64     `json:"-" dynamodbav:"-" schema:"nestSK,omitempty"`
+	NextDate        *int64     `json:"-" dynamodbav:"-" schema:"nestDate,omitempty"`
 	NextPrincipalID *string    `json:"-" dynamodbav:"-" schema:"nextPrincipalId,omitempty"`
+	NextLeaseID     *string    `json:"-" dynamodbav:"-" schema:"nextLeaseId,omitempty"`
 }
 
 // Validate the account data
@@ -27,6 +29,8 @@ func (u *Lease) Validate() error {
 		validation.Field(&u.LeaseID, validationLeaseID...),
 		validation.Field(&u.CostAmount, validateFloat64...),
 		validation.Field(&u.CostCurrency, validateCostCurrency...),
+		validation.Field(&u.Date, validateInt64...),
+		validation.Field(&u.TTL, validateTimeToLive...),
 	)
 	if err != nil {
 		return errors.NewValidation("usage", err)

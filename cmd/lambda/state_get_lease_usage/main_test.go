@@ -33,7 +33,6 @@ func ptrFloat64(f float64) *float64 {
 func TestGetLeaseUsage(t *testing.T) {
 
 	type getUsage struct {
-		lease     *lease.Lease
 		startDate time.Time
 		endDate   time.Time
 		retData   types.Usages

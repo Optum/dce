@@ -1,23 +1,31 @@
 package data
 
 import (
+	"strconv"
+
 	"github.com/Optum/dce/pkg/errors"
-	"github.com/Optum/dce/pkg/lease"
+	"github.com/Optum/dce/pkg/usage"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
-	"strings"
 )
 
-// queryLeases for doing a query against dynamodb
-func (a *Lease) queryLeases(query *lease.Lease, keyName string, index string) (*queryScanOutput, error) {
+const (
+	usageLeaseIndex = "Lease"
+)
+
+// query for doing a query against dynamodb
+func (a *UsageLease) query(query *usage.Lease) (*queryScanOutput, error) {
 	var expr expression.Expression
 	var bldr expression.Builder
 	var err error
 	var res *dynamodb.QueryOutput
 
-	keyCondition, filters := getFiltersFromStruct(query, &keyName, nil)
+	keyCondition, filters := getFiltersFromStruct(query, aws.String("LeaseId"), &sortKey{
+		keyName:    "Date",
+		typeSearch: "BeginsWith",
+	})
 	bldr = expression.NewBuilder().WithKeyCondition(*keyCondition)
 	if filters != nil {
 		bldr = bldr.WithFilter(*filters)
@@ -30,7 +38,7 @@ func (a *Lease) queryLeases(query *lease.Lease, keyName string, index string) (*
 
 	queryInput := &dynamodb.QueryInput{
 		TableName:                 aws.String(a.TableName),
-		IndexName:                 aws.String(index),
+		IndexName:                 aws.String(usageLeaseIndex),
 		KeyConditionExpression:    expr.KeyCondition(),
 		ConsistentRead:            aws.Bool(a.ConsistentRead),
 		FilterExpression:          expr.Filter(),
@@ -39,14 +47,17 @@ func (a *Lease) queryLeases(query *lease.Lease, keyName string, index string) (*
 	}
 
 	queryInput.SetLimit(*query.Limit)
-	if query.NextAccountID != nil && query.NextPrincipalID != nil {
+	if query.NextPrincipalID != nil {
 		// Should be more dynamic
 		queryInput.SetExclusiveStartKey(map[string]*dynamodb.AttributeValue{
-			"AccountId": &dynamodb.AttributeValue{
-				S: query.NextAccountID,
-			},
 			"PrincipalId": &dynamodb.AttributeValue{
 				S: query.NextPrincipalID,
+			},
+			"LeaseId": &dynamodb.AttributeValue{
+				S: query.NextPrincipalID,
+			},
+			"Date": &dynamodb.AttributeValue{
+				N: aws.String(strconv.FormatInt(*query.NextDate, 10)),
 			},
 		})
 	}
@@ -54,7 +65,7 @@ func (a *Lease) queryLeases(query *lease.Lease, keyName string, index string) (*
 	res, err = a.DynamoDB.Query(queryInput)
 	if err != nil {
 		return nil, errors.NewInternalServer(
-			"failed to query leases",
+			"failed to query accounts",
 			err,
 		)
 	}
@@ -65,8 +76,8 @@ func (a *Lease) queryLeases(query *lease.Lease, keyName string, index string) (*
 	}, nil
 }
 
-// scanLeases for doing a scan against dynamodb
-func (a *Lease) scanLeases(query *lease.Lease) (*queryScanOutput, error) {
+// scan for doing a scan against dynamodb
+func (a *UsageLease) scan(query *usage.Lease) (*queryScanOutput, error) {
 	var expr expression.Expression
 	var err error
 	var res *dynamodb.ScanOutput
@@ -88,14 +99,17 @@ func (a *Lease) scanLeases(query *lease.Lease) (*queryScanOutput, error) {
 	}
 
 	scanInput.SetLimit(*query.Limit)
-	if query.NextAccountID != nil {
+	if query.NextPrincipalID != nil {
 		// Should be more dynamic
 		scanInput.SetExclusiveStartKey(map[string]*dynamodb.AttributeValue{
-			"AccountId": &dynamodb.AttributeValue{
-				S: query.NextAccountID,
-			},
 			"PrincipalId": &dynamodb.AttributeValue{
 				S: query.NextPrincipalID,
+			},
+			"LeaseId": &dynamodb.AttributeValue{
+				S: query.NextPrincipalID,
+			},
+			"Date": &dynamodb.AttributeValue{
+				N: aws.String(strconv.FormatInt(*query.NextDate, 10)),
 			},
 		})
 	}
@@ -103,7 +117,7 @@ func (a *Lease) scanLeases(query *lease.Lease) (*queryScanOutput, error) {
 	res, err = a.DynamoDB.Scan(scanInput)
 
 	if err != nil {
-		return nil, errors.NewInternalServer("error getting leases", err)
+		return nil, errors.NewInternalServer("error getting accounts", err)
 	}
 
 	return &queryScanOutput{
@@ -112,8 +126,8 @@ func (a *Lease) scanLeases(query *lease.Lease) (*queryScanOutput, error) {
 	}, nil
 }
 
-// List Get a list of leases
-func (a *Lease) List(query *lease.Lease) (*lease.Leases, error) {
+// List Get a list of accounts
+func (a *UsageLease) List(query *usage.Lease) (*usage.Leases, error) {
 
 	var outputs *queryScanOutput
 	var err error
@@ -122,35 +136,35 @@ func (a *Lease) List(query *lease.Lease) (*lease.Leases, error) {
 		query.Limit = &a.Limit
 	}
 
-	if query.ID != nil {
-		outputs, err = a.queryLeases(query, "Id", "LeaseId")
-	} else if query.PrincipalID != nil {
-		outputs, err = a.queryLeases(query, "PrincipalId", "PrincipalId")
-	} else if query.Status != nil {
-		outputs, err = a.queryLeases(query, "LeaseStatus", "LeaseStatus")
+	if query.PrincipalID != nil && query.Date != nil {
+		outputs, err = a.query(query)
 	} else {
-		outputs, err = a.scanLeases(query)
+		outputs, err = a.scan(query)
 	}
 	if err != nil {
 		return nil, err
 	}
 
-	query.NextAccountID = nil
 	query.NextPrincipalID = nil
+	query.NextLeaseID = nil
+	query.NextDate = nil
 	for k, v := range outputs.lastEvaluatedKey {
-		if strings.Contains(k, "Account") {
-			query.NextAccountID = v.S
-		}
-		if strings.Contains(k, "Principal") {
+		switch k {
+		case "NextPrincipalId":
 			query.NextPrincipalID = v.S
+		case "NextDate":
+			n, _ := strconv.ParseInt(*v.S, 10, 64)
+			query.NextDate = &n
+		case "NextLeaseId":
+			query.NextLeaseID = v.S
 		}
 	}
 
-	leases := &lease.Leases{}
-	err = dynamodbattribute.UnmarshalListOfMaps(outputs.items, leases)
+	usgs := &usage.Leases{}
+	err = dynamodbattribute.UnmarshalListOfMaps(outputs.items, usgs)
 	if err != nil {
-		return nil, errors.NewInternalServer("failed unmarshal of leases", err)
+		return nil, errors.NewInternalServer("failed unmarshaling of usage", err)
 	}
 
-	return leases, nil
+	return usgs, nil
 }
