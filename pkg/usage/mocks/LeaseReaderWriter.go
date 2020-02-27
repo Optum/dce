@@ -10,6 +10,52 @@ type LeaseReaderWriter struct {
 	mock.Mock
 }
 
+// Get provides a mock function with given fields: id
+func (_m *LeaseReaderWriter) Get(id string) (*usage.Lease, error) {
+	ret := _m.Called(id)
+
+	var r0 *usage.Lease
+	if rf, ok := ret.Get(0).(func(string) *usage.Lease); ok {
+		r0 = rf(id)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*usage.Lease)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(id)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// List provides a mock function with given fields: query
+func (_m *LeaseReaderWriter) List(query *usage.Lease) (*usage.Leases, error) {
+	ret := _m.Called(query)
+
+	var r0 *usage.Leases
+	if rf, ok := ret.Get(0).(func(*usage.Lease) *usage.Leases); ok {
+		r0 = rf(query)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*usage.Leases)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*usage.Lease) error); ok {
+		r1 = rf(query)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // Write provides a mock function with given fields: i
 func (_m *LeaseReaderWriter) Write(i *usage.Lease) error {
 	ret := _m.Called(i)

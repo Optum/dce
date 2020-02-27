@@ -75,7 +75,7 @@ func TestUpsertLeaseUsage(t *testing.T) {
 			mocksRwd.On("Write", mock.AnythingOfType("*usage.Lease")).Return(tt.ret)
 
 			usageSvc := usage.NewService(usage.NewServiceInput{
-				DataSvc: mocksRwd,
+				DataLeaseSvc: mocksRwd,
 			})
 
 			err := usageSvc.UpsertLeaseUsage(&tt.req)
