@@ -46,39 +46,50 @@ EOF
     return 0
 }
 
-# cleanup ends all leases and removes all accounts from dce master
+function endLease() {
+  leaseId="${1}"
+  accountId=$("${dce_cmd}" leases describe "${leaseId}" 2>&1 | jq -r '.accountId')
+  principalId=$("${dce_cmd}" leases describe "${leaseId}" 2>&1 | jq -r '.principalId')
+  "${dce_cmd}" leases end --account-id "${accountId}" --principal-id "${principalId}" | tee -a "${tmpdir}/test.log"
+  err=$?
+  if ((err == 0)); then
+      echo "Successfully ended lease ${leaseId}" >> "${tmpdir}/test.log"
+  else
+    echo "${err}" | tee -a "${tmpdir}/test.log"
+  fi
+}
+
+function endAllLeases() {
+    active_leases=$("${dce_cmd}" leases list --status "Active" 2>&1 | jq -c '.[]')
+    for lease in ${active_leases}
+    do
+      endLease "$(echo "${lease}" | jq -r '.id')"
+    done
+}
+
+function removeAccount() {
+  accountId="${1}"
+  "${dce_cmd}" accounts remove "${accountId}" | tee -a "${tmpdir}/test.log"
+  err=$?
+  if ((err == 0)); then
+      echo "Successfully removed account ${accountId}" >> "${tmpdir}/test.log"
+  else
+    echo "${err}" | tee -a "${tmpdir}/test.log"
+  fi
+}
+
+function removeAllAccounts() {
+    accountsIds=$("${dce_cmd}" accounts list 2>&1 | jq -c -r '.[].id')
+    for accountId in ${accountsIds}
+    do
+      removeAccount "${accountId}"
+    done
+}
+
 function cleanup() {
     printTestBanner "Cleanup"
-
-    active_leases=$("${dce_cmd}" leases list 2>&1 | jq -c -r '.[] | select(.leaseStatus=="Active")')
-    for lease in $active_leases
-    do
-        account_id=$(echo $lease | jq -r '.accountId')
-        principal_id=$(echo $lease | jq -r '.principalId')
-        "${dce_cmd}" leases end --account-id $account_id --principal-id $principal_id >> "${tmpdir}/test.log" 2>&1
-        if [[ $? -ne 0 ]]; then
-            lease_id=$(echo $lease | jq -r '.id')
-            echo "Error while trying to end lease id \"${lease_id}\". Retrying...". 1>&2
-            "${dce_cmd}" leases end --account-id $account_id --principal-id $principal_id >> "${tmpdir}/test.log" 2>&1
-            if [[ $? -ne 0 ]]; then
-                echo "Unable to end lease id \"${lease_id}\"." 1>&2
-            fi
-        fi
-    done
-
-    accounts_ids=$("${dce_cmd}" accounts list 2>&1 | jq -c -r '.[].id')
-    for id in $accounts_ids
-    do
-        "${dce_cmd}" accounts remove $id >> "${tmpdir}/test.log" 2>&1
-        if [[ $? -ne 0 ]]; then
-            echo "Error while trying to remove account id \"${id}\". Retrying...". 1>&2
-            "${dce_cmd}" accounts remove $id >> "${tmpdir}/test.log" 2>&1
-            if [[ $? -ne 0 ]]; then
-                echo "Unable to remove account id \"${id}\"." 1>&2
-            fi
-        fi
-    done
-    printTestResult "Finished"
+    endAllLeases
+    removeAllAccounts
 }
 
 trap cleanup EXIT
@@ -169,7 +180,6 @@ function waitForAccountStatus() {
     matching_account=$("${dce_cmd}" accounts describe "${accountId}" 2>&1 | jq -c -r 'select(.accountStatus=="'${status}'")')
     t=0
     while [[ -z "${matching_account}" ]]
-#    until (( t >= maxWait )) || [[ ! -z "${matching_leases}" ]]
     do
         if ((t >= maxWait)); then
             echo "Ran out of time while waiting for account to become '${status}'" | tee -a "${tmpdir}/test.log"
@@ -196,7 +206,6 @@ function waitForLeaseStatus() {
     matching_leases=$("${dce_cmd}" leases describe "${1}" 2>&1 | jq -c -r 'select(.leaseStatus=="'${status}'")')
     t=0
     while [[ -z "${matching_leases}" ]]
-#    until (( t >= maxWait )) || [[ ! -z "${matching_leases}" ]]
     do
         if ((t >= maxWait)); then
             echo "Ran out of time while waiting for lease to become '${status}'" | tee -a "${tmpdir}/test.log"
@@ -254,6 +263,25 @@ function getUsageDailyRecord() {
   aws dynamodb query --table-name "Principal$(title ${DEPLOY_NAMESPACE})" --key-condition-expression "PrincipalId = :name and begins_with(SK, :sk)" --expression-attribute-values  '{":name":{"S":"'${1}'"}, ":sk":{"S":"Usage-Lease-'${2}'-'${timestampPrefix}'"}}' | jq -r '.Items[0]'
 }
 
+function simulateUsage() {
+    principalId="${1}"
+    leaseId="${2}"
+    usageAmount="${3}"
+    echo "Simulating new usage by setting daily usage record CostAmount to -'${usageAmount}'" | tee -a "${tmpdir}/test.log"
+    usageRecord=$(getUsageDailyRecord "${principalId}" "${leaseId}")
+    subtractedCostAmountRecord=$( echo "${usageRecord}" | jq 'setpath(["CostAmount", "N"]; "-'${usageAmount}'")')
+    aws dynamodb put-item --table-name "Principal$(title ${DEPLOY_NAMESPACE})" --item "${subtractedCostAmountRecord}"
+}
+
+function getLeaseUsageSummaryRecord() {
+    principalId="${1}"
+    leaseId="${2}"
+    aws dynamodb query \
+        --table-name "Principal$(title ${DEPLOY_NAMESPACE})" \
+        --key-condition-expression "PrincipalId = :name and begins_with(SK, :sk)" \
+        --expression-attribute-values  '{":name":{"S":"'${principalId}'"}, ":sk":{"S":"Usage-Lease-'${leaseId}'-Summary"}}' | jq -r '.Items[0]'
+}
+
 # There are a couple things to make sure the user has installed. Like curl and jq (maybe?)
 assertExists "curl"
 assertExists "unzip"
@@ -289,33 +317,26 @@ writeConfig ${dce_config_file}
 #------------------------------------------------------------------------------
 # Test 1 - Make sure command works and usage works
 #------------------------------------------------------------------------------
-# printTestBanner "Get help"
-# assertSuccess "help" "${dce_cmd}" --help
-# assertInLog "help" "Disposable Cloud Environment"
-# assertInLog "help" "Usage:"
-
+function dce_root_command_works() {
+    printTestBanner "Get help"
+    assertSuccess "help" "${dce_cmd}" --help
+    assertInLog "help" "Disposable Cloud Environment"
+    assertInLog "help" "Usage:"
+}
 # #------------------------------------------------------------------------------
 # # Test 2 - Test deployment
 # #------------------------------------------------------------------------------
-# printTestBanner "Deploy"
-# assertSuccess "deploy" "${dce_cmd}" system deploy -b ${dce_opts}
-# assertNotInLog "deploy" "fail"
-# assertInLog "deploy" "Initializing"
-# assertInLog "deploy" "Creating DCE infrastructure"
+function dce_deploy() {
+    printTestBanner "Deploy"
+    assertSuccess "deploy" "${dce_cmd}" system deploy -b ${dce_opts}
+    assertNotInLog "deploy" "fail"
+    assertInLog "deploy" "Initializing"
+    assertInLog "deploy" "Creating DCE infrastructure"
+}
 
 #------------------------------------------------------------------------------
 # Test 2 - Test Lease should end when over lease budget
 #------------------------------------------------------------------------------
-
-function simulateUsage() {
-    principalId="${1}"
-    leaseId="${2}"
-    usageAmount="${3}"
-    echo "Simulating new usage by setting daily usage record CostAmount to -'${usageAmount}'" | tee -a "${tmpdir}/test.log"
-    usageRecord=$(getUsageDailyRecord "${principalId}" "${leaseId}")
-    subtractedCostAmountRecord=$( echo "${usageRecord}" | jq 'setpath(["CostAmount", "N"]; "-'${usageAmount}'")')
-    aws dynamodb put-item --table-name "Principal$(title ${DEPLOY_NAMESPACE})" --item "${subtractedCostAmountRecord}"
-}
 
 function test_lease_should_end_when_over_lease_budget() {
     printTestBanner "WHEN a lease goes over the lease budget THEN it should be ended."
@@ -342,15 +363,6 @@ function test_lease_should_end_when_over_lease_budget() {
 #------------------------------------------------------------------------------
 # Test 3 - Test Lease should end when over principal budget
 #------------------------------------------------------------------------------
-
-function getLeaseUsageSummaryRecord() {
-    principalId="${1}"
-    leaseId="${2}"
-    aws dynamodb query \
-        --table-name "Principal$(title ${DEPLOY_NAMESPACE})" \
-        --key-condition-expression "PrincipalId = :name and begins_with(SK, :sk)" \
-        --expression-attribute-values  '{":name":{"S":"'${principalId}'"}, ":sk":{"S":"Usage-Lease-'${leaseId}'-Summary"}}' | jq -r '.Items[0]'
-}
 
 function test_lease_should_end_when_over_principal_budget() {
     printTestBanner "WHEN a lease goes over the principal budget THEN it should be ended."
@@ -388,7 +400,10 @@ function test_lease_should_end_when_over_principal_budget() {
 }
 
 # TODO: run select test cases from args OR run all
-#test_lease_should_end_when_over_lease_budget
+dce_root_command_works
+#dce_deploy
+test_lease_should_end_when_over_lease_budget
+cleanup
 test_lease_should_end_when_over_principal_budget
 
 exit 0
