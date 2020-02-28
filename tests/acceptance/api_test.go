@@ -1230,31 +1230,19 @@ func TestApi(t *testing.T) {
 						},
 					})
 
-					// Check the lease is decommissioned
+					// Check the lease is inactive
 					resp := apiRequest(t, &apiRequestInput{
-						method: "GET",
-						url:    apiURL + fmt.Sprintf("/leases?principalId=test-user&accountId=%s", accountID),
-						json:   nil,
-					})
-
-					// Account status should change "Leased" to "NotReady"
-					apiRequest(t, &apiRequestInput{
-						method: "GET",
-						url:    apiURL + "/accounts" + accountID,
+						method:      "GET",
+						maxAttempts: 1,
+						url:         apiURL + "/leases/" + leaseID,
 						f: func(r *testutil.R, apiResp *apiResponse) {
-							resJSON := apiResp.json.(map[string]interface{})
-							status, ok := resJSON["accountStatus"]
-							assert.True(t, ok)
-							assert.Equal(r, "NotReady", status, "%v", resJSON)
+							assert.Equal(r, 200, apiResp.StatusCode)
 						},
 					})
+					resJSON = parseResponseJSON(t, resp)
+					require.Equal(t, "Inactive", resJSON["leaseStatus"])
 
-					results := parseResponseArrayJSON(t, resp)
-					assert.Equal(t, 200, resp.StatusCode)
-					assert.Equal(t, 1, len(results), "one lease should be returned")
-					assert.Equal(t, "Inactive", results[0]["leaseStatus"])
-
-					// Account status should change from Leased --> NotReady
+					// Account status should change "Leased" to "NotReady"
 					waitForAccountStatus(t, apiURL, accountID, "NotReady")
 
 					t.Run("STEP: Delete Account", func(t *testing.T) {
@@ -1563,10 +1551,12 @@ func TestApi(t *testing.T) {
 
 			// Verify error response json
 			// Get nested json in response json
-			errResp := data["error"].(map[string]interface{})
-			require.Equal(t, "RequestValidationError", errResp["code"].(string))
-			require.Equal(t, "Failed to parse usage start date: strconv.ParseInt: parsing \"2019-09-2\": invalid syntax",
-				errResp["message"].(string))
+			require.Equal(t, map[string]interface{}{
+				"error": map[string]interface{}{
+					"code":    "RequestValidationError",
+					"message": "Failed to parse usage start date: strconv.ParseInt: parsing \"2019-09-2\": invalid syntax",
+				},
+			}, data)
 		})
 
 		t.Run("Should get an empty json for usage not found for given input date range", func(t *testing.T) {
