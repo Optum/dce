@@ -778,7 +778,7 @@ func TestApi(t *testing.T) {
 			data = parseResponseJSON(t, resp)
 
 			// Verify provisioned response json
-			assert.Equal(t, "user", data["principalId"].(string))
+			assert.Equal(t, "user1", data["principalId"].(string))
 			assert.Equal(t, accountID, data["accountId"].(string))
 			assert.Equal(t, string(db.Inactive),
 				data["leaseStatus"].(string))
