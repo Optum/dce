@@ -243,10 +243,15 @@ function generateRandString() {
   openssl rand -base64 "${length}" | tr -dc A-Za-z0-9
 }
 
-# getUsageRecord gets a single usage record for the principalID and LeaseID
-function getUsageRecord() {
-  timestammpPrefix=$(x=$(date +%s); echo ${x:0:3})
-  aws dynamodb query --table-name PrincipalUsg1 --key-condition-expression "PrincipalId = :name and begins_with(SK, :sk)" --expression-attribute-values  '{":name":{"S":"'${1}'"}, ":sk":{"S":"Usage-Lease-'${2}'-'${timestammpPrefix}'"}}' | jq -r '.Items[0]'
+function title() {
+  toCapitalize="${1}"
+  echo "$(tr '[:lower:]' '[:upper:]' <<< ${toCapitalize:0:1})${toCapitalize:1}"
+}
+
+# getUsageDailyRecord gets a single usage record for the principalID and LeaseID
+function getUsageDailyRecord() {
+  timestampPrefix=$(x=$(date +%s); echo ${x:0:3})
+  aws dynamodb query --table-name "Principal$(title ${DEPLOY_NAMESPACE})" --key-condition-expression "PrincipalId = :name and begins_with(SK, :sk)" --expression-attribute-values  '{":name":{"S":"'${1}'"}, ":sk":{"S":"Usage-Lease-'${2}'-'${timestampPrefix}'"}}' | jq -r '.Items[0]'
 }
 
 # There are a couple things to make sure the user has installed. Like curl and jq (maybe?)
@@ -299,13 +304,25 @@ writeConfig ${dce_config_file}
 # assertInLog "deploy" "Creating DCE infrastructure"
 
 #------------------------------------------------------------------------------
-# Test 2 - Test Lease with 0 Budget is Ended
+# Test 2 - Test Lease should end when over lease budget
 #------------------------------------------------------------------------------
+
+function simulateUsage() {
+    principalId="${1}"
+    leaseId="${2}"
+    usageAmount="${3}"
+    echo "Simulating new usage by setting daily usage record CostAmount to -'${usageAmount}'" | tee -a "${tmpdir}/test.log"
+    usageRecord=$(getUsageDailyRecord "${principalId}" "${leaseId}")
+    subtractedCostAmountRecord=$( echo "${usageRecord}" | jq 'setpath(["CostAmount", "N"]; "-'${usageAmount}'")')
+    aws dynamodb put-item --table-name "Principal$(title ${DEPLOY_NAMESPACE})" --item "${subtractedCostAmountRecord}"
+}
 
 function test_lease_should_end_when_over_lease_budget() {
     printTestBanner "WHEN a lease goes over the lease budget THEN it should be ended."
 
-    assertSuccess "adding account" "${dce_cmd}" accounts add --account-id "${CHILD_ACCOUNT_ID}" --admin-role-arn arn:aws:iam::"${CHILD_ACCOUNT_ID}":role/DCEMasterAccess
+    assertSuccess "adding account" "${dce_cmd}" accounts add \
+        --account-id "${CHILD_ACCOUNT_ID}" \
+        --admin-role-arn arn:aws:iam::"${CHILD_ACCOUNT_ID}":role/DCEMasterAccess
     assertNotInLog "adding account" "err"
     waitForAccountStatus "${CHILD_ACCOUNT_ID}" "Ready" 60
 
@@ -316,16 +333,62 @@ function test_lease_should_end_when_over_lease_budget() {
     assertNotInLog "creating lease" "err"
 
     waitForStateMachine
-    echo "Simulating new usage by setting daily usage record CostAmount to -10" | tee -a "${tmpdir}/test.log"
-    usageRecord=$(getUsageRecord "${principalId}" "${leaseId}")
-    subtractedCostAmountRecord=$( echo "${usageRecord}" | jq 'setpath(["CostAmount", "N"]; "-10")')
-    aws dynamodb put-item --table-name "PrincipalUsg1" --item "${subtractedCostAmountRecord}"
+    simulateUsage "${principalId}" "${leaseId}" 10
 
     waitForStateMachine
     waitForLeaseStatus "${leaseId}" "Inactive" 5
 }
 
+#------------------------------------------------------------------------------
+# Test 3 - Test Lease should end when over principal budget
+#------------------------------------------------------------------------------
+
+function getLeaseUsageSummaryRecord() {
+    principalId="${1}"
+    leaseId="${2}"
+    aws dynamodb query \
+        --table-name "Principal$(title ${DEPLOY_NAMESPACE})" \
+        --key-condition-expression "PrincipalId = :name and begins_with(SK, :sk)" \
+        --expression-attribute-values  '{":name":{"S":"'${principalId}'"}, ":sk":{"S":"Usage-Lease-'${leaseId}'-Summary"}}' | jq -r '.Items[0]'
+}
+
+function test_lease_should_end_when_over_principal_budget() {
+    printTestBanner "WHEN a lease goes over the principal budget THEN it should be ended."
+
+    assertSuccess "adding account" "${dce_cmd}" accounts add --account-id "${CHILD_ACCOUNT_ID}" --admin-role-arn arn:aws:iam::"${CHILD_ACCOUNT_ID}":role/DCEMasterAccess
+    assertNotInLog "adding account" "err"
+    waitForAccountStatus "${CHILD_ACCOUNT_ID}" "Ready" 60
+
+    principalId=$(generateRandString 10)
+    echo "principalId is ${principalId}" | tee -a "${tmpdir}/test.log"
+    principalBudget=$(aws lambda get-function --function-name end_over_budget_lease-"${DEPLOY_NAMESPACE}" --output text --query 'Configuration.Environment.Variables.PRINCIPAL_BUDGET_AMOUNT')
+    echo principalBudget is $principalBudget
+    ((leaseBudget=principalBudget))
+    echo "setting leaseBudget to $leaseBudget"
+    leaseId=$(createLease "${principalId}" "${leaseBudget}")
+    echo "leaseId is ${leaseId}" | tee -a "${tmpdir}/test.log"
+    assertNotInLog "creating lease" "err"
+    waitForStateMachine
+
+    # Simulating usage so lease summary record is created
+    simulateUsage "${principalId}" "${leaseId}" 0.1
+    waitForStateMachine
+
+    # Reduce lease usage summary so that 'over lease budget' is not triggered
+    ((usageIncrement=principalBudget+1))
+    leaseUsageSummaryRecord=$(getLeaseUsageSummaryRecord "${principalId}" "${leaseId}")
+    subtractedCostLeaseSummaryRecord=$( echo "${leaseUsageSummaryRecord}" | jq 'setpath(["CostAmount", "N"]; "-'${usageIncrement}'")')
+    aws dynamodb put-item --table-name "Principal$(title ${DEPLOY_NAMESPACE})" --item "${subtractedCostLeaseSummaryRecord}" | tee -a "${tmpdir}/test.log"
+
+    # Simulating usage above principal budget
+    simulateUsage "${principalId}" "${leaseId}" "${usageIncrement}"
+    waitForStateMachine
+
+    waitForLeaseStatus "${leaseId}" "Inactive" 5
+}
+
 # TODO: run select test cases from args OR run all
-test_lease_should_end_when_over_lease_budget
+#test_lease_should_end_when_over_lease_budget
+test_lease_should_end_when_over_principal_budget
 
 exit 0
