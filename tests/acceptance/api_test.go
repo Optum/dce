@@ -1914,6 +1914,26 @@ func TestApi(t *testing.T) {
 
 	t.Run("Lease validations", func(t *testing.T) {
 
+		defer truncateAccountTable(t, dbSvc)
+		defer truncateLeaseTable(t, dbSvc)
+
+		// Add the current account to the account pool
+		apiRequest(t, &apiRequestInput{
+			method: "POST",
+			url:    apiURL + "/accounts",
+			json: createAccountRequest{
+				ID:           accountID,
+				AdminRoleArn: adminRoleArn,
+			},
+			maxAttempts: 15,
+			f: func(r *testutil.R, apiResp *apiResponse) {
+				assert.Equal(r, 201, apiResp.StatusCode)
+			},
+		})
+
+		// Wait for the account to be reset, so we can lease it
+		waitForAccountStatus(t, apiURL, accountID, "Ready")
+
 		t.Run("Should validate requested lease has a desired expiry date less than today", func(t *testing.T) {
 
 			principalID := "user"
@@ -1921,10 +1941,11 @@ func TestApi(t *testing.T) {
 
 			// Create the Provision Request Body
 			body := inputLeaseRequest{
-				PrincipalID:  principalID,
-				AccountID:    "123",
-				BudgetAmount: 200.00,
-				ExpiresOn:    expiresOn,
+				PrincipalID:              principalID,
+				BudgetAmount:             200.00,
+				ExpiresOn:                expiresOn,
+				BudgetCurrency:           "USD",
+				BudgetNotificationEmails: []string{"test1@test.com"},
 			}
 
 			// Send an API request
@@ -1944,7 +1965,7 @@ func TestApi(t *testing.T) {
 			// Get nested json in response json
 			err := data["error"].(map[string]interface{})
 			require.Equal(t, "RequestValidationError", err["code"].(string))
-			errStr := fmt.Sprintf("Requested lease has a desired expiry date less than today: %d", expiresOn)
+			errStr := fmt.Sprintf("lease validation error: expiresOn: Requested lease has a desired expiry date less than today: %d.", expiresOn)
 			require.Equal(t, errStr, err["message"].(string))
 		})
 
@@ -1955,10 +1976,11 @@ func TestApi(t *testing.T) {
 
 			// Create the Provision Request Body
 			body := inputLeaseRequest{
-				PrincipalID:  principalID,
-				AccountID:    "123",
-				BudgetAmount: 30000.00,
-				ExpiresOn:    expiresOn,
+				PrincipalID:              principalID,
+				BudgetAmount:             30000.00,
+				ExpiresOn:                expiresOn,
+				BudgetCurrency:           "USD",
+				BudgetNotificationEmails: []string{"test1@test.com"},
 			}
 
 			// Send an API request
@@ -1989,11 +2011,13 @@ func TestApi(t *testing.T) {
 			expiresOnAfterOneYear := time.Now().AddDate(1, 0, 0).Unix()
 
 			// Create the Provision Request Body
+
 			body := inputLeaseRequest{
-				PrincipalID:  principalID,
-				AccountID:    "123",
-				BudgetAmount: 300.00,
-				ExpiresOn:    expiresOnAfterOneYear,
+				PrincipalID:              principalID,
+				BudgetAmount:             300.00,
+				ExpiresOn:                expiresOnAfterOneYear,
+				BudgetCurrency:           "USD",
+				BudgetNotificationEmails: []string{"test1@test.com"},
 			}
 
 			// Send an API request
@@ -2028,10 +2052,11 @@ func TestApi(t *testing.T) {
 
 			// Create the Provision Request Body
 			body := inputLeaseRequest{
-				PrincipalID:  principalID,
-				AccountID:    "123",
-				BudgetAmount: 430.00,
-				ExpiresOn:    expiresOn,
+				PrincipalID:              principalID,
+				BudgetAmount:             430.00,
+				ExpiresOn:                expiresOn,
+				BudgetCurrency:           "USD",
+				BudgetNotificationEmails: []string{"test1@test.com"},
 			}
 
 			// Send an API request
@@ -2230,10 +2255,12 @@ type leaseRequest struct {
 }
 
 type inputLeaseRequest struct {
-	PrincipalID  string  `json:"principalId"`
-	AccountID    string  `json:"accountId"`
-	BudgetAmount float64 `json:"budgetAmount"`
-	ExpiresOn    int64   `json:"expiresOn"`
+	PrincipalID              string   `json:"principalId"`
+	AccountID                string   `json:"accountId"`
+	BudgetAmount             float64  `json:"budgetAmount"`
+	ExpiresOn                int64    `json:"expiresOn"`
+	BudgetCurrency           string   `json:"budgetCurrency"`
+	BudgetNotificationEmails []string `json:"budgetNotificationEmails"`
 }
 
 type createAccountRequest struct {

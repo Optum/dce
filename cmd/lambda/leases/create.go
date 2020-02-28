@@ -60,14 +60,6 @@ func CreateLease(w http.ResponseWriter, r *http.Request) {
 	}
 	availableAccount := (*accounts)[0]
 
-	// Mark the account as Status=Leased
-	availableAccount.Status = account.StatusLeased.StatusPtr()
-	leasedAccount, err := Services.AccountService().Update(*availableAccount.ID, &availableAccount)
-	if err != nil {
-		api.WriteAPIErrorResponse(w, err)
-		return
-	}
-
 	// Get user principal's current spend
 	usageStartTime := getBeginningOfCurrentBillingPeriod(Settings.PrincipalBudgetPeriod)
 	usageRecords, err := usageSvc.GetUsageByPrincipal(usageStartTime, *newLease.PrincipalID)
@@ -83,8 +75,16 @@ func CreateLease(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create lease
-	newLease.AccountID = leasedAccount.ID
+	newLease.AccountID = availableAccount.ID
 	leaseCreated, err := Services.LeaseService().Create(newLease, spent)
+	if err != nil {
+		api.WriteAPIErrorResponse(w, err)
+		return
+	}
+
+	// Mark the account as Status=Leased
+	availableAccount.Status = account.StatusLeased.StatusPtr()
+	_, err = Services.AccountService().Update(*availableAccount.ID, &availableAccount)
 	if err != nil {
 		api.WriteAPIErrorResponse(w, err)
 		return
