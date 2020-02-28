@@ -2000,7 +2000,7 @@ func TestApi(t *testing.T) {
 			// Get nested json in response json
 			err := data["error"].(map[string]interface{})
 			require.Equal(t, "RequestValidationError", err["code"].(string))
-			require.Equal(t, "Requested lease has a budget amount of 30000.000000, which is greater than max lease budget amount of 1000.000000",
+			require.Equal(t, "lease validation error: budgetAmount: Requested lease has a budget amount of 30000.000000, which is greater than max lease budget amount of 1000.000000.",
 				err["message"].(string))
 
 		})
@@ -2079,8 +2079,8 @@ func TestApi(t *testing.T) {
 			// Weekday + 1 since Sunday is 0.  Min of 5 because thats what the write usage does
 			weekday := math.Min(float64(time.Now().Weekday())+1, 5)
 			require.Equal(t,
-				fmt.Sprintf("Unable to create lease: User principal TestUser1 "+
-					"has already spent %.2f of their 1000.00 principal budget", weekday*2000),
+				fmt.Sprintf("lease validation error: budgetAmount: Unable to create lease: User principal TestUser1 "+
+					"has already spent %.2f of their 1000.00 principal budget.", weekday*2000),
 				err["message"].(string),
 			)
 		})
