@@ -73,6 +73,7 @@ func (a *Service) Save(data *Lease) error {
 		lastModifiedOn = nil
 		data.CreatedOn = &now
 		data.LastModifiedOn = &now
+		data.StatusModifiedOn = &now
 	} else {
 		lastModifiedOn = data.LastModifiedOn
 		data.LastModifiedOn = &now
