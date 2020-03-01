@@ -228,6 +228,13 @@ func (bldr *ServiceBuilder) WithUsagePrincipalDataService() *ServiceBuilder {
 	return bldr
 }
 
+// WithUsageLeaseDataService tells the builder to add the Usage Data service to the `ConfigurationBuilder`
+func (bldr *ServiceBuilder) WithUsageLeaseDataService() *ServiceBuilder {
+	bldr.WithDynamoDB()
+	bldr.handlers = append(bldr.handlers, bldr.createUsageLeaseDataService)
+	return bldr
+}
+
 // WithUsageService tells the builder to add the Usage service to the `ConfigurationBuilder`
 func (bldr *ServiceBuilder) WithUsageService() *ServiceBuilder {
 	bldr.WithAccountService().WithUsageLeaseDataService().WithUsagePrincipalDataService()

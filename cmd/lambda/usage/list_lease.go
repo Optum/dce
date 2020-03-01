@@ -7,21 +7,8 @@ import (
 	"github.com/Optum/dce/pkg/api"
 	"github.com/Optum/dce/pkg/api/response"
 	"github.com/Optum/dce/pkg/usage"
-	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
 )
-
-// GetLeaseUsageSummaryByLease lists Lease Usage information based the Lease ID
-func GetLeaseUsageSummaryByLease(w http.ResponseWriter, r *http.Request) {
-	leaseID := mux.Vars(r)["leaseID"]
-
-	query := &usage.Lease{
-		LeaseID: &leaseID,
-	}
-
-	listLeases(query, w, r)
-
-}
 
 // ListLeaseUsageSummary - Returns leases
 func ListLeaseUsageSummary(w http.ResponseWriter, r *http.Request) {
@@ -44,12 +31,14 @@ func listLeases(query *usage.Lease, w http.ResponseWriter, r *http.Request) {
 	usgs, err := Services.UsageService().ListLease(query)
 	if err != nil {
 		api.WriteAPIErrorResponse(w, err)
+		return
 	}
 
 	if query.NextLeaseID != nil && query.NextDate != nil {
 		nextURL, err := api.BuildNextURL(baseRequest, query)
 		if err != nil {
 			api.WriteAPIErrorResponse(w, err)
+			return
 		}
 		w.Header().Add("Link", fmt.Sprintf("<%s>; rel=\"next\"", nextURL.String()))
 	}

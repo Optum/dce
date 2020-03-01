@@ -838,25 +838,271 @@ paths:
               type: "string"
             Access-Control-Allow-Origin:
               type: "string"
+  "/usage/lease":
+    options:
+      summary: CORS support
+      description: |
+        Enable CORS by returning correct headers
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      tags:
+        - CORS
+      x-amazon-apigateway-integration:
+        type: mock
+        requestTemplates:
+          application/json: |
+            {
+              "statusCode" : 200
+            }
+        responses:
+          "default":
+            statusCode: "200"
+            responseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'*'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+            responseTemplates:
+              application/json: |
+                {}
+      responses:
+        200:
+          description: Default response for CORS method
+          headers:
+            Access-Control-Allow-Headers:
+              type: "string"
+            Access-Control-Allow-Methods:
+              type: "string"
+            Access-Control-Allow-Origin:
+              type: "string"
+    get:
+      summary: List lease usage summaries
+      produces:
+        - application/json
+      parameters:
+        - in: path
+          name: date
+          type: number
+          required: false
+          description: date of the usage
+        - in: path
+          name: principalId
+          type: string
+          required: false
+          description: principal ID for the lease usage
+        - in: path
+          name: leaseId
+          type: string
+          required: false
+          description: ID for the lease
+      responses:
+        200:
+          schema:
+            $ref: "#/definitions/usagelease"
+          headers:
+            Access-Control-Allow-Headers:
+              type: "string"
+            Access-Control-Allow-Methods:
+              type: "string"
+            Access-Control-Allow-Origin:
+              type: "string"
+        403:
+          description: "Failed to authenticate request"
+      x-amazon-apigateway-integration:
+        uri: ${usages_lambda}
+        httpMethod: "POST"
+        type: "aws_proxy"
+        passthroughBehavior: "when_no_match"
+      security:
+        - sigv4: []
+  "/usage/lease/{id}/summary":
+    options:
+      summary: CORS support
+      description: |
+        Enable CORS by returning correct headers
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      tags:
+        - CORS
+      x-amazon-apigateway-integration:
+        type: mock
+        requestTemplates:
+          application/json: |
+            {
+              "statusCode" : 200
+            }
+        responses:
+          "default":
+            statusCode: "200"
+            responseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'*'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+            responseTemplates:
+              application/json: |
+                {}
+      responses:
+        200:
+          description: Default response for CORS method
+          headers:
+            Access-Control-Allow-Headers:
+              type: "string"
+            Access-Control-Allow-Methods:
+              type: "string"
+            Access-Control-Allow-Origin:
+              type: "string"
+    get:
+      summary: Get lease usage summary
+      produces:
+        - application/json
+      responses:
+        200:
+          schema:
+            $ref: "#/definitions/usagelease"
+          headers:
+            Access-Control-Allow-Headers:
+              type: "string"
+            Access-Control-Allow-Methods:
+              type: "string"
+            Access-Control-Allow-Origin:
+              type: "string"
+        403:
+          description: "Failed to authenticate request"
+      x-amazon-apigateway-integration:
+        uri: ${usages_lambda}
+        httpMethod: "POST"
+        type: "aws_proxy"
+        passthroughBehavior: "when_no_match"
+      security:
+        - sigv4: []
+  "/usage/principal":
+    options:
+      summary: CORS support
+      description: |
+        Enable CORS by returning correct headers
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      tags:
+        - CORS
+      x-amazon-apigateway-integration:
+        type: mock
+        requestTemplates:
+          application/json: |
+            {
+              "statusCode" : 200
+            }
+        responses:
+          "default":
+            statusCode: "200"
+            responseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'*'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+            responseTemplates:
+              application/json: |
+                {}
+      responses:
+        200:
+          description: Default response for CORS method
+          headers:
+            Access-Control-Allow-Headers:
+              type: "string"
+            Access-Control-Allow-Methods:
+              type: "string"
+            Access-Control-Allow-Origin:
+              type: "string"
     get:
       summary: Get usage records by date range
       produces:
         - application/json
       parameters:
         - in: path
-          name: startDate
+          name: date
           type: number
-          required: true
-          description: start date of the usage
+          required: false
+          description: date of the usage
         - in: path
-          name: endDate
-          type: number
-          required: true
-          description: end date of the usage
+          name: principalId
+          type: string
+          required: false
+          description: principal ID for the lease usage
       responses:
         200:
           schema:
-            $ref: "#/definitions/usage"
+            $ref: "#/definitions/usageprincipal"
+          headers:
+            Access-Control-Allow-Headers:
+              type: "string"
+            Access-Control-Allow-Methods:
+              type: "string"
+            Access-Control-Allow-Origin:
+              type: "string"
+        403:
+          description: "Failed to authenticate request"
+      x-amazon-apigateway-integration:
+        uri: ${usages_lambda}
+        httpMethod: "POST"
+        type: "aws_proxy"
+        passthroughBehavior: "when_no_match"
+      security:
+        - sigv4: []
+  "/usage/principal/{id}":
+    options:
+      summary: CORS support
+      description: |
+        Enable CORS by returning correct headers
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      tags:
+        - CORS
+      x-amazon-apigateway-integration:
+        type: mock
+        requestTemplates:
+          application/json: |
+            {
+              "statusCode" : 200
+            }
+        responses:
+          "default":
+            statusCode: "200"
+            responseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'*'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+            responseTemplates:
+              application/json: |
+                {}
+      responses:
+        200:
+          description: Default response for CORS method
+          headers:
+            Access-Control-Allow-Headers:
+              type: "string"
+            Access-Control-Allow-Methods:
+              type: "string"
+            Access-Control-Allow-Origin:
+              type: "string"
+    get:
+      summary: Get principal usage information
+      produces:
+        - application/json
+      parameters:
+        - in: path
+          name: date
+          type: number
+          required: false
+          description: date of the usage
+      responses:
+        200:
+          schema:
+            $ref: "#/definitions/usageprincipal"
           headers:
             Access-Control-Allow-Headers:
               type: "string"
@@ -997,29 +1243,40 @@ definitions:
       "LeaseActive": The lease is active.
       "LeaseRolledBack": A system error occurred while provisioning the lease.
       and it was rolled back.
-  usage:
-    description: "usage cost of the aws account from start date to end date"
+  usagelease:
+    description: "usage based on lease"
     type: object
     properties:
       principalId:
         type: string
         description: >
           principalId of the user who owns the lease of the AWS account
-      accountId:
+      leaseId:
         type: string
-        description: accountId of the AWS account
-      startDate:
+        description: ID of the lease
+      date:
         type: number
-        description: usage start date as Epoch Timestamp
-      endDate:
-        type: number
-        description: usage end date as Epoch Timestamp
+        description: EPOCH date for the date of the usage information
       costAmount:
         type: number
         description: usage cost Amount of AWS account for given period
       costCurrency:
         type: string
         description: usage cost currency
-      timeToLive:
+  usageprincipal:
+    description: "usage based on principal"
+    type: object
+    properties:
+      principalId:
+        type: string
+        description: >
+          principalId of the user who owns the lease of the AWS account
+      date:
         type: number
-        description: ttl attribute as Epoch Timestamp
+        description: EPOCH date for the date of the usage information
+      costAmount:
+        type: number
+        description: usage cost Amount of AWS account for given period
+      costCurrency:
+        type: string
+        description: usage cost currency

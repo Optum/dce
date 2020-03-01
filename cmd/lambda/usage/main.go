@@ -94,6 +94,7 @@ func initConfig() {
 
 	_, err = svcBldr.
 		WithUsageService().
+		WithUserDetailer().
 		Build()
 	if err != nil {
 		panic(err)

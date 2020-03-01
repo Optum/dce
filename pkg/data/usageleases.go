@@ -1,6 +1,7 @@
 package data
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/Optum/dce/pkg/errors"
@@ -11,34 +12,28 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
 )
 
-const (
-	usageLeaseIndex = "Lease"
-)
-
 // query for doing a query against dynamodb
 func (a *UsageLease) query(query *usage.Lease) (*queryScanOutput, error) {
 	var expr expression.Expression
-	var bldr expression.Builder
 	var err error
+	var bldr expression.Builder
 	var res *dynamodb.QueryOutput
 
-	keyCondition, filters := getFiltersFromStruct(query, aws.String("LeaseId"), &sortKey{
-		keyName:    "Date",
-		typeSearch: "BeginsWith",
-	})
-	bldr = expression.NewBuilder().WithKeyCondition(*keyCondition)
+	_, filters := getFiltersFromStruct(query, nil, nil)
+	keyCondition := expression.Key("SK").BeginsWith(usageLeaseSkSummaryPrefix)
+	bldr = expression.NewBuilder().WithKeyCondition(keyCondition)
 	if filters != nil {
 		bldr = bldr.WithFilter(*filters)
 	}
 
-	expr, err = bldr.Build()
+	expr, err = bldr.WithFilter(*filters).Build()
 	if err != nil {
 		return nil, errors.NewInternalServer("unable to build query", err)
 	}
 
 	queryInput := &dynamodb.QueryInput{
 		TableName:                 aws.String(a.TableName),
-		IndexName:                 aws.String(usageLeaseIndex),
+		IndexName:                 aws.String(usageSKIndex),
 		KeyConditionExpression:    expr.KeyCondition(),
 		ConsistentRead:            aws.Bool(a.ConsistentRead),
 		FilterExpression:          expr.Filter(),
@@ -65,7 +60,7 @@ func (a *UsageLease) query(query *usage.Lease) (*queryScanOutput, error) {
 	res, err = a.DynamoDB.Query(queryInput)
 	if err != nil {
 		return nil, errors.NewInternalServer(
-			"failed to query accounts",
+			"failed to query usage",
 			err,
 		)
 	}
@@ -84,10 +79,15 @@ func (a *UsageLease) scan(query *usage.Lease) (*queryScanOutput, error) {
 
 	_, filters := getFiltersFromStruct(query, nil, nil)
 	if filters != nil {
-		expr, err = expression.NewBuilder().WithFilter(*filters).Build()
-		if err != nil {
-			return nil, errors.NewInternalServer("unable to build query", err)
-		}
+		*filters = filters.And(expression.Name("SK").BeginsWith(usageLeaseSkSummaryPrefix))
+	} else {
+		expr := expression.Name("SK").BeginsWith(usageLeaseSkSummaryPrefix)
+		filters = &expr
+	}
+
+	expr, err = expression.NewBuilder().WithFilter(*filters).Build()
+	if err != nil {
+		return nil, errors.NewInternalServer("unable to build query", err)
 	}
 
 	scanInput := &dynamodb.ScanInput{
@@ -117,7 +117,8 @@ func (a *UsageLease) scan(query *usage.Lease) (*queryScanOutput, error) {
 	res, err = a.DynamoDB.Scan(scanInput)
 
 	if err != nil {
-		return nil, errors.NewInternalServer("error getting accounts", err)
+		fmt.Printf("Error: %+v", err)
+		return nil, errors.NewInternalServer("error getting usage", err)
 	}
 
 	return &queryScanOutput{
@@ -126,7 +127,7 @@ func (a *UsageLease) scan(query *usage.Lease) (*queryScanOutput, error) {
 	}, nil
 }
 
-// List Get a list of accounts
+// List Get a list of Lease Usage
 func (a *UsageLease) List(query *usage.Lease) (*usage.Leases, error) {
 
 	var outputs *queryScanOutput

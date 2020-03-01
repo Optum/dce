@@ -149,18 +149,6 @@ resource "aws_dynamodb_table" "principal" {
     type = "S"
   }
 
-  # Lease Id
-  attribute {
-    name = "LeaseId"
-    type = "S"
-  }
-
-  # Date
-  attribute {
-    name = "Date"
-    type = "N"
-  }
-
   # TTL enabled attribute
   ttl {
     attribute_name = "TimeToLive"
@@ -168,9 +156,8 @@ resource "aws_dynamodb_table" "principal" {
   }
 
   global_secondary_index {
-    name            = "Lease"
-    hash_key        = "LeaseId"
-    range_key       = "Date"
+    name            = "SortKey"
+    hash_key        = "SK"
     projection_type = "ALL"
     read_capacity   = var.usage_table_rcu
     write_capacity  = var.usage_table_wcu

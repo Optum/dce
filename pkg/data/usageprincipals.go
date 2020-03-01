@@ -1,7 +1,9 @@
 package data
 
 import (
+	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/Optum/dce/pkg/errors"
 	"github.com/Optum/dce/pkg/usage"
@@ -18,10 +20,8 @@ func (a *UsagePrincipal) query(query *usage.Principal) (*queryScanOutput, error)
 	var err error
 	var res *dynamodb.QueryOutput
 
-	keyCondition, filters := getFiltersFromStruct(query, aws.String("LeaseId"), &sortKey{
-		keyName:    "Date",
-		typeSearch: "BeginsWith",
-	})
+	keyCondition, filters := getFiltersFromStruct(query, aws.String("PrincipalId"), nil)
+	*keyCondition = keyCondition.And(expression.Key("SK").BeginsWith(usagePrincipalSkPrefix))
 	bldr = expression.NewBuilder().WithKeyCondition(*keyCondition)
 	if filters != nil {
 		bldr = bldr.WithFilter(*filters)
@@ -34,7 +34,6 @@ func (a *UsagePrincipal) query(query *usage.Principal) (*queryScanOutput, error)
 
 	queryInput := &dynamodb.QueryInput{
 		TableName:                 aws.String(a.TableName),
-		IndexName:                 aws.String(usageLeaseIndex),
 		KeyConditionExpression:    expr.KeyCondition(),
 		ConsistentRead:            aws.Bool(a.ConsistentRead),
 		FilterExpression:          expr.Filter(),
@@ -49,19 +48,18 @@ func (a *UsagePrincipal) query(query *usage.Principal) (*queryScanOutput, error)
 			"PrincipalId": &dynamodb.AttributeValue{
 				S: query.NextPrincipalID,
 			},
-			"LeaseId": &dynamodb.AttributeValue{
-				S: query.NextPrincipalID,
-			},
-			"Date": &dynamodb.AttributeValue{
-				N: aws.String(strconv.FormatInt(*query.NextDate, 10)),
+			"SK": &dynamodb.AttributeValue{
+				S: aws.String(fmt.Sprintf("%s%s", usagePrincipalSkPrefix, strconv.FormatInt(*query.NextDate, 10))),
 			},
 		})
 	}
 
 	res, err = a.DynamoDB.Query(queryInput)
 	if err != nil {
+		fmt.Printf("%+v\n", queryInput)
+		fmt.Printf("%+v\n", err)
 		return nil, errors.NewInternalServer(
-			"failed to query accounts",
+			"failed to query usage",
 			err,
 		)
 	}
@@ -80,10 +78,15 @@ func (a *UsagePrincipal) scan(query *usage.Principal) (*queryScanOutput, error) 
 
 	_, filters := getFiltersFromStruct(query, nil, nil)
 	if filters != nil {
-		expr, err = expression.NewBuilder().WithFilter(*filters).Build()
-		if err != nil {
-			return nil, errors.NewInternalServer("unable to build query", err)
-		}
+		*filters = filters.And(expression.Name("SK").BeginsWith(usagePrincipalSkPrefix))
+	} else {
+		expr := expression.Name("SK").BeginsWith(usagePrincipalSkPrefix)
+		filters = &expr
+	}
+
+	expr, err = expression.NewBuilder().WithFilter(*filters).Build()
+	if err != nil {
+		return nil, errors.NewInternalServer("unable to build query", err)
 	}
 
 	scanInput := &dynamodb.ScanInput{
@@ -101,11 +104,8 @@ func (a *UsagePrincipal) scan(query *usage.Principal) (*queryScanOutput, error) 
 			"PrincipalId": &dynamodb.AttributeValue{
 				S: query.NextPrincipalID,
 			},
-			"LeaseId": &dynamodb.AttributeValue{
-				S: query.NextPrincipalID,
-			},
-			"Date": &dynamodb.AttributeValue{
-				N: aws.String(strconv.FormatInt(*query.NextDate, 10)),
+			"SK": &dynamodb.AttributeValue{
+				S: aws.String(fmt.Sprintf("%s%s", usagePrincipalSkPrefix, strconv.FormatInt(*query.NextDate, 10))),
 			},
 		})
 	}
@@ -113,7 +113,7 @@ func (a *UsagePrincipal) scan(query *usage.Principal) (*queryScanOutput, error) 
 	res, err = a.DynamoDB.Scan(scanInput)
 
 	if err != nil {
-		return nil, errors.NewInternalServer("error getting accounts", err)
+		return nil, errors.NewInternalServer("error getting usage", err)
 	}
 
 	return &queryScanOutput{
@@ -132,7 +132,7 @@ func (a *UsagePrincipal) List(query *usage.Principal) (*usage.Principals, error)
 		query.Limit = &a.Limit
 	}
 
-	if query.PrincipalID != nil && query.Date != nil {
+	if query.PrincipalID != nil {
 		outputs, err = a.query(query)
 	} else {
 		outputs, err = a.scan(query)
@@ -145,10 +145,12 @@ func (a *UsagePrincipal) List(query *usage.Principal) (*usage.Principals, error)
 	query.NextDate = nil
 	for k, v := range outputs.lastEvaluatedKey {
 		switch k {
-		case "NextPrincipalId":
+		case "PrincipalId":
 			query.NextPrincipalID = v.S
-		case "NextDate":
-			n, _ := strconv.ParseInt(*v.S, 10, 64)
+		case "SK":
+			n, _ := strconv.ParseInt(
+				strings.Replace(*v.S, usagePrincipalSkPrefix, "", 1),
+				10, 64)
 			query.NextDate = &n
 		}
 	}

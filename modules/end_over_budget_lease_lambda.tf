@@ -8,10 +8,10 @@ module "end_over_budget_lease_lambda" {
   alarm_topic_arn = aws_sns_topic.alarms_topic.arn
 
   environment = {
-    AWS_CURRENT_REGION       = var.aws_region
-    PRINCIPAL_DB             = aws_dynamodb_table.principal.id
-    LEASE_DB                 = aws_dynamodb_table.leases.id
-    PRINCIPAL_BUDGET_AMOUNT  = var.principal_budget_amount
+    AWS_CURRENT_REGION      = var.aws_region
+    PRINCIPAL_DB            = aws_dynamodb_table.principal.id
+    LEASE_DB                = aws_dynamodb_table.leases.id
+    PRINCIPAL_BUDGET_AMOUNT = var.principal_budget_amount
   }
 }
 
