@@ -45,12 +45,14 @@ func listPrincipal(query *usage.Principal, w http.ResponseWriter, r *http.Reques
 	usgs, err := Services.UsageService().ListPrincipal(query)
 	if err != nil {
 		api.WriteAPIErrorResponse(w, err)
+		return
 	}
 
 	if query.NextPrincipalID != nil && query.NextDate != nil {
 		nextURL, err := api.BuildNextURL(baseRequest, query)
 		if err != nil {
 			api.WriteAPIErrorResponse(w, err)
+			return
 		}
 		w.Header().Add("Link", fmt.Sprintf("<%s>; rel=\"next\"", nextURL.String()))
 	}

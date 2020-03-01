@@ -2,7 +2,11 @@
 
 package dataiface
 
-import "github.com/Optum/dce/pkg/usage"
+import (
+	"time"
+
+	"github.com/Optum/dce/pkg/usage"
+)
 
 // UsagePrincipal ...
 type UsagePrincipal interface {
@@ -11,4 +15,6 @@ type UsagePrincipal interface {
 	// be inserted or updated
 	// Write(usg *usage.Lease) (*usage.Lease, error)
 	List(query *usage.Principal) (*usage.Principals, error)
+	// Get usage Principal summary
+	Get(id string, date time.Time) (*usage.Principal, error)
 }

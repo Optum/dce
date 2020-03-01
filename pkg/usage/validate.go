@@ -46,7 +46,3 @@ var validateCostCurrency = []validation.Rule{
 	validation.NotNil.Error("must be a valid cost currency"),
 	validation.In(validCurrencies...),
 }
-
-var validateTimeToLive = []validation.Rule{
-	validation.NotNil.Error("must be a valid time to live"),
-}

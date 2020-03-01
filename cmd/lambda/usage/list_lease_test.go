@@ -3,8 +3,11 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"testing"
 
+	"github.com/Optum/dce/pkg/api"
+	apiMocks "github.com/Optum/dce/pkg/api/mocks"
 	"github.com/Optum/dce/pkg/config"
 	"github.com/Optum/dce/pkg/usage"
 	"github.com/Optum/dce/pkg/usage/usageiface/mocks"
@@ -25,18 +28,22 @@ func TestListLease(t *testing.T) {
 		name      string
 		expResp   events.APIGatewayProxyResponse
 		request   events.APIGatewayProxyRequest
-		expLink   string
 		query     *usage.Lease
 		retLeases *usage.Leases
 		retErr    error
-		next      pagination
+		next      *pagination
 	}{
 		{
 			name:  "get all lease usage records",
 			query: &usage.Lease{},
 			expResp: events.APIGatewayProxyResponse{
-				StatusCode: 200,
-				Body:       "[]\n",
+				StatusCode:        200,
+				Body:              "[]\n",
+				MultiValueHeaders: standardHeaders,
+			},
+			request: events.APIGatewayProxyRequest{
+				HTTPMethod: http.MethodGet,
+				Path:       "/usage/lease",
 			},
 			retLeases: &usage.Leases{},
 			retErr:    nil,
@@ -46,24 +53,42 @@ func TestListLease(t *testing.T) {
 			query: &usage.Lease{},
 			expResp: events.APIGatewayProxyResponse{
 				StatusCode: 200,
-				Body:       "[{\"principalId\":\"test\"}]\n",
+				Body:       "[{\"principalId\":\"principal\"}]\n",
+				MultiValueHeaders: map[string][]string{
+					"Access-Control-Allow-Origin": []string{"*"},
+					"Content-Type":                []string{"application/json"},
+					"Link":                        []string{"</usage/lease?nextDate=11111&nextLeaseId=lease2&nextPrincipalId=user2>; rel=\"next\""},
+				},
 			},
 			retLeases: &usage.Leases{
 				usage.Lease{
 					PrincipalID: ptrString("principal"),
 				},
 			},
-			expLink: "<https://example.com/unit/accounts?limit=1&nextId=234567890123>; rel=\"next\"",
-			retErr:  nil,
+			next: &pagination{
+				NextPrincipalID: ptrString("user2"),
+				NextLeaseID:     ptrString("lease2"),
+				NextDate:        ptr64(11111),
+			},
+			request: events.APIGatewayProxyRequest{
+				HTTPMethod: http.MethodGet,
+				Path:       "/usage/lease",
+			},
+			retErr: nil,
 		},
 		{
 			name: "fail to get accounts",
 			query: &usage.Lease{
 				PrincipalID: ptrString("user"),
 			},
+			request: events.APIGatewayProxyRequest{
+				HTTPMethod: http.MethodGet,
+				Path:       "/usage/lease?principalId=user",
+			},
 			expResp: events.APIGatewayProxyResponse{
-				StatusCode: 500,
-				Body:       "{\"error\":{\"message\":\"unknown error\",\"code\":\"ServerError\"}}\n",
+				StatusCode:        500,
+				Body:              "{\"error\":{\"message\":\"unknown error\",\"code\":\"ServerError\"}}\n",
+				MultiValueHeaders: standardHeaders,
 			},
 			retLeases: nil,
 			retErr:    fmt.Errorf("failure"),
@@ -76,10 +101,24 @@ func TestListLease(t *testing.T) {
 			svcBldr := &config.ServiceBuilder{Config: cfgBldr}
 
 			usageSvc := mocks.Servicer{}
-			usageSvc.On("ListLease", mock.AnythingOfType("*usage.Lease")).Return(
+			usageSvc.On("ListLease", mock.MatchedBy(func(input *usage.Lease) bool {
+				if (input.PrincipalID != nil && tt.query.PrincipalID != nil && *input.PrincipalID == *tt.query.PrincipalID) || input.PrincipalID == tt.query.PrincipalID {
+					if tt.next != nil {
+						input.NextPrincipalID = tt.next.NextPrincipalID
+						input.NextLeaseID = tt.next.NextLeaseID
+						input.NextDate = tt.next.NextDate
+					}
+					return true
+				}
+				return false
+			})).Return(
 				tt.retLeases, tt.retErr,
 			)
-			svcBldr.Config.WithService(&usageSvc)
+
+			userDetailerSvc := apiMocks.UserDetailer{}
+			userDetailerSvc.On("GetUser", mock.AnythingOfType("*events.APIGatewayProxyRequestContext")).Return(&api.User{})
+
+			svcBldr.Config.WithService(&usageSvc).WithService(&userDetailerSvc)
 			_, err := svcBldr.Build()
 
 			assert.Nil(t, err)

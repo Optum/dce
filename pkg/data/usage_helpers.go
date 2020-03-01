@@ -2,8 +2,9 @@ package data
 
 import "time"
 
-func getTTL(date time.Time, days int) int64 {
-	return date.AddDate(0, 0, days).Unix()
+func getTTL(date time.Time, days int) *int64 {
+	new := date.AddDate(0, 0, days).Unix()
+	return &new
 }
 
 // budgetPeriod gets the epoch for the start of a period

@@ -2,6 +2,7 @@ package data
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/Optum/dce/pkg/errors"
 	"github.com/Optum/dce/pkg/usage"
@@ -12,12 +13,16 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
 )
 
-const usageLeaseSkPrefix string = "Usage-Lease"
+const (
+	usageLeaseSkSummaryPrefix string = "Usage-Lease-Summary-"
+	usageLeaseSkDailyPrefix   string = "Usage-Lease-Daily-"
+	usageSKIndex              string = "SortKey"
+)
 
 type usageLeaseData struct {
 	usage.Lease
 	SK         string `json:"-" dynamodbav:"SK" schema:"-"`
-	TimeToLive int64  `json:"timeToLive" dynamodbav:"TimeToLive,omitempty" schema:"timeToLive,omitempty"` // ttl attribute
+	TimeToLive *int64 `json:"-" dynamodbav:"TimeToLive,omitempty" schema:"-"` // ttl attribute
 }
 
 // UsageLease - Data Layer Struct
@@ -41,7 +46,7 @@ func (a *UsageLease) Write(usg *usage.Lease) error {
 
 	usgData := usageLeaseData{
 		*usg,
-		fmt.Sprintf("%s-%s-Daily-%d", usageLeaseSkPrefix, *usg.LeaseID, usg.Date.Unix()),
+		fmt.Sprintf("%s%s-%d", usageLeaseSkDailyPrefix, *usg.LeaseID, usg.Date.Unix()),
 		getTTL(*usg.Date, a.TimeToLive),
 	}
 
@@ -105,7 +110,7 @@ func (a *UsageLease) addLeaseUsage(usg usage.Lease) error {
 
 	usgData := usageLeaseData{
 		usg,
-		fmt.Sprintf("%s-%s-Summary", usageLeaseSkPrefix, *usg.LeaseID),
+		fmt.Sprintf("%s%s", usageLeaseSkSummaryPrefix, *usg.LeaseID),
 		getTTL(*usg.Date, a.TimeToLive),
 	}
 
@@ -174,7 +179,7 @@ func (a *UsageLease) addPrincipalUsage(usg usage.Lease) error {
 	}
 	usgData := usagePrincipalData{
 		usgPrincipal,
-		fmt.Sprintf("%s-%d", usagePrincipalSkPrefix, periodStart.Unix()),
+		fmt.Sprintf("%s%d", usagePrincipalSkPrefix, periodStart.Unix()),
 		getTTL(*usg.Date, a.TimeToLive),
 	}
 
@@ -223,6 +228,48 @@ func (a *UsageLease) addPrincipalUsage(usg usage.Lease) error {
 }
 
 // Get usage Lease summary
-func (a *UsageLease) Get(id string) (*usage.Lease, error) {
-	return &usage.Lease{}, nil
+func (a *UsageLease) Get(ID string) (*usage.Lease, error) {
+	var expr expression.Expression
+	var err error
+
+	keyCondition := expression.Key("SK").Equal(expression.Value(fmt.Sprintf("%s%s", usageLeaseSkSummaryPrefix, ID)))
+
+	expr, err = expression.NewBuilder().WithKeyCondition(keyCondition).Build()
+	if err != nil {
+		return nil, errors.NewInternalServer("unable to build query", err)
+	}
+
+	queryInput := &dynamodb.QueryInput{
+		TableName:                 aws.String(a.TableName),
+		IndexName:                 aws.String(usageSKIndex),
+		KeyConditionExpression:    expr.KeyCondition(),
+		ConsistentRead:            aws.Bool(a.ConsistentRead),
+		ExpressionAttributeNames:  expr.Names(),
+		ExpressionAttributeValues: expr.Values(),
+	}
+
+	fmt.Printf("Query: %+v", queryInput)
+	res, err := a.DynamoDB.Query(queryInput)
+
+	if err != nil {
+		log.Printf("Error: %+v", err)
+		return nil, errors.NewInternalServer(
+			fmt.Sprintf("get failed for usage %q", ID),
+			err,
+		)
+	}
+
+	if len(res.Items) != 1 {
+		return nil, errors.NewNotFound("usage", ID)
+	}
+
+	usg := &usage.Lease{}
+	err = dynamodbattribute.UnmarshalMap(res.Items[0], usg)
+	if err != nil {
+		return nil, errors.NewInternalServer(
+			fmt.Sprintf("failure unmarshaling usage %q", ID),
+			err,
+		)
+	}
+	return usg, nil
 }

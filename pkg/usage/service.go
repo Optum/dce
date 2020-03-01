@@ -1,7 +1,10 @@
 package usage
 
+import "time"
+
 // PrincipalReader reads principal usage information form the data store
 type PrincipalReader interface {
+	Get(id string, date time.Time) (*Principal, error)
 	List(query *Principal) (*Principals, error)
 }
 
@@ -56,14 +59,19 @@ func (a *Service) GetLease(id string) (*Lease, error) {
 	return usg, nil
 }
 
-// ListPrincipal list Principal Usage records
-func (a *Service) ListPrincipal(data *Principal) (*Principals, error) {
-	// Validate the incoming record doesn't have unneeded fields
-	err := data.Validate()
+// GetPrincipal list Principal Usage records
+func (a *Service) GetPrincipal(id string, date time.Time) (*Principal, error) {
+
+	usg, err := a.dataPrincipalSvc.Get(id, date)
 	if err != nil {
 		return nil, err
 	}
 
+	return usg, nil
+}
+
+// ListPrincipal list Principal Usage records
+func (a *Service) ListPrincipal(data *Principal) (*Principals, error) {
 	usgs, err := a.dataPrincipalSvc.List(data)
 	if err != nil {
 		return nil, err
@@ -74,11 +82,6 @@ func (a *Service) ListPrincipal(data *Principal) (*Principals, error) {
 
 // ListLease list Lease Usage records
 func (a *Service) ListLease(data *Lease) (*Leases, error) {
-	// Validate the incoming record doesn't have unneeded fields
-	err := data.Validate()
-	if err != nil {
-		return nil, err
-	}
 
 	usgs, err := a.dataLeaseSvc.List(data)
 	if err != nil {
