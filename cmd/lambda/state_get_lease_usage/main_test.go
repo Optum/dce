@@ -61,6 +61,7 @@ func TestGetLeaseUsage(t *testing.T) {
 				CreatedOn:      ptr64(now.AddDate(0, 0, -3).Unix()),
 				Status:         lease.StatusActive.StatusPtr(),
 				BudgetCurrency: ptrString("USD"),
+				BudgetAmount:   ptrFloat64(0),
 			},
 			getAccount: &account.Account{
 				ID: ptrString("123456789012"),
@@ -83,6 +84,7 @@ func TestGetLeaseUsage(t *testing.T) {
 					LeaseID:      ptrString("id-1"),
 					CostAmount:   ptrFloat64(10.0),
 					CostCurrency: ptrString("USD"),
+					BudgetAmount: ptrFloat64(0),
 				},
 			},
 			expOut: lease.Lease{
@@ -92,6 +94,7 @@ func TestGetLeaseUsage(t *testing.T) {
 				Status:         lease.StatusActive.StatusPtr(),
 				CreatedOn:      ptr64(now.AddDate(0, 0, -3).Unix()),
 				BudgetCurrency: ptrString("USD"),
+				BudgetAmount:   ptrFloat64(0),
 			},
 		},
 		{
@@ -104,6 +107,7 @@ func TestGetLeaseUsage(t *testing.T) {
 				Status:           lease.StatusInactive.StatusPtr(),
 				StatusModifiedOn: ptr64(now.Unix()),
 				BudgetCurrency:   ptrString("USD"),
+				BudgetAmount:     ptrFloat64(0),
 			},
 			getAccount: &account.Account{
 				ID: ptrString("123456789012"),
@@ -126,6 +130,7 @@ func TestGetLeaseUsage(t *testing.T) {
 					LeaseID:      ptrString("id-1"),
 					CostAmount:   ptrFloat64(10.0),
 					CostCurrency: ptrString("USD"),
+					BudgetAmount: ptrFloat64(0),
 				},
 			},
 			expOut: lease.Lease{
@@ -136,6 +141,7 @@ func TestGetLeaseUsage(t *testing.T) {
 				StatusModifiedOn: ptr64(now.Unix()),
 				CreatedOn:        ptr64(now.AddDate(0, 0, -3).Unix()),
 				BudgetCurrency:   ptrString("USD"),
+				BudgetAmount:     ptrFloat64(0),
 			},
 		},
 		{
@@ -148,6 +154,7 @@ func TestGetLeaseUsage(t *testing.T) {
 				Status:           lease.StatusActive.StatusPtr(),
 				StatusModifiedOn: ptr64(now.Unix()),
 				BudgetCurrency:   ptrString("USD"),
+				BudgetAmount:     ptrFloat64(0),
 			},
 			getAccount: &account.Account{
 				ID: ptrString("123456789012"),
@@ -170,6 +177,7 @@ func TestGetLeaseUsage(t *testing.T) {
 					LeaseID:      ptrString("id-1"),
 					CostAmount:   ptrFloat64(10.0),
 					CostCurrency: ptrString("USD"),
+					BudgetAmount: ptrFloat64(0),
 				},
 			},
 			expOut: lease.Lease{
@@ -180,6 +188,7 @@ func TestGetLeaseUsage(t *testing.T) {
 				StatusModifiedOn: ptr64(now.Unix()),
 				CreatedOn:        ptr64(now.Unix()),
 				BudgetCurrency:   ptrString("USD"),
+				BudgetAmount:     ptrFloat64(0),
 			},
 		},
 	}

@@ -55,7 +55,7 @@ func TestGetLease(t *testing.T) {
 					StatusModifiedOn: ptr64(now.Unix()),
 					ExpiresOn:        ptr64(nextWeek.Unix()),
 				},
-				712800,
+				709200,
 			},
 		},
 		{

@@ -13,6 +13,10 @@ type stringer interface {
 	String() string
 }
 
+type unixer interface {
+	Unix() int64
+}
+
 type sortKey struct {
 	keyName    string
 	typeSearch string
@@ -24,10 +28,6 @@ func getFiltersFromStruct(input interface{}, partitionKey *string, sortKey *sort
 	var dValue interface{}
 	v := reflect.ValueOf(input).Elem()
 
-	if partitionKey != nil {
-		kb = &expression.KeyConditionBuilder{}
-	}
-
 	for i := 0; i < v.NumField(); i++ {
 		dField := strings.Split(v.Type().Field(i).Tag.Get("dynamodbav"), ",")[0]
 		if dField != "-" {
@@ -36,14 +36,16 @@ func getFiltersFromStruct(input interface{}, partitionKey *string, sortKey *sort
 				t := v.Field(i)
 				switch t.Kind() {
 				case reflect.Ptr:
-					if u, ok := t.Interface().(stringer); ok {
+					if u, ok := t.Interface().(unixer); ok {
+						dValue = u.Unix()
+					} else if u, ok := t.Interface().(stringer); ok {
 						dValue = u.String()
 					} else {
 						dValue = reflect.Indirect(v.Field(i)).Interface()
 					}
 					if partitionKey != nil {
 						if dField == *partitionKey {
-							*kb = kb.And(expression.Key(dField).Equal(expression.Value(dValue)))
+							kb = kbAdd(kb, expression.Key(dField).Equal(expression.Value(dValue)))
 							continue
 						}
 					}
@@ -51,10 +53,10 @@ func getFiltersFromStruct(input interface{}, partitionKey *string, sortKey *sort
 						if dField == sortKey.keyName {
 							switch typeSearch := sortKey.typeSearch; typeSearch {
 							case "Equal":
-								*kb = kb.And(expression.Key(dField).Equal(expression.Value(dValue)))
+								kb = kbAdd(kb, expression.Key(dField).Equal(expression.Value(dValue)))
 							case "BeginsWith":
 								if s, ok := dValue.(string); ok {
-									*kb = kb.And(expression.Key(dField).BeginsWith(s))
+									kb = kbAdd(kb, expression.Key(dField).BeginsWith(s))
 								}
 							}
 							continue
@@ -71,6 +73,14 @@ func getFiltersFromStruct(input interface{}, partitionKey *string, sortKey *sort
 		}
 	}
 	return kb, cb
+}
+
+func kbAdd(kb *expression.KeyConditionBuilder, condition expression.KeyConditionBuilder) *expression.KeyConditionBuilder {
+	if kb == nil {
+		return &condition
+	}
+	new := kb.And(condition)
+	return &new
 }
 
 func putItem(input *dynamodb.PutItemInput, dataInterface dynamodbiface.DynamoDBAPI) error {
