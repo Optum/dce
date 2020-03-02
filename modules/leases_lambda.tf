@@ -23,6 +23,7 @@ module "leases_lambda" {
     PRINCIPAL_BUDGET_AMOUNT            = var.principal_budget_amount
     PRINCIPAL_BUDGET_PERIOD            = var.principal_budget_period
     PRINCIPAL_DB                       = aws_dynamodb_table.principal.id
+    USAGE_STEP_FUNCTION_ARN            = aws_sfn_state_machine.lease_usage.id
   }
 }
 

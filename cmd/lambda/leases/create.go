@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/Optum/dce/pkg/api"
+	"github.com/aws/aws-sdk-go/service/sfn"
+	"github.com/aws/aws-sdk-go/service/sfn/sfniface"
 	"log"
 	"net/http"
 	"time"
@@ -14,6 +16,7 @@ import (
 	"github.com/Optum/dce/pkg/api/response"
 	"github.com/Optum/dce/pkg/common"
 	"github.com/Optum/dce/pkg/db"
+	leasePkg "github.com/Optum/dce/pkg/lease"
 )
 
 type createLeaseRequest struct {
@@ -157,6 +160,42 @@ func CreateLease(w http.ResponseWriter, r *http.Request) {
 
 		response.WriteServerError(w)
 		return
+	}
+
+	// start step function
+	var sfnSvc sfniface.SFNAPI
+	err = Services.Config.GetService(&sfnSvc)
+	if err != nil {
+		log.Printf("Failed to retrieve step functions service %s", err)
+	}
+	sfnInput := leasePkg.Lease{
+		AccountID:                &lease.AccountID,
+		PrincipalID:              &lease.PrincipalID,
+		ID:                       &lease.ID,
+		Status:                   leasePkg.Status(string(lease.LeaseStatus)).StatusPtr(),
+		StatusReason:             leasePkg.StatusReason(string(lease.LeaseStatusReason)).StatusReasonPtr(),
+		CreatedOn:                &lease.CreatedOn,
+		LastModifiedOn:           &lease.LastModifiedOn,
+		BudgetAmount:             &lease.BudgetAmount,
+		BudgetCurrency:           &lease.BudgetCurrency,
+		BudgetNotificationEmails: &lease.BudgetNotificationEmails,
+		StatusModifiedOn:         &lease.LeaseStatusModifiedOn,
+		ExpiresOn:                &lease.ExpiresOn,
+		Limit:                    nil,
+		NextAccountID:            nil,
+		NextPrincipalID:          nil,
+	}
+	sfnInputBytes, err := json.Marshal(sfnInput)
+	if err != nil {
+		log.Printf("Failed to retrieve step functions service %s", err)
+	}
+	sfnInputString := string(sfnInputBytes)
+	_, err = sfnSvc.StartExecution(&sfn.StartExecutionInput{
+		Input:           &sfnInputString,
+		StateMachineArn: &Settings.UsageStepFunctionArn,
+	})
+	if err != nil {
+		log.Printf("Failed to start step function execution %s", err)
 	}
 
 	response.WriteAPIResponse(w, http.StatusCreated, *message)

@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"github.com/Optum/dce/pkg/common"
 	"github.com/Optum/dce/pkg/config"
 	errors2 "github.com/Optum/dce/pkg/errors"
 	"github.com/Optum/dce/pkg/lease"
@@ -17,12 +16,9 @@ import (
 	"strings"
 )
 
-var (
-	Config                common.DefaultEnvConfig
-	principalBudgetAmount float64
-)
-
-type lambdaConfig struct{}
+type lambdaConfig struct {
+	PrincipalBudgetAmount float64 `env:"PRINCIPAL_BUDGET_AMOUNT" envDefault:"100"`
+}
 
 var (
 	// Services handles the configuration of the AWS services
@@ -53,8 +49,6 @@ func init() {
 	}
 
 	Services = svcBldr
-
-	principalBudgetAmount = Config.GetEnvFloatVar("PRINCIPAL_BUDGET_AMOUNT", 1000.00)
 }
 
 // Start the Lambda Handler
@@ -163,8 +157,8 @@ func isLeaseOverBudget(leaseSummary *usage.Lease) bool {
 }
 
 func isPrincipalOverBudget(principalSummary *usage.Principal) bool {
-	log.Printf("principal id %s usage is %6.2f out of a %6.2f budget", *principalSummary.PrincipalID, *principalSummary.CostAmount, principalBudgetAmount)
-	return *principalSummary.CostAmount >= principalBudgetAmount
+	log.Printf("principal id %s usage is %6.2f out of a %6.2f budget", *principalSummary.PrincipalID, *principalSummary.CostAmount, Settings.PrincipalBudgetAmount)
+	return *principalSummary.CostAmount >= Settings.PrincipalBudgetAmount
 }
 
 // https://stackoverflow.com/questions/49129534/unmarshal-mapstringdynamodbattributevalue-into-a-struct
@@ -190,5 +184,4 @@ func UnmarshalStreamImage(attribute map[string]events.DynamoDBAttributeValue, ou
 	}
 
 	return dynamodbattribute.UnmarshalMap(dbAttrMap, out)
-
 }
