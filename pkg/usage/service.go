@@ -48,7 +48,7 @@ func (a *Service) UpsertLeaseUsage(data *Lease) error {
 	return nil
 }
 
-// GetLease list Lease Usage records
+// GetLease gets a single Lease Usage record
 func (a *Service) GetLease(id string) (*Lease, error) {
 
 	usg, err := a.dataLeaseSvc.Get(id)
@@ -59,7 +59,7 @@ func (a *Service) GetLease(id string) (*Lease, error) {
 	return usg, nil
 }
 
-// GetPrincipal list Principal Usage records
+// GetPrincipal gets a single Principal Usage record
 func (a *Service) GetPrincipal(id string, date time.Time) (*Principal, error) {
 
 	usg, err := a.dataPrincipalSvc.Get(id, date)
