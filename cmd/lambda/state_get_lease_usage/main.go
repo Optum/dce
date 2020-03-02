@@ -13,13 +13,6 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 )
 
-const (
-	// Cost Explorer takes up to 24 hours to fully resolve
-	// so we continue running the usage check for up to 30 hours after
-	// given the 6 hours between executions
-	usageContinuation = 108000
-)
-
 type configuration struct {
 	Debug string `env:"DEBUG" envDefault:"false"`
 }

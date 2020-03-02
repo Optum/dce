@@ -9,10 +9,16 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 	"github.com/google/uuid"
 	"github.com/gruntwork-io/terratest/modules/terraform"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+)
+
+var (
+	principalTableName string
+	dynamodbSvc        dynamodbiface.DynamoDBAPI
 )
 
 func TestDb(t *testing.T) {
@@ -34,6 +40,8 @@ func TestDb(t *testing.T) {
 		tfOut["leases_table_name"].(string),
 		7,
 	)
+
+	principalTableName = tfOut["principal_table_name"].(string)
 	// Set consistent reads to improve testing without a bunch of sleeps
 	// for eventual consistency
 	dbSvc.ConsistentRead = true
@@ -882,7 +890,57 @@ func truncateLeaseTable(t *testing.T, dbSvc *db.DB) {
 	time.Sleep(2 * time.Second)
 }
 
+/*
+Remove all records from the Principal table
+*/
+func truncatePrincipalTable(t *testing.T) {
+	/*
+		DynamoDb does not provide a "truncate" method.
+		Instead, we need to find all records in the DB table,
+		and remove them in a "BatchWrite" requests.
+	*/
+
+	// Find all records in the Account table
+	scanResult, err := dynamodbSvc.Scan(
+		&dynamodb.ScanInput{
+			TableName:      aws.String(principalTableName),
+			ConsistentRead: aws.Bool(true),
+		},
+	)
+	require.Nil(t, err)
+
+	if len(scanResult.Items) < 1 {
+		return
+	}
+
+	// Populate a list of `DeleteRequests` for each
+	// item we found in the table
+	var deleteRequests []*dynamodb.WriteRequest
+	for _, item := range scanResult.Items {
+		deleteRequests = append(deleteRequests, &dynamodb.WriteRequest{
+			DeleteRequest: &dynamodb.DeleteRequest{
+				Key: map[string]*dynamodb.AttributeValue{
+					"PrincipalId": item["PrincipalId"],
+					"SK":          item["SK"],
+				},
+			},
+		})
+	}
+
+	// Execute Batch requests, to remove all items
+	_, err = dynamodbSvc.BatchWriteItem(
+		&dynamodb.BatchWriteItemInput{
+			RequestItems: map[string][]*dynamodb.WriteRequest{
+				principalTableName: deleteRequests,
+			},
+		},
+	)
+	require.Nil(t, err)
+	time.Sleep(2 * time.Second)
+}
+
 func truncateDBTables(t *testing.T, dbSvc *db.DB) {
 	truncateAccountTable(t, dbSvc)
 	truncateLeaseTable(t, dbSvc)
+	truncatePrincipalTable(t)
 }

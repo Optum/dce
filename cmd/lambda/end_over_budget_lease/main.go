@@ -183,5 +183,4 @@ func UnmarshalStreamImage(attribute map[string]events.DynamoDBAttributeValue, ou
 	}
 
 	return dynamodbattribute.UnmarshalMap(dbAttrMap, out)
-
 }

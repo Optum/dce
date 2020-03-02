@@ -4,8 +4,9 @@ set -exuo pipefail
 # Create an S3 bucket, to use as a Terraform state backend.
 # See https://www.terraform.io/docs/backends/types/s3.html
 
-account_id=$(aws sts get-caller-identity | jq -r .Account)
-bucket_name="${account_id}-dce-tfstate"
+BUCKET_PREFIX="${1}"
+
+bucket_name="${BUCKET_PREFIX}-dce-tfstate"
 
 # Check if the bucket already exists
 set +e

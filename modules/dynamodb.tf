@@ -155,5 +155,13 @@ resource "aws_dynamodb_table" "principal" {
     enabled        = true
   }
 
+  global_secondary_index {
+    name            = "SortKey"
+    hash_key        = "SK"
+    projection_type = "ALL"
+    read_capacity   = var.usage_table_rcu
+    write_capacity  = var.usage_table_wcu
+  }
+
   tags = var.global_tags
 }

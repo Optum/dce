@@ -2,8 +2,9 @@ package data
 
 import "time"
 
-func getTTL(date time.Time, days int) int64 {
-	return date.AddDate(0, 0, days).Unix()
+func getTTL(date time.Time, days int) *int64 {
+	new := date.AddDate(0, 0, days).Unix()
+	return &new
 }
 
 // budgetPeriod gets the epoch for the start of a period
@@ -37,7 +38,7 @@ func firstDayOfISOWeek(year int, week int) time.Time {
 	// iterate forward to the first day of the given week
 	for isoWeek < week {
 		date = date.AddDate(0, 0, 7)
-		isoYear, isoWeek = date.ISOWeek()
+		_, isoWeek = date.ISOWeek()
 	}
 
 	return date

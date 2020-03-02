@@ -1,28 +1,22 @@
 package usage
 
-import (
-	"github.com/Optum/dce/pkg/account/accountiface"
-)
+import "time"
 
-const (
-	usagePrefix = "Usage"
-)
+// PrincipalReader reads principal usage information form the data store
+type PrincipalReader interface {
+	Get(id string, date time.Time) (*Principal, error)
+	List(query *Principal) (*Principals, error)
+}
 
 // LeaseWriter put an item into the data store
 type LeaseWriter interface {
 	Write(i *Lease) error
 }
 
-// SingleReader Reads Usage information from the data store
-type SingleReader interface{}
-
-// MultipleReader reads multiple usages from the data store
-type MultipleReader interface{}
-
 // LeaseReader data Layer
 type LeaseReader interface {
-	SingleReader
-	MultipleReader
+	Get(id string) (*Lease, error)
+	List(query *Lease) (*Leases, error)
 }
 
 // LeaseReaderWriter includes Reader and Writer interfaces
@@ -33,9 +27,9 @@ type LeaseReaderWriter interface {
 
 // Service is a type corresponding to a Usage table record
 type Service struct {
-	dataLeaseSvc LeaseReaderWriter
-	accountSvc   accountiface.Servicer
-	budgetPeriod string
+	dataLeaseSvc     LeaseReaderWriter
+	dataPrincipalSvc PrincipalReader
+	budgetPeriod     string
 }
 
 // UpsertLeaseUsage creates a new lease usage record
@@ -54,16 +48,61 @@ func (a *Service) UpsertLeaseUsage(data *Lease) error {
 	return nil
 }
 
+// GetLease gets a single Lease Usage record
+func (a *Service) GetLease(id string) (*Lease, error) {
+
+	usg, err := a.dataLeaseSvc.Get(id)
+	if err != nil {
+		return nil, err
+	}
+
+	return usg, nil
+}
+
+// GetPrincipal gets a single Principal Usage record
+func (a *Service) GetPrincipal(id string, date time.Time) (*Principal, error) {
+
+	usg, err := a.dataPrincipalSvc.Get(id, date)
+	if err != nil {
+		return nil, err
+	}
+
+	return usg, nil
+}
+
+// ListPrincipal list Principal Usage records
+func (a *Service) ListPrincipal(data *Principal) (*Principals, error) {
+	usgs, err := a.dataPrincipalSvc.List(data)
+	if err != nil {
+		return nil, err
+	}
+
+	return usgs, nil
+}
+
+// ListLease list Lease Usage records
+func (a *Service) ListLease(data *Lease) (*Leases, error) {
+
+	usgs, err := a.dataLeaseSvc.List(data)
+	if err != nil {
+		return nil, err
+	}
+
+	return usgs, nil
+}
+
 // NewServiceInput Input for creating a new Service
 type NewServiceInput struct {
-	DataSvc      LeaseReaderWriter
-	BudgetPeriod string
+	DataLeaseSvc     LeaseReaderWriter
+	DataPrincipalSvc PrincipalReader
+	BudgetPeriod     string
 }
 
 // NewService creates a new instance of the Service
 func NewService(input NewServiceInput) *Service {
 	return &Service{
-		dataLeaseSvc: input.DataSvc,
-		budgetPeriod: input.BudgetPeriod,
+		dataLeaseSvc:     input.DataLeaseSvc,
+		dataPrincipalSvc: input.DataPrincipalSvc,
+		budgetPeriod:     input.BudgetPeriod,
 	}
 }

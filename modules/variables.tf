@@ -63,7 +63,7 @@ variable "reset_image_pull_creds" {
 }
 
 variable "reset_nuke_toggle" {
-  description = "Indicator to set Nuke to not delete any resources. Use 'false' to indicate a Dry Run. NOTE: Cannot change Account status with this toggled off."
+  description = "Use 'false' to indicate a disable aws-nuke, and avoid deleted any resources in child accounts."
   default     = "true"
 }
 

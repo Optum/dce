@@ -103,7 +103,7 @@ resource "aws_codebuild_project" "reset_build" {
 
     environment_variable {
       name  = "RESET_NUKE_TOGGLE"
-      value = var.reset_nuke_toggle // "false" for Dry Run, else Delete Resources
+      value = var.reset_nuke_toggle // "false" to disable aws-nuke
       type  = "PLAINTEXT"
     }
 

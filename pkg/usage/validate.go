@@ -1,10 +1,6 @@
 package usage
 
 import (
-	"errors"
-	"reflect"
-	"regexp"
-
 	validation "github.com/go-ozzo/ozzo-validation"
 )
 
@@ -38,11 +34,6 @@ var validationLeaseID = []validation.Rule{
 	validation.NotNil.Error("must be a valid lease ID"),
 }
 
-var validateAccountID = []validation.Rule{
-	validation.NotNil.Error("must be a string"),
-	validation.Match(regexp.MustCompile("^[0-9]{12}$")).Error("must be a string with 12 digits"),
-}
-
 var validateInt64 = []validation.Rule{
 	validation.NotNil.Error("must be an epoch timestamp"),
 }
@@ -54,15 +45,4 @@ var validateFloat64 = []validation.Rule{
 var validateCostCurrency = []validation.Rule{
 	validation.NotNil.Error("must be a valid cost currency"),
 	validation.In(validCurrencies...),
-}
-
-var validateTimeToLive = []validation.Rule{
-	validation.NotNil.Error("must be a valid time to live"),
-}
-
-func isNil(value interface{}) error {
-	if !reflect.ValueOf(value).IsNil() {
-		return errors.New("must be empty")
-	}
-	return nil
 }
