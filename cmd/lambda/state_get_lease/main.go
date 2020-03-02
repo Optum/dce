@@ -61,7 +61,6 @@ type eventOut struct {
 }
 
 func handler(ctx context.Context, event lease.Lease) (eventOut, error) {
-
 	updLease, err := services.LeaseService().Get(*event.ID)
 	if err != nil {
 		return eventOut{}, err
