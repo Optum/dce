@@ -57,7 +57,8 @@ func init() {
 
 type eventOut struct {
 	*lease.Lease
-	TTL int64
+	LeaseTTL int64
+	UsageTTL int64
 }
 
 func handler(ctx context.Context, event lease.Lease) (eventOut, error) {
@@ -74,10 +75,12 @@ func handler(ctx context.Context, event lease.Lease) (eventOut, error) {
 		leaseEndDate = *updLease.ExpiresOn
 	}
 
-	leaseEndDate = leaseEndDate + usageContinuation - time.Now().Unix()
+	usageEndDate := leaseEndDate + usageContinuation - time.Now().Unix()
+	leaseEndDate = leaseEndDate - time.Now().Unix()
 	return eventOut{
 		updLease,
 		leaseEndDate,
+		usageEndDate,
 	}, nil
 }
 

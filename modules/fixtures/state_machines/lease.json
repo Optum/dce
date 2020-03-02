@@ -1,40 +1,74 @@
 {
     "Comment": "Manages a lease and is run per lease.",
-    "StartAt": "Wait",
+    "StartAt": "Get Lease",
     "States": {
-        "Wait": {
-            "Comment": "Wait 6 hours before next check.",
-            "Type": "Wait",
-            "Seconds": ${WAIT_SECONDS},
-            "Next": "GetLease"
-        },
-        "GetLease": {
+        "Get Lease": {
             "Comment": "Get the lease again to validate it hasn't ended.",
             "Type": "Task",
             "Resource": "${GET_LEASE_LAMBDA_ARN}",
-            "Next": "Check Usage?"
+            "Next": "Manage Lease"
         },
-        "Check Usage?": {
-            "Comment": "Should we continue checking the usage?",
-            "Type": "Choice",
-            "Choices": [
+        "Manage Lease": {
+            "Type": "Parallel",
+            "End": true,
+            "Branches": [
                 {
-                    "Variable": "$.TTL",
-                    "NumericGreaterThanEquals": 0,
-                    "Next": "GetUsage"
+                    "StartAt": "Check Usage?",
+                    "States": {
+                        "Wait ${WAIT_SECONDS} Seconds": {
+                            "Comment": "Wait 6 hours before next check.",
+                            "Type": "Wait",
+                            "Seconds": ${WAIT_SECONDS},
+                            "Next": "Check Lease"
+                        },
+                        "Check Lease": {
+                            "Comment": "Get the lease again to validate it hasn't ended.",
+                            "Type": "Task",
+                            "Resource": "${GET_LEASE_LAMBDA_ARN}",
+                            "Next": "Check Usage?"
+                        },
+                        "Check Usage?": {
+                            "Comment": "Should we continue checking the usage?",
+                            "Type": "Choice",
+                            "Choices": [
+                                {
+                                    "Variable": "$.UsageTTL",
+                                    "NumericGreaterThanEquals": 0,
+                                    "Next": "Get Usage"
+                                }
+                            ],
+                            "Default": "End"
+                        },
+                        "Get Usage": {
+                            "Comment": "Get the lease usage information.",
+                            "Type": "Task",
+                            "Resource": "${GET_USAGE_LAMBDA_ARN}",
+                            "Next": "Wait ${WAIT_SECONDS} Seconds"
+                        },
+                        "End": {
+                            "Type": "Pass",
+                            "End": true
+                        }
+                    }
+                },
+                {
+                    "StartAt": "Wait Till End Of Lease",
+                    "States": {
+                        "Wait Till End Of Lease": {
+                            "Comment": "Wait 6 hours before next check.",
+                            "Type": "Wait",
+                            "SecondsPath": "$.LeaseTTL",
+                            "Next": "End Lease"
+                        },
+                        "End Lease": {
+                            "Comment": "Get the lease usage information.",
+                            "Type": "Task",
+                            "Resource": "${END_LEASE_LAMBDA_ARN}",
+                            "End": true
+                        }
+                    }
                 }
-            ],
-            "Default": "End"
-        },
-        "GetUsage": {
-            "Comment": "Get the lease usage information.",
-            "Type": "Task",
-            "Resource": "${GET_USAGE_LAMBDA_ARN}",
-            "Next": "Wait"
-        },
-        "End": {
-            "Type": "Pass",
-            "End": true
+            ]
         }
     }
 }
