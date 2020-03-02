@@ -17,7 +17,7 @@ import (
 )
 
 type lambdaConfig struct {
-	PrincipalBudgetAmount float64 `env:"PRINCIPAL_BUDGET_AMOUNT" envDefault:"1000"`
+	PrincipalBudgetAmount float64 `env:"PRINCIPAL_BUDGET_AMOUNT" envDefault:"100"`
 }
 
 var (
