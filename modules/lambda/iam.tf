@@ -51,7 +51,6 @@ resource "aws_iam_role_policy_attachment" "lambda_codebuild" {
   policy_arn = "arn:aws:iam::aws:policy/AWSCodeBuildDeveloperAccess"
 }
 
-
 # Allow Lambdas to work with SNS
 resource "aws_iam_role_policy_attachment" "lambda_sns" {
   role       = aws_iam_role.lambda_execution.name
@@ -70,9 +69,30 @@ resource "aws_iam_role_policy_attachment" "gateway_logs" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs"
 }
 
+# Allow Lambdas to read from Cognito
 resource "aws_iam_role_policy_attachment" "cognito_read_only" {
   role       = aws_iam_role.lambda_execution.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonCognitoReadOnly"
+}
+
+# Allow Lambdas to start execution of step functions
+resource "aws_iam_role_policy" "lambda_start_step_function" {
+  role   = aws_iam_role.lambda_execution.name
+  policy = <<JSON
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "StartStepFunction",
+            "Effect": "Allow",
+            "Action": [
+                "states:StartExecution"
+            ],
+            "Resource": "*"
+        }
+    ]
+}
+JSON
 }
 
 # Allow Lambda to assume roles
