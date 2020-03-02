@@ -17,7 +17,6 @@ import (
 	"github.com/Optum/dce/pkg/common"
 	"github.com/Optum/dce/pkg/db"
 	leasePkg "github.com/Optum/dce/pkg/lease"
-
 )
 
 type createLeaseRequest struct {

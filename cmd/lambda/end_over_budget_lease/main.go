@@ -63,7 +63,7 @@ func handler(ctx context.Context, event events.DynamoDBEvent) error {
 	// We get a stream of DynDB records, representing changes to the table
 	for _, record := range event.Records {
 		input := handleRecordInput{
-			record:                record,
+			record: record,
 		}
 		err := handleRecord(&input)
 		if err != nil {
@@ -79,12 +79,12 @@ func handler(ctx context.Context, event events.DynamoDBEvent) error {
 }
 
 type handleRecordInput struct {
-	record                events.DynamoDBEventRecord
+	record events.DynamoDBEventRecord
 }
 
 func handleRecord(input *handleRecordInput) error {
 	record := input.record
-	if record.EventName != "INSERT" && record.EventName != "MODIFY"{
+	if record.EventName != "INSERT" && record.EventName != "MODIFY" {
 		return nil
 	}
 
@@ -101,7 +101,7 @@ func handleRecord(input *handleRecordInput) error {
 		}
 
 		if isLeaseOverBudget(&leaseSummary) {
-			leaseID := strings.TrimSuffix(strings.TrimPrefix(sortKey, "Usage-Lease-"),"-Summary")
+			leaseID := strings.TrimSuffix(strings.TrimPrefix(sortKey, "Usage-Lease-"), "-Summary")
 			log.Printf("lease id %s is over budget", leaseID)
 			_, err := Services.LeaseService().Delete(leaseID)
 			if err != nil {
@@ -122,10 +122,10 @@ func handleRecord(input *handleRecordInput) error {
 			log.Printf("principal id %s is over budget", *principalSummary.PrincipalID)
 			query := lease.Lease{
 				PrincipalID: principalSummary.PrincipalID,
-				Status: lease.StatusActive.StatusPtr(),
+				Status:      lease.StatusActive.StatusPtr(),
 			}
 			deferredErrors := []error{}
-			deleteLeases :=  func(leases *lease.Leases) bool {
+			deleteLeases := func(leases *lease.Leases) bool {
 				for _, _lease := range *leases {
 					_, err := Services.LeaseService().Delete(*_lease.ID)
 					if err != nil {
@@ -170,7 +170,8 @@ func UnmarshalStreamImage(attribute map[string]events.DynamoDBAttributeValue, ou
 
 		var dbAttr dynamodb.AttributeValue
 
-		bytes, err := v.MarshalJSON(); if err != nil {
+		bytes, err := v.MarshalJSON()
+		if err != nil {
 			return err
 		}
 
