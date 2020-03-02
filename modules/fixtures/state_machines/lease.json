@@ -16,7 +16,7 @@
             "Retry": [
                 {
                     "ErrorEquals": [ "States.ALL" ],
-                    "IntervalSeconds": 2,
+                    "IntervalSeconds": 10,
                     "BackoffRate": 2.0,
                     "MaxAttempts": 3
                 }
@@ -24,6 +24,7 @@
             "Catch": [
                 {
                     "ErrorEquals": [ "States.ALL" ],
+                    "ResultPath": "$.error",
                     "Next": "Wait"
                 }
             ]
@@ -44,11 +45,11 @@
             "Comment": "Get the lease usage information.",
             "Type": "Task",
             "Resource": "${GET_USAGE_LAMBDA_ARN}",
-            "Next": "Wait"
+            "Next": "Wait",
             "Retry": [
                 {
                     "ErrorEquals": [ "States.ALL" ],
-                    "IntervalSeconds": 2,
+                    "IntervalSeconds": 10,
                     "BackoffRate": 2.0,
                     "MaxAttempts": 3
                 }
@@ -56,6 +57,7 @@
             "Catch": [
                 {
                     "ErrorEquals": [ "States.ALL" ],
+                    "ResultPath": "$.error",
                     "Next": "Wait"
                 }
             ]
