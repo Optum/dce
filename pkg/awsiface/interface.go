@@ -14,6 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
 	"github.com/aws/aws-sdk-go/service/cloudwatchevents/cloudwatcheventsiface"
+	"github.com/aws/aws-sdk-go/service/codebuild/codebuildiface"
 	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider/cognitoidentityprovideriface"
 	"github.com/aws/aws-sdk-go/service/costexplorer/costexploreriface"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
@@ -81,4 +82,8 @@ type DynamoDBAPI interface {
 
 type CloudWatchEventsAPI interface {
 	cloudwatcheventsiface.CloudWatchEventsAPI
+}
+
+type CodeBuildAPI interface {
+	codebuildiface.CodeBuildAPI
 }

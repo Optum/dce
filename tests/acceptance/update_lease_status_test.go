@@ -130,12 +130,7 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 			},
 		})
 
-		// Update Account status to ready
-		_, err = dbSvc.TransitionAccountStatus(
-			accountID,
-			db.NotReady, db.Ready,
-		)
-		require.Nil(t, err)
+		waitForAccountStatus(t, apiURL, accountID, "Ready")
 
 		// Create a lease for above created account
 		apiRequest(t, &apiRequestInput{
@@ -199,12 +194,7 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 			},
 		})
 
-		// Update Account status to ready
-		_, err = dbSvc.TransitionAccountStatus(
-			accountID,
-			db.NotReady, db.Ready,
-		)
-		require.Nil(t, err)
+		waitForAccountStatus(t, apiURL, accountID, "Ready")
 
 		// Create a lease for above created account
 		apiRequest(t, &apiRequestInput{
@@ -268,12 +258,7 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 			},
 		})
 
-		// Update Account status to ready
-		_, err = dbSvc.TransitionAccountStatus(
-			accountID,
-			db.NotReady, db.Ready,
-		)
-		require.Nil(t, err)
+		waitForAccountStatus(t, apiURL, accountID, "Ready")
 
 		// Create a lease for above created account
 		apiRequest(t, &apiRequestInput{
@@ -340,12 +325,7 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 			},
 		})
 
-		// Update Account status to ready
-		_, err = dbSvc.TransitionAccountStatus(
-			accountID,
-			db.NotReady, db.Ready,
-		)
-		require.Nil(t, err)
+		waitForAccountStatus(t, apiURL, accountID, "Ready")
 
 		// Create a lease for above created account
 		apiRequest(t, &apiRequestInput{
@@ -412,12 +392,7 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 			},
 		})
 
-		// Update Account status to ready
-		_, err = dbSvc.TransitionAccountStatus(
-			accountID,
-			db.NotReady, db.Ready,
-		)
-		require.Nil(t, err)
+		waitForAccountStatus(t, apiURL, accountID, "Ready")
 
 		// Create a lease for above created account
 		apiRequest(t, &apiRequestInput{
