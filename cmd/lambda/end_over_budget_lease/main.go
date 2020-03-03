@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/Optum/dce/pkg/config"
 	"github.com/Optum/dce/pkg/data"
 	errors2 "github.com/Optum/dce/pkg/errors"
@@ -96,8 +97,7 @@ func handleRecord(input *handleRecordInput) error {
 		leaseSummary := usage.Lease{}
 		err := UnmarshalStreamImage(record.Change.NewImage, &leaseSummary)
 		if err != nil {
-			log.Printf("ERROR: Failed to unmarshal stream image")
-			return err
+			return errors2.NewInternalServer("Failed to unmarshal stream image", err)
 		}
 
 		if isLeaseOverBudget(&leaseSummary) {
@@ -105,8 +105,7 @@ func handleRecord(input *handleRecordInput) error {
 			log.Printf("lease id %s is over budget", *leaseID)
 			_, err := Services.LeaseService().Delete(*leaseID)
 			if err != nil {
-				log.Printf("ERROR: failed to delete lease for leaseID %s", *leaseID)
-				return err
+				return errors2.NewInternalServer(fmt.Sprintf("Failed to delete lease for leaseID %s", *leaseID), err)
 			}
 			log.Printf("ended lease id %s", *leaseID)
 		}
@@ -114,8 +113,7 @@ func handleRecord(input *handleRecordInput) error {
 		principalSummary := usage.Principal{}
 		err := UnmarshalStreamImage(record.Change.NewImage, &principalSummary)
 		if err != nil {
-			log.Printf("ERROR: Failed to unmarshal stream image")
-			return err
+			return errors2.NewInternalServer("Failed to unmarshal stream image", err)
 		}
 
 		if isPrincipalOverBudget(&principalSummary) {
@@ -137,12 +135,12 @@ func handleRecord(input *handleRecordInput) error {
 			}
 			err := Services.LeaseService().ListPages(&query, deleteLeases)
 			if err != nil {
-				log.Printf("ERROR: Failed to delete one or more leases for principalID %s", *principalSummary.PrincipalID)
-				return err
+				fmt.Printf("err = %#v\n", err)
+				fmt.Printf("NewInternalServer = %#v\n", errors2.NewInternalServer("some additional message text", err))
+				return errors2.NewInternalServer(fmt.Sprintf("Failed to delete one or more leases for principalID %s", *principalSummary.PrincipalID), err)
 			}
 			if len(deferredErrors) > 0 {
-				log.Printf("ERROR: Failed to delete one or more leases %v", deferredErrors)
-				return errors2.NewMultiError("Failed to handle DynDB Event", deferredErrors)
+				return errors2.NewMultiError("Failed to delete one or more leases", deferredErrors)
 			}
 		}
 	default:
