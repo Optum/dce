@@ -20,7 +20,7 @@ func (a *UsageLease) query(query *usage.Lease) (*queryScanOutput, error) {
 	var res *dynamodb.QueryOutput
 
 	_, filters := getFiltersFromStruct(query, nil, nil)
-	keyCondition := expression.Key("SK").BeginsWith(usageLeaseSkSummaryPrefix)
+	keyCondition := expression.Key("SK").BeginsWith(UsageLeaseSkSummaryPrefix)
 	bldr = expression.NewBuilder().WithKeyCondition(keyCondition)
 	if filters != nil {
 		bldr = bldr.WithFilter(*filters)
@@ -79,9 +79,9 @@ func (a *UsageLease) scan(query *usage.Lease) (*queryScanOutput, error) {
 
 	_, filters := getFiltersFromStruct(query, nil, nil)
 	if filters != nil {
-		*filters = filters.And(expression.Name("SK").BeginsWith(usageLeaseSkSummaryPrefix))
+		*filters = filters.And(expression.Name("SK").BeginsWith(UsageLeaseSkSummaryPrefix))
 	} else {
-		expr := expression.Name("SK").BeginsWith(usageLeaseSkSummaryPrefix)
+		expr := expression.Name("SK").BeginsWith(UsageLeaseSkSummaryPrefix)
 		filters = &expr
 	}
 

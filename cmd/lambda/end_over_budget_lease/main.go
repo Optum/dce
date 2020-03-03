@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/Optum/dce/pkg/config"
+	"github.com/Optum/dce/pkg/data"
 	errors2 "github.com/Optum/dce/pkg/errors"
 	"github.com/Optum/dce/pkg/lease"
 	"github.com/Optum/dce/pkg/usage"
@@ -13,7 +14,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"log"
 	"regexp"
-	"strings"
 )
 
 type lambdaConfig struct {
@@ -89,8 +89,8 @@ func handleRecord(input *handleRecordInput) error {
 	}
 
 	sortKey := record.Change.NewImage["SK"].String()
-	leaseSummaryRegex := regexp.MustCompile(`(Usage-Lease)[-\w]+(-Summary)`)
-	principalRegex := regexp.MustCompile(`(Usage-Principal)[-\w]+`)
+	leaseSummaryRegex := regexp.MustCompile((data.UsageLeaseSkSummaryPrefix)+`[-\w]+`)
+	principalRegex := regexp.MustCompile(data.UsagePrincipalSkPrefix+`[-\w]+`)
 	switch {
 	case leaseSummaryRegex.MatchString(sortKey):
 		leaseSummary := usage.Lease{}
@@ -101,14 +101,14 @@ func handleRecord(input *handleRecordInput) error {
 		}
 
 		if isLeaseOverBudget(&leaseSummary) {
-			leaseID := strings.TrimSuffix(strings.TrimPrefix(sortKey, "Usage-Lease-"), "-Summary")
-			log.Printf("lease id %s is over budget", leaseID)
-			_, err := Services.LeaseService().Delete(leaseID)
+			leaseID := leaseSummary.LeaseID
+			log.Printf("lease id %s is over budget", *leaseID)
+			_, err := Services.LeaseService().Delete(*leaseID)
 			if err != nil {
-				log.Printf("ERROR: failed to delete lease for leaseID %s", leaseID)
+				log.Printf("ERROR: failed to delete lease for leaseID %s", *leaseID)
 				return err
 			}
-			log.Printf("ended lease id %s", leaseID)
+			log.Printf("ended lease id %s", *leaseID)
 		}
 	case principalRegex.MatchString(sortKey):
 		principalSummary := usage.Principal{}

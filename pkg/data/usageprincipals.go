@@ -21,7 +21,7 @@ func (a *UsagePrincipal) query(query *usage.Principal) (*queryScanOutput, error)
 	var res *dynamodb.QueryOutput
 
 	keyCondition, filters := getFiltersFromStruct(query, aws.String("PrincipalId"), nil)
-	*keyCondition = keyCondition.And(expression.Key("SK").BeginsWith(usagePrincipalSkPrefix))
+	*keyCondition = keyCondition.And(expression.Key("SK").BeginsWith(UsagePrincipalSkPrefix))
 	bldr = expression.NewBuilder().WithKeyCondition(*keyCondition)
 	if filters != nil {
 		bldr = bldr.WithFilter(*filters)
@@ -49,7 +49,7 @@ func (a *UsagePrincipal) query(query *usage.Principal) (*queryScanOutput, error)
 				S: query.NextPrincipalID,
 			},
 			"SK": &dynamodb.AttributeValue{
-				S: aws.String(fmt.Sprintf("%s%s", usagePrincipalSkPrefix, strconv.FormatInt(*query.NextDate, 10))),
+				S: aws.String(fmt.Sprintf("%s%s", UsagePrincipalSkPrefix, strconv.FormatInt(*query.NextDate, 10))),
 			},
 		})
 	}
@@ -78,9 +78,9 @@ func (a *UsagePrincipal) scan(query *usage.Principal) (*queryScanOutput, error) 
 
 	_, filters := getFiltersFromStruct(query, nil, nil)
 	if filters != nil {
-		*filters = filters.And(expression.Name("SK").BeginsWith(usagePrincipalSkPrefix))
+		*filters = filters.And(expression.Name("SK").BeginsWith(UsagePrincipalSkPrefix))
 	} else {
-		expr := expression.Name("SK").BeginsWith(usagePrincipalSkPrefix)
+		expr := expression.Name("SK").BeginsWith(UsagePrincipalSkPrefix)
 		filters = &expr
 	}
 
@@ -105,7 +105,7 @@ func (a *UsagePrincipal) scan(query *usage.Principal) (*queryScanOutput, error) 
 				S: query.NextPrincipalID,
 			},
 			"SK": &dynamodb.AttributeValue{
-				S: aws.String(fmt.Sprintf("%s%s", usagePrincipalSkPrefix, strconv.FormatInt(*query.NextDate, 10))),
+				S: aws.String(fmt.Sprintf("%s%s", UsagePrincipalSkPrefix, strconv.FormatInt(*query.NextDate, 10))),
 			},
 		})
 	}
@@ -149,7 +149,7 @@ func (a *UsagePrincipal) List(query *usage.Principal) (*usage.Principals, error)
 			query.NextPrincipalID = v.S
 		case "SK":
 			n, _ := strconv.ParseInt(
-				strings.Replace(*v.S, usagePrincipalSkPrefix, "", 1),
+				strings.Replace(*v.S, UsagePrincipalSkPrefix, "", 1),
 				10, 64)
 			query.NextDate = &n
 		}
