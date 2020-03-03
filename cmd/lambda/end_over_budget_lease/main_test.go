@@ -24,49 +24,49 @@ func TestEndLeaseOverBudget(t *testing.T) {
 			expIsLeaseDeleted bool
 		}{
 			{
-				name:      "new usage lease summary over lease budget ends lease",
-				eventName: "INSERT",
-				sortKey:   data.UsageLeaseSkSummaryPrefix+"-123",
-				costAmount: "100.0",
-				budgetAmount: "99.0",
+				name:              "new usage lease summary over lease budget ends lease",
+				eventName:         "INSERT",
+				sortKey:           data.UsageLeaseSkSummaryPrefix + "-123",
+				costAmount:        "100.0",
+				budgetAmount:      "99.0",
 				expIsLeaseDeleted: true,
 			},
 			{
 				name:              "new usage lease summary under lease budget does not end lease",
 				eventName:         "INSERT",
-				sortKey:           data.UsageLeaseSkSummaryPrefix+"-123",
+				sortKey:           data.UsageLeaseSkSummaryPrefix + "-123",
 				costAmount:        "99.0",
 				budgetAmount:      "100.0",
 				expIsLeaseDeleted: false,
 			},
 			{
-				name:      "updated usage lease summary over lease budget ends lease",
-				eventName: "INSERT",
-				sortKey:   data.UsageLeaseSkSummaryPrefix+"-123",
-				costAmount: "100.0",
-				budgetAmount: "99.0",
+				name:              "updated usage lease summary over lease budget ends lease",
+				eventName:         "INSERT",
+				sortKey:           data.UsageLeaseSkSummaryPrefix + "-123",
+				costAmount:        "100.0",
+				budgetAmount:      "99.0",
 				expIsLeaseDeleted: true,
 			},
 			{
 				name:              "updated usage lease summary under lease budget does not end lease",
 				eventName:         "INSERT",
-				sortKey:           data.UsageLeaseSkSummaryPrefix+"-123",
+				sortKey:           data.UsageLeaseSkSummaryPrefix + "-123",
 				costAmount:        "99.0",
 				budgetAmount:      "100.0",
 				expIsLeaseDeleted: false,
 			},
 			{
-				name:      "deleting usage lease summary over lease budget does not end lease",
-				eventName: "REMOVE",
-				sortKey:   data.UsageLeaseSkSummaryPrefix+"-123",
-				costAmount: "100.0",
-				budgetAmount: "99.0",
+				name:              "deleting usage lease summary over lease budget does not end lease",
+				eventName:         "REMOVE",
+				sortKey:           data.UsageLeaseSkSummaryPrefix + "-123",
+				costAmount:        "100.0",
+				budgetAmount:      "99.0",
 				expIsLeaseDeleted: false,
 			},
 			{
 				name:              "deleting usage lease summary under lease budget does not end lease",
 				eventName:         "REMOVE",
-				sortKey:           data.UsageLeaseSkSummaryPrefix+"-123",
+				sortKey:           data.UsageLeaseSkSummaryPrefix + "-123",
 				costAmount:        "99.0",
 				budgetAmount:      "100.0",
 				expIsLeaseDeleted: false,
@@ -77,16 +77,16 @@ func TestEndLeaseOverBudget(t *testing.T) {
 				event := events.DynamoDBEvent{
 					Records: []events.DynamoDBEventRecord{
 						{
-							AWSRegion:      "",
-							Change:         events.DynamoDBStreamRecord{
-								NewImage:   map[string]events.DynamoDBAttributeValue{
-									"SK": events.NewStringAttribute(tt.sortKey),
-									"LeaseId": events.NewStringAttribute(""),
-									"CostAmount": events.NewNumberAttribute(tt.costAmount),
+							AWSRegion: "",
+							Change: events.DynamoDBStreamRecord{
+								NewImage: map[string]events.DynamoDBAttributeValue{
+									"SK":           events.NewStringAttribute(tt.sortKey),
+									"LeaseId":      events.NewStringAttribute(""),
+									"CostAmount":   events.NewNumberAttribute(tt.costAmount),
 									"BudgetAmount": events.NewNumberAttribute(tt.budgetAmount),
 								},
 							},
-							EventName:      tt.eventName,
+							EventName: tt.eventName,
 						},
 					},
 				}
@@ -122,7 +122,7 @@ func TestEndLeaseOverBudget(t *testing.T) {
 			{
 				name:              "new usage principal summary over principal budget ends lease",
 				eventName:         "INSERT",
-				sortKey:           data.UsagePrincipalSkPrefix+"-123",
+				sortKey:           data.UsagePrincipalSkPrefix + "-123",
 				costAmount:        "100.0",
 				budgetAmount:      "99.0",
 				expIsLeaseDeleted: true,
@@ -130,7 +130,7 @@ func TestEndLeaseOverBudget(t *testing.T) {
 			{
 				name:              "new usage principal summary under principal budget does not end lease",
 				eventName:         "INSERT",
-				sortKey:           data.UsagePrincipalSkPrefix+"-123",
+				sortKey:           data.UsagePrincipalSkPrefix + "-123",
 				costAmount:        "99.0",
 				budgetAmount:      "100.0",
 				expIsLeaseDeleted: false,
@@ -138,7 +138,7 @@ func TestEndLeaseOverBudget(t *testing.T) {
 			{
 				name:              "updated usage principal summary over principal budget ends lease",
 				eventName:         "INSERT",
-				sortKey:           data.UsagePrincipalSkPrefix+"-123",
+				sortKey:           data.UsagePrincipalSkPrefix + "-123",
 				costAmount:        "100.0",
 				budgetAmount:      "99.0",
 				expIsLeaseDeleted: true,
@@ -146,7 +146,7 @@ func TestEndLeaseOverBudget(t *testing.T) {
 			{
 				name:              "updated usage principal summary under principal budget does not end lease",
 				eventName:         "INSERT",
-				sortKey:           data.UsagePrincipalSkPrefix+"-123",
+				sortKey:           data.UsagePrincipalSkPrefix + "-123",
 				costAmount:        "99.0",
 				budgetAmount:      "100.0",
 				expIsLeaseDeleted: false,
@@ -154,7 +154,7 @@ func TestEndLeaseOverBudget(t *testing.T) {
 			{
 				name:              "deleting usage principal summary over lease budget does not end lease",
 				eventName:         "REMOVE",
-				sortKey:           data.UsagePrincipalSkPrefix+"-123",
+				sortKey:           data.UsagePrincipalSkPrefix + "-123",
 				costAmount:        "100.0",
 				budgetAmount:      "99.0",
 				expIsLeaseDeleted: false,
@@ -162,7 +162,7 @@ func TestEndLeaseOverBudget(t *testing.T) {
 			{
 				name:              "deleting usage principal summary under lease budget does not end lease",
 				eventName:         "REMOVE",
-				sortKey:           data.UsagePrincipalSkPrefix+"-123",
+				sortKey:           data.UsagePrincipalSkPrefix + "-123",
 				costAmount:        "99.0",
 				budgetAmount:      "100.0",
 				expIsLeaseDeleted: false,
@@ -173,15 +173,15 @@ func TestEndLeaseOverBudget(t *testing.T) {
 				event := events.DynamoDBEvent{
 					Records: []events.DynamoDBEventRecord{
 						{
-							AWSRegion:      "",
-							Change:         events.DynamoDBStreamRecord{
-								NewImage:   map[string]events.DynamoDBAttributeValue{
-									"SK": events.NewStringAttribute(tt.sortKey),
+							AWSRegion: "",
+							Change: events.DynamoDBStreamRecord{
+								NewImage: map[string]events.DynamoDBAttributeValue{
+									"SK":          events.NewStringAttribute(tt.sortKey),
 									"PrincipalId": events.NewStringAttribute(""),
-									"CostAmount": events.NewNumberAttribute(tt.costAmount),
+									"CostAmount":  events.NewNumberAttribute(tt.costAmount),
 								},
 							},
-							EventName:      tt.eventName,
+							EventName: tt.eventName,
 						},
 					},
 				}

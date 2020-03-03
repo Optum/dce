@@ -90,8 +90,8 @@ func handleRecord(input *handleRecordInput) error {
 	}
 
 	sortKey := record.Change.NewImage["SK"].String()
-	leaseSummaryRegex := regexp.MustCompile((data.UsageLeaseSkSummaryPrefix)+`[-\w]+`)
-	principalRegex := regexp.MustCompile(data.UsagePrincipalSkPrefix+`[-\w]+`)
+	leaseSummaryRegex := regexp.MustCompile((data.UsageLeaseSkSummaryPrefix) + `[-\w]+`)
+	principalRegex := regexp.MustCompile(data.UsagePrincipalSkPrefix + `[-\w]+`)
 	switch {
 	case leaseSummaryRegex.MatchString(sortKey):
 		leaseSummary := usage.Lease{}
