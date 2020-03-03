@@ -135,8 +135,6 @@ func handleRecord(input *handleRecordInput) error {
 			}
 			err := Services.LeaseService().ListPages(&query, deleteLeases)
 			if err != nil {
-				fmt.Printf("err = %#v\n", err)
-				fmt.Printf("NewInternalServer = %#v\n", errors2.NewInternalServer("some additional message text", err))
 				return errors2.NewInternalServer(fmt.Sprintf("Failed to delete one or more leases for principalID %s", *principalSummary.PrincipalID), err)
 			}
 			if len(deferredErrors) > 0 {
