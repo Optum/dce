@@ -51,11 +51,10 @@ func init() {
 }
 
 func handler(ctx context.Context, event lease.Lease) (lease.Lease, error) {
-
 	acct, err := services.AccountService().Get(*event.AccountID)
 	if err != nil {
 		log.Printf("%+v", err)
-		return event, nil
+		return lease.Lease{}, err
 	}
 
 	year, month, day := time.Now().UTC().Date()
@@ -73,7 +72,7 @@ func handler(ctx context.Context, event lease.Lease) (lease.Lease, error) {
 	usages, err := services.AccountService().GetUsageBetweenDates(acct, startDate, endDate)
 	if err != nil {
 		log.Printf("%+v", err)
-		return event, nil
+		return lease.Lease{}, err
 	}
 
 	log.Printf("Got Usage for account %q: %+v", *acct.ID, usages)
@@ -90,12 +89,12 @@ func handler(ctx context.Context, event lease.Lease) (lease.Lease, error) {
 		)
 		if err != nil {
 			log.Printf("Error: %+v", err)
-			return event, nil
+			return lease.Lease{}, err
 		}
 		err = services.UsageService().UpsertLeaseUsage(newUsg)
 		if err != nil {
 			log.Printf("Error: %+v", err)
-			return event, err
+			return lease.Lease{}, err
 		}
 	}
 	return event, nil

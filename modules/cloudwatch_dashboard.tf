@@ -14,6 +14,8 @@ locals {
     populate_reset_queue_name               = module.populate_reset_queue.name
     process_reset_queue_name                = module.process_reset_queue.name
     update_principal_policy_name            = module.update_principal_policy.name
+    state_get_lease_name                    = module.state_get_lease_lambda.name
+    state_get_lease_usage_name              = module.state_get_lease_usage_lambda.name
     error_scraper_query                     = "fields @timestamp, @message | sort @timestamp desc | filter @message ~= \\\"error\\\" or @message ~= \\\"fail\\\" or @message ~= \\\"fork/exec\\\" | display @timestamp, @message, @logStream| limit 10"
     metrics_namespace_var                   = local.metrics_namespace
     account_pool_metrics_widget_period      = var.account_pool_metrics_widget_period
