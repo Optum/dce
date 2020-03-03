@@ -12,7 +12,22 @@
             "Comment": "Get the lease again to validate it hasn't ended.",
             "Type": "Task",
             "Resource": "${GET_LEASE_LAMBDA_ARN}",
-            "Next": "Check Usage?"
+            "Next": "Check Usage?",
+            "Retry": [
+                {
+                    "ErrorEquals": [ "States.ALL" ],
+                    "IntervalSeconds": 10,
+                    "BackoffRate": 2.0,
+                    "MaxAttempts": 3
+                }
+            ],
+            "Catch": [
+                {
+                    "ErrorEquals": [ "States.ALL" ],
+                    "ResultPath": "$.error",
+                    "Next": "Wait"
+                }
+            ]
         },
         "Check Usage?": {
             "Comment": "Should we continue checking the usage?",
@@ -30,7 +45,22 @@
             "Comment": "Get the lease usage information.",
             "Type": "Task",
             "Resource": "${GET_USAGE_LAMBDA_ARN}",
-            "Next": "Wait"
+            "Next": "Wait",
+            "Retry": [
+                {
+                    "ErrorEquals": [ "States.ALL" ],
+                    "IntervalSeconds": 10,
+                    "BackoffRate": 2.0,
+                    "MaxAttempts": 3
+                }
+            ],
+            "Catch": [
+                {
+                    "ErrorEquals": [ "States.ALL" ],
+                    "ResultPath": "$.error",
+                    "Next": "Wait"
+                }
+            ]
         },
         "End": {
             "Type": "Pass",
