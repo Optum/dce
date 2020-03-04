@@ -14,8 +14,8 @@ import (
 )
 
 const (
-	usageLeaseSkSummaryPrefix string = "Usage-Lease-Summary-"
-	usageLeaseSkDailyPrefix   string = "Usage-Lease-Daily-"
+	UsageLeaseSkSummaryPrefix string = "Usage-Lease-Summary-"
+	UsageLeaseSkDailyPrefix   string = "Usage-Lease-Daily-"
 	usageSKIndex              string = "SortKey"
 )
 
@@ -46,7 +46,7 @@ func (a *UsageLease) Write(usg *usage.Lease) error {
 
 	usgData := usageLeaseData{
 		*usg,
-		fmt.Sprintf("%s%s-%d", usageLeaseSkDailyPrefix, *usg.LeaseID, usg.Date.Unix()),
+		fmt.Sprintf("%s%s-%d", UsageLeaseSkDailyPrefix, *usg.LeaseID, usg.Date.Unix()),
 		getTTL(*usg.Date, a.TimeToLive),
 	}
 
@@ -110,7 +110,7 @@ func (a *UsageLease) addLeaseUsage(usg usage.Lease) error {
 
 	usgData := usageLeaseData{
 		usg,
-		fmt.Sprintf("%s%s", usageLeaseSkSummaryPrefix, *usg.LeaseID),
+		fmt.Sprintf("%s%s", UsageLeaseSkSummaryPrefix, *usg.LeaseID),
 		getTTL(*usg.Date, a.TimeToLive),
 	}
 
@@ -179,7 +179,7 @@ func (a *UsageLease) addPrincipalUsage(usg usage.Lease) error {
 	}
 	usgData := usagePrincipalData{
 		usgPrincipal,
-		fmt.Sprintf("%s%d", usagePrincipalSkPrefix, periodStart.Unix()),
+		fmt.Sprintf("%s%d", UsagePrincipalSkPrefix, periodStart.Unix()),
 		getTTL(*usg.Date, a.TimeToLive),
 	}
 
@@ -232,7 +232,7 @@ func (a *UsageLease) Get(ID string) (*usage.Lease, error) {
 	var expr expression.Expression
 	var err error
 
-	keyCondition := expression.Key("SK").Equal(expression.Value(fmt.Sprintf("%s%s", usageLeaseSkSummaryPrefix, ID)))
+	keyCondition := expression.Key("SK").Equal(expression.Value(fmt.Sprintf("%s%s", UsageLeaseSkSummaryPrefix, ID)))
 
 	expr, err = expression.NewBuilder().WithKeyCondition(keyCondition).Build()
 	if err != nil {

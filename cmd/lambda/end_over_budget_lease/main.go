@@ -3,7 +3,9 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/Optum/dce/pkg/config"
+	"github.com/Optum/dce/pkg/data"
 	errors2 "github.com/Optum/dce/pkg/errors"
 	"github.com/Optum/dce/pkg/lease"
 	"github.com/Optum/dce/pkg/usage"
@@ -13,7 +15,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"log"
 	"regexp"
-	"strings"
 )
 
 type lambdaConfig struct {
@@ -89,33 +90,30 @@ func handleRecord(input *handleRecordInput) error {
 	}
 
 	sortKey := record.Change.NewImage["SK"].String()
-	leaseSummaryRegex := regexp.MustCompile(`(Usage-Lease)[-\w]+(-Summary)`)
-	principalRegex := regexp.MustCompile(`(Usage-Principal)[-\w]+`)
+	leaseSummaryRegex := regexp.MustCompile((data.UsageLeaseSkSummaryPrefix) + `[-\w]+`)
+	principalRegex := regexp.MustCompile(data.UsagePrincipalSkPrefix + `[-\w]+`)
 	switch {
 	case leaseSummaryRegex.MatchString(sortKey):
 		leaseSummary := usage.Lease{}
 		err := UnmarshalStreamImage(record.Change.NewImage, &leaseSummary)
 		if err != nil {
-			log.Printf("ERROR: Failed to unmarshal stream image")
-			return err
+			return errors2.NewInternalServer("Failed to unmarshal stream image", err)
 		}
 
 		if isLeaseOverBudget(&leaseSummary) {
-			leaseID := strings.TrimSuffix(strings.TrimPrefix(sortKey, "Usage-Lease-"), "-Summary")
-			log.Printf("lease id %s is over budget", leaseID)
-			_, err := Services.LeaseService().Delete(leaseID)
+			leaseID := leaseSummary.LeaseID
+			log.Printf("lease id %s is over budget", *leaseID)
+			_, err := Services.LeaseService().Delete(*leaseID)
 			if err != nil {
-				log.Printf("ERROR: failed to delete lease for leaseID %s", leaseID)
-				return err
+				return errors2.NewInternalServer(fmt.Sprintf("Failed to delete lease for leaseID %s", *leaseID), err)
 			}
-			log.Printf("ended lease id %s", leaseID)
+			log.Printf("ended lease id %s", *leaseID)
 		}
 	case principalRegex.MatchString(sortKey):
 		principalSummary := usage.Principal{}
 		err := UnmarshalStreamImage(record.Change.NewImage, &principalSummary)
 		if err != nil {
-			log.Printf("ERROR: Failed to unmarshal stream image")
-			return err
+			return errors2.NewInternalServer("Failed to unmarshal stream image", err)
 		}
 
 		if isPrincipalOverBudget(&principalSummary) {
@@ -137,12 +135,10 @@ func handleRecord(input *handleRecordInput) error {
 			}
 			err := Services.LeaseService().ListPages(&query, deleteLeases)
 			if err != nil {
-				log.Printf("ERROR: Failed to delete one or more leases for principalID %s", *principalSummary.PrincipalID)
-				return err
+				return errors2.NewInternalServer(fmt.Sprintf("Failed to delete one or more leases for principalID %s", *principalSummary.PrincipalID), err)
 			}
 			if len(deferredErrors) > 0 {
-				log.Printf("ERROR: Failed to delete one or more leases %v", deferredErrors)
-				return errors2.NewMultiError("Failed to handle DynDB Event", deferredErrors)
+				return errors2.NewMultiError("Failed to delete one or more leases", deferredErrors)
 			}
 		}
 	default:
