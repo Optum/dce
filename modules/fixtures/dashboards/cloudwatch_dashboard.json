@@ -154,6 +154,34 @@
       "width": 12,
       "height": 6,
       "properties": {
+        "view": "timeSeries",
+        "stacked": false,
+        "metrics": [
+          [ "AWS/Lambda", "Invocations", "FunctionName", "${state_end_lease_name}", { "color": "#1f77b4" } ],
+          [ ".", "Errors", ".", ".", { "color": "#d62728" } ]
+        ],
+        "region": "${region}",
+        "title": "${state_end_lease_name} λ",
+        "stat": "Sum"
+      }
+    },
+    {
+      "type": "log",
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "query": "SOURCE '/aws/lambda/${state_end_lease_name}' | ${error_scraper_query}",
+        "region": "${region}",
+        "stacked": false,
+        "view": "table",
+        "title": "${state_end_lease_name} λ error scraper"
+      }
+    },
+    {
+      "type": "metric",
+      "width": 12,
+      "height": 6,
+      "properties": {
         "metrics": [
           [ "AWS/Lambda", "Invocations", "FunctionName", "${accounts_lambda_name}", { "color": "#1f77b4" } ],
           [ ".", "Errors", ".", ".", { "color": "#d62728" } ]
