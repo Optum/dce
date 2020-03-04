@@ -83,7 +83,7 @@ func TestListUsagePrincipals(t *testing.T) {
 						S: aws.String("user1"),
 					},
 					"SK": {
-						S: aws.String(fmt.Sprintf("%s%s", usagePrincipalSkPrefix, strconv.FormatInt(now, 10))),
+						S: aws.String(fmt.Sprintf("%s%s", UsagePrincipalSkPrefix, strconv.FormatInt(now, 10))),
 					},
 				},
 			},
@@ -100,7 +100,7 @@ func TestListUsagePrincipals(t *testing.T) {
 						S: aws.String("user2"),
 					},
 					"SK": {
-						S: aws.String(fmt.Sprintf("%s%s", usagePrincipalSkPrefix, strconv.FormatInt(now, 10))),
+						S: aws.String(fmt.Sprintf("%s%s", UsagePrincipalSkPrefix, strconv.FormatInt(now, 10))),
 					},
 				},
 			},
@@ -245,7 +245,7 @@ func TestListUsagePrincipalsQuery(t *testing.T) {
 						S: aws.String("user1"),
 					},
 					":1": {
-						S: aws.String(usagePrincipalSkPrefix),
+						S: aws.String(UsagePrincipalSkPrefix),
 					},
 				},
 				KeyConditionExpression: aws.String("(#0 = :0) AND (begins_with (#1, :1))"),
@@ -255,7 +255,7 @@ func TestListUsagePrincipalsQuery(t *testing.T) {
 						S: aws.String("user1"),
 					},
 					"SK": {
-						S: aws.String(fmt.Sprintf("%s%s", usagePrincipalSkPrefix, strconv.FormatInt(begOfWeekUnix, 10))),
+						S: aws.String(fmt.Sprintf("%s%s", UsagePrincipalSkPrefix, strconv.FormatInt(begOfWeekUnix, 10))),
 					},
 				},
 			},
@@ -272,7 +272,7 @@ func TestListUsagePrincipalsQuery(t *testing.T) {
 						S: aws.String("user2"),
 					},
 					"SK": {
-						S: aws.String(fmt.Sprintf("%s%s", usagePrincipalSkPrefix, strconv.FormatInt(begOfNextWeek, 10))),
+						S: aws.String(fmt.Sprintf("%s%s", UsagePrincipalSkPrefix, strconv.FormatInt(begOfNextWeek, 10))),
 					},
 				},
 			},

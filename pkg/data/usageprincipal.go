@@ -13,7 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 )
 
-const usagePrincipalSkPrefix string = "Usage-Principal-"
+const UsagePrincipalSkPrefix string = "Usage-Principal-"
 
 type usagePrincipalData struct {
 	usage.Principal
@@ -42,7 +42,7 @@ func (a *UsagePrincipal) Get(id string, date time.Time) (*usage.Principal, error
 					S: aws.String(id),
 				},
 				"SK": {
-					S: aws.String(fmt.Sprintf("%s%s", usagePrincipalSkPrefix, strconv.FormatInt(date.UTC().Unix(), 10))),
+					S: aws.String(fmt.Sprintf("%s%s", UsagePrincipalSkPrefix, strconv.FormatInt(date.UTC().Unix(), 10))),
 				},
 			},
 			ConsistentRead: aws.Bool(a.ConsistentRead),
