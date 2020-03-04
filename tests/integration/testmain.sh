@@ -225,7 +225,7 @@ function waitForLeaseStatus() {
 # waitForStateMachine sleeps for the wait period of the state machine
 function waitForStateMachine() {
     echo "Waiting for state machine to be ready" | tee -a "${tmpdir}/test.log"
-    sleepTime=$(aws stepfunctions describe-state-machine --state-machine-arn arn:aws:states:us-east-1:828880465464:stateMachine:lease-usage-usg1 | jq -r '.definition' | jq '.States.Wait.Seconds')
+    sleepTime=$(aws stepfunctions describe-state-machine --state-machine-arn arn:aws:states:us-east-1:"${MASTER_ACCOUNT_ID}":stateMachine:lease-usage-usg1 | jq -r '.definition' | jq '.States.Wait.Seconds')
     ((sleepTime=sleepTime+5))
     t=1
     until (( t >= sleepTime ))
@@ -260,7 +260,7 @@ function title() {
 # getUsageDailyRecord gets a single usage record for the principalID and LeaseID
 function getUsageDailyRecord() {
   timestampPrefix=$(x=$(date +%s); echo ${x:0:3})
-  aws dynamodb query --table-name "Principal$(title ${DEPLOY_NAMESPACE})" --key-condition-expression "PrincipalId = :name and begins_with(SK, :sk)" --expression-attribute-values  '{":name":{"S":"'${1}'"}, ":sk":{"S":"Usage-Lease-'${2}'-'${timestampPrefix}'"}}' | jq -r '.Items[0]'
+  aws dynamodb query --table-name "Principal$(title ${DEPLOY_NAMESPACE})" --key-condition-expression "PrincipalId = :name and begins_with(SK, :sk)" --expression-attribute-values  '{":name":{"S":"'${1}'"}, ":sk":{"S":"Usage-Lease-Daily-'${2}'-'${timestampPrefix}'"}}' | jq -r '.Items[0]'
 }
 
 function simulateUsage() {
@@ -279,7 +279,7 @@ function getLeaseUsageSummaryRecord() {
     aws dynamodb query \
         --table-name "Principal$(title ${DEPLOY_NAMESPACE})" \
         --key-condition-expression "PrincipalId = :name and begins_with(SK, :sk)" \
-        --expression-attribute-values  '{":name":{"S":"'${principalId}'"}, ":sk":{"S":"Usage-Lease-'${leaseId}'-Summary"}}' | jq -r '.Items[0]'
+        --expression-attribute-values  '{":name":{"S":"'${principalId}'"}, ":sk":{"S":"Usage-Lease-Summary-'${leaseId}'"}}' | jq -r '.Items[0]'
 }
 
 # There are a couple things to make sure the user has installed. Like curl and jq (maybe?)
