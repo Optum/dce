@@ -3,14 +3,10 @@ package db
 import (
 	"errors"
 	"fmt"
-	"log"
 	"strconv"
-	"strings"
 	"time"
 
 	errors2 "github.com/pkg/errors"
-
-	guuid "github.com/google/uuid"
 
 	"github.com/Optum/dce/pkg/common"
 	"github.com/aws/aws-sdk-go/aws"
@@ -46,21 +42,12 @@ type DB struct {
 //go:generate mockery -name DBer
 type DBer interface {
 	GetAccount(accountID string) (*Account, error)
-	GetReadyAccount() (*Account, error)
-	GetLease(accountID string, principalID string) (*Lease, error)
-	GetLeases(input GetLeasesInput) (GetLeasesOutput, error)
 	GetLeaseByID(leaseID string) (*Lease, error)
 	FindAccountsByStatus(status AccountStatus) ([]*Account, error)
-	PutAccount(account Account) error
-	PutLease(lease Lease) (*Lease, error)
 	UpsertLease(lease Lease) (*Lease, error)
 	TransitionAccountStatus(accountID string, prevStatus AccountStatus, nextStatus AccountStatus) (*Account, error)
 	TransitionLeaseStatus(accountID string, principalID string, prevStatus LeaseStatus, nextStatus LeaseStatus, leaseStatusReason LeaseStatusReason) (*Lease, error)
-	FindLeasesByAccount(accountID string) ([]*Lease, error)
 	FindLeasesByPrincipal(principalID string) ([]*Lease, error)
-	FindLeasesByStatus(status LeaseStatus) ([]*Lease, error)
-	UpdateAccountPrincipalPolicyHash(accountID string, prevHash string, nextHash string) (*Account, error)
-	OrphanAccount(accountID string) (*Account, error)
 }
 
 // GetAccount returns an account record corresponding to an accountID
@@ -86,16 +73,6 @@ func (db *DB) GetAccount(accountID string) (*Account, error) {
 	}
 
 	return unmarshalAccount(result.Item)
-}
-
-// GetReadyAccount returns an available account record with a
-// corresponding status of 'Ready'
-func (db *DB) GetReadyAccount() (*Account, error) {
-	accounts, err := db.FindAccountsByStatus(Ready)
-	if len(accounts) < 1 {
-		return nil, err
-	}
-	return accounts[0], err
 }
 
 // FindAccountsByStatus finds account by status
@@ -157,66 +134,6 @@ func (db *DB) GetLeaseByID(leaseID string) (*Lease, error) {
 	return unmarshalLease(resp.Items[0])
 }
 
-// GetLease retrieves a Lease for the
-// given accountID and principalID
-func (db *DB) GetLease(accountID string, principalID string) (*Lease, error) {
-	result, err := db.Client.GetItem(
-		&dynamodb.GetItemInput{
-			TableName: aws.String(db.LeaseTableName),
-			Key: map[string]*dynamodb.AttributeValue{
-				"AccountId": {
-
-					S: aws.String(accountID),
-				},
-				"PrincipalId": {
-					S: aws.String(principalID),
-				},
-			},
-			ConsistentRead: aws.Bool(db.ConsistentRead),
-		},
-	)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if result.Item == nil {
-		return nil, nil
-	}
-
-	return unmarshalLease(result.Item)
-}
-
-// FindLeasesByAccount finds lease values for a given accountID
-func (db *DB) FindLeasesByAccount(accountID string) ([]*Lease, error) {
-	input := &dynamodb.QueryInput{
-		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-			":a1": {
-				S: aws.String(accountID),
-			},
-		},
-		KeyConditionExpression: aws.String("AccountId = :a1"),
-		TableName:              aws.String(db.LeaseTableName),
-		ConsistentRead:         aws.Bool(db.ConsistentRead),
-	}
-
-	resp, err := db.Client.Query(input)
-	if err != nil {
-		return nil, err
-	}
-
-	var leases []*Lease
-	for _, r := range resp.Items {
-		n, err := unmarshalLease(r)
-		if err != nil {
-			return nil, err
-		}
-		leases = append(leases, n)
-	}
-
-	return leases, nil
-}
-
 // FindLeasesByPrincipal finds leased accounts for a given principalID
 func (db *DB) FindLeasesByPrincipal(principalID string) ([]*Lease, error) {
 	input := &dynamodb.QueryInput{
@@ -248,117 +165,6 @@ func (db *DB) FindLeasesByPrincipal(principalID string) ([]*Lease, error) {
 	}
 
 	return leases, nil
-}
-
-// FindLeasesByPrincipalAndAccount finds leased accounts for a given principalID
-func (db *DB) FindLeasesByPrincipalAndAccount(principalID string, accountID string) ([]*Lease, error) {
-	input := &dynamodb.QueryInput{
-		IndexName: aws.String("PrincipalId"),
-		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-			":u1": {
-				S: aws.String(principalID),
-			},
-		},
-		KeyConditionExpression: aws.String("PrincipalId = :u1"),
-		TableName:              aws.String(db.LeaseTableName),
-	}
-
-	resp, err := db.Client.Query(input)
-	if err != nil {
-		return nil, err
-	}
-	if len(resp.Items) == 0 {
-		return nil, nil
-	}
-
-	var leases []*Lease
-	for _, r := range resp.Items {
-		n, err := unmarshalLease(r)
-		if err != nil {
-			return nil, err
-		}
-		leases = append(leases, n)
-	}
-
-	return leases, nil
-}
-
-// FindLeasesByStatus finds leases by status
-func (db *DB) FindLeasesByStatus(status LeaseStatus) ([]*Lease, error) {
-	res, err := db.Client.Query(&dynamodb.QueryInput{
-		IndexName: aws.String("LeaseStatus"),
-		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-			":status": {
-				S: aws.String(string(status)),
-			},
-		},
-		KeyConditionExpression: aws.String("LeaseStatus = :status"),
-		TableName:              aws.String(db.LeaseTableName),
-	})
-
-	leases := []*Lease{}
-
-	if err != nil {
-		return leases, err
-	}
-
-	for _, item := range res.Items {
-		lease, err := unmarshalLease(item)
-		if err != nil {
-			return leases, err
-		}
-		leases = append(leases, lease)
-	}
-
-	return leases, nil
-}
-
-// PutAccount stores an account in DynamoDB
-func (db *DB) PutAccount(account Account) error {
-	item, err := dynamodbattribute.MarshalMap(account)
-	if err != nil {
-		return err
-	}
-
-	_, err = db.Client.PutItem(
-		&dynamodb.PutItemInput{
-			TableName: aws.String(db.AccountTableName),
-			Item:      item,
-		},
-	)
-	return err
-}
-
-// PutLease writes an Lease to DynamoDB
-// Returns the previous AccountsLease if there is one - does not return
-// the lease that was added
-func (db *DB) PutLease(lease Lease) (
-	*Lease, error) {
-
-	// apply some reasonable DEFAULTS to the lease before saving it.
-	if len(lease.ID) == 0 {
-		lease.ID = guuid.New().String()
-	}
-
-	if lease.ExpiresOn == 0 {
-		lease.ExpiresOn = time.Now().AddDate(0, 0, db.DefaultLeaseLengthInDays).Unix()
-	}
-
-	item, err := dynamodbattribute.MarshalMap(lease)
-	if err != nil {
-		return nil, err
-	}
-
-	result, err := db.Client.PutItem(
-		&dynamodb.PutItemInput{
-			TableName: aws.String(db.LeaseTableName),
-			Item:      item,
-		},
-	)
-	if err != nil {
-		return nil, err
-	}
-	return unmarshalLease(result.Attributes)
 }
 
 // UpsertLease creates or updates the lease records in DynDB
@@ -539,72 +345,6 @@ func (db *DB) TransitionAccountStatus(accountID string, prevStatus AccountStatus
 	return unmarshalAccount(result.Attributes)
 }
 
-// UpdateAccountPrincipalPolicyHash updates hash representing the
-// current version of the Principal IAM Policy applied to the account
-func (db *DB) UpdateAccountPrincipalPolicyHash(accountID string, prevHash string, nextHash string) (*Account, error) {
-
-	var conditionExpression expression.ConditionBuilder
-	if prevHash != "" {
-		log.Printf("Using Condition where PrincipalPolicyHash equals '%s'", prevHash)
-		conditionExpression = expression.Name("PrincipalPolicyHash").Equal(expression.Value(prevHash))
-	} else {
-		log.Printf("Using Condition where PrincipalPolicyHash does not exists")
-		conditionExpression = expression.AttributeNotExists(expression.Name("PrincipalPolicyHash"))
-	}
-	updateExpression, _ := expression.NewBuilder().WithCondition(
-		conditionExpression,
-	).WithUpdate(
-		expression.Set(
-			expression.Name("PrincipalPolicyHash"),
-			expression.Value(nextHash),
-		).Set(
-			expression.Name("LastModifiedOn"),
-			expression.Value(time.Now().Unix()),
-		),
-	).Build()
-
-	result, err := db.Client.UpdateItem(
-		&dynamodb.UpdateItemInput{
-			// Query in Lease Table
-			TableName: aws.String(db.AccountTableName),
-			// Find Account for the requested accountId
-			Key: map[string]*dynamodb.AttributeValue{
-				"Id": {
-					S: aws.String(accountID),
-				},
-			},
-			ExpressionAttributeNames:  updateExpression.Names(),
-			ExpressionAttributeValues: updateExpression.Values(),
-			// Set PrincipalPolicyHash=nextHash
-			UpdateExpression: updateExpression.Update(),
-			// Only update records where the previousHash matches
-			ConditionExpression: updateExpression.Condition(),
-			// Return the updated record
-			ReturnValues: aws.String("ALL_NEW"),
-		},
-	)
-	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			if aerr.Code() == "ConditionalCheckFailedException" {
-				return nil, &StatusTransitionError{
-					fmt.Sprintf(
-						"unable to update Principal Policy hash from \"%v\" to \"%v\" "+
-							"for account %v: no account exists with PrincipalPolicyHash=\"%v\"",
-						prevHash,
-						nextHash,
-						accountID,
-						prevHash,
-					),
-				}
-			}
-			return nil, err
-		}
-		return nil, err
-	}
-
-	return unmarshalAccount(result.Attributes)
-}
-
 // GetLeasesInput contains the filtering criteria for the GetLeases scan.
 type GetLeasesInput struct {
 	StartKeys   map[string]string
@@ -618,112 +358,6 @@ type GetLeasesInput struct {
 type GetLeasesOutput struct {
 	Results  []*Lease
 	NextKeys map[string]string
-}
-
-// GetLeases takes a set of filtering criteria and scans the Leases table for the matching records.
-func (db *DB) GetLeases(input GetLeasesInput) (GetLeasesOutput, error) {
-	limit := int64(25)
-	filters := make([]string, 0)
-	filterValues := make(map[string]*dynamodb.AttributeValue)
-
-	if input.Limit > 0 {
-		limit = input.Limit
-	}
-
-	scanInput := &dynamodb.ScanInput{
-		TableName:      aws.String(db.LeaseTableName),
-		Limit:          &limit,
-		ConsistentRead: aws.Bool(db.ConsistentRead),
-	}
-
-	// Build the filter clauses.
-	if input.Status != "" {
-		filters = append(filters, "LeaseStatus = :status")
-		filterValues[":status"] = &dynamodb.AttributeValue{S: aws.String(string(input.Status))}
-	}
-
-	if input.PrincipalID != "" {
-		filters = append(filters, "PrincipalId = :principalId")
-		filterValues[":principalId"] = &dynamodb.AttributeValue{S: aws.String(input.PrincipalID)}
-	}
-
-	if input.AccountID != "" {
-		filters = append(filters, "AccountId = :accountId")
-		filterValues[":accountId"] = &dynamodb.AttributeValue{S: aws.String(input.AccountID)}
-	}
-
-	if len(filters) > 0 {
-		filterStatement := strings.Join(filters, " and ")
-		scanInput.FilterExpression = &filterStatement
-		scanInput.ExpressionAttributeValues = filterValues
-	}
-
-	if input.StartKeys != nil && len(input.StartKeys) > 0 {
-		scanInput.ExclusiveStartKey = make(map[string]*dynamodb.AttributeValue)
-		for k, v := range input.StartKeys {
-			scanInput.ExclusiveStartKey[k] = &dynamodb.AttributeValue{S: aws.String(v)}
-		}
-	}
-
-	output, err := db.Client.Scan(scanInput)
-
-	// Parse the results and build the next keys if necessary.
-	if err != nil {
-		return GetLeasesOutput{}, err
-	}
-
-	results := make([]*Lease, 0)
-
-	for _, o := range output.Items {
-		lease, err := unmarshalLease(o)
-		if err != nil {
-			return GetLeasesOutput{}, err
-		}
-		results = append(results, lease)
-	}
-
-	nextKey := make(map[string]string)
-
-	for k, v := range output.LastEvaluatedKey {
-		nextKey[k] = *v.S
-	}
-
-	return GetLeasesOutput{
-		Results:  results,
-		NextKeys: nextKey,
-	}, nil
-}
-
-// OrphanAccount puts account in Oprhaned status and inactivates any active leases
-func (db *DB) OrphanAccount(accountID string) (*Account, error) {
-	account, err := db.GetAccount(accountID)
-	if err != nil {
-		fmt.Printf("Issue getting account with id '%s': %s", accountID, err)
-		return nil, err
-	}
-	resAccount, err := db.TransitionAccountStatus(accountID, account.AccountStatus, Orphaned)
-	if err != nil {
-		fmt.Printf("Issue transitioning account '%s' status to orphaned: %s", accountID, err)
-		return nil, err
-	}
-	leases, err := db.GetLeases(GetLeasesInput{
-		AccountID: accountID,
-		Status:    Active,
-	})
-	if err != nil {
-		fmt.Printf("Issue getting leases with account id '%s': %s", accountID, err)
-		return resAccount, err
-	}
-	for _, lease := range leases.Results {
-		_, err = db.TransitionLeaseStatus(
-			accountID, lease.PrincipalID, Active, Inactive, AccountOrphaned)
-		if err != nil {
-			fmt.Printf("Issue transition lease '%s' to Inactive: %s", lease.ID, err)
-			return resAccount, err
-		}
-	}
-
-	return resAccount, nil
 }
 
 func unmarshalAccount(dbResult map[string]*dynamodb.AttributeValue) (*Account, error) {
