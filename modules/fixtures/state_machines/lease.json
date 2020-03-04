@@ -1,21 +1,17 @@
 {
     "Comment": "Manages a lease and is run per lease.",
-    "StartAt": "Wait",
+    "StartAt": "Get Lease",
     "States": {
-        "Wait": {
-            "Comment": "Wait 6 hours before next check.",
-            "Type": "Wait",
-            "Seconds": ${WAIT_SECONDS},
-            "Next": "GetLease"
-        },
-        "GetLease": {
+        "Get Lease": {
             "Comment": "Get the lease again to validate it hasn't ended.",
             "Type": "Task",
             "Resource": "${GET_LEASE_LAMBDA_ARN}",
-            "Next": "Check Usage?",
+            "Next": "Manage Lease",
             "Retry": [
                 {
-                    "ErrorEquals": [ "States.ALL" ],
+                    "ErrorEquals": [
+                        "States.ALL"
+                    ],
                     "IntervalSeconds": 10,
                     "BackoffRate": 2.0,
                     "MaxAttempts": 3
@@ -23,48 +19,119 @@
             ],
             "Catch": [
                 {
-                    "ErrorEquals": [ "States.ALL" ],
+                    "ErrorEquals": [
+                        "States.ALL"
+                    ],
                     "ResultPath": "$.error",
-                    "Next": "Wait"
+                    "Next": "Wait 300 Seconds"
                 }
             ]
         },
-        "Check Usage?": {
-            "Comment": "Should we continue checking the usage?",
-            "Type": "Choice",
-            "Choices": [
-                {
-                    "Variable": "$.TTL",
-                    "NumericGreaterThanEquals": 0,
-                    "Next": "GetUsage"
-                }
-            ],
-            "Default": "End"
+        "Wait 300 Seconds": {
+            "Comment": "Wait 300 seconds.",
+            "Type": "Wait",
+            "Seconds": 300,
+            "Next": "Get Lease"
         },
-        "GetUsage": {
-            "Comment": "Get the lease usage information.",
-            "Type": "Task",
-            "Resource": "${GET_USAGE_LAMBDA_ARN}",
-            "Next": "Wait",
-            "Retry": [
+        "Manage Lease": {
+            "Type": "Parallel",
+            "End": true,
+            "Branches": [
                 {
-                    "ErrorEquals": [ "States.ALL" ],
-                    "IntervalSeconds": 10,
-                    "BackoffRate": 2.0,
-                    "MaxAttempts": 3
-                }
-            ],
-            "Catch": [
+                    "StartAt": "Check Usage?",
+                    "States": {
+                        "Wait ${WAIT_SECONDS} Seconds": {
+                            "Comment": "Wait 6 hours before next check.",
+                            "Type": "Wait",
+                            "Seconds": ${WAIT_SECONDS},
+                            "Next": "Check Lease"
+                        },
+                        "Check Lease": {
+                            "Comment": "Get the lease again to validate it hasn't ended.",
+                            "Type": "Task",
+                            "Resource": "${GET_LEASE_LAMBDA_ARN}",
+                            "Next": "Check Usage?",
+                            "Retry": [
+                                {
+                                    "ErrorEquals": [
+                                        "States.ALL"
+                                    ],
+                                    "IntervalSeconds": 10,
+                                    "BackoffRate": 2.0,
+                                    "MaxAttempts": 3
+                                }
+                            ],
+                            "Catch": [
+                                {
+                                    "ErrorEquals": [
+                                        "States.ALL"
+                                    ],
+                                    "ResultPath": "$.error",
+                                    "Next": "Wait ${WAIT_SECONDS} Seconds"
+                                }
+                            ]
+                        },
+                        "Check Usage?": {
+                            "Comment": "Should we continue checking the usage?",
+                            "Type": "Choice",
+                            "Choices": [
+                                {
+                                    "Variable": "$.UsageTTL",
+                                    "NumericGreaterThanEquals": 0,
+                                    "Next": "Get Usage"
+                                }
+                            ],
+                            "Default": "End"
+                        },
+                        "Get Usage": {
+                            "Comment": "Get the lease usage information.",
+                            "Type": "Task",
+                            "Resource": "${GET_USAGE_LAMBDA_ARN}",
+                            "Next": "Wait ${WAIT_SECONDS} Seconds",
+                            "Retry": [
+                                {
+                                    "ErrorEquals": [
+                                        "States.ALL"
+                                    ],
+                                    "IntervalSeconds": 10,
+                                    "BackoffRate": 2.0,
+                                    "MaxAttempts": 3
+                                }
+                            ],
+                            "Catch": [
+                                {
+                                    "ErrorEquals": [
+                                        "States.ALL"
+                                    ],
+                                    "ResultPath": "$.error",
+                                    "Next": "Wait ${WAIT_SECONDS} Seconds"
+                                }
+                            ]
+                        },
+                        "End": {
+                            "Type": "Pass",
+                            "End": true
+                        }
+                    }
+                },
                 {
-                    "ErrorEquals": [ "States.ALL" ],
-                    "ResultPath": "$.error",
-                    "Next": "Wait"
+                    "StartAt": "Wait Till End Of Lease",
+                    "States": {
+                        "Wait Till End Of Lease": {
+                            "Comment": "Wait 6 hours before next check.",
+                            "Type": "Wait",
+                            "SecondsPath": "$.LeaseTTL",
+                            "Next": "End Lease"
+                        },
+                        "End Lease": {
+                            "Comment": "Get the lease usage information.",
+                            "Type": "Task",
+                            "Resource": "${END_LEASE_LAMBDA_ARN}",
+                            "End": true
+                        }
+                    }
                 }
             ]
-        },
-        "End": {
-            "Type": "Pass",
-            "End": true
         }
     }
 }
