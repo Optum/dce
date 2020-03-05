@@ -402,6 +402,7 @@ function test_lease_should_end_when_over_principal_budget() {
 # TODO: run select test cases from args OR run all
 dce_root_command_works
 #dce_deploy
+cleanup
 test_lease_should_end_when_over_lease_budget
 cleanup
 test_lease_should_end_when_over_principal_budget
