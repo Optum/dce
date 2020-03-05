@@ -10,19 +10,15 @@ import (
 	"math/rand"
 	"net/http"
 	"net/url"
-	"os"
 	"regexp"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/aws/aws-sdk-go/service/codebuild"
-	"github.com/aws/aws-sdk-go/service/codebuild/codebuildiface"
 	"github.com/aws/aws-sdk-go/service/cognitoidentity"
 	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
-	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 	"github.com/aws/aws-sdk-go/service/sqs"
-	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
 
 	"github.com/stretchr/testify/assert"
 
@@ -38,32 +34,22 @@ import (
 	sigv4 "github.com/aws/aws-sdk-go/aws/signer/v4"
 	"github.com/aws/aws-sdk-go/service/iam"
 	aws2 "github.com/gruntwork-io/terratest/modules/aws"
+	"github.com/gruntwork-io/terratest/modules/terraform"
 	"github.com/stretchr/testify/require"
 
 	"github.com/Optum/dce/pkg/db"
-	"github.com/Optum/dce/tests/acceptance/testutil"
 	"github.com/Optum/dce/tests/testutils"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
-)
-
-func TestMain(m *testing.M) {
-	code := m.Run()
-	os.Exit(code)
-}
-
-var (
-	dbSvc              *db.DB
-	sqsSvc             sqsiface.SQSAPI
-	codeBuildSvc       codebuildiface.CodeBuildAPI
-	dynamoDbSvc        dynamodbiface.DynamoDBAPI
-	sqsResetURL        string
-	codeBuildResetName string
-	principalTableName string
 )
 
 func TestApi(t *testing.T) {
 	// Grab the API url from Terraform outputrem
 	require.NotNil(t, testConfig.ApiUrl)
+
+	tfOpts := &terraform.Options{
+		TerraformDir: "../../modules",
+	}
+	tfOut := terraform.OutputAll(t, tfOpts)
 
 	// Configure the DB service
 	awsSession, err := session.NewSession()
@@ -83,8 +69,6 @@ func TestApi(t *testing.T) {
 		awsSession,
 		aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
 	)
-
-	principalTableName = tfOut["principal_table_name"].(string)
 
 	sqsSvc = sqs.New(
 		awsSession,
@@ -151,7 +135,7 @@ func TestApi(t *testing.T) {
 			apiRequest(t, &apiRequestInput{
 				method: "GET",
 				url:    testConfig.ApiUrl + "/leases",
-				f: func(r *testutil.R, apiResp *apiResponse) {
+				f: func(r *testutils.R, apiResp *apiResponse) {
 					// Defaults to returning 200
 					assert.Equal(r, http.StatusOK, apiResp.StatusCode)
 				},
@@ -368,10 +352,9 @@ func TestApi(t *testing.T) {
 	})
 
 	t.Run("Lease Creation and Deletion", func(t *testing.T) {
+		givenEmptySystem(t)
 
 		t.Run("Should be able to create and destroy a lease", func(t *testing.T) {
-			givenEmptySystem(t)
-			defer givenEmptySystem(t)
 
 			// Add the current account to the account pool
 			apiRequest(t, &apiRequestInput{
@@ -526,7 +509,7 @@ func TestApi(t *testing.T) {
 			apiRequest(t, &apiRequestInput{
 				method: "GET",
 				url:    testConfig.ApiUrl + fmt.Sprintf("/leases/%s", createLeaseOutput["id"]),
-				f: func(r *testutil.R, apiResp *apiResponse) {
+				f: func(r *testutils.R, apiResp *apiResponse) {
 					assert.Equal(r, http.StatusUnauthorized, apiResp.StatusCode)
 				},
 				maxAttempts: 3,
@@ -536,7 +519,7 @@ func TestApi(t *testing.T) {
 			apiRequest(t, &apiRequestInput{
 				method: "GET",
 				url:    testConfig.ApiUrl + fmt.Sprintf("/leases/%s", createLeaseOutput["id"]),
-				f: func(r *testutil.R, apiResp *apiResponse) {
+				f: func(r *testutils.R, apiResp *apiResponse) {
 					assert.Equal(r, http.StatusOK, apiResp.StatusCode)
 				},
 				maxAttempts: 3,
@@ -550,7 +533,7 @@ func TestApi(t *testing.T) {
 			apiRequest(t, &apiRequestInput{
 				method: "GET",
 				url:    testConfig.ApiUrl + "/leases",
-				f: func(r *testutil.R, apiResp *apiResponse) {
+				f: func(r *testutils.R, apiResp *apiResponse) {
 
 					// Assert
 					respList := parseResponseArrayJSON(t, apiResp)
@@ -564,7 +547,7 @@ func TestApi(t *testing.T) {
 			apiRequest(t, &apiRequestInput{
 				method: "GET",
 				url:    testConfig.ApiUrl + "/leases",
-				f: func(r *testutil.R, apiResp *apiResponse) {
+				f: func(r *testutils.R, apiResp *apiResponse) {
 
 					// Assert
 					respList := parseResponseArrayJSON(t, apiResp)
@@ -597,7 +580,7 @@ func TestApi(t *testing.T) {
 			apiRequest(t, &apiRequestInput{
 				method: "DELETE",
 				url:    testConfig.ApiUrl + fmt.Sprintf("/leases/%s", createLeaseOutput["id"]),
-				f: func(r *testutil.R, apiResp *apiResponse) {
+				f: func(r *testutils.R, apiResp *apiResponse) {
 					assert.Equal(r, http.StatusUnauthorized, apiResp.StatusCode)
 				},
 				maxAttempts: 3,
@@ -607,7 +590,7 @@ func TestApi(t *testing.T) {
 			apiRequest(t, &apiRequestInput{
 				method: "DELETE",
 				url:    testConfig.ApiUrl + fmt.Sprintf("/leases/%s", createLeaseOutput["id"]),
-				f: func(r *testutil.R, apiResp *apiResponse) {
+				f: func(r *testutils.R, apiResp *apiResponse) {
 					assert.Equal(r, http.StatusOK, apiResp.StatusCode)
 				},
 				maxAttempts: 3,
@@ -664,7 +647,7 @@ func TestApi(t *testing.T) {
 			resp = apiRequest(t, &apiRequestInput{
 				method: "DELETE",
 				url:    testConfig.ApiUrl + fmt.Sprintf("/leases/%s", data["id"]),
-				f: func(r *testutil.R, apiResp *apiResponse) {
+				f: func(r *testutils.R, apiResp *apiResponse) {
 					// Verify response code
 					assert.Equal(r, http.StatusOK, apiResp.StatusCode)
 				},
@@ -689,7 +672,7 @@ func TestApi(t *testing.T) {
 			apiRequest(t, &apiRequestInput{
 				method: "POST",
 				url:    testConfig.ApiUrl + "/leases",
-				f: func(r *testutil.R, apiResp *apiResponse) {
+				f: func(r *testutils.R, apiResp *apiResponse) {
 					// Verify response code
 					assert.Equal(r, http.StatusBadRequest, apiResp.StatusCode)
 
@@ -742,7 +725,7 @@ func TestApi(t *testing.T) {
 			apiRequest(t, &apiRequestInput{
 				method: "DELETE",
 				url:    testConfig.ApiUrl + "/leases",
-				f: func(r *testutil.R, apiResp *apiResponse) {
+				f: func(r *testutils.R, apiResp *apiResponse) {
 					// Verify response code
 					assert.Equal(r, http.StatusBadRequest, apiResp.StatusCode)
 
@@ -973,7 +956,7 @@ func TestApi(t *testing.T) {
 				apiRequest(t, &apiRequestInput{
 					method: "GET",
 					url:    testConfig.ApiUrl + "/accounts/" + accountID,
-					f: func(r *testutil.R, apiResp *apiResponse) {
+					f: func(r *testutils.R, apiResp *apiResponse) {
 						// Check the GET /accounts response
 						assert.Equal(r, apiResp.StatusCode, 200)
 						getResJSON := apiResp.json.(map[string]interface{})
@@ -994,7 +977,7 @@ func TestApi(t *testing.T) {
 				apiRequest(t, &apiRequestInput{
 					method: "GET",
 					url:    testConfig.ApiUrl + "/accounts",
-					f: func(r *testutil.R, apiResp *apiResponse) {
+					f: func(r *testutils.R, apiResp *apiResponse) {
 						// Check the response
 						assert.Equal(r, apiResp.StatusCode, 200)
 						listResJSON := parseResponseArrayJSON(t, apiResp)
@@ -1062,7 +1045,7 @@ func TestApi(t *testing.T) {
 				res = apiRequest(t, &apiRequestInput{
 					method: "GET",
 					url:    testConfig.ApiUrl + "/leases/" + resJSON["id"].(string),
-					f: func(r *testutil.R, apiResp *apiResponse) {
+					f: func(r *testutils.R, apiResp *apiResponse) {
 						assert.Equal(r, 200, apiResp.StatusCode)
 					},
 				})
@@ -1070,13 +1053,13 @@ func TestApi(t *testing.T) {
 				require.Equal(t, accountID, leaseJSON["accountId"])
 
 				// Account should be marked as status=Leased
-				waitForAccountStatus(t, apiURL, accountID, "Leased")
+				waitForAccountStatus(t, testConfig.ApiUrl, accountID, "Leased")
 
 				t.Run("STEP: Create duplicate lease for same principal (should fail)", func(t *testing.T) {
 					// Create a lease
 					res = apiRequest(t, &apiRequestInput{
 						method: "POST",
-						url:    apiURL + "/leases",
+						url:    testConfig.ApiUrl + "/leases",
 						json: map[string]interface{}{
 							"principalId":               "test-user",
 							"budgetAmount":              800,
@@ -1098,7 +1081,7 @@ func TestApi(t *testing.T) {
 					// Make sure there's still only one lease in the system
 					res = apiRequest(t, &apiRequestInput{
 						method: "GET",
-						url:    apiURL + "/leases",
+						url:    testConfig.ApiUrl + "/leases",
 						f: func(r *testutils.R, apiResp *apiResponse) {
 							assert.Equal(r, 200, apiResp.StatusCode)
 						},
@@ -1161,7 +1144,7 @@ func TestApi(t *testing.T) {
 						apiRequest(t, &apiRequestInput{
 							method: "DELETE",
 							url:    testConfig.ApiUrl + "/accounts/" + accountID,
-							f: func(r *testutil.R, apiResp *apiResponse) {
+							f: func(r *testutils.R, apiResp *apiResponse) {
 								assert.Equal(r, 204, apiResp.StatusCode)
 							},
 						})
@@ -1170,7 +1153,7 @@ func TestApi(t *testing.T) {
 						apiRequest(t, &apiRequestInput{
 							method: "GET",
 							url:    testConfig.ApiUrl + "/accounts/" + accountID,
-							f: func(r *testutil.R, apiResp *apiResponse) {
+							f: func(r *testutils.R, apiResp *apiResponse) {
 								assert.Equal(t, 404, apiResp.StatusCode)
 							},
 						})
@@ -1244,7 +1227,7 @@ func TestApi(t *testing.T) {
 		getRes := apiRequest(t, &apiRequestInput{
 			method: "GET",
 			url:    testConfig.ApiUrl + "/accounts/" + accountID,
-			f: func(r *testutil.R, apiResp *apiResponse) {
+			f: func(r *testutils.R, apiResp *apiResponse) {
 				assert.Equal(r, 200, apiResp.StatusCode)
 			},
 		})
@@ -1336,7 +1319,7 @@ func TestApi(t *testing.T) {
 			apiRequest(t, &apiRequestInput{
 				method: "DELETE",
 				url:    testConfig.ApiUrl + "/accounts/1234523456",
-				f: func(r *testutil.R, apiResp *apiResponse) {
+				f: func(r *testutils.R, apiResp *apiResponse) {
 					assert.Equal(r, http.StatusNotFound, apiResp.StatusCode, "it returns a 404")
 				},
 			})
@@ -1439,270 +1422,6 @@ func TestApi(t *testing.T) {
 			}, resJSON)
 		})
 
-	})
-
-	t.Run("Get Usage api", func(t *testing.T) {
-
-		t.Run("Should get an error for invalid date format", func(t *testing.T) {
-
-			// Send an API request
-			resp := apiRequest(t, &apiRequestInput{
-				method: "GET",
-				url:    testConfig.ApiUrl + "/usage?startDate=2019-09-2&endDate=2019-09-2",
-				json:   nil,
-				f: func(r *testutils.R, apiResp *apiResponse) {
-					// Verify response code
-					assert.Equal(r, http.StatusBadRequest, apiResp.StatusCode)
-				},
-			})
-
-			// Parse response json
-			data := parseResponseJSON(t, resp)
-
-			// Verify error response json
-			// Get nested json in response json
-			errResp := data["error"].(map[string]interface{})
-			require.Equal(t, "RequestValidationError", errResp["code"].(string))
-			require.Equal(t, "Failed to parse usage start date: strconv.ParseInt: parsing \"2019-09-2\": invalid syntax",
-				errResp["message"].(string))
-		})
-
-		t.Run("Should get an empty json for usage not found for given input date range", func(t *testing.T) {
-
-			// Send an API request
-			resp := apiRequest(t, &apiRequestInput{
-				method: "GET",
-				url:    testConfig.ApiUrl + "/usage?startDate=1568937600&endDate=1569023999",
-				json:   nil,
-				f: func(r *testutils.R, apiResp *apiResponse) {
-					// Verify response code
-					assert.Equal(r, http.StatusOK, apiResp.StatusCode)
-				},
-			})
-
-			// Parse response json
-			data := parseResponseArrayJSON(t, resp)
-
-			// Verify response json
-			require.Equal(t, []map[string]interface{}([]map[string]interface{}{}), data)
-		})
-
-		t.Run("Should be able to get usage", func(t *testing.T) {
-
-			defer TruncateTables(t)
-
-			currentDate := time.Now()
-			testStartDate := time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), 0, 0, 0, 0, time.UTC)
-			testEndDate := time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), 23, 59, 59, 59, time.UTC)
-			var testPrincipalID = "TestUser1"
-			var testAccount = "123456789012"
-
-			t.Run("Should be able to get usage by start date and end date", func(t *testing.T) {
-				queryString := fmt.Sprintf("/usage?startDate=%d&endDate=%d", testStartDate.Unix(), testEndDate.Unix())
-				requestURL := testConfig.ApiUrl + queryString
-
-				testutils.Retry(t, 10, 10*time.Millisecond, func(r *testutils.R) {
-
-					resp := apiRequest(t, &apiRequestInput{
-						method: "GET",
-						url:    requestURL,
-						json:   nil,
-					})
-
-					// Verify response code
-					assert.Equal(r, http.StatusOK, resp.StatusCode)
-
-					// Parse response json
-					data := parseResponseArrayJSON(t, resp)
-
-					//Verify response json
-					if data[0] != nil {
-						usageJSON := data[0]
-						assert.Equal(r, "TestUser1", usageJSON["principalId"].(string))
-						assert.Equal(r, "123456789012", usageJSON["accountId"].(string))
-						assert.Equal(r, 2000.00, usageJSON["costAmount"].(float64))
-					}
-				})
-			})
-
-			t.Run("Should be able to get usage by start date and principalId", func(t *testing.T) {
-				queryString := fmt.Sprintf("/usage?startDate=%d&principalId=%s", testStartDate.Unix(), testPrincipalID)
-				requestURL := testConfig.ApiUrl + queryString
-
-				testutils.Retry(t, 10, 10*time.Millisecond, func(r *testutils.R) {
-
-					resp := apiRequest(t, &apiRequestInput{
-						method: "GET",
-						url:    requestURL,
-						json:   nil,
-					})
-
-					// Verify response code
-					assert.Equal(r, http.StatusOK, resp.StatusCode)
-
-					// Parse response json
-					data := parseResponseArrayJSON(t, resp)
-
-					//Verify response json
-					if data[0] != nil {
-						usageJSON := data[0]
-						assert.Equal(r, "TestUser1", usageJSON["principalId"].(string))
-						assert.Equal(r, "123456789012", usageJSON["accountId"].(string))
-						assert.Equal(r, 2000.00, usageJSON["costAmount"].(float64))
-					}
-				})
-			})
-
-			t.Run("Should be able to get all usage", func(t *testing.T) {
-				queryString := "/usage"
-				requestURL := testConfig.ApiUrl + queryString
-
-				testutils.Retry(t, 10, 10*time.Millisecond, func(r *testutils.R) {
-
-					resp := apiRequest(t, &apiRequestInput{
-						method: "GET",
-						url:    requestURL,
-						json:   nil,
-					})
-
-					// Verify response code
-					assert.Equal(r, http.StatusOK, resp.StatusCode)
-
-					// Parse response json
-					data := parseResponseArrayJSON(t, resp)
-
-					//Verify response json
-					if data[0] != nil {
-						usageJSON := data[0]
-						assert.Equal(r, "TestUser1", usageJSON["principalId"].(string))
-						assert.Equal(r, "123456789012", usageJSON["accountId"].(string))
-						assert.Equal(r, 2000.00, usageJSON["costAmount"].(float64))
-					}
-				})
-			})
-
-			t.Run("Get usage when there are no query parameters", func(t *testing.T) {
-				resp := apiRequest(t, &apiRequestInput{
-					method: "GET",
-					url:    testConfig.ApiUrl + "/usage",
-					json:   nil,
-				})
-
-				results := parseResponseArrayJSON(t, resp)
-				assert.Equal(t, 5, len(results), "all usage records should be returned")
-
-				// Check one of the result objects, to make sure it looks right
-				_, hasAccountID := results[0]["accountId"]
-				_, hasPrincipalID := results[0]["principalId"]
-				_, hasStartDate := results[0]["startDate"]
-
-				assert.True(t, hasAccountID, "response should be serialized with the accountId property")
-				assert.True(t, hasPrincipalID, "response should be serialized with the principalId property")
-				assert.True(t, hasStartDate, "response should be serialized with the startDate property")
-			})
-
-			t.Run("Get usage when there is an account ID parameter", func(t *testing.T) {
-				resp := apiRequest(t, &apiRequestInput{
-					method: "GET",
-					url:    testConfig.ApiUrl + "/usage?accountId=" + testAccount,
-					json:   nil,
-				})
-
-				results := parseResponseArrayJSON(t, resp)
-				assert.Equal(t, 5, len(results), "only five usage records should be returned")
-			})
-
-			t.Run("Get usage when there is an principal ID parameter", func(t *testing.T) {
-				resp := apiRequest(t, &apiRequestInput{
-					method: "GET",
-					url:    testConfig.ApiUrl + "/usage?principalId=" + testPrincipalID,
-					json:   nil,
-				})
-
-				results := parseResponseArrayJSON(t, resp)
-				assert.Equal(t, 5, len(results), "only five usage records should be returned")
-			})
-
-			t.Run("Get usage when there is a limit parameter", func(t *testing.T) {
-				resp := apiRequest(t, &apiRequestInput{
-					method: "GET",
-					url:    testConfig.ApiUrl + "/usage?limit=1",
-					json:   nil,
-				})
-
-				results := parseResponseArrayJSON(t, resp)
-				assert.Equal(t, 1, len(results), "only one usage record should be returned")
-			})
-
-			t.Run("Get usage when there is a start date parameter", func(t *testing.T) {
-				currentDate := time.Now()
-				testStartDate := time.Date(currentDate.Year(), currentDate.Month(), currentDate.Day(), 0, 0, 0, 0, time.UTC)
-				testDate := fmt.Sprint(testStartDate.Unix())
-				resp := apiRequest(t, &apiRequestInput{
-					method: "GET",
-					url:    testConfig.ApiUrl + "/usage?startDate=" + testDate,
-					json:   nil,
-				})
-
-				results := parseResponseArrayJSON(t, resp)
-				assert.Equal(t, 1, len(results), "only one usage record should be returned")
-			})
-
-			t.Run("Get usage when there is a Link header", func(t *testing.T) {
-				nextPageRegex := regexp.MustCompile(`<(.+)>`)
-
-				respOne := apiRequest(t, &apiRequestInput{
-					method: "GET",
-					url:    testConfig.ApiUrl + "/usage?limit=2",
-					json:   nil,
-				})
-
-				linkHeader, ok := respOne.Header["Link"]
-				assert.True(t, ok, "Link header should exist")
-
-				resultsOne := parseResponseArrayJSON(t, respOne)
-				assert.Equal(t, 2, len(resultsOne), "only two usage records should be returned")
-
-				nextPage := nextPageRegex.FindStringSubmatch(linkHeader[0])[1]
-
-				_, err := url.ParseRequestURI(nextPage)
-				assert.Nil(t, err, "Link header should contain a valid URL")
-
-				respTwo := apiRequest(t, &apiRequestInput{
-					method: "GET",
-					url:    nextPage,
-					json:   nil,
-				})
-
-				linkHeader, ok = respTwo.Header["Link"]
-				assert.True(t, ok, "Link header should exist")
-
-				resultsTwo := parseResponseArrayJSON(t, respTwo)
-				assert.Equal(t, 2, len(resultsTwo), "only two usage records should be returned")
-
-				nextPage = nextPageRegex.FindStringSubmatch(linkHeader[0])[1]
-
-				_, err = url.ParseRequestURI(nextPage)
-				assert.Nil(t, err, "Link header should contain a valid URL")
-
-				respThree := apiRequest(t, &apiRequestInput{
-					method: "GET",
-					url:    nextPage,
-					json:   nil,
-				})
-
-				_, ok = respThree.Header["Link"]
-				assert.False(t, ok, "Link header should not exist in last page")
-
-				resultsThree := parseResponseArrayJSON(t, respThree)
-				assert.Equal(t, 1, len(resultsThree), "only one usage record should be returned")
-
-				results := append(resultsOne, resultsTwo...)
-				results = append(results, resultsThree...)
-
-				assert.Equal(t, 5, len(results), "All five usage records should be returned")
-			})
-		})
 	})
 
 	t.Run("Get Leases", func(t *testing.T) {
@@ -2026,7 +1745,6 @@ func TestApi(t *testing.T) {
 		})
 
 		t.Run("Should validate requested budget amount against principal budget amount", func(t *testing.T) {
-			TruncateTables(t)
 
 			principalID := "TestUser1"
 			expiresOn := time.Now().AddDate(0, 0, 6).Unix()
@@ -2081,8 +1799,6 @@ func TestApi(t *testing.T) {
 
 			assert.Equal(t, results, []map[string]interface{}{}, "API should return []")
 		})
-
-		TruncateTables(t)
 
 		accountIDOne := "111111111111"
 		accountIDTwo := "222222222222"
@@ -2675,7 +2391,7 @@ func waitForAccountStatus(t *testing.T, ApiUrl, accountID, expectedStatus string
 		method:      "GET",
 		url:         testConfig.ApiUrl + "/accounts/" + accountID,
 		maxAttempts: 120,
-		f: func(r *testutil.R, res *apiResponse) {
+		f: func(r *testutils.R, res *apiResponse) {
 			assert.Equalf(r, 200, res.StatusCode, "%v", res.json)
 
 			actualStatus := responseJSONString(t, res, "accountStatus")

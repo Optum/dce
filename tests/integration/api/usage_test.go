@@ -1,13 +1,21 @@
 package api
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
 
 // TestUsage tests the components of Usage
 // This includes the APIs, step functions
 func TestUsage(t *testing.T) {
 
+	givenSystemIsEmpty(t)
+	givenSystemHasUsageData(t)
+
 	t.Run("Given system has usage data", func(t *testing.T) {
-		whenSystemIsEmpty(t)
+
+		assert.Nil(t, "1")
 
 		t.Run("When listing all principal usage", func(t *testing.T) {
 			t.Run("Then should get all principal usage records", func(t *testing.T) {

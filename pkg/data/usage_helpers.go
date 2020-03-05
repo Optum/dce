@@ -1,9 +1,13 @@
 package data
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 func getTTL(date time.Time, days int) *int64 {
 	new := date.AddDate(0, 0, days).Unix()
+	fmt.Printf("TTL: %v, %v", date, new)
 	return &new
 }
 

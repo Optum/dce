@@ -1,0 +1,10 @@
+[
+    {
+        "CostAmount": 26.15133796,
+        "CostCurrency": "USD",
+        "Date": 1580688000,
+        "PrincipalId": "user1",
+        "SK": "Usage-Principal-1580688000",
+        "TimeToLive": 225532080000
+    }
+]

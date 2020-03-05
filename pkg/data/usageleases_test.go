@@ -241,7 +241,7 @@ func TestGetListUsageQuery(t *testing.T) {
 						S: aws.String("user1"),
 					},
 					":1": {
-						N: aws.String("1582502400"),
+						N: aws.String(strconv.FormatInt(begOfWeek.Unix(), 10)),
 					},
 					":2": {
 						S: aws.String("Usage-Lease-Summary-"),

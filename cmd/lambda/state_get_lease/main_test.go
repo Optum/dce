@@ -55,8 +55,8 @@ func TestGetLease(t *testing.T) {
 					StatusModifiedOn: ptr64(now.Unix()),
 					ExpiresOn:        ptr64(nextWeek.Unix()),
 				},
-				601200,
-				709200,
+				604800,
+				712800,
 			},
 		},
 		{
@@ -89,22 +89,24 @@ func TestGetLease(t *testing.T) {
 
 	// Iterate through each test in the list
 	for _, tt := range tests {
-		cfgBldr := &config.ConfigurationBuilder{}
-		svcBldr := &config.ServiceBuilder{Config: cfgBldr}
-		// Setup mocks
+		t.Run(tt.name, func(t *testing.T) {
+			cfgBldr := &config.ConfigurationBuilder{}
+			svcBldr := &config.ServiceBuilder{Config: cfgBldr}
+			// Setup mocks
 
-		leaseSvcMock := mocks.Servicer{}
-		leaseSvcMock.On("Get", *tt.input.ID).Return(tt.getLease, tt.getErr)
+			leaseSvcMock := mocks.Servicer{}
+			leaseSvcMock.On("Get", *tt.input.ID).Return(tt.getLease, tt.getErr)
 
-		svcBldr.Config.WithService(&leaseSvcMock)
-		_, err := svcBldr.Build()
-		assert.Nil(t, err)
-		if err == nil {
-			services = svcBldr
-		}
+			svcBldr.Config.WithService(&leaseSvcMock)
+			_, err := svcBldr.Build()
+			assert.Nil(t, err)
+			if err == nil {
+				services = svcBldr
+			}
 
-		out, err := handler(context.TODO(), tt.input)
-		assert.True(t, errors.Is(err, tt.expErr))
-		assert.Equal(t, tt.expOut, out)
+			out, err := handler(context.TODO(), tt.input)
+			assert.True(t, errors.Is(err, tt.expErr))
+			assert.Equal(t, tt.expOut, out)
+		})
 	}
 }

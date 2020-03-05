@@ -19,7 +19,7 @@ func ListLeaseUsageSummary(w http.ResponseWriter, r *http.Request) {
 	query := &usage.Lease{}
 	err := decoder.Decode(query, r.URL.Query())
 	if err != nil {
-		response.WriteRequestValidationError(w, fmt.Sprintf("Error parsing query params"))
+		response.WriteRequestValidationError(w, "Error parsing query params")
 		return
 	}
 

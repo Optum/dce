@@ -32,7 +32,7 @@ func ListPrincipalUsage(w http.ResponseWriter, r *http.Request) {
 	query := &usage.Principal{}
 	err := decoder.Decode(query, r.URL.Query())
 	if err != nil {
-		response.WriteRequestValidationError(w, fmt.Sprintf("Error parsing query params"))
+		response.WriteRequestValidationError(w, "Error parsing query params")
 		return
 	}
 

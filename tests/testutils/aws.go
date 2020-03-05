@@ -11,11 +11,29 @@ import (
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/codebuild"
 	"github.com/aws/aws-sdk-go/service/codebuild/codebuildiface"
+	"github.com/aws/aws-sdk-go/service/sfn"
+	"github.com/aws/aws-sdk-go/service/sfn/sfniface"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func GivenSfnIsEmpty(t *testing.T, svc sfniface.SFNAPI, name string) {
+	err := svc.ListExecutionsPages(&sfn.ListExecutionsInput{
+		StateMachineArn: aws.String(name),
+		StatusFilter:    aws.String("RUNNING"),
+	}, func(page *sfn.ListExecutionsOutput, lastPage bool) bool {
+		for _, exec := range page.Executions {
+			_, err := svc.StopExecution(&sfn.StopExecutionInput{
+				ExecutionArn: exec.ExecutionArn,
+			})
+			require.Nil(t, err)
+		}
+		return !lastPage
+	})
+	require.Nil(t, err)
+}
 
 func GivenSqsIsEmpty(t *testing.T, svc sqsiface.SQSAPI, sqsURL string) {
 

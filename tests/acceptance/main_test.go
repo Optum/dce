@@ -5,12 +5,28 @@ import (
 	"os"
 	"testing"
 
+	"github.com/Optum/dce/pkg/db"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/codebuild"
+	"github.com/aws/aws-sdk-go/service/codebuild/codebuildiface"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
+	"github.com/aws/aws-sdk-go/service/sqs"
+	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
 	"github.com/gruntwork-io/terratest/modules/terraform"
 	"github.com/mitchellh/mapstructure"
+	"github.com/stretchr/testify/require"
 )
 
 var (
-	testConfig configuration
+	testConfig         configuration
+	dbSvc              *db.DB
+	sqsSvc             sqsiface.SQSAPI
+	codeBuildSvc       codebuildiface.CodeBuildAPI
+	dynamoDbSvc        dynamodbiface.DynamoDBAPI
+	sqsResetURL        string
+	codeBuildResetName string
 )
 
 type configuration struct {
@@ -26,6 +42,9 @@ type configuration struct {
 	CognitoUserPoolClientId string `mapstructure:"cognito_user_pool_client_id"`
 	CognitoUserPoolEndpoint string `mapstructure:"cognito_user_pool_endpoint"`
 	CognitoIdentityPoolId   string `mapstructure:"cognito_identity_pool_id"`
+	SfnLeaseUsageArn        string `mapstructure:"sfn_lease_usage_arn"`
+	SqsUrl                  string `mapstructure:"sqs_reset_queue_url"`
+	CodeBuildProject        string `mapstructure:"codebuild_reset_name"`
 }
 
 func setup() {
@@ -36,12 +55,37 @@ func setup() {
 	tfOut := terraform.OutputAll(t, tfOpts)
 
 	_ = mapstructure.Decode(tfOut, &testConfig)
-	TruncateTables(t)
+
+	// Configure the DB service
+	awsSession, err := session.NewSession()
+	require.Nil(t, err)
+	dbSvc = db.New(
+		dynamodb.New(
+			awsSession,
+			aws.NewConfig().WithRegion(testConfig.AwsRegion),
+		),
+		testConfig.AccountTable,
+		testConfig.LeaseTable,
+		7,
+	)
+	dbSvc.ConsistentRead = true
+
+	dynamoDbSvc = dynamodb.New(
+		awsSession,
+		aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
+	)
+
+	sqsSvc = sqs.New(
+		awsSession,
+		aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
+	)
+	codeBuildSvc = codebuild.New(
+		awsSession,
+		aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
+	)
 }
 
 func cleanup() {
-	t := &testing.T{}
-	TruncateTables(t)
 }
 
 func TestMain(m *testing.M) {

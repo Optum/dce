@@ -16,7 +16,7 @@ import (
 )
 
 func TestGettingUsage(t *testing.T) {
-	now := time.Now()
+	now := time.Date(2020, 2, 23, 12, 0, 0, 0, time.UTC)
 	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
 	yesterday := today.AddDate(0, 0, -1)
 	// tomorrow := tomorrow.AddDate(0, 0, 1)

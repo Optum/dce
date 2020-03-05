@@ -20,7 +20,7 @@ func truncateAccountTable(t *testing.T) {
 	// Find all records in the Account table
 	scanResult, err := dbSvc.Client.Scan(
 		&dynamodb.ScanInput{
-			TableName:      aws.String(dbSvc.AccountTableName),
+			TableName:      aws.String(testConfig.AccountTable),
 			ConsistentRead: aws.Bool(true),
 		},
 	)
@@ -46,7 +46,7 @@ func truncateAccountTable(t *testing.T) {
 	_, err = dbSvc.Client.BatchWriteItem(
 		&dynamodb.BatchWriteItemInput{
 			RequestItems: map[string][]*dynamodb.WriteRequest{
-				dbSvc.AccountTableName: deleteRequests,
+				testConfig.AccountTable: deleteRequests,
 			},
 		},
 	)
@@ -67,7 +67,7 @@ func truncateLeaseTable(t *testing.T) {
 	// Find all records in the Account table
 	scanResult, err := dbSvc.Client.Scan(
 		&dynamodb.ScanInput{
-			TableName:      aws.String(dbSvc.LeaseTableName),
+			TableName:      aws.String(testConfig.LeaseTable),
 			ConsistentRead: aws.Bool(true),
 		},
 	)
@@ -95,7 +95,7 @@ func truncateLeaseTable(t *testing.T) {
 	_, err = dbSvc.Client.BatchWriteItem(
 		&dynamodb.BatchWriteItemInput{
 			RequestItems: map[string][]*dynamodb.WriteRequest{
-				dbSvc.LeaseTableName: deleteRequests,
+				testConfig.LeaseTable: deleteRequests,
 			},
 		},
 	)
@@ -114,9 +114,9 @@ func truncatePrincipalTable(t *testing.T) {
 	*/
 
 	// Find all records in the Account table
-	scanResult, err = dynamoDbSvc.Scan(
+	scanResult, err := dynamoDbSvc.Scan(
 		&dynamodb.ScanInput{
-			TableName:      aws.String(principalTableName),
+			TableName:      aws.String(testConfig.PrincipalTable),
 			ConsistentRead: aws.Bool(true),
 		},
 	)
@@ -144,7 +144,7 @@ func truncatePrincipalTable(t *testing.T) {
 	_, err = dynamoDbSvc.BatchWriteItem(
 		&dynamodb.BatchWriteItemInput{
 			RequestItems: map[string][]*dynamodb.WriteRequest{
-				principalTableName: deleteRequests,
+				testConfig.PrincipalTable: deleteRequests,
 			},
 		},
 	)

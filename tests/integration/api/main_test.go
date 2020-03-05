@@ -47,7 +47,7 @@ type configuration struct {
 	CognitoIdentityPoolId   string `mapstructure:"cognito_identity_pool_id"`
 	SfnLeaseUsageArn        string `mapstructure:"sfn_lease_usage_arn"`
 	SqsUrl                  string `mapstructure:"sqs_reset_queue_url"`
-	CodeBuildProject        string `mapstructure:"reset_code_build_name"`
+	CodeBuildProject        string `mapstructure:"codebuild_reset_name"`
 }
 
 func setup() {
@@ -58,7 +58,7 @@ func setup() {
 	tfOut := terraform.OutputAll(t, tfOpts)
 
 	_ = mapstructure.Decode(tfOut, &testConfig)
-	truncateTables(t)
+	givenAllTablesAreEmpty(t)
 
 	awsSession, err := session.NewSession()
 	require.Nil(t, err)
@@ -83,8 +83,8 @@ func setup() {
 }
 
 func cleanup() {
-	t := &testing.T{}
-	truncateTables(t)
+	// t := &testing.T{}
+	// givenSystemIsEmpty(t)
 }
 
 func TestMain(m *testing.M) {
