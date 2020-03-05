@@ -52,7 +52,7 @@ type ReaderWriterDeleter interface {
 type Eventer interface {
 	AccountCreate(account *Account) error
 	AccountDelete(account *Account) error
-	AccountUpdate(account *Account) error
+	AccountUpdate(old *Account, new *Account) error
 	AccountReset(account *Account) error
 }
 
