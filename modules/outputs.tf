@@ -155,6 +155,10 @@ output "role_admin_policy" {
   value = module.api_gateway_authorizer.admin_policy_arn
 }
 
+output "sfn_lease_usage_arn" {
+  value = aws_sfn_state_machine.lease_usage.id
+}
+
 output "codebuild_reset_name" {
   value = aws_codebuild_project.reset_build.id
 }

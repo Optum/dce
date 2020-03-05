@@ -1,0 +1,9 @@
+{
+    "id": "210987654321",
+    "accountStatus": "NotReady",
+    "lastModifiedOn": 1583375084,
+    "createdOn": 1583365084,
+    "adminRoleArn": "arn:aws:iam::210987654321:role/AdminRole",
+    "principalRoleArn": "arn:aws:iam::210987654321:role/DCEPrincipal",
+    "principalPolicyHash": "\"2c3aa67c20ef6a935c490da82c7cc862\""
+}

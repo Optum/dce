@@ -1,0 +1,30 @@
+[
+    {
+        "BudgetAmount": 100,
+        "CostAmount": 0.46986813,
+        "CostCurrency": "USD",
+        "Date": 1583280000,
+        "LeaseId": "a056bfb3-0a16-408a-8bdc-e2012aac5ef9",
+        "PrincipalId": "user1",
+        "SK": "Usage-Lease-Daily-a056bfb3-0a16-408a-8bdc-e2012aac5ef9-1583280000",
+        "TimeToLive": 225532080000
+    },
+    {
+        "BudgetAmount": 100,
+        "CostAmount": 0.46986813,
+        "CostCurrency": "USD",
+        "Date": 1583280000,
+        "LeaseId": "a056bfb3-0a16-408a-8bdc-e2012aac5ef9",
+        "PrincipalId": "user1",
+        "SK": "Usage-Lease-Summary-a056bfb3-0a16-408a-8bdc-e2012aac5ef9",
+        "TimeToLive": 225532080000
+    },
+    {
+        "CostAmount": 0.46986813,
+        "CostCurrency": "USD",
+        "Date": 1583107200,
+        "PrincipalId": "user1",
+        "SK": "Usage-Principal-1583107200",
+        "TimeToLive": 225532080000
+    }
+]

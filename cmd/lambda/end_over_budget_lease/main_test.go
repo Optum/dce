@@ -1,6 +1,10 @@
 package main
 
 import (
+	"context"
+	"strconv"
+	"testing"
+
 	"github.com/Optum/dce/pkg/config"
 	"github.com/Optum/dce/pkg/data"
 	"github.com/Optum/dce/pkg/lease"
@@ -8,8 +12,6 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"strconv"
-	"testing"
 )
 
 func TestEndLeaseOverBudget(t *testing.T) {
@@ -98,11 +100,11 @@ func TestEndLeaseOverBudget(t *testing.T) {
 					leaseSvc.On("Delete", mock.Anything).Return(&lease.Lease{}, nil)
 				}
 				svcBldr.Config.WithService(&leaseSvc)
-				_, err := svcBldr.Build()
+				_, _ = svcBldr.Build()
 
 				Services = svcBldr
 
-				handler(nil, event)
+				err := handler(context.TODO(), event)
 
 				leaseSvc.AssertExpectations(t)
 				assert.Nil(t, err)
@@ -199,11 +201,11 @@ func TestEndLeaseOverBudget(t *testing.T) {
 					leaseSvc.On("ListPages", mock.Anything, mock.Anything).Return(nil)
 				}
 				svcBldr.Config.WithService(&leaseSvc)
-				_, err = svcBldr.Build()
+				_, _ = svcBldr.Build()
 
 				Services = svcBldr
 
-				handler(nil, event)
+				err = handler(context.TODO(), event)
 
 				leaseSvc.AssertExpectations(t)
 				assert.Nil(t, err)

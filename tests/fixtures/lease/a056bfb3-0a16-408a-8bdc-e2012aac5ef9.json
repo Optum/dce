@@ -1,0 +1,15 @@
+{
+    "accountId": "123456789012",
+    "principalId": "user1",
+    "id": "a056bfb3-0a16-408a-8bdc-e2012aac5ef9",
+    "leaseStatus": "Active",
+    "leaseStatusReason": "Active",
+    "createdOn": 1583365509,
+    "lastModifiedOn": 1583365509,
+    "budgetAmount": 100,
+    "budgetCurrency": "USD",
+    "budgetNotificationEmails": null,
+    "leaseStatusModifiedOn": 1583365509,
+    "expiresOn": 1583970308,
+    "metadata": null
+}

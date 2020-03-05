@@ -1,0 +1,9 @@
+{
+    "AccountStatus": "Leased",
+    "AdminRoleArn": "arn:aws:iam::123456789012:role/AdminRole",
+    "CreatedOn": 1583365084,
+    "Id": "123456789012",
+    "LastModifiedOn": 1583365512,
+    "PrincipalPolicyHash": "\"2c3aa67c20ef6a935c490da82c7cc862\"",
+    "PrincipalRoleArn": "arn:aws:iam::123456789012:role/DCEPrincipal"
+}
