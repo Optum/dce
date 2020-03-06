@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/aws/aws-sdk-go/service/cognitoidentity"
-	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
 	"io/ioutil"
 	"log"
 	"math"
@@ -17,6 +15,9 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/aws/aws-sdk-go/service/cognitoidentity"
+	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
 
 	"github.com/stretchr/testify/assert"
 
@@ -357,6 +358,8 @@ func TestApi(t *testing.T) {
 	t.Run("Lease Creation and Deletion", func(t *testing.T) {
 
 		t.Run("Should be able to create and destroy a lease", func(t *testing.T) {
+			truncateAccountTable(t, dbSvc)
+			truncateLeaseTable(t, dbSvc)
 			defer truncateAccountTable(t, dbSvc)
 			defer truncateLeaseTable(t, dbSvc)
 
@@ -448,12 +451,14 @@ func TestApi(t *testing.T) {
 			cognitoUser2 := NewCognitoUser(t, tfOut, awsSession, accountID)
 			defer cognitoUser2.delete(t, tfOut, awsSession)
 			// Create an Account Entry
-			leasedAccountID := "123"
+			leasedAccountID := "123456789012"
 			timeNow := time.Now().Unix()
 			err := dbSvc.PutAccount(db.Account{
-				ID:             leasedAccountID,
-				AccountStatus:  db.Ready,
-				LastModifiedOn: timeNow,
+				ID:               leasedAccountID,
+				AccountStatus:    db.Ready,
+				AdminRoleArn:     fmt.Sprintf("arn:aws:iam::%s:role/adminRole", leasedAccountID),
+				PrincipalRoleArn: fmt.Sprintf("arn:aws:iam::%s:role/principalRole", leasedAccountID),
+				LastModifiedOn:   timeNow,
 			})
 			require.Nil(t, err)
 
@@ -779,13 +784,15 @@ func TestApi(t *testing.T) {
 
 		t.Run("Should not be able to destroy lease with wrong account", func(t *testing.T) {
 			// Create an Account Entry
-			acctID := "123"
+			acctID := "234567890123"
 			principalID := "user"
 			timeNow := time.Now().Unix()
 			err := dbSvc.PutAccount(db.Account{
-				ID:             acctID,
-				AccountStatus:  db.Leased,
-				LastModifiedOn: timeNow,
+				ID:               acctID,
+				AccountStatus:    db.Leased,
+				LastModifiedOn:   timeNow,
+				AdminRoleArn:     fmt.Sprintf("arn:aws:iam::%s:role/adminRole", acctID),
+				PrincipalRoleArn: fmt.Sprintf("arn:aws:iam::%s:role/principalRole", acctID),
 			})
 			require.Nil(t, err)
 
@@ -833,13 +840,15 @@ func TestApi(t *testing.T) {
 
 		t.Run("Should not be able to destroy lease with NotReady account", func(t *testing.T) {
 			// Create an Account Entry
-			acctID := "123"
+			acctID := "345678901234"
 			principalID := "user"
 			timeNow := time.Now().Unix()
 			err := dbSvc.PutAccount(db.Account{
-				ID:             acctID,
-				AccountStatus:  db.NotReady,
-				LastModifiedOn: timeNow,
+				ID:               acctID,
+				AccountStatus:    db.NotReady,
+				LastModifiedOn:   timeNow,
+				AdminRoleArn:     fmt.Sprintf("arn:aws:iam::%s:role/adminRole", acctID),
+				PrincipalRoleArn: fmt.Sprintf("arn:aws:iam::%s:role/principalRole", acctID),
 			})
 			require.Nil(t, err)
 
@@ -1053,29 +1062,24 @@ func TestApi(t *testing.T) {
 				require.Equal(t, accountID, leaseJSON["accountId"])
 
 				// Account should be marked as status=Leased
-				apiRequest(t, &apiRequestInput{
-					method: "GET",
-					url:    apiURL + "/accounts/" + accountID,
-					f: func(r *testutil.R, apiResp *apiResponse) {
-						status := responseJSONString(r, apiResp, "accountStatus")
-						assert.Equal(r, "Leased", status)
-					},
-				})
+				waitForAccountStatus(t, apiURL, accountID, "Leased")
 
 				t.Run("STEP: Create duplicate lease for same principal (should fail)", func(t *testing.T) {
 					// Create a lease
 					res = apiRequest(t, &apiRequestInput{
-						method:      "POST",
-						url:         apiURL + "/leases",
-						maxAttempts: 1,
+						method: "POST",
+						url:    apiURL + "/leases",
 						json: map[string]interface{}{
 							"principalId":               "test-user",
 							"budgetAmount":              800,
 							"budgetCurrency":            "USD",
 							"budgetNotificationsEmails": []string{"test@example.com"},
 						},
+						f: func(r *testutil.R, apiResp *apiResponse) {
+							assert.Equal(t, 409, res.StatusCode)
+						},
 					})
-					require.Equal(t, 409, res.StatusCode)
+
 					require.Equal(t, map[string]interface{}{
 						"error": map[string]interface{}{
 							"code":    "ClientError",
@@ -2080,39 +2084,49 @@ func TestApi(t *testing.T) {
 
 		truncateAccountTable(t, dbSvc)
 
-		accountIDOne := "1"
-		accountIDTwo := "2"
-		accountIDThree := "3"
-		accountIDFour := "4"
-		accountIDFive := "5"
+		accountIDOne := "111111111111"
+		accountIDTwo := "222222222222"
+		accountIDThree := "333333333333"
+		accountIDFour := "444444444444"
+		accountIDFive := "555555555555"
 
 		err = dbSvc.PutAccount(db.Account{
-			ID:            accountIDOne,
-			AccountStatus: db.Ready,
+			ID:               accountIDOne,
+			AccountStatus:    db.Ready,
+			AdminRoleArn:     fmt.Sprintf("arn:aws:iam::%s:role/adminRole", accountIDOne),
+			PrincipalRoleArn: fmt.Sprintf("arn:aws:iam::%s:role/principalRole", accountIDOne),
 		})
 		assert.Nil(t, err)
 
 		err = dbSvc.PutAccount(db.Account{
-			ID:            accountIDTwo,
-			AccountStatus: db.Ready,
+			ID:               accountIDTwo,
+			AccountStatus:    db.Ready,
+			AdminRoleArn:     fmt.Sprintf("arn:aws:iam::%s:role/adminRole", accountIDTwo),
+			PrincipalRoleArn: fmt.Sprintf("arn:aws:iam::%s:role/principalRole", accountIDTwo),
 		})
 		assert.Nil(t, err)
 
 		err = dbSvc.PutAccount(db.Account{
-			ID:            accountIDThree,
-			AccountStatus: db.Ready,
+			ID:               accountIDThree,
+			AccountStatus:    db.Ready,
+			AdminRoleArn:     fmt.Sprintf("arn:aws:iam::%s:role/adminRole", accountIDThree),
+			PrincipalRoleArn: fmt.Sprintf("arn:aws:iam::%s:role/principalRole", accountIDThree),
 		})
 		assert.Nil(t, err)
 
 		err = dbSvc.PutAccount(db.Account{
-			ID:            accountIDFour,
-			AccountStatus: db.Ready,
+			ID:               accountIDFour,
+			AccountStatus:    db.Ready,
+			AdminRoleArn:     fmt.Sprintf("arn:aws:iam::%s:role/adminRole", accountIDFour),
+			PrincipalRoleArn: fmt.Sprintf("arn:aws:iam::%s:role/principalRole", accountIDFour),
 		})
 		assert.Nil(t, err)
 
 		err = dbSvc.PutAccount(db.Account{
-			ID:            accountIDFive,
-			AccountStatus: db.NotReady,
+			ID:               accountIDFive,
+			AccountStatus:    db.NotReady,
+			AdminRoleArn:     fmt.Sprintf("arn:aws:iam::%s:role/adminRole", accountIDFive),
+			PrincipalRoleArn: fmt.Sprintf("arn:aws:iam::%s:role/principalRole", accountIDFive),
 		})
 		assert.Nil(t, err)
 
@@ -2326,25 +2340,29 @@ func apiRequest(t *testing.T, input *apiRequestInput) *apiResponse {
 		}
 		resp, err := httpClient.Do(req)
 		assert.NoError(r, err)
+		assert.NotNil(r, resp)
 
-		// Parse the JSON response
-		apiResp = &apiResponse{
-			Response: *resp,
+		if resp != nil {
+			// Parse the JSON response
+			apiResp = &apiResponse{
+				Response: *resp,
+			}
+			defer resp.Body.Close()
+			var data interface{}
+
+			body, err := ioutil.ReadAll(resp.Body)
+			assert.NoError(r, err)
+
+			err = json.Unmarshal([]byte(body), &data)
+			if err == nil {
+				apiResp.json = data
+			}
+
+			if input.f != nil {
+				input.f(r, apiResp)
+			}
 		}
-		defer resp.Body.Close()
-		var data interface{}
 
-		body, err := ioutil.ReadAll(resp.Body)
-		assert.NoError(r, err)
-
-		err = json.Unmarshal([]byte(body), &data)
-		if err == nil {
-			apiResp.json = data
-		}
-
-		if input.f != nil {
-			input.f(r, apiResp)
-		}
 	})
 	return apiResp
 }
@@ -2731,10 +2749,10 @@ func waitForAccountStatus(t *testing.T, apiURL, accountID, expectedStatus string
 			// These status changes can take a while. Log output,
 			// so we know our tests aren't stuck
 			if r.Attempt == 1 || r.Attempt%5 == 0 {
-				log.Printf("Waiting for account to be %s. Account is %s", expectedStatus, actualStatus)
+				log.Printf("Waiting for account to be %s in test %q. Account is %s", expectedStatus, t.Name(), actualStatus)
 			}
 			assert.Equalf(r, expectedStatus, actualStatus,
-				"Expected account status to change to %s", expectedStatus)
+				"Expected account status to change to %s in test %q", expectedStatus, t.Name())
 		},
 	})
 

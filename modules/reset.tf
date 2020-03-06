@@ -1,6 +1,23 @@
 # SQS Queue, for triggering account reset
 resource "aws_sqs_queue" "account_reset" {
-  name                       = "account-reset-${var.namespace}"
+  name = "account-reset-${var.namespace}"
+  tags = var.global_tags
+  # Visibility time out should be 6 times the Lambda timeout
+  visibility_timeout_seconds = 180
+  # A redrive policy that will move messages into a DLQ
+  # With 180 second timeout and 40 max recieve count it should give messages
+  # up to an hour to work.  The reason this is longer is because
+  # of how many concurrent buidlds CodeBuild allows. Lambdas
+  # may fail because CodeBuild will no longer take new builds
+  redrive_policy = jsonencode({
+    deadLetterTargetArn = aws_sqs_queue.account_reset_dlq.arn
+    maxReceiveCount     = 40
+  })
+}
+
+# SQS Queue, for triggering account reset
+resource "aws_sqs_queue" "account_reset_dlq" {
+  name                       = "account-reset-dlq-${var.namespace}"
   tags                       = var.global_tags
   visibility_timeout_seconds = 30
 }
@@ -59,7 +76,8 @@ module "process_reset_queue" {
   global_tags     = var.global_tags
   handler         = "process_reset_queue"
   alarm_topic_arn = aws_sns_topic.alarms_topic.arn
-  timeout         = 30
+  # Should be a 1/6 of the SQS queue visibility timeout
+  timeout = 30
 
   environment = {
     DEBUG              = "false"
