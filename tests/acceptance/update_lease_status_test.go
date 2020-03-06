@@ -110,13 +110,7 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 
 	t.Run("Not exceeded lease budget result in Active lease with reason Active.", func(t *testing.T) {
 
-		// Make sure the DB is clean
-		truncateDBTables(t, dbSvc)
-		truncateUsageTable(t, usageSvc)
-
-		// Cleanup the DB after test is done
-		defer truncateDBTables(t, dbSvc)
-		defer truncateUsageTable(t, usageSvc)
+		givenEmptySystem(t)
 
 		accountID := adminRoleRes.accountID
 		adminRoleArn := adminRoleRes.adminRoleArn
@@ -185,13 +179,7 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 
 	t.Run("Expired lease result in Inactive lease with reason Expired.", func(t *testing.T) {
 
-		// Make sure the DB is clean
-		truncateDBTables(t, dbSvc)
-		truncateUsageTable(t, usageSvc)
-
-		// Cleanup the DB after test is done
-		defer truncateDBTables(t, dbSvc)
-		defer truncateUsageTable(t, usageSvc)
+		givenEmptySystem(t)
 
 		accountID := adminRoleRes.accountID
 		adminRoleArn := adminRoleRes.adminRoleArn
@@ -260,13 +248,7 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 
 	t.Run("Exceeded lease budget result in Inactive lease with reason OverBudget.", func(t *testing.T) {
 
-		// Make sure the DB is clean
-		truncateDBTables(t, dbSvc)
-		truncateUsageTable(t, usageSvc)
-
-		// Cleanup the DB when test execution is done
-		defer truncateDBTables(t, dbSvc)
-		defer truncateUsageTable(t, usageSvc)
+		givenEmptySystem(t)
 
 		accountID := adminRoleRes.accountID
 		adminRoleArn := adminRoleRes.adminRoleArn
@@ -338,13 +320,7 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 
 	t.Run("Exceeded principal budget result in Inactive lease with reason OverPrincipalBudget.", func(t *testing.T) {
 
-		// Make sure the DB is clean
-		truncateDBTables(t, dbSvc)
-		truncateUsageTable(t, usageSvc)
-
-		// Cleanup the DB when test execution is done
-		defer truncateDBTables(t, dbSvc)
-		defer truncateUsageTable(t, usageSvc)
+		givenEmptySystem(t)
 
 		accountID := adminRoleRes.accountID
 		adminRoleArn := adminRoleRes.adminRoleArn
@@ -416,13 +392,7 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 
 	t.Run("Exceeded both lease and principal budget result in Inactive lease with reason OverBudget.", func(t *testing.T) {
 
-		// Make sure the DB is clean
-		truncateDBTables(t, dbSvc)
-		truncateUsageTable(t, usageSvc)
-
-		// Cleanup the DB when test execution is done
-		defer truncateDBTables(t, dbSvc)
-		defer truncateUsageTable(t, usageSvc)
+		givenEmptySystem(t)
 
 		accountID := adminRoleRes.accountID
 		adminRoleArn := adminRoleRes.adminRoleArn

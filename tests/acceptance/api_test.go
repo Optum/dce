@@ -16,8 +16,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go/service/codebuild"
+	"github.com/aws/aws-sdk-go/service/codebuild/codebuildiface"
 	"github.com/aws/aws-sdk-go/service/cognitoidentity"
 	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
+	"github.com/aws/aws-sdk-go/service/sqs"
+	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
 
 	"github.com/stretchr/testify/assert"
 
@@ -47,6 +51,15 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
+var (
+	dbSvc              *db.DB
+	usageSvc           *usage.DB
+	sqsSvc             sqsiface.SQSAPI
+	codeBuildSvc       codebuildiface.CodeBuildAPI
+	sqsResetURL        string
+	codeBuildResetName string
+)
+
 func TestApi(t *testing.T) {
 	// Grab the API url from Terraform output
 	tfOpts := &terraform.Options{
@@ -59,7 +72,7 @@ func TestApi(t *testing.T) {
 	// Configure the DB service
 	awsSession, err := session.NewSession()
 	require.Nil(t, err)
-	dbSvc := db.New(
+	dbSvc = db.New(
 		dynamodb.New(
 			awsSession,
 			aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
@@ -71,7 +84,7 @@ func TestApi(t *testing.T) {
 	dbSvc.ConsistentRead = true
 
 	// Configure the usage service
-	usageSvc := usage.New(
+	usageSvc = usage.New(
 		dynamodb.New(
 			awsSession,
 			aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
@@ -80,6 +93,17 @@ func TestApi(t *testing.T) {
 		"StartDate",
 		"PrincipalId",
 	)
+
+	sqsSvc = sqs.New(
+		awsSession,
+		aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
+	)
+	codeBuildSvc = codebuild.New(
+		awsSession,
+		aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
+	)
+	sqsResetURL = tfOut["sqs_reset_queue_url"].(string)
+	codeBuildResetName = tfOut["codebuild_reset_name"].(string)
 
 	// Create an adminRole for the test account
 	adminRoleName := "dce-api-test-admin-role-" + fmt.Sprintf("%v", time.Now().Unix())
@@ -104,12 +128,8 @@ func TestApi(t *testing.T) {
 	adminRoleArn := adminRoleRes.adminRoleArn
 
 	// Cleanup tables before and after tests
-	truncateAccountTable(t, dbSvc)
-	truncateLeaseTable(t, dbSvc)
-	truncateUsageTable(t, usageSvc)
-	defer truncateAccountTable(t, dbSvc)
-	defer truncateLeaseTable(t, dbSvc)
-	defer truncateUsageTable(t, usageSvc)
+	givenEmptySystem(t)
+	defer givenEmptySystem(t)
 	defer deletePolicy(t, *cePolicy.Arn)
 	defer deleteAdminRole(t, adminRoleName, policies)
 
@@ -358,10 +378,8 @@ func TestApi(t *testing.T) {
 	t.Run("Lease Creation and Deletion", func(t *testing.T) {
 
 		t.Run("Should be able to create and destroy a lease", func(t *testing.T) {
-			truncateAccountTable(t, dbSvc)
-			truncateLeaseTable(t, dbSvc)
-			defer truncateAccountTable(t, dbSvc)
-			defer truncateLeaseTable(t, dbSvc)
+			givenEmptySystem(t)
+			defer givenEmptySystem(t)
 
 			// Add the current account to the account pool
 			apiRequest(t, &apiRequestInput{
@@ -605,8 +623,7 @@ func TestApi(t *testing.T) {
 		})
 
 		t.Run("Should be able to create and destroy and lease by ID", func(t *testing.T) {
-			defer truncateAccountTable(t, dbSvc)
-			defer truncateLeaseTable(t, dbSvc)
+			givenEmptySystem(t)
 
 			// Create an account
 			apiRequest(t, &apiRequestInput{
@@ -896,11 +913,9 @@ func TestApi(t *testing.T) {
 
 	t.Run("Account Creation Deletion Flow", func(t *testing.T) {
 		// Make sure the DB is clean
-		truncateDBTables(t, dbSvc)
-		truncateUsageTable(t, usageSvc)
+		givenEmptySystem(t)
 		// Cleanup the DB when we're done
-		defer truncateDBTables(t, dbSvc)
-		defer truncateUsageTable(t, usageSvc)
+		defer givenEmptySystem(t)
 
 		t.Run("STEP: Create Account", func(t *testing.T) {
 
@@ -1076,7 +1091,7 @@ func TestApi(t *testing.T) {
 							"budgetNotificationsEmails": []string{"test@example.com"},
 						},
 						f: func(r *testutils.R, apiResp *apiResponse) {
-							assert.Equal(t, 409, res.StatusCode)
+							assert.Equal(r, 409, apiResp.StatusCode)
 						},
 					})
 
@@ -1191,8 +1206,7 @@ func TestApi(t *testing.T) {
 
 	t.Run("Create account with metadata", func(t *testing.T) {
 		// Make sure the DB is clean
-		truncateDBTables(t, dbSvc)
-		defer truncateDBTables(t, dbSvc)
+		givenEmptySystem(t)
 
 		// Create an account with metadata
 		res := apiRequest(t, &apiRequestInput{
@@ -1252,6 +1266,7 @@ func TestApi(t *testing.T) {
 	})
 
 	t.Run("Create multiple leases on one account", func(t *testing.T) {
+		givenEmptySystem(t)
 
 		// Create an account
 		apiRequest(t, &apiRequestInput{
@@ -1323,7 +1338,7 @@ func TestApi(t *testing.T) {
 	})
 
 	t.Run("Delete Account", func(t *testing.T) {
-
+		givenEmptySystem(t)
 		t.Run("when the account does not exists", func(t *testing.T) {
 			apiRequest(t, &apiRequestInput{
 				method: "DELETE",
@@ -1338,8 +1353,7 @@ func TestApi(t *testing.T) {
 
 	t.Run("Update Account", func(t *testing.T) {
 		// Make sure the DB is clean
-		truncateDBTables(t, dbSvc)
-		defer truncateDBTables(t, dbSvc)
+		givenEmptySystem(t)
 
 		// Create an account
 		_ = apiRequest(t, &apiRequestInput{
@@ -1700,9 +1714,8 @@ func TestApi(t *testing.T) {
 	})
 
 	t.Run("Get Leases", func(t *testing.T) {
-
+		givenEmptySystem(t)
 		t.Run("should return empty for no leases", func(t *testing.T) {
-			defer truncateLeaseTable(t, dbSvc)
 
 			resp := apiRequest(t, &apiRequestInput{
 				method: "GET",
@@ -1714,8 +1727,6 @@ func TestApi(t *testing.T) {
 
 			assert.Equal(t, results, []map[string]interface{}{}, "API should return []")
 		})
-
-		defer truncateLeaseTable(t, dbSvc)
 
 		accountIDOne := "1"
 		accountIDTwo := "2"
@@ -1917,7 +1928,7 @@ func TestApi(t *testing.T) {
 	})
 
 	t.Run("Lease validations", func(t *testing.T) {
-
+		givenEmptySystem(t)
 		t.Run("Should validate requested lease has a desired expiry date less than today", func(t *testing.T) {
 
 			principalID := "user"
@@ -2067,10 +2078,9 @@ func TestApi(t *testing.T) {
 	})
 
 	t.Run("Get Accounts", func(t *testing.T) {
-
+		givenEmptySystem(t)
+		defer givenEmptySystem(t)
 		t.Run("should return empty for no accounts", func(t *testing.T) {
-			defer truncateAccountTable(t, dbSvc)
-
 			resp := apiRequest(t, &apiRequestInput{
 				method: "GET",
 				url:    apiURL + "/accounts",
@@ -2740,7 +2750,7 @@ func waitForAccountStatus(t *testing.T, apiURL, accountID, expectedStatus string
 	res := apiRequest(t, &apiRequestInput{
 		method:      "GET",
 		url:         apiURL + "/accounts/" + accountID,
-		maxAttempts: 120,
+		maxAttempts: 240,
 		f: func(r *testutils.R, res *apiResponse) {
 			assert.Equalf(r, 200, res.StatusCode, "%v", res.json)
 
