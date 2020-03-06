@@ -38,7 +38,7 @@ import (
 
 	"github.com/Optum/dce/pkg/db"
 	"github.com/Optum/dce/pkg/usage"
-	"github.com/Optum/dce/tests/acceptance/testutil"
+	"github.com/Optum/dce/tests/testutils"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 )
 
@@ -139,7 +139,7 @@ func TestApi(t *testing.T) {
 			apiRequest(t, &apiRequestInput{
 				method: "GET",
 				url:    apiURL + "/leases",
-				f: func(r *testutil.R, apiResp *apiResponse) {
+				f: func(r *testutils.R, apiResp *apiResponse) {
 					// Defaults to returning 200
 					assert.Equal(r, http.StatusOK, apiResp.StatusCode)
 				},
@@ -222,7 +222,7 @@ func TestApi(t *testing.T) {
 				creds:  roleCreds,
 				// This can take a while to propagate
 				maxAttempts: 30,
-				f: func(r *testutil.R, apiResp *apiResponse) {
+				f: func(r *testutils.R, apiResp *apiResponse) {
 					// Defaults to not being unauthorized
 					assert.NotEqual(r, http.StatusForbidden, apiResp.StatusCode,
 						"Should not return an IAM authorization error")
@@ -308,7 +308,7 @@ func TestApi(t *testing.T) {
 				method: "GET",
 				url:    apiURL + "/leases",
 				creds:  roleCreds,
-				f: func(r *testutil.R, apiResp *apiResponse) {
+				f: func(r *testutils.R, apiResp *apiResponse) {
 					// Defaults to not being unauthorized
 					assert.NotEqual(r, http.StatusForbidden, apiResp.StatusCode,
 						"Should not return an IAM authorization error")
@@ -326,7 +326,7 @@ func TestApi(t *testing.T) {
 				method: "GET",
 				url:    apiURL + "/accounts",
 				creds:  roleCreds,
-				f: func(r *testutil.R, apiResp *apiResponse) {
+				f: func(r *testutils.R, apiResp *apiResponse) {
 					// Defaults to not being unauthorized
 					assert.Equal(r, http.StatusForbidden, apiResp.StatusCode,
 						"Should return an IAM authorization error")
@@ -345,7 +345,7 @@ func TestApi(t *testing.T) {
 				method: "GET",
 				url:    apiURL + "/usage",
 				creds:  roleCreds,
-				f: func(r *testutil.R, apiResp *apiResponse) {
+				f: func(r *testutils.R, apiResp *apiResponse) {
 					// Defaults to not being unauthorized
 					assert.NotEqual(r, http.StatusForbidden, apiResp.StatusCode,
 						"Should not return an IAM authorization error")
@@ -372,7 +372,7 @@ func TestApi(t *testing.T) {
 					AdminRoleArn: adminRoleArn,
 				},
 				maxAttempts: 15,
-				f: func(r *testutil.R, apiResp *apiResponse) {
+				f: func(r *testutils.R, apiResp *apiResponse) {
 					assert.Equal(r, 201, apiResp.StatusCode)
 				},
 			})
@@ -419,7 +419,7 @@ func TestApi(t *testing.T) {
 					PrincipalID: principalID,
 					AccountID:   accountID,
 				},
-				f: func(r *testutil.R, apiResp *apiResponse) {
+				f: func(r *testutils.R, apiResp *apiResponse) {
 					// Verify response code
 					assert.Equal(r, http.StatusOK, apiResp.StatusCode)
 				},
@@ -480,7 +480,7 @@ func TestApi(t *testing.T) {
 					BudgetCurrency:           "USD",
 					BudgetNotificationEmails: []string{"test@optum.com"},
 				},
-				f: func(r *testutil.R, apiResp *apiResponse) {
+				f: func(r *testutils.R, apiResp *apiResponse) {
 					assert.Equalf(r, http.StatusUnauthorized, apiResp.StatusCode, "%v", apiResp.json)
 				},
 				maxAttempts: 3,
@@ -501,7 +501,7 @@ func TestApi(t *testing.T) {
 					BudgetCurrency:           "USD",
 					BudgetNotificationEmails: []string{"test@optum.com"},
 				},
-				f: func(r *testutil.R, apiResp *apiResponse) {
+				f: func(r *testutils.R, apiResp *apiResponse) {
 					assert.Equalf(r, http.StatusCreated, apiResp.StatusCode, "%v", apiResp.json)
 				},
 				maxAttempts: 3,
@@ -515,7 +515,7 @@ func TestApi(t *testing.T) {
 			apiRequest(t, &apiRequestInput{
 				method: "GET",
 				url:    apiURL + fmt.Sprintf("/leases/%s", createLeaseOutput["id"]),
-				f: func(r *testutil.R, apiResp *apiResponse) {
+				f: func(r *testutils.R, apiResp *apiResponse) {
 					assert.Equal(r, http.StatusUnauthorized, apiResp.StatusCode)
 				},
 				maxAttempts: 3,
@@ -525,7 +525,7 @@ func TestApi(t *testing.T) {
 			apiRequest(t, &apiRequestInput{
 				method: "GET",
 				url:    apiURL + fmt.Sprintf("/leases/%s", createLeaseOutput["id"]),
-				f: func(r *testutil.R, apiResp *apiResponse) {
+				f: func(r *testutils.R, apiResp *apiResponse) {
 					assert.Equal(r, http.StatusOK, apiResp.StatusCode)
 				},
 				maxAttempts: 3,
@@ -539,7 +539,7 @@ func TestApi(t *testing.T) {
 			apiRequest(t, &apiRequestInput{
 				method: "GET",
 				url:    apiURL + "/leases",
-				f: func(r *testutil.R, apiResp *apiResponse) {
+				f: func(r *testutils.R, apiResp *apiResponse) {
 
 					// Assert
 					respList := parseResponseArrayJSON(t, apiResp)
@@ -553,7 +553,7 @@ func TestApi(t *testing.T) {
 			apiRequest(t, &apiRequestInput{
 				method: "GET",
 				url:    apiURL + "/leases",
-				f: func(r *testutil.R, apiResp *apiResponse) {
+				f: func(r *testutils.R, apiResp *apiResponse) {
 
 					// Assert
 					respList := parseResponseArrayJSON(t, apiResp)
@@ -576,7 +576,7 @@ func TestApi(t *testing.T) {
 					PrincipalID: cognitoUser1.Username,
 					AccountID:   leasedAccountID,
 				},
-				f: func(r *testutil.R, apiResp *apiResponse) {
+				f: func(r *testutils.R, apiResp *apiResponse) {
 					assert.Equal(r, http.StatusUnauthorized, apiResp.StatusCode)
 				},
 				maxAttempts: 3,
@@ -586,7 +586,7 @@ func TestApi(t *testing.T) {
 			apiRequest(t, &apiRequestInput{
 				method: "DELETE",
 				url:    apiURL + fmt.Sprintf("/leases/%s", createLeaseOutput["id"]),
-				f: func(r *testutil.R, apiResp *apiResponse) {
+				f: func(r *testutils.R, apiResp *apiResponse) {
 					assert.Equal(r, http.StatusUnauthorized, apiResp.StatusCode)
 				},
 				maxAttempts: 3,
@@ -596,7 +596,7 @@ func TestApi(t *testing.T) {
 			apiRequest(t, &apiRequestInput{
 				method: "DELETE",
 				url:    apiURL + fmt.Sprintf("/leases/%s", createLeaseOutput["id"]),
-				f: func(r *testutil.R, apiResp *apiResponse) {
+				f: func(r *testutils.R, apiResp *apiResponse) {
 					assert.Equal(r, http.StatusOK, apiResp.StatusCode)
 				},
 				maxAttempts: 3,
@@ -617,7 +617,7 @@ func TestApi(t *testing.T) {
 					"adminRoleArn": adminRoleArn,
 				},
 				maxAttempts: 1,
-				f: func(r *testutil.R, apiResp *apiResponse) {
+				f: func(r *testutils.R, apiResp *apiResponse) {
 					assert.Equal(r, 201, apiResp.StatusCode)
 				},
 			})
@@ -654,7 +654,7 @@ func TestApi(t *testing.T) {
 			resp = apiRequest(t, &apiRequestInput{
 				method: "DELETE",
 				url:    apiURL + fmt.Sprintf("/leases/%s", data["id"]),
-				f: func(r *testutil.R, apiResp *apiResponse) {
+				f: func(r *testutils.R, apiResp *apiResponse) {
 					// Verify response code
 					assert.Equal(r, http.StatusOK, apiResp.StatusCode)
 				},
@@ -679,7 +679,7 @@ func TestApi(t *testing.T) {
 			apiRequest(t, &apiRequestInput{
 				method: "POST",
 				url:    apiURL + "/leases",
-				f: func(r *testutil.R, apiResp *apiResponse) {
+				f: func(r *testutils.R, apiResp *apiResponse) {
 					// Verify response code
 					assert.Equal(r, http.StatusBadRequest, apiResp.StatusCode)
 
@@ -709,7 +709,7 @@ func TestApi(t *testing.T) {
 				method: "POST",
 				url:    apiURL + "/leases",
 				json:   body,
-				f: func(r *testutil.R, apiResp *apiResponse) {
+				f: func(r *testutils.R, apiResp *apiResponse) {
 					// Verify response code
 					assert.Equal(r, http.StatusServiceUnavailable, apiResp.StatusCode)
 
@@ -732,7 +732,7 @@ func TestApi(t *testing.T) {
 			apiRequest(t, &apiRequestInput{
 				method: "DELETE",
 				url:    apiURL + "/leases",
-				f: func(r *testutil.R, apiResp *apiResponse) {
+				f: func(r *testutils.R, apiResp *apiResponse) {
 					// Verify response code
 					assert.Equal(r, http.StatusBadRequest, apiResp.StatusCode)
 
@@ -764,7 +764,7 @@ func TestApi(t *testing.T) {
 				method: "DELETE",
 				url:    apiURL + "/leases",
 				json:   body,
-				f: func(r *testutil.R, apiResp *apiResponse) {
+				f: func(r *testutils.R, apiResp *apiResponse) {
 					// Verify response code
 					assert.Equal(r, http.StatusNotFound, apiResp.StatusCode)
 
@@ -820,7 +820,7 @@ func TestApi(t *testing.T) {
 				method: "DELETE",
 				url:    apiURL + "/leases",
 				json:   body,
-				f: func(r *testutil.R, apiResp *apiResponse) {
+				f: func(r *testutils.R, apiResp *apiResponse) {
 					// Verify response code
 					assert.Equal(r, http.StatusNotFound, apiResp.StatusCode)
 
@@ -875,7 +875,7 @@ func TestApi(t *testing.T) {
 				method: "DELETE",
 				url:    apiURL + "/leases",
 				json:   body,
-				f: func(r *testutil.R, apiResp *apiResponse) {
+				f: func(r *testutils.R, apiResp *apiResponse) {
 					// Verify response code
 					assert.Equal(r, http.StatusConflict, apiResp.StatusCode)
 
@@ -913,7 +913,7 @@ func TestApi(t *testing.T) {
 					AdminRoleArn: adminRoleArn,
 				},
 				maxAttempts: 15,
-				f: func(r *testutil.R, apiResp *apiResponse) {
+				f: func(r *testutils.R, apiResp *apiResponse) {
 					assert.Equal(r, 201, apiResp.StatusCode)
 				},
 			})
@@ -965,7 +965,7 @@ func TestApi(t *testing.T) {
 				apiRequest(t, &apiRequestInput{
 					method: "GET",
 					url:    apiURL + "/accounts/" + accountID,
-					f: func(r *testutil.R, apiResp *apiResponse) {
+					f: func(r *testutils.R, apiResp *apiResponse) {
 						// Check the GET /accounts response
 						assert.Equal(r, apiResp.StatusCode, 200)
 						getResJSON := apiResp.json.(map[string]interface{})
@@ -986,7 +986,7 @@ func TestApi(t *testing.T) {
 				apiRequest(t, &apiRequestInput{
 					method: "GET",
 					url:    apiURL + "/accounts",
-					f: func(r *testutil.R, apiResp *apiResponse) {
+					f: func(r *testutils.R, apiResp *apiResponse) {
 						// Check the response
 						assert.Equal(r, apiResp.StatusCode, 200)
 						listResJSON := parseResponseArrayJSON(t, apiResp)
@@ -1025,7 +1025,7 @@ func TestApi(t *testing.T) {
 						BudgetCurrency:           "USD",
 						BudgetNotificationEmails: budgetNotificationEmails,
 					},
-					f: func(r *testutil.R, apiResp *apiResponse) {
+					f: func(r *testutils.R, apiResp *apiResponse) {
 						assert.Equalf(r, 201, apiResp.StatusCode, "%v", apiResp.json)
 					},
 				})
@@ -1054,7 +1054,7 @@ func TestApi(t *testing.T) {
 				res = apiRequest(t, &apiRequestInput{
 					method: "GET",
 					url:    apiURL + "/leases/" + resJSON["id"].(string),
-					f: func(r *testutil.R, apiResp *apiResponse) {
+					f: func(r *testutils.R, apiResp *apiResponse) {
 						assert.Equal(r, 200, apiResp.StatusCode)
 					},
 				})
@@ -1075,7 +1075,7 @@ func TestApi(t *testing.T) {
 							"budgetCurrency":            "USD",
 							"budgetNotificationsEmails": []string{"test@example.com"},
 						},
-						f: func(r *testutil.R, apiResp *apiResponse) {
+						f: func(r *testutils.R, apiResp *apiResponse) {
 							assert.Equal(t, 409, res.StatusCode)
 						},
 					})
@@ -1091,7 +1091,7 @@ func TestApi(t *testing.T) {
 					res = apiRequest(t, &apiRequestInput{
 						method: "GET",
 						url:    apiURL + "/leases",
-						f: func(r *testutil.R, apiResp *apiResponse) {
+						f: func(r *testutils.R, apiResp *apiResponse) {
 							assert.Equal(r, 200, apiResp.StatusCode)
 						},
 					})
@@ -1109,7 +1109,7 @@ func TestApi(t *testing.T) {
 						}{
 							PrincipalID: "test-user",
 						},
-						f: func(r *testutil.R, apiResp *apiResponse) {
+						f: func(r *testutils.R, apiResp *apiResponse) {
 							assert.Equal(r, 409, apiResp.StatusCode)
 						},
 					})
@@ -1128,7 +1128,7 @@ func TestApi(t *testing.T) {
 							PrincipalID: "test-user",
 							AccountID:   accountID,
 						},
-						f: func(r *testutil.R, apiResp *apiResponse) {
+						f: func(r *testutils.R, apiResp *apiResponse) {
 							assert.Equal(r, 200, apiResp.StatusCode)
 						},
 					})
@@ -1153,7 +1153,7 @@ func TestApi(t *testing.T) {
 						apiRequest(t, &apiRequestInput{
 							method: "DELETE",
 							url:    apiURL + "/accounts/" + accountID,
-							f: func(r *testutil.R, apiResp *apiResponse) {
+							f: func(r *testutils.R, apiResp *apiResponse) {
 								assert.Equal(r, 204, apiResp.StatusCode)
 							},
 						})
@@ -1162,7 +1162,7 @@ func TestApi(t *testing.T) {
 						apiRequest(t, &apiRequestInput{
 							method: "GET",
 							url:    apiURL + "/accounts/" + accountID,
-							f: func(r *testutil.R, apiResp *apiResponse) {
+							f: func(r *testutils.R, apiResp *apiResponse) {
 								assert.Equal(t, 404, apiResp.StatusCode)
 							},
 						})
@@ -1208,7 +1208,7 @@ func TestApi(t *testing.T) {
 					"hello": "you",
 				},
 			},
-			f: func(r *testutil.R, apiResp *apiResponse) {
+			f: func(r *testutils.R, apiResp *apiResponse) {
 				assert.Equal(r, 201, apiResp.StatusCode)
 			},
 		})
@@ -1237,7 +1237,7 @@ func TestApi(t *testing.T) {
 		getRes := apiRequest(t, &apiRequestInput{
 			method: "GET",
 			url:    apiURL + "/accounts/" + accountID,
-			f: func(r *testutil.R, apiResp *apiResponse) {
+			f: func(r *testutils.R, apiResp *apiResponse) {
 				assert.Equal(r, 200, apiResp.StatusCode)
 			},
 		})
@@ -1262,7 +1262,7 @@ func TestApi(t *testing.T) {
 				"adminRoleArn": adminRoleArn,
 			},
 			maxAttempts: 1,
-			f: func(r *testutil.R, apiResp *apiResponse) {
+			f: func(r *testutils.R, apiResp *apiResponse) {
 				assert.Equal(r, 201, apiResp.StatusCode)
 			},
 		})
@@ -1286,7 +1286,7 @@ func TestApi(t *testing.T) {
 					"expiresOn":      time.Now().Unix() + 1000,
 				},
 				maxAttempts: 1,
-				f: func(r *testutil.R, apiResp *apiResponse) {
+				f: func(r *testutils.R, apiResp *apiResponse) {
 					assert.Equal(r, 201, apiResp.StatusCode)
 				},
 			})
@@ -1305,7 +1305,7 @@ func TestApi(t *testing.T) {
 					"principalId": "test-user",
 					"accountId":   accountID,
 				},
-				f: func(r *testutil.R, apiResp *apiResponse) {
+				f: func(r *testutils.R, apiResp *apiResponse) {
 					assert.Equal(r, 200, apiResp.StatusCode, apiResp.json)
 				},
 			})
@@ -1328,7 +1328,7 @@ func TestApi(t *testing.T) {
 			apiRequest(t, &apiRequestInput{
 				method: "DELETE",
 				url:    apiURL + "/accounts/1234523456",
-				f: func(r *testutil.R, apiResp *apiResponse) {
+				f: func(r *testutils.R, apiResp *apiResponse) {
 					assert.Equal(r, http.StatusNotFound, apiResp.StatusCode, "it returns a 404")
 				},
 			})
@@ -1443,7 +1443,7 @@ func TestApi(t *testing.T) {
 				method: "GET",
 				url:    apiURL + "/usage?startDate=2019-09-2&endDate=2019-09-2",
 				json:   nil,
-				f: func(r *testutil.R, apiResp *apiResponse) {
+				f: func(r *testutils.R, apiResp *apiResponse) {
 					// Verify response code
 					assert.Equal(r, http.StatusBadRequest, apiResp.StatusCode)
 				},
@@ -1467,7 +1467,7 @@ func TestApi(t *testing.T) {
 				method: "GET",
 				url:    apiURL + "/usage?startDate=1568937600&endDate=1569023999",
 				json:   nil,
-				f: func(r *testutil.R, apiResp *apiResponse) {
+				f: func(r *testutils.R, apiResp *apiResponse) {
 					// Verify response code
 					assert.Equal(r, http.StatusOK, apiResp.StatusCode)
 				},
@@ -1495,7 +1495,7 @@ func TestApi(t *testing.T) {
 				queryString := fmt.Sprintf("/usage?startDate=%d&endDate=%d", testStartDate.Unix(), testEndDate.Unix())
 				requestURL := apiURL + queryString
 
-				testutil.Retry(t, 10, 10*time.Millisecond, func(r *testutil.R) {
+				testutils.Retry(t, 10, 10*time.Millisecond, func(r *testutils.R) {
 
 					resp := apiRequest(t, &apiRequestInput{
 						method: "GET",
@@ -1523,7 +1523,7 @@ func TestApi(t *testing.T) {
 				queryString := fmt.Sprintf("/usage?startDate=%d&principalId=%s", testStartDate.Unix(), testPrincipalID)
 				requestURL := apiURL + queryString
 
-				testutil.Retry(t, 10, 10*time.Millisecond, func(r *testutil.R) {
+				testutils.Retry(t, 10, 10*time.Millisecond, func(r *testutils.R) {
 
 					resp := apiRequest(t, &apiRequestInput{
 						method: "GET",
@@ -1551,7 +1551,7 @@ func TestApi(t *testing.T) {
 				queryString := "/usage"
 				requestURL := apiURL + queryString
 
-				testutil.Retry(t, 10, 10*time.Millisecond, func(r *testutil.R) {
+				testutils.Retry(t, 10, 10*time.Millisecond, func(r *testutils.R) {
 
 					resp := apiRequest(t, &apiRequestInput{
 						method: "GET",
@@ -2267,18 +2267,18 @@ type apiRequestInput struct {
 	// function passes assertions.
 	//
 	// eg.
-	//		f: func(r *testutil.R, apiResp *apiResponse) {
+	//		f: func(r *testutils.R, apiResp *apiResponse) {
 	//			assert.Equal(r, 200, apiResp.StatusCode)
 	//		},
 	// or:
 	//		f: statusCodeAssertion(200)
 	//
 	// By default, this will check that the API returns a 2XX response
-	f func(r *testutil.R, apiResp *apiResponse)
+	f func(r *testutils.R, apiResp *apiResponse)
 }
 
-func statusCodeAssertion(statusCode int) func(r *testutil.R, apiResp *apiResponse) {
-	return func(r *testutil.R, apiResp *apiResponse) {
+func statusCodeAssertion(statusCode int) func(r *testutils.R, apiResp *apiResponse) {
+	return func(r *testutils.R, apiResp *apiResponse) {
 		// Defaults to returning 200
 		assert.Equal(r, statusCode, apiResp.StatusCode)
 	}
@@ -2316,7 +2316,7 @@ func apiRequest(t *testing.T, input *apiRequestInput) *apiResponse {
 	now := time.Now().Add(time.Duration(30) * time.Second)
 	var signedHeaders http.Header
 	var apiResp *apiResponse
-	testutil.Retry(t, input.maxAttempts, 2*time.Second, func(r *testutil.R) {
+	testutils.Retry(t, input.maxAttempts, 2*time.Second, func(r *testutils.R) {
 		// If there's a json provided, add it when signing
 		// Body does not matter if added before the signing, it will be overwritten
 		if input.json != nil {
@@ -2457,7 +2457,7 @@ func createAdminRole(t *testing.T, awsSession client.ConfigProvider, adminRoleNa
 
 	// Wait for the role to be assumable
 	log.Println("Created admin test role. Waiting for role to be assumeable")
-	testutil.Retry(t, 30, time.Second, func(r *testutil.R) {
+	testutils.Retry(t, 30, time.Second, func(r *testutils.R) {
 		// This might take a bit.
 		// Log progress, so we know our tests aren't stuck
 		if r.Attempt == 1 || r.Attempt%5 == 0 {
@@ -2518,7 +2518,7 @@ func createUsage(t *testing.T, apiURL string, usageSvc usage.DBer) {
 
 	queryString := fmt.Sprintf("/usage?startDate=%d&endDate=%d", usageStartDate.Unix(), usageEndDate.Unix())
 
-	testutil.Retry(t, 10, 10*time.Millisecond, func(r *testutil.R) {
+	testutils.Retry(t, 10, 10*time.Millisecond, func(r *testutils.R) {
 
 		resp := apiRequest(t, &apiRequestInput{
 			method: "GET",
@@ -2545,7 +2545,7 @@ func createUsage(t *testing.T, apiURL string, usageSvc usage.DBer) {
 func NewCredentials(t *testing.T, awsSession *session.Session, roleArn string) *credentials.Credentials {
 
 	var creds *credentials.Credentials
-	testutil.Retry(t, 10, 2*time.Second, func(r *testutil.R) {
+	testutils.Retry(t, 10, 2*time.Second, func(r *testutils.R) {
 
 		creds = stscreds.NewCredentials(awsSession, roleArn)
 		assert.NotNil(r, creds)
@@ -2556,7 +2556,7 @@ func NewCredentials(t *testing.T, awsSession *session.Session, roleArn string) *
 func deleteAdminRole(t *testing.T, role string, policies []string) {
 	awsSession, _ := session.NewSession()
 	iamSvc := iam.New(awsSession)
-	testutil.Retry(t, 10, 2*time.Second, func(r *testutil.R) {
+	testutils.Retry(t, 10, 2*time.Second, func(r *testutils.R) {
 		for _, p := range policies {
 			_, err := iamSvc.DetachRolePolicy(&iam.DetachRolePolicyInput{
 				RoleName:  aws.String(role),
@@ -2574,7 +2574,7 @@ func deleteAdminRole(t *testing.T, role string, policies []string) {
 func deletePolicy(t *testing.T, policyArn string) {
 	awsSession, _ := session.NewSession()
 	iamSvc := iam.New(awsSession)
-	testutil.Retry(t, 10, 2*time.Second, func(r *testutil.R) {
+	testutils.Retry(t, 10, 2*time.Second, func(r *testutils.R) {
 		_, err := iamSvc.DeletePolicy(&iam.DeletePolicyInput{
 			PolicyArn: aws.String(policyArn),
 		})
@@ -2741,7 +2741,7 @@ func waitForAccountStatus(t *testing.T, apiURL, accountID, expectedStatus string
 		method:      "GET",
 		url:         apiURL + "/accounts/" + accountID,
 		maxAttempts: 120,
-		f: func(r *testutil.R, res *apiResponse) {
+		f: func(r *testutils.R, res *apiResponse) {
 			assert.Equalf(r, 200, res.StatusCode, "%v", res.json)
 
 			actualStatus := responseJSONString(t, res, "accountStatus")

@@ -1,22 +1,24 @@
 package tests
 
 import (
+	"net/http"
+	"testing"
+	"time"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/gruntwork-io/terratest/modules/terraform"
 	"github.com/stretchr/testify/require"
-	"net/http"
-	"testing"
-	"time"
 
 	"encoding/json"
 	"fmt"
+
 	"github.com/stretchr/testify/assert"
 
 	"github.com/Optum/dce/pkg/db"
 	"github.com/Optum/dce/pkg/usage"
-	"github.com/Optum/dce/tests/acceptance/testutil"
+	"github.com/Optum/dce/tests/testutils"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 )
 
@@ -129,7 +131,7 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 				AdminRoleArn: adminRoleArn,
 			},
 			maxAttempts: 15,
-			f: func(r *testutil.R, apiResp *apiResponse) {
+			f: func(r *testutils.R, apiResp *apiResponse) {
 				assert.Equal(r, 201, apiResp.StatusCode)
 			},
 		})
@@ -150,7 +152,7 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 				BudgetAmount: 200.00,
 			},
 			maxAttempts: 15,
-			f: func(r *testutil.R, apiResp *apiResponse) {
+			f: func(r *testutils.R, apiResp *apiResponse) {
 				assert.Equal(r, 201, apiResp.StatusCode)
 			},
 		})
@@ -204,7 +206,7 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 				AdminRoleArn: adminRoleArn,
 			},
 			maxAttempts: 15,
-			f: func(r *testutil.R, apiResp *apiResponse) {
+			f: func(r *testutils.R, apiResp *apiResponse) {
 				assert.Equal(r, 201, apiResp.StatusCode)
 			},
 		})
@@ -225,7 +227,7 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 				BudgetAmount: 200.00,
 			},
 			maxAttempts: 15,
-			f: func(r *testutil.R, apiResp *apiResponse) {
+			f: func(r *testutils.R, apiResp *apiResponse) {
 				assert.Equal(r, 201, apiResp.StatusCode)
 			},
 		})
@@ -279,7 +281,7 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 				AdminRoleArn: adminRoleArn,
 			},
 			maxAttempts: 15,
-			f: func(r *testutil.R, apiResp *apiResponse) {
+			f: func(r *testutils.R, apiResp *apiResponse) {
 				assert.Equal(r, 201, apiResp.StatusCode)
 			},
 		})
@@ -300,7 +302,7 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 				BudgetAmount: 199.00,
 			},
 			maxAttempts: 15,
-			f: func(r *testutil.R, apiResp *apiResponse) {
+			f: func(r *testutils.R, apiResp *apiResponse) {
 				assert.Equal(r, 201, apiResp.StatusCode)
 			},
 		})
@@ -357,7 +359,7 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 				AdminRoleArn: adminRoleArn,
 			},
 			maxAttempts: 15,
-			f: func(r *testutil.R, apiResp *apiResponse) {
+			f: func(r *testutils.R, apiResp *apiResponse) {
 				assert.Equal(r, 201, apiResp.StatusCode)
 			},
 		})
@@ -378,7 +380,7 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 				BudgetAmount: 300.00,
 			},
 			maxAttempts: 15,
-			f: func(r *testutil.R, apiResp *apiResponse) {
+			f: func(r *testutils.R, apiResp *apiResponse) {
 				assert.Equal(r, 201, apiResp.StatusCode)
 			},
 		})
@@ -435,7 +437,7 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 				AdminRoleArn: adminRoleArn,
 			},
 			maxAttempts: 15,
-			f: func(r *testutil.R, apiResp *apiResponse) {
+			f: func(r *testutils.R, apiResp *apiResponse) {
 				assert.Equal(r, 201, apiResp.StatusCode)
 			},
 		})
@@ -456,7 +458,7 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 				BudgetAmount: 300.00,
 			},
 			maxAttempts: 15,
-			f: func(r *testutil.R, apiResp *apiResponse) {
+			f: func(r *testutils.R, apiResp *apiResponse) {
 				assert.Equal(r, 201, apiResp.StatusCode)
 			},
 		})
@@ -539,7 +541,7 @@ func createUsageForInputAmount(t *testing.T, apiURL string, accountID string, us
 
 	queryString := fmt.Sprintf("/usage?startDate=%d&endDate=%d", usageStartDate.Unix(), usageEndDate.Unix())
 
-	testutil.Retry(t, 10, 10*time.Millisecond, func(r *testutil.R) {
+	testutils.Retry(t, 10, 10*time.Millisecond, func(r *testutils.R) {
 
 		resp := apiRequest(t, &apiRequestInput{
 			method: "GET",
