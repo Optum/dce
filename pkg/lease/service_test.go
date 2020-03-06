@@ -637,7 +637,7 @@ func TestCreate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			mocksRwd := &mocks.ReaderWriterDeleter{}
+			mocksRwd := &mocks.ReaderWriter{}
 			mocksEventer := &mocks.Eventer{}
 
 			mocksRwd.On("List", mock.AnythingOfType("*lease.Lease")).Return(tt.getResponse, nil)
