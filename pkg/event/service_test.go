@@ -2,7 +2,6 @@ package event
 
 import (
 	"errors"
-	"github.com/Optum/dce/pkg/lease"
 	"testing"
 
 	"github.com/Optum/dce/pkg/account"
@@ -96,7 +95,6 @@ func TestEventAccountPublishers(t *testing.T) {
 		name                            string
 		event                           *account.Account
 		eventOld                        *account.Account
-    leaseEvent                      *lease.Lease
 		expectedAccountCreatePublishErr error
 		expectedAccountDeletePublishErr error
 		expectedAccountUpdatePublishErr error
@@ -104,12 +102,9 @@ func TestEventAccountPublishers(t *testing.T) {
 	}{
 		{
 			name: "publish events",
-			accountEvent: &account.Account{
+			event: &account.Account{
 				Status: account.StatusReady.StatusPtr(),
 			},
-			leaseEvent: &lease.Lease{
-				Status: lease.StatusActive.StatusPtr(),
-
 			eventOld: &account.Account{
 				Status: account.StatusNotReady.StatusPtr(),
 			},
@@ -120,11 +115,8 @@ func TestEventAccountPublishers(t *testing.T) {
 		},
 		{
 			name: "publish event with errors",
-			accountEvent: &account.Account{
+			event: &account.Account{
 				Status: account.StatusReady.StatusPtr(),
-			},
-			leaseEvent: &lease.Lease{
-				Status: lease.StatusActive.StatusPtr(),
 			},
 			expectedAccountCreatePublishErr: errors.New("failure"),
 			expectedAccountDeletePublishErr: errors.New("failure"),
@@ -136,22 +128,16 @@ func TestEventAccountPublishers(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockCreateAccountPublisher := mocks.Publisher{}
-			mockCreateAccountPublisher.On("Publish", tt.accountEvent).Return(tt.expectedAccountCreatePublishErr)
+			mockCreateAccountPublisher.On("Publish", tt.event).Return(tt.expectedAccountCreatePublishErr)
 			mockDeleteAccountPublisher := mocks.Publisher{}
-			mockDeleteAccountPublisher.On("Publish", tt.accountEvent).Return(tt.expectedAccountDeletePublishErr)
+			mockDeleteAccountPublisher.On("Publish", tt.event).Return(tt.expectedAccountDeletePublishErr)
 			mockUpdateAccountPublisher := mocks.Publisher{}
 			mockUpdateAccountPublisher.On("Publish", updateEvent{
 				Old: tt.eventOld,
 				New: tt.event,
 			}).Return(tt.expectedAccountUpdatePublishErr)
-      mockLeaseCreatedPublisher := mocks.Publisher{}
-			mockLeaseCreatedPublisher.On("Publish", tt.leaseEvent).Return(tt.expectedLeaseCreatePublishErr)
-			mockLeaseEndedPublisher := mocks.Publisher{}
-			mockLeaseEndedPublisher.On("Publish", tt.leaseEvent).Return(tt.expectedLeaseEndPublishErr)
-			mockLeaseUpdatedPublisher := mocks.Publisher{}
-			mockLeaseUpdatedPublisher.On("Publish", tt.leaseEvent).Return(tt.expectedLeaseUpdatePublishErr)
 			mockResetAccountPublisher := mocks.Publisher{}
-			mockResetAccountPublisher.On("Publish", tt.accountEvent).Return(tt.expectedAccountResetPublishErr)
+			mockResetAccountPublisher.On("Publish", tt.event).Return(tt.expectedAccountResetPublishErr)
 
 			eventSvc := Service{
 				accountCreate: []Publisher{&mockCreateAccountPublisher},
@@ -161,11 +147,11 @@ func TestEventAccountPublishers(t *testing.T) {
 			}
 
 			var err error
-			err = eventSvc.AccountCreate(tt.accountEvent)
+			err = eventSvc.AccountCreate(tt.event)
 			assert.Equal(t, tt.expectedAccountCreatePublishErr, err)
 			mockCreateAccountPublisher.AssertExpectations(t)
 
-			err = eventSvc.AccountDelete(tt.accountEvent)
+			err = eventSvc.AccountDelete(tt.event)
 			assert.Equal(t, tt.expectedAccountDeletePublishErr, err)
 			mockDeleteAccountPublisher.AssertExpectations(t)
 
@@ -173,7 +159,7 @@ func TestEventAccountPublishers(t *testing.T) {
 			assert.Equal(t, tt.expectedAccountUpdatePublishErr, err)
 			mockUpdateAccountPublisher.AssertExpectations(t)
 
-			err = eventSvc.AccountReset(tt.accountEvent)
+			err = eventSvc.AccountReset(tt.event)
 			assert.Equal(t, tt.expectedAccountResetPublishErr, err)
 			mockResetAccountPublisher.AssertExpectations(t)
 
@@ -241,7 +227,7 @@ func TestEventLeasePublishers(t *testing.T) {
 			assert.Equal(t, tt.expectedLeaseCreatePublishErr, err)
 			mockLeaseCreatedPublisher.AssertExpectations(t)
 
-			err = eventSvc.LeaseEnd(tt.leaseEvent)
+			err = eventSvc.LeaseEnd(tt.event)
 			assert.Equal(t, tt.expectedLeaseEndPublishErr, err)
 			mockLeaseEndedPublisher.AssertExpectations(t)
 
