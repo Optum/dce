@@ -1,3 +1,4 @@
+// Deprecated: This package is frozen and no new functionality will be added.
 package db
 
 import (
@@ -41,9 +42,8 @@ type DB struct {
 	ConsistentRead bool
 }
 
-// The DBer interface includes all methods used by the DB struct to interact with
-// DynamoDB. This is useful if we want to mock the DB service.
-//go:generate mockery -name DBer
+// Deprecated: DBer is no longer used and should
+// not be used by others. It is kept for compatibility.
 type DBer interface {
 	GetAccount(accountID string) (*Account, error)
 	GetReadyAccount() (*Account, error)
