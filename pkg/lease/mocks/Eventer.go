@@ -10,13 +10,41 @@ type Eventer struct {
 	mock.Mock
 }
 
-// LeaseCreate provides a mock function with given fields: _a0
-func (_m *Eventer) LeaseCreate(_a0 *lease.Lease) error {
-	ret := _m.Called(_a0)
+// LeaseCreate provides a mock function with given fields: account
+func (_m *Eventer) LeaseCreate(account *lease.Lease) error {
+	ret := _m.Called(account)
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(*lease.Lease) error); ok {
-		r0 = rf(_a0)
+		r0 = rf(account)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// LeaseEnd provides a mock function with given fields: account
+func (_m *Eventer) LeaseEnd(account *lease.Lease) error {
+	ret := _m.Called(account)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(*lease.Lease) error); ok {
+		r0 = rf(account)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// LeaseUpdate provides a mock function with given fields: old, new
+func (_m *Eventer) LeaseUpdate(old *lease.Lease, new *lease.Lease) error {
+	ret := _m.Called(old, new)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(*lease.Lease, *lease.Lease) error); ok {
+		r0 = rf(old, new)
 	} else {
 		r0 = ret.Error(0)
 	}

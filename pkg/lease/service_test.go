@@ -73,7 +73,7 @@ func TestGetLeaseByID(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mocksRwd := &mocks.ReaderWriterDeleter{}
+			mocksRwd := &mocks.ReaderWriter{}
 
 			mocksRwd.On("Get", tt.ID).Return(tt.ret.data, tt.ret.err)
 
@@ -118,16 +118,19 @@ func TestDelete(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mocksRwd := &mocks.ReaderWriterDeleter{}
+			mocksRwd := &mocks.ReaderWriter{}
 			mocksRwd.On("Get", tt.ID).
 				Return(tt.expLease, tt.returnErr)
-
 			mocksRwd.On("Write", mock.Anything, mock.Anything).
 				Return(tt.returnErr)
 
+			mocksEvents := &mocks.Eventer{}
+			mocksEvents.On("LeaseEnd", mock.AnythingOfType("*lease.Lease")).Return(nil)
+
 			leaseSvc := lease.NewService(
 				lease.NewServiceInput{
-					DataSvc: mocksRwd,
+					DataSvc:  mocksRwd,
+					EventSvc: mocksEvents,
 				},
 			)
 			actualLease, err := leaseSvc.Delete(tt.ID)
@@ -223,7 +226,7 @@ func TestSave(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mocksRwd := &mocks.ReaderWriterDeleter{}
+			mocksRwd := &mocks.ReaderWriter{}
 
 			mocksRwd.On("Write", mock.AnythingOfType("*lease.Lease"), mock.AnythingOfType("*int64")).Return(tt.returnErr)
 
@@ -319,7 +322,7 @@ func TestGetLeases(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mocksRWD := &mocks.ReaderWriterDeleter{}
+			mocksRWD := &mocks.ReaderWriter{}
 			mocksRWD.On("List", mock.AnythingOfType("*lease.Lease")).Return(tt.ret.data, tt.ret.err)
 
 			leasesSvc := lease.NewService(

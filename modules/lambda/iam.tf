@@ -76,7 +76,7 @@ resource "aws_iam_role_policy_attachment" "cognito_read_only" {
 }
 
 # Allow Lambda to assume roles
-resource "aws_iam_role_policy" "lambda_assume_role" {
+resource "aws_iam_role_policy" "lambda_inline" {
   role   = aws_iam_role.lambda_execution.name
   policy = <<JSON
 {
@@ -87,7 +87,8 @@ resource "aws_iam_role_policy" "lambda_assume_role" {
             "Effect": "Allow",
             "Action": [
                 "sts:AssumeRole",
-                "sts:GetCallerIdentity"
+                "sts:GetCallerIdentity",
+                "events:PutEvents"
             ],
             "Resource": "*"
         }
