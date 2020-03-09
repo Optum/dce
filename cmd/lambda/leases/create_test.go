@@ -3,10 +3,11 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/Optum/dce/pkg/account"
-	"github.com/Optum/dce/pkg/api"
 	"net/http"
 	"testing"
+
+	"github.com/Optum/dce/pkg/account"
+	"github.com/Optum/dce/pkg/api"
 
 	accountmocks "github.com/Optum/dce/pkg/account/accountiface/mocks"
 	apiMocks "github.com/Optum/dce/pkg/api/mocks"
