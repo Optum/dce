@@ -65,8 +65,14 @@ func (p *principalService) MergePolicy() error {
 	}
 
 	// if they match there is nothing to do
-	if policyHash == p.account.PrincipalPolicyHash {
-		return nil
+	if p.account.PrincipalPolicyHash != nil {
+		if *policyHash == *p.account.PrincipalPolicyHash {
+			log.Printf("SKIP: Policy Hash matches.  Old %q and New %q", *p.account.PrincipalPolicyHash, *policyHash)
+			return nil
+		}
+		log.Printf("UPDATE: Policy Hash doesn't match.  Old %q and New %q", *p.account.PrincipalPolicyHash, *policyHash)
+	} else {
+		log.Printf("UPDATE: Old Policy Hash is null. New %q", *policyHash)
 	}
 
 	_, err = p.iamSvc.CreatePolicy(&iam.CreatePolicyInput{
