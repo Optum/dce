@@ -377,6 +377,11 @@ func TestApi(t *testing.T) {
 
 	t.Run("Lease Creation and Deletion", func(t *testing.T) {
 
+		cognitoUser1 := NewCognitoUser(t, tfOut, awsSession, accountID)
+		defer cognitoUser1.delete(t, tfOut, awsSession)
+		cognitoUser2 := NewCognitoUser(t, tfOut, awsSession, accountID)
+		defer cognitoUser2.delete(t, tfOut, awsSession)
+
 		t.Run("Should be able to create and destroy a lease", func(t *testing.T) {
 			givenEmptySystem(t)
 			defer givenEmptySystem(t)
@@ -463,11 +468,8 @@ func TestApi(t *testing.T) {
 			///////////
 			// Setup //
 			///////////
-			// Create cognito users
-			cognitoUser1 := NewCognitoUser(t, tfOut, awsSession, accountID)
-			defer cognitoUser1.delete(t, tfOut, awsSession)
-			cognitoUser2 := NewCognitoUser(t, tfOut, awsSession, accountID)
-			defer cognitoUser2.delete(t, tfOut, awsSession)
+			givenEmptySystem(t)
+
 			// Create an Account Entry
 			timeNow := time.Now().Unix()
 			err := dbSvc.PutAccount(db.Account{
@@ -705,7 +707,7 @@ func TestApi(t *testing.T) {
 					// Verify error response json
 					// Get nested json in response json
 					err := data["error"].(map[string]interface{})
-					assert.Equal(r, "RequestValidationError", err["code"].(string))
+					assert.Equal(r, "ClientError", err["code"].(string))
 					assert.Equal(r, "invalid request parameters",
 						err["message"].(string))
 				},
@@ -714,32 +716,32 @@ func TestApi(t *testing.T) {
 		})
 
 		t.Run("Should not be able to create lease with no available accounts", func(t *testing.T) {
-			// Create the Provision Request Body
-			principalID := "user"
-			body := leaseRequest{
-				PrincipalID: principalID,
-			}
+			givenEmptySystem(t)
 
-			// Send an API request
-			apiRequest(t, &apiRequestInput{
+			resp := apiRequest(t, &apiRequestInput{
 				method: "POST",
 				url:    apiURL + "/leases",
-				json:   body,
+				json: struct {
+					PrincipalID string `json:"principalId"`
+				}{
+					PrincipalID: cognitoUser2.Username,
+				},
+				creds: credentials.NewStaticCredentialsFromCreds(cognitoUser2.UserCredsValue),
 				f: func(r *testutils.R, apiResp *apiResponse) {
 					// Verify response code
-					assert.Equal(r, http.StatusServiceUnavailable, apiResp.StatusCode)
-
-					// Parse response json
-					data := parseResponseJSON(t, apiResp)
-
-					// Verify error response json
-					// Get nested json in response json
-					err := data["error"].(map[string]interface{})
-					assert.Equal(r, "StatusServiceUnavailable", err["code"].(string))
-					assert.Equal(r, "No Available accounts at this moment",
-						err["message"].(string))
+					assert.Equal(r, http.StatusInternalServerError, apiResp.StatusCode)
 				},
 			})
+
+			// Parse response json
+			data := parseResponseJSON(t, resp)
+
+			// Verify error response json
+			// Get nested json in response json
+			err := data["error"].(map[string]interface{})
+			assert.Equal(t, "ServerError", err["code"].(string))
+			assert.Equal(t, "No Available accounts at this moment",
+				err["message"].(string))
 
 		})
 
