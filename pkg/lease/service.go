@@ -28,7 +28,7 @@ type Reader interface {
 	MultipleReader
 }
 
-// ReaderWriterDeleter includes Reader and Writer interfaces
+// ReaderWriter includes Reader and Writer interfaces
 type ReaderWriter interface {
 	Reader
 	Writer
@@ -36,7 +36,9 @@ type ReaderWriter interface {
 
 // Eventer for publishing events
 type Eventer interface {
-	Publish() error
+	LeaseCreate(account *Lease) error
+	LeaseEnd(account *Lease) error
+	LeaseUpdate(old *Lease, new *Lease) error
 }
 
 // Service is a type corresponding to a Lease table record
@@ -97,6 +99,11 @@ func (a *Service) Delete(ID string) (*Lease, error) {
 
 	data.Status = StatusInactive.StatusPtr()
 	err = a.dataSvc.Write(data, data.LastModifiedOn)
+	if err != nil {
+		return nil, err
+	}
+
+	err = a.eventSvc.LeaseEnd(data)
 	if err != nil {
 		return nil, err
 	}

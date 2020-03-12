@@ -126,6 +126,10 @@ func handleRecord(input *handleRecordInput) error {
 					log.Printf("ERROR: Failed to mark get account %q", lease.AccountID)
 					return err
 				}
+				if acct == nil {
+					log.Printf("SKIP: Account %q is no longer found.  Skip it.", lease.AccountID)
+					return nil
+				}
 			}
 
 			// Put the message on the SQS queue ONLY IF the status has gone

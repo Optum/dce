@@ -3,6 +3,7 @@ package common
 import (
 	"bytes"
 	"html/template"
+	"log"
 	"os"
 	"strings"
 
@@ -108,7 +109,12 @@ func (stor S3) Download(bucket string, key string, filepath string) error {
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer func() {
+		err := file.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}()
 
 	// Set up the download inputs and execute
 	getInput := &s3.GetObjectInput{

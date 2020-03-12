@@ -2,10 +2,13 @@ package config
 
 import (
 	"github.com/Optum/dce/pkg/api"
-	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"log"
 	"reflect"
 	"runtime"
+
+	"github.com/aws/aws-sdk-go/service/cloudwatch"
+	"github.com/aws/aws-sdk-go/service/cloudwatchevents"
+	"github.com/aws/aws-sdk-go/service/cloudwatchevents/cloudwatcheventsiface"
 
 	"github.com/Optum/dce/pkg/account"
 	"github.com/Optum/dce/pkg/account/accountiface"
@@ -103,6 +106,12 @@ func (bldr *ServiceBuilder) WithS3() *ServiceBuilder {
 // WithCloudWatchService tells the builder to add an AWS Cognito service to the `DefaultConfigurater`
 func (bldr *ServiceBuilder) WithCloudWatchService() *ServiceBuilder {
 	bldr.handlers = append(bldr.handlers, bldr.createCloudWatch)
+	return bldr
+}
+
+// WithCloudWatchEventsService tells the builder to add an AWS Cognito service to the `DefaultConfigurater`
+func (bldr *ServiceBuilder) WithCloudWatchEventsService() *ServiceBuilder {
+	bldr.handlers = append(bldr.handlers, bldr.createCloudWatchEvents)
 	return bldr
 }
 
@@ -205,7 +214,7 @@ func (bldr *ServiceBuilder) LeaseService() leaseiface.Servicer {
 
 // WithEventService tells the builder to add the Account service to the `ConfigurationBuilder`
 func (bldr *ServiceBuilder) WithEventService() *ServiceBuilder {
-	bldr.WithSQS().WithSNS()
+	bldr.WithSQS().WithSNS().WithCloudWatchEventsService()
 	bldr.handlers = append(bldr.handlers, bldr.createEventService)
 	return bldr
 }
@@ -358,6 +367,20 @@ func (bldr *ServiceBuilder) createCloudWatch(config ConfigurationServiceBuilder)
 	return nil
 }
 
+func (bldr *ServiceBuilder) createCloudWatchEvents(config ConfigurationServiceBuilder) error {
+	// Don't add the service twice
+	var api cloudwatchevents.CloudWatchEvents
+	err := bldr.Config.GetService(&api)
+	if err == nil {
+		log.Printf("Already added CloudWatch Events service")
+		return nil
+	}
+
+	svc := cloudwatchevents.New(bldr.awsSession)
+	config.WithService(svc)
+	return nil
+}
+
 func (bldr *ServiceBuilder) createCognito(config ConfigurationServiceBuilder) error {
 	// Don't add the service twice
 	var api cognitoidentityprovideriface.CognitoIdentityProviderAPI
@@ -480,6 +503,12 @@ func (bldr *ServiceBuilder) createEventService(config ConfigurationServiceBuilde
 		return err
 	}
 
+	var cweService cloudwatcheventsiface.CloudWatchEventsAPI
+	err = bldr.Config.GetService(&cweService)
+	if err != nil {
+		return err
+	}
+
 	eventSvcInput := event.NewServiceInput{}
 	err = bldr.Config.Unmarshal(&eventSvcInput)
 	if err != nil {
@@ -488,6 +517,7 @@ func (bldr *ServiceBuilder) createEventService(config ConfigurationServiceBuilde
 
 	eventSvcInput.SqsClient = sqsService
 	eventSvcInput.SnsClient = snsService
+	eventSvcInput.CweClient = cweService
 	eventSvc, err := event.NewService(eventSvcInput)
 	if err != nil {
 		return err
@@ -654,9 +684,16 @@ func (bldr *ServiceBuilder) createLeaseService(config ConfigurationServiceBuilde
 		return err
 	}
 
+	var eventSvc eventiface.Servicer
+	err = bldr.Config.GetService(&eventSvc)
+	if err != nil {
+		return err
+	}
+
 	leaseSvc := lease.NewService(
 		lease.NewServiceInput{
-			DataSvc: dataSvc,
+			DataSvc:  dataSvc,
+			EventSvc: eventSvc,
 		},
 	)
 
