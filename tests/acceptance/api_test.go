@@ -469,13 +469,12 @@ func TestApi(t *testing.T) {
 			cognitoUser2 := NewCognitoUser(t, tfOut, awsSession, accountID)
 			defer cognitoUser2.delete(t, tfOut, awsSession)
 			// Create an Account Entry
-			leasedAccountID := "123456789012"
 			timeNow := time.Now().Unix()
 			err := dbSvc.PutAccount(db.Account{
-				ID:               leasedAccountID,
+				ID:               accountID,
 				AccountStatus:    db.Ready,
-				AdminRoleArn:     fmt.Sprintf("arn:aws:iam::%s:role/adminRole", leasedAccountID),
-				PrincipalRoleArn: fmt.Sprintf("arn:aws:iam::%s:role/principalRole", leasedAccountID),
+				AdminRoleArn:     adminRoleArn,
+				PrincipalRoleArn: fmt.Sprintf("arn:aws:iam::%s:role/principalRole", accountID),
 				LastModifiedOn:   timeNow,
 			})
 			require.Nil(t, err)
@@ -530,8 +529,6 @@ func TestApi(t *testing.T) {
 			// Get Lease //
 			///////////////
 			// Cognito User 2 should get 401
-			assert.NotNil(t, createLeaseOutput)
-			assert.NotNil(t, createLeaseOutput["id"])
 			apiRequest(t, &apiRequestInput{
 				method: "GET",
 				url:    apiURL + fmt.Sprintf("/leases/%s", createLeaseOutput["id"]),
@@ -594,7 +591,7 @@ func TestApi(t *testing.T) {
 				url:    apiURL + "/leases",
 				json: leaseRequest{
 					PrincipalID: cognitoUser1.Username,
-					AccountID:   leasedAccountID,
+					AccountID:   accountID,
 				},
 				f: func(r *testutils.R, apiResp *apiResponse) {
 					assert.Equal(r, http.StatusUnauthorized, apiResp.StatusCode)
