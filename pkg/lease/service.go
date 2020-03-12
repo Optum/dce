@@ -163,9 +163,6 @@ func (a *Service) Create(data *Lease, principalSpentAmount float64) (*Lease, err
 		validation.Field(&data.CreatedOn, validation.By(isNil)),
 		validation.Field(&data.StatusReason, validation.By(isNil)),
 		validation.Field(&data.ExpiresOn, validation.NotNil, validation.By(isExpiresOnValid(a))),
-		validation.Field(&data.BudgetAmount, validation.NotNil),
-		validation.Field(&data.BudgetCurrency, validation.NotNil),
-		validation.Field(&data.BudgetNotificationEmails, validation.NotNil),
 	)
 	if err != nil {
 		return nil, errors.NewValidation("lease", err)
