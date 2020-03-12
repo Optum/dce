@@ -530,6 +530,8 @@ func TestApi(t *testing.T) {
 			// Get Lease //
 			///////////////
 			// Cognito User 2 should get 401
+			assert.NotNil(t, createLeaseOutput)
+			assert.NotNil(t, createLeaseOutput["id"])
 			apiRequest(t, &apiRequestInput{
 				method: "GET",
 				url:    apiURL + fmt.Sprintf("/leases/%s", createLeaseOutput["id"]),
