@@ -498,21 +498,6 @@ func TestCreate(t *testing.T) {
 			principalSpentAmount: 0.0,
 		},
 		{
-			name: "should fail on budget details missing",
-			req: &lease.Lease{
-				PrincipalID: ptrString("User1"),
-				AccountID:   ptrString("123456789012"),
-				Metadata:    map[string]interface{}{},
-				ExpiresOn:   &leaseExpiresAfterAWeek,
-			},
-			exp: response{
-				data: nil,
-				err:  errors.NewValidation("lease", fmt.Errorf("budgetAmount: is required; budgetCurrency: is required; budgetNotificationEmails: is required.")),
-			},
-			getResponse:          nil,
-			principalSpentAmount: 0.0,
-		},
-		{
 			name: "should fail on principalId missing",
 			req: &lease.Lease{
 				AccountID:                ptrString("123456789012"),
