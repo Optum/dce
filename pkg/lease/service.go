@@ -52,6 +52,7 @@ type Service struct {
 	maxLeasePeriod           int64
 }
 
+// Weekly
 const (
 	Weekly = "WEEKLY"
 )
@@ -151,6 +152,23 @@ func (a *Service) Create(data *Lease, principalSpentAmount float64) (*Lease, err
 	// Set default metadata (empty object)
 	if data.Metadata == nil {
 		data.Metadata = map[string]interface{}{}
+	}
+
+	// Set default budget amount
+	if data.BudgetAmount == nil {
+		data.BudgetAmount = &a.maxLeaseBudgetAmount
+	}
+
+	// Set default budget currency
+	if data.BudgetCurrency == nil {
+		currency := ""
+		data.BudgetCurrency = &currency
+	}
+
+	// Set default budget notification emails
+	if data.BudgetNotificationEmails == nil {
+		notificationEmails := []string{""}
+		data.BudgetNotificationEmails = &notificationEmails
 	}
 
 	// Validate the incoming record doesn't have unneeded fields
