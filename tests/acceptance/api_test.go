@@ -377,11 +377,6 @@ func TestApi(t *testing.T) {
 
 	t.Run("Lease Creation and Deletion", func(t *testing.T) {
 
-		cognitoUser1 := NewCognitoUser(t, tfOut, awsSession, accountID)
-		defer cognitoUser1.delete(t, tfOut, awsSession)
-		cognitoUser2 := NewCognitoUser(t, tfOut, awsSession, accountID)
-		defer cognitoUser2.delete(t, tfOut, awsSession)
-
 		t.Run("Should be able to create and destroy a lease", func(t *testing.T) {
 			givenEmptySystem(t)
 			defer givenEmptySystem(t)
@@ -469,6 +464,12 @@ func TestApi(t *testing.T) {
 			// Setup //
 			///////////
 			givenEmptySystem(t)
+
+			// Create cognito users
+			cognitoUser1 := NewCognitoUser(t, tfOut, awsSession, accountID)
+			defer cognitoUser1.delete(t, tfOut, awsSession)
+			cognitoUser2 := NewCognitoUser(t, tfOut, awsSession, accountID)
+			defer cognitoUser2.delete(t, tfOut, awsSession)
 
 			// Create an Account Entry
 			timeNow := time.Now().Unix()
