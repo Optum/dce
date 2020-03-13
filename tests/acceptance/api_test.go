@@ -718,15 +718,17 @@ func TestApi(t *testing.T) {
 		t.Run("Should not be able to create lease with no available accounts", func(t *testing.T) {
 			givenEmptySystem(t)
 
+			// Create the Provision Request Body
+			principalID := "user"
+			body := leaseRequest{
+				PrincipalID: principalID,
+			}
+
+			// Send an API request
 			resp := apiRequest(t, &apiRequestInput{
 				method: "POST",
 				url:    apiURL + "/leases",
-				json: struct {
-					PrincipalID string `json:"principalId"`
-				}{
-					PrincipalID: cognitoUser2.Username,
-				},
-				creds: credentials.NewStaticCredentialsFromCreds(cognitoUser2.UserCredsValue),
+				json:   body,
 				f: func(r *testutils.R, apiResp *apiResponse) {
 					// Verify response code
 					assert.Equal(r, http.StatusInternalServerError, apiResp.StatusCode)
