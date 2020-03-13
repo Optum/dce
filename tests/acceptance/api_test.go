@@ -1933,6 +1933,19 @@ func TestApi(t *testing.T) {
 
 	t.Run("Lease validations", func(t *testing.T) {
 		givenEmptySystem(t)
+		defer givenEmptySystem(t)
+
+		// Create an Account Entry
+		timeNow := time.Now().Unix()
+		error := dbSvc.PutAccount(db.Account{
+			ID:               accountID,
+			AccountStatus:    db.Ready,
+			AdminRoleArn:     adminRoleArn,
+			PrincipalRoleArn: fmt.Sprintf("arn:aws:iam::%s:role/principalRole", accountID),
+			LastModifiedOn:   timeNow,
+		})
+		require.Nil(t, error)
+
 		t.Run("Should validate requested lease has a desired expiry date less than today", func(t *testing.T) {
 
 			principalID := "user"
@@ -1963,7 +1976,7 @@ func TestApi(t *testing.T) {
 			// Get nested json in response json
 			err := data["error"].(map[string]interface{})
 			require.Equal(t, "RequestValidationError", err["code"].(string))
-			errStr := fmt.Sprintf("Requested lease has a desired expiry date less than today: %d", expiresOn)
+			errStr := fmt.Sprintf("lease validation error: expiresOn: Requested lease has a desired expiry date less than today: %d.", expiresOn)
 			require.Equal(t, errStr, err["message"].(string))
 		})
 
@@ -1997,7 +2010,7 @@ func TestApi(t *testing.T) {
 			// Get nested json in response json
 			err := data["error"].(map[string]interface{})
 			require.Equal(t, "RequestValidationError", err["code"].(string))
-			require.Equal(t, "Requested lease has a budget amount of 30000.000000, which is greater than max lease budget amount of 1000.000000",
+			require.Equal(t, "lease validation error: budgetAmount: Requested lease has a budget amount of 30000.000000, which is greater than max lease budget amount of 1000.000000.",
 				err["message"].(string))
 
 		})
@@ -2038,8 +2051,6 @@ func TestApi(t *testing.T) {
 		})
 
 		t.Run("Should validate requested budget amount against principal budget amount", func(t *testing.T) {
-			truncateUsageTable(t, usageSvc)
-			defer truncateUsageTable(t, usageSvc)
 			createUsage(t, apiURL, usageSvc)
 
 			principalID := "TestUser1"
@@ -2073,8 +2084,8 @@ func TestApi(t *testing.T) {
 			// Weekday + 1 since Sunday is 0.  Min of 5 because thats what the write usage does
 			weekday := math.Min(float64(time.Now().Weekday())+1, 5)
 			require.Equal(t,
-				fmt.Sprintf("Unable to create lease: User principal TestUser1 "+
-					"has already spent %.2f of their 1000.00 principal budget", weekday*2000),
+				fmt.Sprintf("lease validation error: budgetAmount: Unable to create lease: User principal TestUser1 "+
+					"has already spent %.2f of their 1000.00 principal budget.", weekday*2000),
 				err["message"].(string),
 			)
 		})
