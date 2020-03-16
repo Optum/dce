@@ -79,7 +79,7 @@ func CreateLease(w http.ResponseWriter, r *http.Request) {
 	queryLeases := &lease.Lease{}
 	queryLeases.AccountID = newLease.AccountID
 	queryLeases.PrincipalID = newLease.PrincipalID
-	queryLeases.Status =  StatusInactive.StatusPtr()
+	queryLeases.Status = StatusInactive.StatusPtr()
 
 	foundLeases, err := Services.LeaseService().List(queryLeases)
 	if err != nil {
