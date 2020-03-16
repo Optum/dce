@@ -571,7 +571,7 @@ func TestCreate(t *testing.T) {
 			principalSpentAmount: 0.0,
 		},
 		{
-			name: "should fail on createdOn and lastModifiedOn must be empty",
+			name: "should fail on createdOn must be empty",
 			req: &lease.Lease{
 				PrincipalID:              ptrString("User1"),
 				AccountID:                ptrString("123456789012"),
@@ -585,7 +585,7 @@ func TestCreate(t *testing.T) {
 			},
 			exp: response{
 				data: nil,
-				err:  errors.NewValidation("lease", fmt.Errorf("createdOn: must be empty; lastModifiedOn: must be empty.")),
+				err:  errors.NewValidation("lease", fmt.Errorf("createdOn: must be empty.")),
 			},
 			getResponse:          nil,
 			principalSpentAmount: 0.0,

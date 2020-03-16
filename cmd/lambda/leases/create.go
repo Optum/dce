@@ -90,6 +90,8 @@ func CreateLease(w http.ResponseWriter, r *http.Request) {
 	// Since we are using primary key to query, the number of leases that match the query should be one
 	if foundLeases != nil && len(*foundLeases) == 1 {
 		newLease.LastModifiedOn = (*foundLeases)[0].LastModifiedOn
+	} else {
+		newLease.LastModifiedOn = nil
 	}
 
 	// Create lease

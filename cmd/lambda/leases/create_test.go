@@ -44,7 +44,7 @@ func TestWhenCreateSuccess(t *testing.T) {
 		retCreateErr         error
 	}{
 		{
-			name: "When given good values. Then success is returned.",
+			name: "When given good values for a new lease. Then success is returned.",
 			user: &api.User{
 				Username: "admin1",
 				Role:     api.AdminGroupName,
@@ -71,6 +71,45 @@ func TestWhenCreateSuccess(t *testing.T) {
 			},
 			retLease:             &lease.Lease{},
 			getExistingLeases:    nil,
+			getExistingLeasesErr: nil,
+			retListErr:           nil,
+			retUpdateErr:         nil,
+			retCreateErr:         nil,
+		},
+		{
+			name: "When given good values for an existing inactive lease. Then success is returned.",
+			user: &api.User{
+				Username: "admin1",
+				Role:     api.AdminGroupName,
+			},
+			expResp: events.APIGatewayProxyResponse{
+				StatusCode:        http.StatusCreated,
+				Body:              "{}\n",
+				MultiValueHeaders: standardHeaders,
+			},
+			request: events.APIGatewayProxyRequest{
+				HTTPMethod: http.MethodPost,
+				Path:       "/leases",
+				Body:       "{ \"principalId\": \"User1\", \"budgetAmount\": 200.00 }",
+			},
+			retAccounts: &account.Accounts{
+				account.Account{
+					ID:     ptrString("1234567890"),
+					Status: account.StatusReady.StatusPtr(),
+				},
+			},
+			retAccount: &account.Account{
+				ID:     ptrString("1234567890"),
+				Status: account.StatusReady.StatusPtr(),
+			},
+			retLease: &lease.Lease{},
+			getExistingLeases: &lease.Leases{
+				lease.Lease{
+					AccountID:   ptrString("1234567890"),
+					PrincipalID: ptrString("User1"),
+					Status:      lease.StatusInactive.StatusPtr(),
+				},
+			},
 			getExistingLeasesErr: nil,
 			retListErr:           nil,
 			retUpdateErr:         nil,
