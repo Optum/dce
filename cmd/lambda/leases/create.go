@@ -79,7 +79,7 @@ func CreateLease(w http.ResponseWriter, r *http.Request) {
 	queryLeases := &lease.Lease{}
 	queryLeases.AccountID = newLease.AccountID
 	queryLeases.PrincipalID = newLease.PrincipalID
-	queryLeases.Status = StatusInactive.StatusPtr()
+	queryLeases.Status = lease.StatusInactive.StatusPtr()
 
 	foundLeases, err := Services.LeaseService().List(queryLeases)
 	if err != nil {
@@ -88,7 +88,7 @@ func CreateLease(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Since we are using primary key to query, the number of leases that match the query should be one
-	if len(*foundLease) == 1 {
+	if len(*foundLeases) == 1 {
 		newLease.LastModifiedOn = (*foundLeases)[0].LastModifiedOn
 	}
 
