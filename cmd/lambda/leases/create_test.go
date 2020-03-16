@@ -30,16 +30,18 @@ func TestWhenCreateSuccess(t *testing.T) {
 	usageSvcMock.On("GetUsageByPrincipal", mock.Anything, mock.Anything).Return(nil, nil)
 
 	tests := []struct {
-		name         string
-		user         *api.User
-		expResp      events.APIGatewayProxyResponse
-		request      events.APIGatewayProxyRequest
-		retLease     *lease.Lease
-		retAccounts  *account.Accounts
-		retAccount   *account.Account
-		retListErr   error
-		retUpdateErr error
-		retCreateErr error
+		name                 string
+		user                 *api.User
+		expResp              events.APIGatewayProxyResponse
+		request              events.APIGatewayProxyRequest
+		retLease             *lease.Lease
+		retAccounts          *account.Accounts
+		retAccount           *account.Account
+		getExistingLeases    *lease.Leases
+		getExistingLeasesErr error
+		retListErr           error
+		retUpdateErr         error
+		retCreateErr         error
 	}{
 		{
 			name: "When given good values. Then success is returned.",
@@ -67,10 +69,12 @@ func TestWhenCreateSuccess(t *testing.T) {
 				ID:     ptrString("1234567890"),
 				Status: account.StatusReady.StatusPtr(),
 			},
-			retLease:     &lease.Lease{},
-			retListErr:   nil,
-			retUpdateErr: nil,
-			retCreateErr: nil,
+			retLease:             &lease.Lease{},
+			getExistingLeases:    nil,
+			getExistingLeasesErr: nil,
+			retListErr:           nil,
+			retUpdateErr:         nil,
+			retCreateErr:         nil,
 		},
 	}
 
@@ -90,6 +94,9 @@ func TestWhenCreateSuccess(t *testing.T) {
 			)
 			accountSvc.On("Update", mock.Anything, mock.Anything).Return(
 				tt.retAccount, tt.retUpdateErr,
+			)
+			leaseSvc.On("List", mock.AnythingOfType("*lease.Lease"), mock.Anything).Return(
+				tt.getExistingLeases, tt.getExistingLeasesErr,
 			)
 			leaseSvc.On("Create", mock.AnythingOfType("*lease.Lease"), mock.Anything).Return(
 				tt.retLease, tt.retCreateErr,
