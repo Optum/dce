@@ -74,6 +74,24 @@ func CreateLease(w http.ResponseWriter, r *http.Request) {
 		spent = spent + *usageItem.CostAmount
 	}
 
+	// Check if an inactive lease already exists with same principal id and account id
+	// if an inactive lease exists, then get the lastmodifiedon value from it
+	queryLeases := &lease.Lease{}
+	queryLeases.AccountID = newLease.AccountID
+	queryLeases.PrincipalID = newLease.PrincipalID
+	queryLeases.Status =  StatusInactive.StatusPtr()
+
+	foundLeases, err := Services.LeaseService().List(queryLeases)
+	if err != nil {
+		api.WriteAPIErrorResponse(w, err)
+		return
+	}
+
+	// Since we are using primary key to query, the number of leases that match the query should be one
+	if len(*foundLease) == 1 {
+		newLease.LastModifiedOn = (*foundLeases)[0].LastModifiedOn
+	}
+
 	// Create lease
 	newLease.AccountID = availableAccount.ID
 	leaseCreated, err := Services.LeaseService().Create(newLease, spent)
