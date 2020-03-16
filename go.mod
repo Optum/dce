@@ -30,6 +30,7 @@ require (
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 	gopkg.in/oleiade/reflections.v1 v1.0.0
+	gopkg.in/yaml.v2 v2.2.2
 )
 
 replace github.com/rebuy-de/aws-nuke => github.com/Optum/aws-nuke v1.1.0
