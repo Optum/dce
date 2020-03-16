@@ -77,7 +77,7 @@ func CreateLease(w http.ResponseWriter, r *http.Request) {
 	// Check if an inactive lease already exists with same principal id and account id
 	// if an inactive lease exists, then get the lastmodifiedon value from it
 	queryLeases := &lease.Lease{}
-	queryLeases.AccountID = newLease.AccountID
+	queryLeases.AccountID = availableAccount.ID
 	queryLeases.PrincipalID = newLease.PrincipalID
 	queryLeases.Status = lease.StatusInactive.StatusPtr()
 
