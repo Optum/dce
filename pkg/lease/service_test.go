@@ -574,26 +574,6 @@ func TestCreate(t *testing.T) {
 			principalSpentAmount: 0.0,
 		},
 		{
-			name: "should fail on createdOn must be empty",
-			req: &lease.Lease{
-				PrincipalID:              ptrString("User1"),
-				AccountID:                ptrString("123456789012"),
-				CreatedOn:                &timeNow,
-				LastModifiedOn:           &timeNow,
-				BudgetAmount:             ptrFloat(200.00),
-				BudgetCurrency:           ptrString("USD"),
-				BudgetNotificationEmails: ptrArrayString([]string{"test1@test.com", "test2@test.com"}),
-				Metadata:                 map[string]interface{}{},
-				ExpiresOn:                &leaseExpiresAfterAWeek,
-			},
-			exp: response{
-				data: nil,
-				err:  errors.NewValidation("lease", fmt.Errorf("createdOn: must be empty.")),
-			},
-			getResponse:          nil,
-			principalSpentAmount: 0.0,
-		},
-		{
 			name: "should fail on lease already exists",
 			req: &lease.Lease{
 				PrincipalID:              ptrString("User1"),
@@ -628,6 +608,8 @@ func TestCreate(t *testing.T) {
 			mocksRwd := &mocks.ReaderWriter{}
 			mocksEventer := &mocks.Eventer{}
 
+			mocksAccountSvc := &mocks.AccountServicer{}
+
 			mocksRwd.On("List", mock.AnythingOfType("*lease.Lease")).Return(tt.getResponse, nil)
 			mocksRwd.On("Write", mock.AnythingOfType("*lease.Lease"), mock.AnythingOfType("*int64")).Return(tt.writeErr)
 			mocksEventer.On("LeaseCreate", mock.AnythingOfType("*lease.Lease")).Return(nil)
@@ -636,6 +618,7 @@ func TestCreate(t *testing.T) {
 				lease.NewServiceInput{
 					DataSvc:                  mocksRwd,
 					EventSvc:                 mocksEventer,
+					AccountSvc:               mocksAccountSvc,
 					DefaultLeaseLengthInDays: 7,
 					PrincipalBudgetAmount:    1000.00,
 					PrincipalBudgetPeriod:    "Weekly",

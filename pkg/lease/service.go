@@ -228,9 +228,14 @@ func (a *Service) Create(data *Lease, principalSpentAmount float64) (*Lease, err
 		BudgetCurrency:           *data.BudgetCurrency,
 		BudgetNotificationEmails: *data.BudgetNotificationEmails,
 		ExpiresOn:                *data.ExpiresOn,
-		LastModifiedOn:           *data.LastModifiedOn,
-		CreatedOn:                *data.CreatedOn,
 	})
+
+	if data.LastModifiedOn != nil {
+		newLeaseRecord.LastModifiedOn = data.LastModifiedOn
+	}
+	if data.CreatedOn != nil {
+		newLeaseRecord.CreatedOn = data.CreatedOn
+	}
 	if err != nil {
 		return nil, err
 	}
