@@ -11,6 +11,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"path/filepath"
 	"regexp"
 	"sort"
 
@@ -196,6 +197,15 @@ func (np *NukeParser) GetDeleteMethods() ([]string, error) {
 	)
 }
 
+// Close closes the resource because file.Close() returns an error,
+// which is flagged by gosec.
+func (np *NukeParser) Close(f *os.File) {
+	err := f.Close()
+	if err != nil {
+		logger.Printf("could not close file: %s", f.Name())
+	}
+}
+
 // scanForExpression scans for the given expression in the directory
 func (np *NukeParser) scanForSupportedDeleteMethods(
 	refExpr *regexp.Regexp,
@@ -213,12 +223,12 @@ func (np *NukeParser) scanForSupportedDeleteMethods(
 		logger.Printf("scanning file: %s", f.Name())
 		methods := make([]string, 0)
 		services := make([]string, 0)
-		file, err := os.Open(path.Join(dir, f.Name()))
+		file, err := os.Open(filepath.Clean(path.Join(dir, f.Name())))
 		if err != nil {
 			logger.Printf("error opening file \"%s\": %v", f.Name(), err)
 			continue
 		}
-		defer file.Close()
+		defer np.Close(file)
 		scanner := bufio.NewScanner(file)
 		for scanner.Scan() {
 			refGroup := refExpr.FindAllStringSubmatch(scanner.Text(), -1)
