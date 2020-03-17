@@ -136,8 +136,11 @@ func init() {
 		logger.Fatalln("error loading configuration", err)
 	}
 
-	yaml.Unmarshal(yamlStr, configuration)
+	err = yaml.Unmarshal(yamlStr, configuration)
 
+	if err != nil {
+		logger.Fatalln("error while trying to parse configuration", err)
+	}
 }
 
 // GetUniqueValues returns a list of unique strings from the
