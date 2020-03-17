@@ -1,4 +1,4 @@
-# iampolgen Tool
+# awsnukedocgen Tool
 
 This tool is for generating both an example IAM policy and a list, in
 [Markdown](https://en.wikipedia.org/wiki/Markdown) of the human-readable names
@@ -24,9 +24,9 @@ func init() {
 }
 ```
 
-## iampolgen approach
+## awsnukedocgen approach
 
-The approach of the `iampolgen` tool is to scan the AWS Nuke `resources` folder
+The approach of the `awsnukedocgen` tool is to scan the AWS Nuke `resources` folder
 for handling resources. It looks through each file for a call to `DeleteX` or
 `TerminateX`, and then looks at the services reference at the top of the file to
 build a list of likely candidates for supported delete operations. Using this
@@ -102,7 +102,7 @@ $ git clone https://github.com/rebuy-de/aws-nuke.git /path/to/local/aws-nuke
 $ curl https://awspolicygen.s3.amazonaws.com/js/policies.js -o /path/to/policies.js
 $ cat /path/to/policies.js | sed 's/app.PolicyEditorConfig=//' > /path/to/policy.json
 # to generate the sample IAM policy (redirect STDOUT to a file if you wish)
-$ iampolgen -nuke-source-dir=/path/to/local/aws-nuke -policies-js-file=/path/to/policy.json
+$ awsnukedocgen -nuke-source-dir=/path/to/local/aws-nuke -policies-js-file=/path/to/policy.json
 # to generate the markdown list (redirect STDOUT to a file if you wish)
-$ iampolgen -nuke-source-dir=/path/to/local/aws-nuke -policies-js-file=/path/to/policy.json -generate-markdown
+$ awsnukedocgen -nuke-source-dir=/path/to/local/aws-nuke -policies-js-file=/path/to/policy.json -generate-markdown
 ```

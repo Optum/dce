@@ -19,7 +19,7 @@ import (
 
 var logger *log.Logger
 
-const configFile string = "iampolgen.yaml"
+const configFile string = "awsnukedocgen.yaml"
 const iamTemplate string = `
 {
     "Version": "2012-10-17",
@@ -97,7 +97,12 @@ const iamTemplate string = `
     ]
 }
 `
-const markdownTemplate string = `
+const markdownTemplate string = `# Account Cleanup with AWS Nuke
+
+DCE uses a [fork of AWS Nuke](https://github.com/Optum/aws-nuke)
+to facilitate account cleanup. Shown here is a list of services that are
+supported and those that are not supported for account cleanup.
+
 ## Supported Services
 
 {{range .SupportedServices -}}
