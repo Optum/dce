@@ -3,6 +3,7 @@ package lease
 import (
 	"time"
 
+	"github.com/Optum/dce/pkg/account"
 	"github.com/Optum/dce/pkg/errors"
 	validation "github.com/go-ozzo/ozzo-validation"
 )
@@ -41,10 +42,19 @@ type Eventer interface {
 	LeaseUpdate(old *Lease, new *Lease) error
 }
 
+// AccountServicer is a partial implementation of the
+// accountiface.Servicer interface, with only the methods
+// needed by the LeaseService
+type AccountServicer interface {
+	// EndLease indicates that the provided account is no longer leased.
+	Reset(id string) (*account.Account, error)
+}
+
 // Service is a type corresponding to a Lease table record
 type Service struct {
 	dataSvc                  ReaderWriter
 	eventSvc                 Eventer
+	accountSvc               AccountServicer
 	defaultLeaseLengthInDays int
 	principalBudgetAmount    float64
 	principalBudgetPeriod    string
@@ -103,6 +113,7 @@ func (a *Service) Delete(ID string) (*Lease, error) {
 
 	err = validation.ValidateStruct(data,
 		validation.Field(&data.Status, validation.NotNil, validation.By(isLeaseActive)),
+		validation.Field(&data.AccountID, validateAccountID...),
 	)
 	if err != nil {
 		return nil, errors.NewConflict("lease", *data.ID, err)
@@ -110,6 +121,11 @@ func (a *Service) Delete(ID string) (*Lease, error) {
 
 	data.Status = StatusInactive.StatusPtr()
 	err = a.dataSvc.Write(data, data.LastModifiedOn)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = a.accountSvc.Reset(*data.AccountID)
 	if err != nil {
 		return nil, err
 	}
@@ -255,6 +271,7 @@ func (a *Service) ListPages(query *Lease, fn func(*Leases) bool) error {
 type NewServiceInput struct {
 	DataSvc                  ReaderWriter
 	EventSvc                 Eventer
+	AccountSvc               AccountServicer
 	DefaultLeaseLengthInDays int     `env:"DEFAULT_LEASE_LENGTH_IN_DAYS" envDefault:"7"`
 	PrincipalBudgetAmount    float64 `env:"PRINCIPAL_BUDGET_AMOUNT" envDefault:"1000.00"`
 	PrincipalBudgetPeriod    string  `env:"PRINCIPAL_BUDGET_PERIOD" envDefault:"Weekly"`
@@ -267,6 +284,7 @@ func NewService(input NewServiceInput) *Service {
 	return &Service{
 		dataSvc:                  input.DataSvc,
 		eventSvc:                 input.EventSvc,
+		accountSvc:               input.AccountSvc,
 		defaultLeaseLengthInDays: input.DefaultLeaseLengthInDays,
 		principalBudgetAmount:    input.PrincipalBudgetAmount,
 		principalBudgetPeriod:    input.PrincipalBudgetPeriod,

@@ -1,10 +1,11 @@
 package config
 
 import (
-	"github.com/Optum/dce/pkg/api"
 	"log"
 	"reflect"
 	"runtime"
+
+	"github.com/Optum/dce/pkg/api"
 
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatchevents"
@@ -196,7 +197,7 @@ func (bldr *ServiceBuilder) AccountService() accountiface.Servicer {
 
 // WithLeaseService tells the builder to add the Account service to the `ConfigurationBuilder`
 func (bldr *ServiceBuilder) WithLeaseService() *ServiceBuilder {
-	bldr.WithLeaseDataService().WithEventService()
+	bldr.WithLeaseDataService().WithEventService().WithAccountService()
 	bldr.handlers = append(bldr.handlers, bldr.createLeaseService)
 	return bldr
 }
@@ -690,6 +691,12 @@ func (bldr *ServiceBuilder) createLeaseService(config ConfigurationServiceBuilde
 		return err
 	}
 
+	var accountSvc lease.AccountServicer
+	err = bldr.Config.GetService(&accountSvc)
+	if err != nil {
+		return err
+	}
+
 	leaseSvcInput := lease.NewServiceInput{}
 	if err := bldr.Config.Unmarshal(&leaseSvcInput); err != nil {
 		log.Printf("Could not load configuration: %s", err.Error())
@@ -697,6 +704,7 @@ func (bldr *ServiceBuilder) createLeaseService(config ConfigurationServiceBuilde
 	}
 	leaseSvcInput.DataSvc = dataSvc
 	leaseSvcInput.EventSvc = eventSvc
+	leaseSvcInput.AccountSvc = accountSvc
 	leaseSvc := lease.NewService(
 		leaseSvcInput,
 	)

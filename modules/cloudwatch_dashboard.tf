@@ -13,7 +13,6 @@ locals {
     fan_out_update_lease_status_lambda_name = module.fan_out_update_lease_status_lambda.name
     populate_reset_queue_name               = module.populate_reset_queue.name
     process_reset_queue_name                = module.process_reset_queue.name
-    publish_lease_events_lambda_name        = module.publish_lease_events_lambda.name
     update_principal_policy_name            = module.update_principal_policy.name
     error_scraper_query                     = "fields @timestamp, @message | sort @timestamp desc | filter @message ~= \\\"error\\\" or @message ~= \\\"fail\\\" or @message ~= \\\"fork/exec\\\" | display @timestamp, @message, @logStream| limit 10"
     metrics_namespace_var                   = local.metrics_namespace

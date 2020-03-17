@@ -102,6 +102,7 @@ func TestDelete(t *testing.T) {
 			ID:   "70c2d96d-7938-4ec9-917d-476f2b09cc04",
 			expLease: &lease.Lease{
 				ID:           ptrString("70c2d96d-7938-4ec9-917d-476f2b09cc04"),
+				AccountID:    ptrString("123456789012"),
 				Status:       lease.StatusActive.StatusPtr(),
 				StatusReason: lease.StatusReasonDestroyed.StatusReasonPtr(),
 			},
@@ -119,18 +120,20 @@ func TestDelete(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mocksRwd := &mocks.ReaderWriter{}
-			mocksRwd.On("Get", tt.ID).
-				Return(tt.expLease, tt.returnErr)
-			mocksRwd.On("Write", mock.Anything, mock.Anything).
-				Return(tt.returnErr)
+			mocksRwd.On("Get", tt.ID).Return(tt.expLease, tt.returnErr)
+			mocksRwd.On("Write", mock.Anything, mock.Anything).Return(tt.returnErr)
+
+			mocksAccountSvc := &mocks.AccountServicer{}
+			mocksAccountSvc.On("Reset", mock.AnythingOfType("string")).Return(nil, nil)
 
 			mocksEvents := &mocks.Eventer{}
 			mocksEvents.On("LeaseEnd", mock.AnythingOfType("*lease.Lease")).Return(nil)
 
 			leaseSvc := lease.NewService(
 				lease.NewServiceInput{
-					DataSvc:  mocksRwd,
-					EventSvc: mocksEvents,
+					DataSvc:    mocksRwd,
+					EventSvc:   mocksEvents,
+					AccountSvc: mocksAccountSvc,
 				},
 			)
 			actualLease, err := leaseSvc.Delete(tt.ID)
