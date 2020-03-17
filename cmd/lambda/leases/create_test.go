@@ -105,9 +105,10 @@ func TestWhenCreateSuccess(t *testing.T) {
 			retLease: &lease.Lease{},
 			getExistingLeases: &lease.Leases{
 				lease.Lease{
-					AccountID:   ptrString("1234567890"),
-					PrincipalID: ptrString("User1"),
-					Status:      lease.StatusInactive.StatusPtr(),
+					AccountID:      ptrString("1234567890"),
+					PrincipalID:    ptrString("User1"),
+					Status:         lease.StatusInactive.StatusPtr(),
+					LastModifiedOn: ptrInt64(1584390390),
 				},
 			},
 			getExistingLeasesErr: nil,

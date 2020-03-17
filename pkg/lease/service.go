@@ -177,7 +177,6 @@ func (a *Service) Create(data *Lease, principalSpentAmount float64) (*Lease, err
 		validation.Field(&data.PrincipalID, validatePrincipalID...),
 		validation.Field(&data.ID, validation.By(isNil)),
 		validation.Field(&data.Status, validation.By(isNil)),
-		validation.Field(&data.CreatedOn, validation.By(isNil)),
 		validation.Field(&data.StatusReason, validation.By(isNil)),
 		validation.Field(&data.ExpiresOn, validation.NotNil, validation.By(isExpiresOnValid(a))),
 	)
@@ -213,6 +212,8 @@ func (a *Service) Create(data *Lease, principalSpentAmount float64) (*Lease, err
 		BudgetCurrency:           *data.BudgetCurrency,
 		BudgetNotificationEmails: *data.BudgetNotificationEmails,
 		ExpiresOn:                *data.ExpiresOn,
+		LastModifiedOn:           *data.LastModifiedOn,
+		CreatedOn:                *data.CreatedOn,
 	})
 	if err != nil {
 		return nil, err

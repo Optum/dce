@@ -126,6 +126,8 @@ type NewLeaseInput struct {
 	BudgetNotificationEmails []string
 	Metadata                 map[string]interface{}
 	ExpiresOn                int64
+	LastModifiedOn           int64
+	CreatedOn                int64
 }
 
 // NewLease creates a new instance of lease
@@ -141,5 +143,7 @@ func NewLease(input NewLeaseInput) *Lease {
 		Metadata:                 input.Metadata,
 		Status:                   StatusActive.StatusPtr(),
 		ExpiresOn:                &input.ExpiresOn,
+		LastModifiedOn:           &input.LastModifiedOn,
+		CreatedOn:                &input.CreatedOn,
 	}
 }
