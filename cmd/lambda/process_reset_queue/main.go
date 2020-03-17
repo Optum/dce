@@ -74,7 +74,7 @@ func handler(ctx context.Context, sqsEvent events.SQSEvent) error {
 
 func processMessage(codeBuildSvc codebuildiface.CodeBuildAPI, event events.SQSMessage) error {
 
-	acct := &account.Account{}
+	acct := account.Account{}
 	if err := json.Unmarshal([]byte(event.Body), &acct); err != nil {
 		return errors.NewInternalServer("unexpected error unmarshaling sqs message", err)
 	}
