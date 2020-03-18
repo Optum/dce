@@ -140,6 +140,7 @@ func NewLease(input NewLeaseInput) *Lease {
 		BudgetNotificationEmails: &input.BudgetNotificationEmails,
 		Metadata:                 input.Metadata,
 		Status:                   StatusActive.StatusPtr(),
+		StatusReason:             StatusReasonActive.StatusReasonPtr(),
 		ExpiresOn:                &input.ExpiresOn,
 	}
 }
