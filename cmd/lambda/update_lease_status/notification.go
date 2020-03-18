@@ -2,8 +2,10 @@ package main
 
 import (
 	"bytes"
+	"github.com/Optum/dce/pkg/common"
 	"github.com/Optum/dce/pkg/db"
 	"github.com/Optum/dce/pkg/email"
+	"github.com/pkg/errors"
 	"html/template"
 	"log"
 	"sort"
@@ -13,10 +15,12 @@ import (
 type sendBudgetNotificationEmailInput struct {
 	lease                                  *db.Lease
 	emailSvc                               email.Service
+	s3Svc                                  common.Storager
 	budgetNotificationFromEmail            string
 	budgetNotificationBCCEmails            []string
-	budgetNotificationTemplateHTML         string
-	budgetNotificationTemplateText         string
+	budgetNotificationTemplatesBucket      string
+	budgetNotificationTemplateHTMLKey      string
+	budgetNotificationTemplateTextKey      string
 	budgetNotificationTemplateSubject      string
 	budgetNotificationThresholdPercentiles []float64
 	actualLeaseSpend                       float64
@@ -65,13 +69,25 @@ func sendBudgetNotificationEmail(input *sendBudgetNotificationEmailInput) error 
 	log.Printf("Sending budget notification emails for lease %s @ %s to %s",
 		input.lease.PrincipalID, input.lease.AccountID, strings.Join(input.lease.BudgetNotificationEmails, ","))
 
+	// Get the notification email templates from S3
+	templateText, err := input.s3Svc.GetObject(input.budgetNotificationTemplatesBucket, input.budgetNotificationTemplateTextKey)
+	if err != nil {
+		return errors.Wrapf(err, "Failed load budget notification template at s3://%s/%s",
+			input.budgetNotificationTemplatesBucket, input.budgetNotificationTemplateTextKey)
+	}
+	templateHTML, err := input.s3Svc.GetObject(input.budgetNotificationTemplatesBucket, input.budgetNotificationTemplateHTMLKey)
+	if err != nil {
+		return errors.Wrapf(err, "Failed load budget notification template at s3://%s/%s",
+			input.budgetNotificationTemplatesBucket, input.budgetNotificationTemplateHTMLKey)
+	}
+
 	return sendEmail(&sendEmailInput{
 		lease:                             input.lease,
 		emailSvc:                          input.emailSvc,
 		budgetNotificationFromEmail:       input.budgetNotificationFromEmail,
 		budgetNotificationBCCEmails:       input.budgetNotificationBCCEmails,
-		budgetNotificationTemplateHTML:    input.budgetNotificationTemplateHTML,
-		budgetNotificationTemplateText:    input.budgetNotificationTemplateText,
+		budgetNotificationTemplateHTML:    templateHTML,
+		budgetNotificationTemplateText:    templateText,
 		budgetNotificationTemplateSubject: input.budgetNotificationTemplateSubject,
 		actualSpend:                       actualSpend,
 	}, thresholdPercentile)
