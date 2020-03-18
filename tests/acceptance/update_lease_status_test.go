@@ -154,7 +154,10 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 		apiRequest(t, &apiRequestInput{
 			method: "POST",
 			url:    apiURL + "/leases",
-			json: inputLeaseRequest{
+			json: struct {
+				PrincipalID  string  `json:"principalId"`
+				BudgetAmount float64 `json:"budgetAmount"`
+			}{
 				PrincipalID:  principalID,
 				BudgetAmount: 200.00,
 			},
@@ -218,7 +221,10 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 		apiRequest(t, &apiRequestInput{
 			method: "POST",
 			url:    apiURL + "/leases",
-			json: inputLeaseRequest{
+			json: struct {
+				PrincipalID  string  `json:"principalId"`
+				BudgetAmount float64 `json:"budgetAmount"`
+			}{
 				PrincipalID:  principalID,
 				BudgetAmount: 200.00,
 			},
@@ -282,7 +288,10 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 		apiRequest(t, &apiRequestInput{
 			method: "POST",
 			url:    apiURL + "/leases",
-			json: inputLeaseRequest{
+			json: struct {
+				PrincipalID  string  `json:"principalId"`
+				BudgetAmount float64 `json:"budgetAmount"`
+			}{
 				PrincipalID:  principalID,
 				BudgetAmount: 199.00,
 			},
@@ -349,7 +358,10 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 		apiRequest(t, &apiRequestInput{
 			method: "POST",
 			url:    apiURL + "/leases",
-			json: inputLeaseRequest{
+			json: struct {
+				PrincipalID  string  `json:"principalId"`
+				BudgetAmount float64 `json:"budgetAmount"`
+			}{
 				PrincipalID:  principalID,
 				BudgetAmount: 300.00,
 			},
@@ -416,7 +428,10 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 		apiRequest(t, &apiRequestInput{
 			method: "POST",
 			url:    apiURL + "/leases",
-			json: inputLeaseRequest{
+			json: struct {
+				PrincipalID  string  `json:"principalId"`
+				BudgetAmount float64 `json:"budgetAmount"`
+			}{
 				PrincipalID:  principalID,
 				BudgetAmount: 300.00,
 			},
