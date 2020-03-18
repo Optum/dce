@@ -20,6 +20,9 @@ import (
 	"github.com/Optum/dce/pkg/usage"
 	"github.com/Optum/dce/tests/testutils"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+
+	"github.com/aws/aws-sdk-go/service/codebuild"
+	"github.com/aws/aws-sdk-go/service/sqs"
 )
 
 type getItemsResponseError struct {
@@ -61,7 +64,7 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 		aws.NewConfig().WithRegion(tfOut["aws_region"].(string)))
 	require.Nil(t, err)
 	require.Nil(t, err)
-	dbSvc := db.New(
+	dbSvc = db.New(
 		dynamodb.New(
 			awsSession,
 			aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
@@ -70,9 +73,10 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 		tfOut["leases_table_name"].(string),
 		7,
 	)
+	dbSvc.ConsistentRead = true
 
 	// Configure the usage service
-	usageSvc := usage.New(
+	usageSvc = usage.New(
 		dynamodb.New(
 			awsSession,
 			aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
@@ -81,6 +85,17 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 		"StartDate",
 		"PrincipalId",
 	)
+
+	sqsSvc = sqs.New(
+		awsSession,
+		aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
+	)
+	codeBuildSvc = codebuild.New(
+		awsSession,
+		aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
+	)
+	sqsResetURL = tfOut["sqs_reset_queue_url"].(string)
+	codeBuildResetName = tfOut["codebuild_reset_name"].(string)
 
 	// Create Lambda service client
 	lambdaClient := lambda.New(awsSession)
@@ -105,6 +120,9 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 	}
 	adminRoleRes := createAdminRole(t, awsSession, adminRoleName, policies)
 
+	// Cleanup tables before and after tests
+	givenEmptySystem(t)
+	defer givenEmptySystem(t)
 	defer deletePolicy(t, *cePolicy.Arn)
 	defer deleteAdminRole(t, adminRoleName, policies)
 
