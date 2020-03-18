@@ -87,6 +87,7 @@ has exceeded its budget of $100. Actual spend is $150
 		snsSvc := &commonMocks.Notificationer{}
 		sqsSvc := &awsMocks.SQSAPI{}
 		emailSvc := &emailMocks.Service{}
+		s3Svc := &commonMocks.Storager{}
 		input := &lambdaHandlerInput{
 			dbSvc: dbSvc,
 			lease: &db.Lease{
@@ -107,10 +108,12 @@ has exceeded its budget of $100. Actual spend is $150
 			leaseLockedTopicArn:                    "lease-locked",
 			sqsSvc:                                 sqsSvc,
 			emailSvc:                               emailSvc,
+			s3Svc:                                  s3Svc,
 			budgetNotificationFromEmail:            "from@example.com",
 			budgetNotificationBCCEmails:            []string{"bcc@example.com"},
-			budgetNotificationTemplateHTML:         emailTemplateHTML,
-			budgetNotificationTemplateText:         emailTemplateText,
+			budgetNotificationTemplatesBucket:      "artifacts-bucket",
+			budgetNotificationTemplateHTMLKey:      "templates/html.tmpl",
+			budgetNotificationTemplateTextKey:      "templates/text.tmpl",
 			budgetNotificationTemplateSubject:      emailTemplateSubject,
 			budgetNotificationThresholdPercentiles: []float64{75, 100},
 			principalBudgetAmount:                  1000,
@@ -173,6 +176,12 @@ has exceeded its budget of $100. Actual spend is $150
 
 		// Should send a notification email
 		if test.shouldSendEmail {
+			// Mock templates in S3
+			s3Svc.On("GetObject", "artifacts-bucket", "templates/text.tmpl").
+				Return(emailTemplateText, nil)
+			s3Svc.On("GetObject", "artifacts-bucket", "templates/html.tmpl").
+				Return(emailTemplateHTML, nil)
+
 			emailSvc.On("SendEmail", &email.SendEmailInput{
 				FromAddress:  "from@example.com",
 				ToAddresses:  []string{"recipA@example.com", "recipB@example.com"},
