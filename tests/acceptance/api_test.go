@@ -1084,6 +1084,20 @@ func TestApi(t *testing.T) {
 				waitForAccountStatus(t, apiURL, accountID, "Leased")
 
 				t.Run("STEP: Create duplicate lease for same principal (should fail)", func(t *testing.T) {
+
+					// Create an Account Entry
+					timeNow := time.Now().Unix()
+
+					testAccount := "667771117771"
+					error := dbSvc.PutAccount(db.Account{
+						ID:               testAccount,
+						AccountStatus:    db.Ready,
+						AdminRoleArn:     adminRoleArn,
+						PrincipalRoleArn: fmt.Sprintf("arn:aws:iam::%s:role/principalRole", testAccount),
+						LastModifiedOn:   timeNow,
+					})
+					require.Nil(t, error)
+
 					// Create a lease
 					res = apiRequest(t, &apiRequestInput{
 						method: "POST",
