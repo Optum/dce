@@ -10,6 +10,10 @@
 - Fix an issue when comparing the current Principal Policy Hash to the new version where the pointers were being compared and not the values
 - Update functional testing timeout to be 20 minutes from the default of 10 minutes
 - Fix to allow budget notification email templates > 4Kb
+- Added new tool in `tools` folder for generating Markdown and IAM example policy for AWS Nuke
+  support. See README in `tools/awsnukedocgen`.
+- Added new services supported by DCE: Kinesis Analytics, Kinesis Video, Opsworks CM, Robomaker,
+  and Worklink.
 
 ## v0.28.0
 
