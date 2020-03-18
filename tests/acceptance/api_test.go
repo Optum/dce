@@ -1117,7 +1117,7 @@ func TestApi(t *testing.T) {
 					require.Equal(t, map[string]interface{}{
 						"error": map[string]interface{}{
 							"code":    "AlreadyExistsError",
-							"message": fmt.Sprintf("lease with principal %s and account %s already exists", testPrincipal, accountID),
+							"message": fmt.Sprintf("lease \"with principal %s and account %s\" already exists", testPrincipal, testAccount),
 						},
 					}, parseResponseJSON(t, res))
 
