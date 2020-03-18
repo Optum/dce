@@ -1,5 +1,6 @@
 ## Project
 bin
+build
 bin/*
 local_terraform.tfvars
 

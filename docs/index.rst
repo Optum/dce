@@ -75,6 +75,15 @@ Permissions and Policies
    :maxdepth: 2
 
    policies
+   
+
+Account Cleanup with AWS Nuke
+------------------------
+.. toctree::
+   :maxdepth: 2
+
+   awsnuke-support
+   
 
 Local Development
 -----------------

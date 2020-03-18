@@ -474,9 +474,10 @@ func TestApi(t *testing.T) {
 			err := dbSvc.PutAccount(db.Account{
 				ID:               leasedAccountID,
 				AccountStatus:    db.Ready,
+				LastModifiedOn:   timeNow,
+				CreatedOn:        timeNow,
 				AdminRoleArn:     fmt.Sprintf("arn:aws:iam::%s:role/adminRole", leasedAccountID),
 				PrincipalRoleArn: fmt.Sprintf("arn:aws:iam::%s:role/principalRole", leasedAccountID),
-				LastModifiedOn:   timeNow,
 			})
 			require.Nil(t, err)
 

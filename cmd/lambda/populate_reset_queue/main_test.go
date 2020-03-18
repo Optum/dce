@@ -123,7 +123,7 @@ func TestPopulateResetQeue(t *testing.T) {
 				},
 			)
 
-			svcBldr.Config.WithService(accountSvc)
+			svcBldr.Config.WithService(mocksEvent).WithService(accountSvc)
 			_, err := svcBldr.Build()
 
 			assert.Nil(t, err)

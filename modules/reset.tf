@@ -19,7 +19,7 @@ resource "aws_sqs_queue" "account_reset" {
 resource "aws_sqs_queue" "account_reset_dlq" {
   name                       = "account-reset-dlq-${var.namespace}"
   tags                       = var.global_tags
-  visibility_timeout_seconds = 30
+  visibility_timeout_seconds = 60
 }
 
 # Lambda function to add all NotReady accounts to the reset queue
