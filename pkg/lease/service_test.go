@@ -585,7 +585,7 @@ func TestCreate(t *testing.T) {
 			},
 			exp: response{
 				data: nil,
-				err:  errors.NewAlreadyExists("lease", "User1"),
+				err:  errors.NewAlreadyExists("lease", "with principal User1 and account 123456789012"),
 			},
 			getResponse: &lease.Leases{
 				lease.Lease{
