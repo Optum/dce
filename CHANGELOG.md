@@ -9,6 +9,7 @@
 - Update the visibility timeout on the Reset SQS to be 6 times the runtime of the process reset queue Lambda
 - Fix an issue when comparing the current Principal Policy Hash to the new version where the pointers were being compared and not the values
 - Update functional testing timeout to be 20 minutes from the default of 10 minutes
+- Fix to allow budget notification email templates > 4Kb
 
 ## v0.28.0
 

@@ -1,0 +1,26 @@
+additionalServices:
+- neptune-db
+- sts
+- apigateway
+- execute-api
+- tag
+- waf-regional
+serviceAliases:
+  acmpca: acm-pca
+  cloudhsmv2: cloudhsm
+  cloudwatchlogs: logs
+  cloudwatchevents: events
+  cognitoidentity: cognito-identity
+  cognitoidentityprovider: cognito-idp
+  configservice: config
+  databasemigrationservice: dms
+  directoryservice: ds
+  efs: elasticfilesystem
+  elasticsearchservice: es
+  elb: elasticloadbalancing
+  elbv2: elasticloadbalancing
+  emr: elasticmapreduce
+  mobile: mobilehub
+  opsworkscm: opsworks-cm
+  resourcegroups: resource-groups
+  sfn: states
