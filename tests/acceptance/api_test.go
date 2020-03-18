@@ -1099,11 +1099,12 @@ func TestApi(t *testing.T) {
 					require.Nil(t, error)
 
 					// Create a lease
+					testPrincipal := "test-user"
 					res = apiRequest(t, &apiRequestInput{
 						method: "POST",
 						url:    apiURL + "/leases",
 						json: map[string]interface{}{
-							"principalId":               "test-user",
+							"principalId":               testPrincipal,
 							"budgetAmount":              800,
 							"budgetCurrency":            "USD",
 							"budgetNotificationsEmails": []string{"test@example.com"},
@@ -1115,8 +1116,8 @@ func TestApi(t *testing.T) {
 
 					require.Equal(t, map[string]interface{}{
 						"error": map[string]interface{}{
-							"code":    "ClientError",
-							"message": fmt.Sprintf("Principal already has an active lease for account %s", accountID),
+							"code":    "AlreadyExistsError",
+							"message": fmt.Sprintf("lease with principal %s and account %s already exists", testPrincipal, accountID),
 						},
 					}, parseResponseJSON(t, res))
 

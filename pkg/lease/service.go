@@ -1,6 +1,7 @@
 package lease
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/Optum/dce/pkg/account"
@@ -218,7 +219,8 @@ func (a *Service) Create(data *Lease, principalSpentAmount float64) (*Lease, err
 		return nil, errors.NewInternalServer("lease", err)
 	}
 	if existingLeases != nil && len(*existingLeases) > 0 {
-		return nil, errors.NewAlreadyExists("lease", *data.PrincipalID)
+		message := fmt.Sprintf("with principal %s and account %s", *data.PrincipalID, *data.AccountID)
+		return nil, errors.NewAlreadyExists("lease", message)
 	}
 
 	newLeaseRecord := NewLease(NewLeaseInput{
