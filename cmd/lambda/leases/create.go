@@ -2,203 +2,116 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/Optum/dce/pkg/api"
-	"log"
 	"net/http"
 	"time"
 
-	"github.com/google/uuid"
-	"github.com/pkg/errors"
-
-	"github.com/Optum/dce/pkg/api/response"
-	"github.com/Optum/dce/pkg/common"
-	"github.com/Optum/dce/pkg/db"
+	"github.com/Optum/dce/pkg/account"
+	"github.com/Optum/dce/pkg/errors"
+	"github.com/Optum/dce/pkg/lease"
 )
 
-type createLeaseRequest struct {
-	PrincipalID              string                 `json:"principalId"`
-	BudgetAmount             float64                `json:"budgetAmount"`
-	BudgetCurrency           string                 `json:"budgetCurrency"`
-	BudgetNotificationEmails []string               `json:"budgetNotificationEmails"`
-	ExpiresOn                int64                  `json:"expiresOn"`
-	Metadata                 map[string]interface{} `json:"metadata"`
-}
+const (
+	Weekly = "WEEKLY"
+)
 
-// CreateLease - Creates the lease
+// CreateLease - Function to validate the lease request and create lease
 func CreateLease(w http.ResponseWriter, r *http.Request) {
-	c := leaseValidationContext{
-		maxLeaseBudgetAmount:     maxLeaseBudgetAmount,
-		maxLeasePeriod:           maxLeasePeriod,
-		defaultLeaseLengthInDays: defaultLeaseLengthInDays,
-		principalBudgetPeriod:    principalBudgetPeriod,
-		principalBudgetAmount:    principalBudgetAmount,
-	}
-
-	// Extract the Body from the Request
-	requestBody, isValid, validationErrorMessage, err := validateLeaseFromRequest(&c, r)
+	// Deserialize the request JSON as an request object
+	newLease := &lease.Lease{}
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(newLease)
 
 	if err != nil {
-		response.WriteServerErrorWithResponse(w, err.Error())
+		api.WriteAPIErrorResponse(w,
+			errors.NewBadRequest("invalid request parameters"))
 		return
 	}
 
-	if !isValid {
-		response.WriteRequestValidationError(w, validationErrorMessage)
+	// if principalId is missing, then throw an error
+	if newLease.PrincipalID == nil {
+		api.WriteAPIErrorResponse(w,
+			errors.NewBadRequest("invalid request parameters: missing principalId"))
 		return
 	}
-
-	principalID := requestBody.PrincipalID
 
 	// If user is not an admin, they can't create leases for other users
 	user := r.Context().Value(api.User{}).(*api.User)
-	err = user.Authorize(principalID)
+	err = user.Authorize(*newLease.PrincipalID)
 	if err != nil {
 		api.WriteAPIErrorResponse(w, err)
 		return
 	}
 
-	log.Printf("Creating lease for Principal %s", principalID)
+	// Get the First available Ready Account
+	query := &account.Account{
+		Status: account.StatusReady.StatusPtr(),
+	}
 
-	// Fail if the Principal already has an active lease
-	principalLeases, err := dao.FindLeasesByPrincipal(requestBody.PrincipalID)
+	accounts, err := Services.AccountService().List(query)
 	if err != nil {
-		log.Printf("Failed to list leases for principal %s: %s", requestBody.PrincipalID, err)
-		response.WriteServerErrorWithResponse(w, "Internal server error")
+		api.WriteAPIErrorResponse(w, err)
+		return
+	}
+	if (accounts == nil) || (accounts != nil && len(*accounts) == 0) {
+		api.WriteAPIErrorResponse(w,
+			errors.NewInternalServer("No Available accounts at this moment", nil))
+		return
+	}
+	availableAccount := (*accounts)[0]
+
+	// Get user principal's current spend
+	usageStartTime := getBeginningOfCurrentBillingPeriod(Settings.PrincipalBudgetPeriod)
+	usageRecords, err := usageSvc.GetUsageByPrincipal(usageStartTime, *newLease.PrincipalID)
+	if err != nil {
+		api.WriteAPIErrorResponse(w, err)
 		return
 	}
 
-	for _, lease := range principalLeases {
-		if lease.LeaseStatus == db.Active {
-			msg := fmt.Sprintf("Principal already has an active lease for account %s", lease.AccountID)
-			response.WriteConflictError(w, msg)
-			return
-		}
+	// Group by PrincipalID to get sum of total spent for current billing period
+	spent := 0.0
+	for _, usageItem := range usageRecords {
+		spent = spent + *usageItem.CostAmount
 	}
 
-	// Get the First Ready Account
-	// Exit if there's an error or no ready accounts
-	account, err := dao.GetReadyAccount()
-	if err != nil {
-		log.Printf("Failed to Check Ready Accounts: %s", err)
-		response.WriteServerErrorWithResponse(
-			w,
-			fmt.Sprintf("Failed to find a Ready Account: %s", err),
-		)
-		return
-	} else if account == nil {
-		errStr := "No Available accounts at this moment"
-		log.Println(errStr)
-		response.WriteServiceUnavailableError(w, errStr)
-		return
-	}
-	log.Printf("Principal %s will be Leased to Account: %s\n", principalID,
-		account.ID)
+	// Check if an inactive lease already exists with same principal id and account id
+	// if an inactive lease exists, then get the lastModifiedOn value from it
+	queryLeases := &lease.Lease{}
+	queryLeases.AccountID = availableAccount.ID
+	queryLeases.PrincipalID = newLease.PrincipalID
+	queryLeases.Status = lease.StatusInactive.StatusPtr()
 
-	// Create/Update lease record
-	now := time.Now()
-	lease, err := dao.UpsertLease(db.Lease{
-		AccountID:                account.ID,
-		PrincipalID:              requestBody.PrincipalID,
-		ID:                       uuid.New().String(),
-		LeaseStatus:              db.Active,
-		LeaseStatusReason:        db.LeaseActive,
-		BudgetAmount:             requestBody.BudgetAmount,
-		BudgetCurrency:           requestBody.BudgetCurrency,
-		BudgetNotificationEmails: requestBody.BudgetNotificationEmails,
-		CreatedOn:                now.Unix(),
-		LastModifiedOn:           now.Unix(),
-		LeaseStatusModifiedOn:    now.Unix(),
-		ExpiresOn:                requestBody.ExpiresOn,
-		Metadata:                 requestBody.Metadata,
-	})
+	foundLeases, err := Services.LeaseService().List(queryLeases)
 	if err != nil {
-		log.Printf("Failed to create lease DB record for %s @ %s: %s",
-			requestBody.PrincipalID, account.ID, err)
-		response.WriteServerError(w)
+		api.WriteAPIErrorResponse(w, err)
 		return
 	}
 
-	// Mark the accOunt as Status=Leased
-	_, err = dao.TransitionAccountStatus(account.ID, db.Ready, db.Leased)
-	if err != nil {
-		log.Printf("ERROR Failed to transition account %s to Leased for lease for %s. Attemping to deactivate lease...",
-			lease.AccountID, lease.PrincipalID)
-		// If setting the account status fails, attempt to deactivate the lease
-		// before returning a 500 error
-		_, err = dao.TransitionLeaseStatus(
-			lease.AccountID, lease.PrincipalID,
-			db.Active, db.Inactive, db.LeaseRolledBack,
-		)
-		if err != nil {
-			log.Printf("Failed to deactivate lease on DB error for %s / %s: %s",
-				lease.AccountID, lease.PrincipalID, err)
-		}
+	// Since we are using primary key to query, the number of leases that match the query should be one
+	if foundLeases != nil && len(*foundLeases) == 1 {
+		newLease.LastModifiedOn = (*foundLeases)[0].LastModifiedOn
+		newLease.CreatedOn = (*foundLeases)[0].CreatedOn
+	} else {
+		newLease.LastModifiedOn = nil
+	}
 
-		response.WriteServerError(w)
+	// Create lease
+	newLease.AccountID = availableAccount.ID
+	leaseCreated, err := Services.LeaseService().Create(newLease, spent)
+	if err != nil {
+		api.WriteAPIErrorResponse(w, err)
 		return
 	}
 
-	// Publish Lease to the topic
-	message, err := publishLease(snsSvc, lease, &leaseAddedTopicARN)
+	// Mark the account as Status=Leased
+	availableAccount.Status = account.StatusLeased.StatusPtr()
+	_, err = Services.AccountService().Update(*availableAccount.ID, &availableAccount)
 	if err != nil {
-		log.Print(err.Error())
-
-		// Attempt to rollback the lease
-		_, err := dao.TransitionLeaseStatus(lease.AccountID, lease.PrincipalID, db.Active, db.Inactive, db.LeaseRolledBack)
-		if err != nil {
-			log.Printf("Failed to deactivate lease on SNS error for %s / %s: %s",
-				lease.AccountID, lease.PrincipalID, err)
-		} else {
-			_, err := dao.TransitionAccountStatus(lease.AccountID, db.Leased, db.Ready)
-			log.Printf("Failed to rollback account status on SNS error for %s / %s: %s",
-				lease.AccountID, lease.PrincipalID, err)
-		}
-
-		response.WriteServerError(w)
+		api.WriteAPIErrorResponse(w, err)
 		return
 	}
 
-	response.WriteAPIResponse(w, http.StatusCreated, *message)
-}
-
-// publishLease is a helper function to create and publish an lease
-// structured message to an SNS Topic
-func publishLease(snsSvc common.Notificationer,
-	lease *db.Lease, topic *string) (*string, error) {
-	// Create a LeaseResponse based on the lease
-	leaseResp := response.CreateLeaseResponse(lease)
-
-	// Create the message to send to the topic from the Lease
-	messageBytes, err := json.Marshal(leaseResp)
-	if err != nil {
-		// Rollback
-		log.Printf("Error to Marshal Account Lease: %s", err)
-		return nil, err
-	}
-	message := string(messageBytes)
-
-	// Create the messageBody to make it compatible with SNS JSON
-	leaseMsgBody := messageBody{
-		Default: message,
-		Body:    message,
-	}
-	leaseMsgBytes, err := json.Marshal(leaseMsgBody)
-	if err != nil {
-		// Rollback
-		log.Printf("Error to Marshal Message Body: %s", err)
-		return nil, err
-	}
-	leaseMsg := string(leaseMsgBytes)
-
-	// Publish message to the lease topic on the success of the lease creation
-	log.Printf("Sending Lease Message to SNS Topic %s\n", *topic)
-	messageID, err := snsSvc.PublishMessage(topic, &leaseMsg, true)
-	if err != nil {
-		return nil, errors.Wrapf(err, "Error to Send Message to SNS Topic %s", *topic)
-	}
-	log.Printf("Success Message Sent to SNS Topic %s: %s\n", *topic, *messageID)
-	return &message, nil
+	api.WriteAPIResponse(w, http.StatusCreated, leaseCreated)
 }
 
 // getBeginningOfCurrentBillingPeriod returns starts of the billing period based on budget period
