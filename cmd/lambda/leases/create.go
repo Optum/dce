@@ -53,7 +53,7 @@ func CreateLease(w http.ResponseWriter, r *http.Request) {
 		api.WriteAPIErrorResponse(w, err)
 		return
 	}
-	if accounts != nil && len(*accounts) == 0 {
+	if (accounts == nil) || (accounts != nil && len(*accounts) == 0) {
 		api.WriteAPIErrorResponse(w,
 			errors.NewInternalServer("No Available accounts at this moment", nil))
 		return
