@@ -23,7 +23,7 @@ type Servicer interface {
 	// Create creates a new account using the data provided. Returns the account record
 	Create(data *account.Account) (*account.Account, error)
 	// Reset initiates the Reset account process.
-	Reset(data *account.Account) error
+	Reset(id string) (*account.Account, error)
 	// UpsertPrincipalAccess merges principal access to make sure its
 	UpsertPrincipalAccess(data *account.Account) error
 }

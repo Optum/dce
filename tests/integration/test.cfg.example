@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+#------------------------------------------------------------------------------
+# test.cfg
+# This is an example file for test.cfg, which is read by the testmain.sh script
+# for certain environment configurations. To use this file, copy it to test.cfg
+# and uncomment the configuration values that are documented below.
+#------------------------------------------------------------------------------
+
+# Uncomment if you want to specify the version of DCE CLI to test. This version
+# will be used to download the DCE CLI. If it is not present, the latest
+# version will be used.
+#
+# DCE_CLI_VERSION=v0.4.0
+

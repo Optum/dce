@@ -5,6 +5,13 @@
 - Add `tag:*` to support finding resources by tag, and changing tags for existing resources.
 - Fix bug where account status would not transition from `Leased` --> `NotReady`, on lease deletion.
 - Do not run `aws-nuke` if `var.reset_nuke_toggle = false`. Previously, ran aws-nuke in dry-run mode.
+- Remove Lease table stream processing to change the account status to be `NotReady`
+- Add Account Service to the Lease Service so we can reset account status directly when removing or adding a lease
+- Update Populate Reset Queue to skip the Account Service and publish the Reset event directly
+- Update the visibility timeout on the Reset SQS to be 6 times the runtime of the process reset queue Lambda
+- Fix an issue when comparing the current Principal Policy Hash to the new version where the pointers were being compared and not the values
+- Update functional testing timeout to be 20 minutes from the default of 10 minutes
+- Fix to allow budget notification email templates > 4Kb
 - Prevent non-admins from performing CRUD operations on other user's leases
 
 ## v0.28.0

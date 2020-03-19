@@ -52,7 +52,7 @@ type ReaderWriterDeleter interface {
 type Eventer interface {
 	AccountCreate(account *Account) error
 	AccountDelete(account *Account) error
-	AccountUpdate(account *Account) error
+	AccountUpdate(old *Account, new *Account) error
 	AccountReset(account *Account) error
 }
 
@@ -225,7 +225,7 @@ func (a *Service) Delete(data *Account) error {
 		return err
 	}
 
-	err = a.Reset(data)
+	_, err = a.reset(data)
 	if err != nil {
 		return err
 	}
@@ -263,25 +263,44 @@ func (a *Service) ListPages(query *Account, fn func(*Accounts) bool) error {
 	return nil
 }
 
-// Reset initiates the Reset account process.  It will not change the status as there may
-// be many reasons why a reset is called.  Delete, Lease Ending, etc.
-func (a *Service) Reset(data *Account) error {
+func (a *Service) reset(data *Account) (*Account, error) {
 	err := validation.ValidateStruct(data,
-		validation.Field(&data.Status, validation.NotNil, validation.By(isAccountNotLeased)),
 		validation.Field(&data.AdminRoleArn, validation.NotNil),
 		validation.Field(&data.PrincipalRoleArn, validation.NotNil),
 	)
 	if err != nil {
-		return errors.NewConflict("account", *data.ID, err)
+		return nil, errors.NewConflict("account", *data.ID, err)
 	}
 
 	err = a.eventSvc.AccountReset(data)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	log.Printf("Added account %q to Reset Queue\n", *data.ID)
 
-	return nil
+	return data, nil
+}
+
+// Reset initiates the Reset account process.  It will not change the status as there may
+// be many reasons why a reset is called.  Delete, Lease Ending, etc.
+func (a *Service) Reset(id string) (*Account, error) {
+
+	data, err := a.Get(id)
+	if err != nil {
+		return nil, err
+	}
+
+	// Set the account status to not ready if it isn't there already
+	// because of inconsistent reads we are going to force the status to NotReady
+	// there are scenarios in high volume that we could have gotten a previous state.
+	data.Status = StatusNotReady.StatusPtr()
+	err = a.Save(data)
+	if err != nil {
+		return nil, err
+	}
+
+	return a.reset(data)
+
 }
 
 // UpsertPrincipalAccess merges principal access to make sure its in sync with expectations

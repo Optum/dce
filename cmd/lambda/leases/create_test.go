@@ -250,7 +250,7 @@ func TestCreateController_Call(t *testing.T) {
 
 		// Should set expiresOn to 7 days from now
 		util.ReplaceMock(&dbMock.Mock, "UpsertLease", mock.MatchedBy(func(lease db.Lease) bool {
-			assert.InDelta(t, time.Now().Add(7*time.Hour*24).Unix(), lease.ExpiresOn, 2)
+			assert.InDelta(t, time.Now().AddDate(0, 0, 7).UTC().Unix(), lease.ExpiresOn, 2)
 
 			return true
 		})).Return(func(lease db.Lease) *db.Lease {
@@ -269,7 +269,7 @@ func TestCreateController_Call(t *testing.T) {
 
 		require.Equal(t, 201, res.StatusCode)
 		resJSON := unmarshal(t, res.Body)
-		require.InDelta(t, time.Now().Add(7*time.Hour*24).Unix(), resJSON["expiresOn"], 2)
+		require.InDelta(t, time.Now().AddDate(0, 0, 7).UTC().Unix(), resJSON["expiresOn"], 2)
 	})
 
 	t.Run("should create lease with metadata", func(t *testing.T) {

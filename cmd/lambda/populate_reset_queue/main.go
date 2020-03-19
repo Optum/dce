@@ -6,6 +6,7 @@ import (
 	"github.com/Optum/dce/pkg/account"
 	"github.com/Optum/dce/pkg/config"
 	"github.com/Optum/dce/pkg/errors"
+	"github.com/Optum/dce/pkg/event/eventiface"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 )
@@ -36,6 +37,7 @@ func init() {
 	svcBldr := &config.ServiceBuilder{Config: cfgBldr}
 
 	_, err = svcBldr.
+		WithEventService().
 		WithAccountService().
 		Build()
 	if err != nil {
@@ -53,13 +55,19 @@ func Handler(cloudWatchEvent events.CloudWatchEvent) error {
 		Status: account.StatusNotReady.StatusPtr(),
 	}
 
+	var api eventiface.Servicer
+	err := services.Config.GetService(&api)
+	if err != nil {
+		return err
+	}
+
 	var errs []error
-	err := services.AccountService().ListPages(query,
+	err = services.AccountService().ListPages(query,
 		func(accts *account.Accounts) bool {
 
 			for _, acct := range *accts {
 				// Send Message
-				err := services.AccountService().Reset(&acct)
+				err := api.AccountReset(&acct)
 				if err != nil {
 					errs = append(errs, err)
 				}
