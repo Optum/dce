@@ -24,8 +24,7 @@ require (
 	github.com/rebuy-de/aws-nuke v0.0.0-00010101000000-000000000000
 	github.com/securego/gosec v0.0.0-20200316084457-7da9f46445fd // indirect
 	github.com/stretchr/testify v1.4.0
-	golang.org/x/crypto v0.0.0-20190418165655-df01cb2cc480
-	golang.org/x/text v0.3.2 // indirect
+	golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550
 	google.golang.org/appengine v1.4.0 // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
