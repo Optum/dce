@@ -379,6 +379,7 @@ func TestCreate(t *testing.T) {
 					PrincipalID:              ptrString("User1"),
 					AccountID:                ptrString("123456789012"),
 					Status:                   lease.StatusActive.StatusPtr(),
+					StatusReason:             lease.StatusReasonActive.StatusReasonPtr(),
 					BudgetAmount:             ptrFloat(200.00),
 					BudgetCurrency:           ptrString("USD"),
 					BudgetNotificationEmails: ptrArrayString([]string{"test1@test.com", "test2@test.com"}),
