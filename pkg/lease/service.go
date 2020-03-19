@@ -121,6 +121,7 @@ func (a *Service) Delete(ID string) (*Lease, error) {
 	}
 
 	data.Status = StatusInactive.StatusPtr()
+	data.StatusReason = StatusReasonDestroyed.StatusReasonPtr()
 	err = a.dataSvc.Write(data, data.LastModifiedOn)
 	if err != nil {
 		return nil, err
