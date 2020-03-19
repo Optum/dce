@@ -58,6 +58,7 @@ deploy: clean build
 #
 # Public-facing docs are served by readthedocs.io
 documentation:
+	./scripts/generate-awsnuke-docs.sh
 	cd docs && make html
 
 # Serve the documentation locally

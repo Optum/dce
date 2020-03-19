@@ -114,11 +114,11 @@ stages:
                     # Set the namespace as a Azure Pipeline variable
                     # See https://docs.microsoft.com/en-us/azure/devops/pipelines/process/variables?view=azure-devops&tabs=yaml%2Cbatch#set-in-script
                     echo "##vso[task.setvariable variable=namespace]${NS}"
-                    
+
                     # We'll also write it to a file, so we can use it from other stage
                     # (variables can be used across steps and jobs, but not across stages)
                     echo "${NS}" > ./namespace.txt
-                    
+
                   displayName: "Configure AWS Namespace"
                   env:
                     PR_NUMBER: $(System.PullRequest.PullRequestNumber)
@@ -214,8 +214,7 @@ stages:
                       # Save the lease ID to a file, so we can reference it later
                       # (note that we can't assign variables across jobs in different stages)
                       echo "${lease_id}" > ./lease_id.txt
-                    env:
-                      NAMESPACE=$(namespace)
+                    env: NAMESPACE=$(namespace)
 
                 # Install Terraform
                 - task: TerraformInstaller@0
@@ -257,15 +256,13 @@ stages:
                   env:
                     AWS_DEFAULT_REGION: us-east-1
 
-
                 # Functional Tests
                 - bash: |
                     set -euxo pipefail
                     mkdir -p junit-report
                     # Run functional tests
-                    go test -v ./tests/... 2>&1 | tee >(go-junit-report > junit-report/functional.xml)
+                    go test -v ./tests/... -test.timeout 20m 2>&1 | tee >(go-junit-report > junit-report/functional.xml)
                   displayName: "Functional Tests"
-
 
                 # Publish junit test results (for unit and functional tests)
                 - task: PublishTestResults@2
@@ -353,7 +350,7 @@ stages:
                 - bash: |
                     set -ex
                     namespace=$(cat ./namespace.txt)
-                    
+
                     cd modules
                     terraform init -input=false
                     terraform destroy -force \

@@ -52,13 +52,13 @@ func (_m *Eventer) AccountReset(_a0 *account.Account) error {
 	return r0
 }
 
-// AccountUpdate provides a mock function with given fields: _a0
-func (_m *Eventer) AccountUpdate(_a0 *account.Account) error {
-	ret := _m.Called(_a0)
+// AccountUpdate provides a mock function with given fields: old, new
+func (_m *Eventer) AccountUpdate(old *account.Account, new *account.Account) error {
+	ret := _m.Called(old, new)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(*account.Account) error); ok {
-		r0 = rf(_a0)
+	if rf, ok := ret.Get(0).(func(*account.Account, *account.Account) error); ok {
+		r0 = rf(old, new)
 	} else {
 		r0 = ret.Error(0)
 	}

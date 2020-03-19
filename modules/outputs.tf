@@ -154,3 +154,7 @@ output "role_user_policy" {
 output "role_admin_policy" {
   value = module.api_gateway_authorizer.admin_policy_arn
 }
+
+output "codebuild_reset_name" {
+  value = aws_codebuild_project.reset_build.id
+}

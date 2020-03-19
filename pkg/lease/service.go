@@ -3,6 +3,7 @@ package lease
 import (
 	"time"
 
+	"github.com/Optum/dce/pkg/account"
 	"github.com/Optum/dce/pkg/errors"
 	validation "github.com/go-ozzo/ozzo-validation"
 )
@@ -28,7 +29,7 @@ type Reader interface {
 	MultipleReader
 }
 
-// ReaderWriterDeleter includes Reader and Writer interfaces
+// ReaderWriter includes Reader and Writer interfaces
 type ReaderWriter interface {
 	Reader
 	Writer
@@ -36,13 +37,24 @@ type ReaderWriter interface {
 
 // Eventer for publishing events
 type Eventer interface {
-	Publish() error
+	LeaseCreate(account *Lease) error
+	LeaseEnd(account *Lease) error
+	LeaseUpdate(old *Lease, new *Lease) error
+}
+
+// AccountServicer is a partial implementation of the
+// accountiface.Servicer interface, with only the methods
+// needed by the LeaseService
+type AccountServicer interface {
+	// EndLease indicates that the provided account is no longer leased.
+	Reset(id string) (*account.Account, error)
 }
 
 // Service is a type corresponding to a Lease table record
 type Service struct {
-	dataSvc  ReaderWriter
-	eventSvc Eventer
+	accountSvc AccountServicer
+	dataSvc    ReaderWriter
+	eventSvc   Eventer
 }
 
 // Get returns a lease from ID
@@ -90,6 +102,7 @@ func (a *Service) Delete(ID string) (*Lease, error) {
 
 	err = validation.ValidateStruct(data,
 		validation.Field(&data.Status, validation.NotNil, validation.By(isLeaseActive)),
+		validation.Field(&data.AccountID, validateAccountID...),
 	)
 	if err != nil {
 		return nil, errors.NewConflict("lease", *data.ID, err)
@@ -97,6 +110,16 @@ func (a *Service) Delete(ID string) (*Lease, error) {
 
 	data.Status = StatusInactive.StatusPtr()
 	err = a.dataSvc.Write(data, data.LastModifiedOn)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = a.accountSvc.Reset(*data.AccountID)
+	if err != nil {
+		return nil, err
+	}
+
+	err = a.eventSvc.LeaseEnd(data)
 	if err != nil {
 		return nil, err
 	}
@@ -143,14 +166,16 @@ func (a *Service) ListPages(query *Lease, fn func(*Leases) bool) error {
 
 // NewServiceInput Input for creating a new Service
 type NewServiceInput struct {
-	DataSvc  ReaderWriter
-	EventSvc Eventer
+	DataSvc    ReaderWriter
+	EventSvc   Eventer
+	AccountSvc AccountServicer
 }
 
 // NewService creates a new instance of the Service
 func NewService(input NewServiceInput) *Service {
 	return &Service{
-		dataSvc:  input.DataSvc,
-		eventSvc: input.EventSvc,
+		dataSvc:    input.DataSvc,
+		eventSvc:   input.EventSvc,
+		accountSvc: input.AccountSvc,
 	}
 }

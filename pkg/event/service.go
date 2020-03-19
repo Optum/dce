@@ -2,6 +2,8 @@ package event
 
 import (
 	"github.com/Optum/dce/pkg/account"
+	"github.com/Optum/dce/pkg/lease"
+	"github.com/aws/aws-sdk-go/service/cloudwatchevents/cloudwatcheventsiface"
 	"github.com/aws/aws-sdk-go/service/sns/snsiface"
 	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
 )
@@ -15,6 +17,7 @@ type Publisher interface {
 type NewServiceInput struct {
 	SnsClient              snsiface.SNSAPI
 	SqsClient              sqsiface.SQSAPI
+	CweClient              cloudwatcheventsiface.CloudWatchEventsAPI
 	AccountCreatedTopicArn string `env:"ACCOUNT_CREATED_TOPIC_ARN" envDefault:"arn:aws:sns:us-east-1:123456789012:account-create"`
 	AccountDeletedTopicArn string `env:"ACCOUNT_DELETED_TOPIC_ARN" envDefault:"arn:aws:sns:us-east-1:123456789012:account-delete"`
 	AccountResetQueueURL   string `env:"RESET_SQS_URL" envDefault:"DefaultResetSQSUrl"`
@@ -53,8 +56,13 @@ func (e *Service) AccountDelete(data *account.Account) error {
 }
 
 // AccountUpdate publish events
-func (e *Service) AccountUpdate(data *account.Account) error {
-	return e.publish(data, e.accountUpdate...)
+func (e *Service) AccountUpdate(old *account.Account, new *account.Account) error {
+	return e.publish(
+		updateEvent{
+			Old: old,
+			New: new,
+		}, e.accountUpdate...,
+	)
 }
 
 // AccountReset publish events
@@ -63,18 +71,23 @@ func (e *Service) AccountReset(data *account.Account) error {
 }
 
 // LeaseCreate publish events
-func (e *Service) LeaseCreate(i interface{}) error {
-	return e.publish(i, e.leaseCreate...)
+func (e *Service) LeaseCreate(data *lease.Lease) error {
+	return e.publish(data, e.leaseCreate...)
 }
 
 // LeaseEnd publish events
-func (e *Service) LeaseEnd(i interface{}) error {
-	return e.publish(i, e.leaseEnd...)
+func (e *Service) LeaseEnd(data *lease.Lease) error {
+	return e.publish(data, e.leaseEnd...)
 }
 
 // LeaseUpdate publish events
-func (e *Service) LeaseUpdate(i interface{}) error {
-	return e.publish(i, e.leaseUpdate...)
+func (e *Service) LeaseUpdate(old *lease.Lease, new *lease.Lease) error {
+	return e.publish(
+		updateEvent{
+			Old: old,
+			New: new,
+		}, e.leaseUpdate...,
+	)
 }
 
 // NewService creates a new instance of Eventer
@@ -82,46 +95,97 @@ func NewService(input NewServiceInput) (*Service, error) {
 	newEventer := &Service{}
 
 	//////////////////////////////////////////////////////////////////////
-	// Account Eventing
+	// Account Eventing - SNS
 	//////////////////////////////////////////////////////////////////////
-	createAccount, err := NewSnsEvent(input.SnsClient, input.AccountCreatedTopicArn)
+	createAccountSns, err := NewSnsEvent(input.SnsClient, input.AccountCreatedTopicArn)
 	if err != nil {
 		return nil, err
 	}
 
+	deleteAccountSns, err := NewSnsEvent(input.SnsClient, input.AccountDeletedTopicArn)
+	if err != nil {
+		return nil, err
+	}
+
+	//////////////////////////////////////////////////////////////////////
+	// Account Eventing - CloudWatch Events
+	//////////////////////////////////////////////////////////////////////
+
+	createAccountCwe, err := NewCloudWatchEvent(input.CweClient, "AccountCreated")
+	if err != nil {
+		return nil, err
+	}
+
+	deleteAccountCwe, err := NewCloudWatchEvent(input.CweClient, "AccountDeleted")
+	if err != nil {
+		return nil, err
+	}
+
+	updateAccountCwe, err := NewCloudWatchEvent(input.CweClient, "AccountUpdated")
+	if err != nil {
+		return nil, err
+	}
+
+	//////////////////////////////////////////////////////////////////////
+	// Account Eventing - SQS
+	//////////////////////////////////////////////////////////////////////
 	resetAccount, err := NewSqsEvent(input.SqsClient, input.AccountResetQueueURL)
 	if err != nil {
 		return nil, err
 	}
 
-	deleteAccount, err := NewSnsEvent(input.SnsClient, input.AccountDeletedTopicArn)
-	if err != nil {
-		return nil, err
-	}
 	newEventer.accountCreate = []Publisher{
-		createAccount,
+		createAccountSns,
+		createAccountCwe,
 	}
 	newEventer.accountReset = []Publisher{
 		resetAccount,
 	}
 	newEventer.accountDelete = []Publisher{
-		deleteAccount,
+		deleteAccountSns,
+		deleteAccountCwe,
 	}
-	newEventer.accountUpdate = []Publisher{}
+	newEventer.accountUpdate = []Publisher{
+		updateAccountCwe,
+	}
 
 	//////////////////////////////////////////////////////////////////////
-	// Lease Eventing
+	// Lease Eventing - SNS
 	//////////////////////////////////////////////////////////////////////
 	createLease, err := NewSnsEvent(input.SnsClient, input.LeaseAddedTopicArn)
 	if err != nil {
 		return nil, err
 	}
 
+	//////////////////////////////////////////////////////////////////////
+	// Account Eventing - CloudWatch Events
+	//////////////////////////////////////////////////////////////////////
+
+	createLeaseCwe, err := NewCloudWatchEvent(input.CweClient, "LeaseCreated")
+	if err != nil {
+		return nil, err
+	}
+
+	endLeaseCwe, err := NewCloudWatchEvent(input.CweClient, "LeaseEnded")
+	if err != nil {
+		return nil, err
+	}
+
+	updateLeaseCwe, err := NewCloudWatchEvent(input.CweClient, "LeaseUpdated")
+	if err != nil {
+		return nil, err
+	}
+
 	newEventer.leaseCreate = []Publisher{
 		createLease,
+		createLeaseCwe,
 	}
-	newEventer.leaseEnd = []Publisher{}
-	newEventer.leaseUpdate = []Publisher{}
+	newEventer.leaseEnd = []Publisher{
+		endLeaseCwe,
+	}
+	newEventer.leaseUpdate = []Publisher{
+		updateLeaseCwe,
+	}
 
 	return newEventer, nil
 }

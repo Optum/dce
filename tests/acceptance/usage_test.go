@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/Optum/dce/pkg/usage"
-	"github.com/Optum/dce/tests/acceptance/testutil"
+	"github.com/Optum/dce/tests/testutils"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -51,7 +51,7 @@ func TestUsageDb(t *testing.T) {
 		currentTime := time.Now()
 		testStartDate := time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 0, 0, 0, 0, time.UTC).AddDate(0, 0, -10)
 
-		testutil.Retry(t, 10, 2*time.Second, func(r *testutil.R) {
+		testutils.Retry(t, 10, 2*time.Second, func(r *testutils.R) {
 			// GetUsageByDateRange for testStartDate and 3-days.
 			actualUsages, err := dbSvc.GetUsageByDateRange(testStartDate, testStartDate.AddDate(0, 0, 10))
 			require.Nil(t, err)
@@ -85,7 +85,7 @@ func TestUsageDb(t *testing.T) {
 		currentTime := time.Now()
 		testStartDate := time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 0, 0, 0, 0, time.UTC).AddDate(0, 0, -9)
 
-		testutil.Retry(t, 10, 2*time.Second, func(r *testutil.R) {
+		testutils.Retry(t, 10, 2*time.Second, func(r *testutils.R) {
 
 			actualUsage, err := dbSvc.GetUsageByPrincipal(testStartDate, "user")
 			require.Nil(t, err)
