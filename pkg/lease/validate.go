@@ -5,8 +5,11 @@ import (
 	"reflect"
 	"regexp"
 
+	"fmt"
 	validation "github.com/go-ozzo/ozzo-validation"
 	"github.com/go-ozzo/ozzo-validation/is"
+	"math"
+	"time"
 )
 
 // We don't use the internal errors package here because validation will rewrite it anyways
@@ -47,4 +50,50 @@ func isLeaseActive(value interface{}) error {
 		return errors.New("must be active lease")
 	}
 	return nil
+}
+
+func isExpiresOnValid(a *Service) validation.RuleFunc {
+
+	return func(value interface{}) error {
+		if !reflect.ValueOf(value).IsNil() {
+
+			e, _ := value.(*int64)
+
+			// Validate requested lease end date is greater than today
+			if *e <= time.Now().Unix() {
+				return fmt.Errorf("Requested lease has a desired expiry date less than today: %d", *e)
+			}
+
+			// Validate requested lease budget period is less than MAX_LEASE_BUDGET_PERIOD
+			currentTime := time.Now()
+			maxLeaseExpiresOn := currentTime.Add(time.Second * time.Duration(a.maxLeasePeriod))
+			if *e > maxLeaseExpiresOn.Unix() {
+				return fmt.Errorf("Requested lease has a budget expires on of %d, which is greater than max lease period of %d", *e, a.maxLeasePeriod)
+			}
+		}
+		return nil
+	}
+}
+
+func isBudgetAmountValid(a *Service, principalId string, principalSpentAmount float64) validation.RuleFunc {
+	return func(value interface{}) error {
+		if !reflect.ValueOf(value).IsNil() {
+			b, _ := value.(*float64)
+
+			// Validate requested lease budget amount is less than MAX_LEASE_BUDGET_AMOUNT
+			if *b > a.maxLeaseBudgetAmount {
+				return fmt.Errorf("Requested lease has a budget amount of %f, which is greater than max lease budget amount of %f", math.Round(*b), math.Round(a.maxLeaseBudgetAmount))
+			}
+
+			// Validate requested lease budget amount is less than PRINCIPAL_BUDGET_AMOUNT for current principal billing period
+			if principalSpentAmount > a.principalBudgetAmount {
+				return fmt.Errorf(
+					"Unable to create lease: User principal %s has already spent %.2f of their %.2f principal budget",
+					principalId, principalSpentAmount, a.principalBudgetAmount,
+				)
+			}
+
+		}
+		return nil
+	}
 }

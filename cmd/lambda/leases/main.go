@@ -8,16 +8,10 @@ import (
 	"log"
 
 	"github.com/Optum/dce/pkg/api"
-	"github.com/Optum/dce/pkg/common"
-	"github.com/Optum/dce/pkg/db"
+	"github.com/Optum/dce/pkg/config"
 	"github.com/Optum/dce/pkg/usage"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/sns"
-
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
-
-	"github.com/Optum/dce/pkg/config"
 	"github.com/awslabs/aws-lambda-go-api-proxy/gorillamux"
 )
 
@@ -34,10 +28,6 @@ type leaseControllerConfiguration struct {
 	DefaultLeaseLengthInDays int     `env:"DEFAULT_LEASE_LENGTH_IN_DAYS" defaultEnv:"7"`
 }
 
-const (
-	Weekly = "WEEKLY"
-)
-
 var (
 	muxLambda *gorillamux.GorillaMuxAdapter
 	//CurrentAccountID is the ID where the request is being created
@@ -48,31 +38,13 @@ var (
 )
 
 var (
+	baseRequest url.URL
+	usageSvc    usage.DBer
 	// Soon to be deprecated - Legacy support
-	Config             common.DefaultEnvConfig
-	awsSession         *session.Session
-	dao                db.DBer
-	snsSvc             common.Notificationer
-	usageSvc           usage.DBer
-	leaseAddedTopicARN string
-	//decommissionTopicARN     string
-	principalBudgetAmount    float64
-	principalBudgetPeriod    string
-	maxLeaseBudgetAmount     float64
-	maxLeasePeriod           int64
-	defaultLeaseLengthInDays int
-	baseRequest              url.URL
 	//cognitoUserPoolId        string
 	//cognitoAdminName         string
 	userDetailsMiddleware api.UserDetailsMiddleware
 )
-
-// messageBody is the structured object of the JSON Message to send
-// to an SNS Topic for lease creation/destruction
-type messageBody struct {
-	Default string `json:"default"`
-	Body    string `json:"Body"`
-}
 
 func init() {
 	initConfig()
@@ -139,6 +111,7 @@ func initConfig() {
 
 	_, err = svcBldr.
 		WithLeaseService().
+		WithAccountService().
 		WithUserDetailer().
 		Build()
 	if err != nil {
@@ -146,16 +119,6 @@ func initConfig() {
 	}
 
 	Services = svcBldr
-
-	leaseAddedTopicARN = Config.GetEnvVar("LEASE_ADDED_TOPIC", "DCEDefaultProvisionTopic")
-	//decommissionTopicARN = Config.GetEnvVar("DECOMMISSION_TOPIC", "DefaultDecommissionTopicArn")
-	//cognitoUserPoolId = Config.GetEnvVar("COGNITO_USER_POOL_ID", "DefaultCognitoUserPoolId")
-	//cognitoAdminName = Config.GetEnvVar("COGNITO_ROLES_ATTRIBUTE_ADMIN_NAME", "DefaultCognitoAdminName")
-	principalBudgetAmount = Config.GetEnvFloatVar("PRINCIPAL_BUDGET_AMOUNT", 1000.00)
-	principalBudgetPeriod = Config.GetEnvVar("PRINCIPAL_BUDGET_PERIOD", Weekly)
-	maxLeaseBudgetAmount = Config.GetEnvFloatVar("MAX_LEASE_BUDGET_AMOUNT", 1000.00)
-	maxLeasePeriod = int64(Config.GetEnvIntVar("MAX_LEASE_PERIOD", 704800))
-	defaultLeaseLengthInDays = Config.GetEnvIntVar("DEFAULT_LEASE_LENGTH_IN_DAYS", 7)
 }
 
 // Handler - Handle the lambda function
@@ -175,11 +138,6 @@ func Handler(_ context.Context, req events.APIGatewayProxyRequest) (events.APIGa
 
 func main() {
 
-	awsSession = newAWSSession()
-	// Create the Database Service from the environment
-	dao = newDBer()
-	snsSvc = &common.SNS{Client: sns.New(awsSession)}
-
 	usageService, err := usage.NewFromEnv()
 	if err != nil {
 		errorMessage := fmt.Sprintf("Failed to initialize usage service: %s", err)
@@ -189,23 +147,4 @@ func main() {
 	usageSvc = usageService
 
 	lambda.Start(Handler)
-}
-
-func newDBer() db.DBer {
-	dao, err := db.NewFromEnv()
-	if err != nil {
-		errorMessage := fmt.Sprintf("Failed to initialize database: %s", err)
-		log.Fatal(errorMessage)
-	}
-
-	return dao
-}
-
-func newAWSSession() *session.Session {
-	awsSession, err := session.NewSession()
-	if err != nil {
-		errorMessage := fmt.Sprintf("Failed to create AWS session: %s", err)
-		log.Fatal(errorMessage)
-	}
-	return awsSession
 }
