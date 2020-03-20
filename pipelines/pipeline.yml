@@ -24,12 +24,6 @@ stages:
               addToPath: true
               architecture: "x64"
 
-          # Install AWS ClI tool
-          - task: CmdLine@2
-            inputs:
-              script: "pip install awscli"
-            displayName: "Install awscli"
-
           # Install Terraform
           - task: TerraformInstaller@0
             inputs:
@@ -76,23 +70,17 @@ stages:
       - job: Build
         dependsOn: Test
         steps:
+          # Build go executables
           - script: |
               make build
             displayName: "Build"
+
+          # Publish build artifacts
+          # for deploying to PR environment, and for Github releases
           - publish: $(System.DefaultWorkingDirectory)/bin
             artifact: bin
-          - publish: $(System.DefaultWorkingDirectory)/modules
-            artifact: modules
           - publish: $(System.DefaultWorkingDirectory)/scripts
             artifact: deploy_scripts
-          - publish: $(System.DefaultWorkingDirectory)/tests
-            artifact: tests
-          - publish: $(System.DefaultWorkingDirectory)/pkg
-            artifact: pkg
-          - publish: $(System.DefaultWorkingDirectory)/go.mod
-            artifact: gomod
-          - publish: $(System.DefaultWorkingDirectory)/go.sum
-            artifact: gosum
 
   - stage: Deploy
     dependsOn: TestAndBuild
@@ -104,6 +92,9 @@ stages:
           runOnce:
             deploy:
               steps:
+                # Checkout the git repo code
+                - checkout: self
+
                 # Configure the namespace used by Terraform
                 # May be referenced as an env var (eg. "${NAMESPACE}")
                 # Or as a pipeline variable (eg. "$(namespace)")
@@ -123,59 +114,16 @@ stages:
                     # Set the namespace as a Azure Pipeline variable
                     # See https://docs.microsoft.com/en-us/azure/devops/pipelines/process/variables?view=azure-devops&tabs=yaml%2Cbatch#set-in-script
                     echo "##vso[task.setvariable variable=namespace]${NS}"
+
+                    # We'll also write it to a file, so we can use it from other stage
+                    # (variables can be used across steps and jobs, but not across stages)
+                    echo "${NS}" > ./namespace.txt
+
                   displayName: "Configure AWS Namespace"
                   env:
                     PR_NUMBER: $(System.PullRequest.PullRequestNumber)
                     # This is the branch name, or the git tag name
                     NS_BRANCH_OR_TAG: $(Build.SourceBranchName)
-                # Install Terraform
-                - task: TerraformInstaller@0
-                  inputs:
-                    terraformVersion: "0.12.18"
-                  displayName: "Install Terraform"
-
-                - bash: |
-                    echo '
-                    terraform {
-                      backend "s3" {
-                        region = "us-east-1"
-                      }
-                    }
-                    ' > backend.tf
-                  displayName: "Generate backend.tf"
-                  workingDirectory: "$(Pipeline.Workspace)/modules"
-
-                # terraform init
-                - task: TerraformTaskV1@0
-                  displayName: "terraform init"
-                  inputs:
-                    provider: "aws"
-                    command: "init"
-                    workingDirectory: "$(Pipeline.Workspace)/modules"
-                    backendServiceAWS: "AWS_Terraform_Connection"
-                    backendAWSBucketName: "$(BACKEND_AWS_BUCKET_NAME)"
-                    backendAWSKey: "$(namespace)/terraform.tfstate"
-
-                # terraform apply
-                - task: TerraformTaskV1@0
-                  name: "TfApply"
-                  displayName: "terraform apply"
-                  inputs:
-                    provider: "aws"
-                    command: "apply"
-                    workingDirectory: "$(Pipeline.Workspace)/modules"
-                    commandOptions: '-var="namespace=$(namespace)" -var="budget_notification_from_email=$(NOTIFY_EMAIL)"'
-                    environmentServiceNameAWS: "AWS_Terraform_Connection"
-
-                # Deploy Application Code to AWS
-                - task: AWSShellScript@1
-                  displayName: "Deploy Application Code"
-                  inputs:
-                    awsCredentials: "AWS_Login"
-                    regionName: "us-east-1"
-                    arguments: "$(Pipeline.Workspace)/bin/build_artifacts.zip $(namespace) $(ARTIFACTS_BUCKET_NAME)-$(namespace)"
-                    scriptType: "filePath"
-                    filePath: "$(Pipeline.Workspace)/deploy_scripts/deploy.sh"
 
                 # Install GO
                 - task: GoTool@0
@@ -186,35 +134,157 @@ stages:
                   displayName: "Set up the Go workspace"
 
                 - bash: |
-                    cp gomod/go.mod .
-                    cp gosum/go.sum .
+                    set -ex
                     echo '##vso[task.prependpath]$(GOBIN)'
                     echo '##vso[task.prependpath]$(GOROOT)/bin'
                     go get github.com/jstemmer/go-junit-report
-                  displayName: "Setup Go"
-                  workingDirectory: "$(Pipeline.Workspace)"
 
-                # Functional Tests
+                    # Download dce-cli
+                    wget -q https://github.com/Optum/dce-cli/releases/download/v0.3.0/dce_linux_amd64.zip
+                    # Validate checksum
+                    expected_sha="d19e1ecee5eb9646dbd5bf509ea813f4db1c22bf843551bd1ec8c8f42efe54c2"
+                    test $(shasum -a256 ./dce_linux_amd64.zip | awk '{print $1}') == "${expected_sha}"
+                    unzip ./dce_linux_amd64.zip -d ./
+                  displayName: "Download pipeline dependencies"
+
+                # Lease a DCE account, to use for deploying our PR environment
+                # (deploy DCE in DCE)
                 - task: AWSShellScript@1
-                  displayName: "Functional Tests"
+                  displayName: "Lease DCE Account"
                   inputs:
-                    awsCredentials: "AWS_Login"
+                    awsCredentials: "AWS_DCE_API_NONPROD"
                     regionName: "us-east-1"
                     scriptType: "inline"
                     inlineScript: |
-                      set -euxo pipefail
-                      cd $(Pipeline.Workspace)
-                      mkdir -p junit-report
-                      # Run functional tests
-                      go test -v ./tests/... 2>&1 | tee >(go-junit-report > junit-report/functional.xml)
+                      set -ex
+
+                      echo "Principal ID is ${NAMESPACE}"
+
+                      echo "Configuring the dce-cli"
+                      echo "
+                        api:
+                          host: $(DCE_NONPROD_HOSTNAME)
+                          basepath: /api
+                        region: us-east-1
+                      " > ./dce.yml
+
+
+                      # Check if we already have an active lease for this PR
+                      # (note that dce-cli exits 1, if none exist
+                      #  see https://github.com/Optum/dce/issues/204)
+                      echo "Checking if a lease exists for ${NAMESPACE}..."
+                      # We can't filter by status and principal together
+                      # (see https://github.com/Optum/dce-cli/issues/58)
+                      # so we'll just filter by status, and then
+                      # filter by principalId client side
+                      set +e
+                      leases=$(
+                        ./dce --config=dce.yml leases list -s Active \
+                        2>&1 >/dev/null)
+                      echo $leases
+                      lease_id=$(
+                        echo $leases | \
+                        jq -r \
+                          --arg PrincipalID "${NAMESPACE}" \
+                          '.[] | select( .principalId==$PrincipalID ) | .id'
+                      )
+                      retVal=$?
+                      set -e
+                      if [ $retVal -ne 0 ] || [ ! "${lease_id}" ]; then
+                        echo "No lease exists for ${NAMESPACE}. Creating one..."
+                        # Note that dce lease create doesn't return valid JSON
+                        # See https://github.com/Optum/dce-cli/issues/11
+                        created_lease=$(
+                          ./dce --config=dce.yml leases create \
+                            --principal-id ${NAMESPACE} \
+                            --expires-on 2d \
+                            --budget-amount 100 --budget-currency USD \
+                            --email noreply@example.com \
+                              2>&1 >/dev/null | \
+                            sed 's/Lease created://'
+                        )
+                        echo "Created lease: ${created_lease}"
+                        lease_id=$(echo "${created_lease}" | jq -r .id)
+                      fi
+
+                      echo "Using lease for PrincipalId=${NAMESPACE}, Id=${lease_id}"
+                      echo "Logging into the DCE account"
+                      ./dce --config=dce.yml leases login ${lease_id}
+
+                      # Save the lease ID to a file, so we can reference it later
+                      # (note that we can't assign variables across jobs in different stages)
+                      echo "${lease_id}" > ./lease_id.txt
+                    env: NAMESPACE=$(namespace)
+
+                # Install Terraform
+                - task: TerraformInstaller@0
+                  inputs:
+                    terraformVersion: "0.12.18"
+                  displayName: "Install Terraform"
+
+                # Configure the Terraform backend
+                - bash: |
+                    lease_id=$(cat lease_id.txt)
+                    ./scripts/create-tf-backend.sh ${lease_id}
+                  displayName: "Configure Terraform Backend"
+
+                # terraform init
+                - bash: |
+                    cd modules
+                    cat ./backend.tf
+                    terraform init -input=false
+                    terraform apply \
+                      -auto-approve \
+                      -input=false \
+                      -var="namespace=${NAMESPACE}" \
+                      -var="budget_notification_from_email=${NOTIFY_EMAIL}" \
+                      -var="reset_nuke_toggle=false"
+                  displayName: "Terraform Init/Apply"
+                  env:
+                    NAMESPACE: $(namespace)
+                    NOTIFY_EMAIL: $(NOTIFY_EMAIL)
+
+                # Deploy Application Code to AWS
+                - bash: |
+                    ARTIFACTS_BUCKET_NAME=$(cd modules && terraform output artifacts_bucket_name)
+                    NAMESPACE=$(cd modules && terraform output namespace)
+                    ./scripts/deploy.sh \
+                      $(Pipeline.Workspace)/bin/build_artifacts.zip \
+                      ${NAMESPACE} \
+                      ${ARTIFACTS_BUCKET_NAME}
+                  displayName: "Deploy Application Code"
+                  env:
+                    AWS_DEFAULT_REGION: us-east-1
+
+                # Functional Tests
+                - bash: |
+                    set -euxo pipefail
+                    mkdir -p junit-report
+                    # Run functional tests
+                    go test -v ./tests/... -test.timeout 20m 2>&1 | tee >(go-junit-report > junit-report/functional.xml)
+                  displayName: "Functional Tests"
 
                 # Publish junit test results (for unit and functional tests)
                 - task: PublishTestResults@2
                   inputs:
                     testRunner: JUnit
-                    testResultsFiles: $(Pipeline.Workspace)/junit-report/*.xml
+                    testResultsFiles: $(System.DefaultWorkingDirectory)/junit-report/*.xml
                     testRunTitle: Functional Tests
                   condition: always()
+
+                # Publish the dce-cli executable, so we can use
+                # it in our Cleanup stage
+                - publish: $(System.DefaultWorkingDirectory)/dce
+                  artifact: dce-cli
+                - publish: $(System.DefaultWorkingDirectory)/dce.yml
+                  artifact: dce-yml
+                - publish: $(System.DefaultWorkingDirectory)/lease_id.txt
+                  artifact: lease_id
+                - publish: $(System.DefaultWorkingDirectory)/namespace.txt
+                  artifact: namespace
+                - publish: $(System.DefaultWorkingDirectory)/modules/backend.tf
+                  artifact: backend-tf
+
   - stage: Cleanup
     dependsOn: Deploy
     jobs:
@@ -225,43 +295,51 @@ stages:
           runOnce:
             deploy:
               steps:
-                # Configure the namespace used by Terraform
-                # May be referenced as an env var (eg. "${NAMESPACE}")
-                # Or as a pipeline variable (eg. "$(namespace)")
+                # Checkout the git repo code
+                - checkout: self
+
+                # Download dce-cli artifacts
+                - download: current
+                  artifact: dce-cli
+                - download: current
+                  artifact: dce-yml
+                - download: current
+                  artifact: lease_id
+                - download: current
+                  artifact: namespace
+                - download: current
+                  artifact: backend-tf
+
                 - bash: |
-                    # TODO tag name can't be namespace, AWS doesn't like
-                    # it as a resource name.
-                    # If it's a tagged version, just call it `release` or something
-                    if [[ -z $PR_NUMBER ]]; then
-                      NS="release"
-                    else
-                      NS="github-pr-$PR_NUMBER"
-                    fi
+                    set -ex
 
-                    echo "Namespace is ${NS}"
+                    # Azure DevOps wraps artifact files inside a directory
+                    # in the  Pipeline.Workspace dir (which is different than our working dir...)
+                    # Extract these out into our working dir, for easier access
+                    cp $(Pipeline.Workspace)/dce-cli/dce ./
+                    cp $(Pipeline.Workspace)/dce-yml/dce.yml ./
+                    cp $(Pipeline.Workspace)/lease_id/lease_id.txt ./
+                    cp $(Pipeline.Workspace)/namespace/namespace.txt ./
+                    cp $(Pipeline.Workspace)/backend-tf/backend.tf ./modules/
 
-                    # Set the namespace as a Azure Pipeline variable
-                    # See https://docs.microsoft.com/en-us/azure/devops/pipelines/process/variables?view=azure-devops&tabs=yaml%2Cbatch#set-in-script
-                    echo "##vso[task.setvariable variable=namespace]${NS}"
-                  displayName: "Configure AWS Namespace"
-                  env:
-                    PR_NUMBER: $(System.PullRequest.PullRequestNumber)
-                    # This is the branch name, or the git tag name
-                    NS_BRANCH_OR_TAG: $(Build.SourceBranchName)
+                    chmod +x ./dce
+                  displayName: Copy Artifacts to Working Dir
 
-                # Generate backend.tf file
-                # Note that we don't commit this file to the repo
-                # to make local TF deployments easier (using local TF state)
-                - script: |
-                    echo '
-                    terraform {
-                      backend "s3" {
-                        region = "us-east-1"
-                      }
-                    }
-                    ' > backend.tf
-                  displayName: "Generate backend.tf"
-                  workingDirectory: "$(Pipeline.Workspace)/modules"
+                # Login to our DCE lease
+                - task: AWSShellScript@1
+                  displayName: "DCE Lease Login"
+                  inputs:
+                    awsCredentials: "AWS_DCE_API_NONPROD"
+                    regionName: "us-east-1"
+                    scriptType: "inline"
+                    inlineScript: |
+                      set -ex
+                      lease_id=$(cat ./lease_id.txt)
+                      echo "Logging into lease ${lease_id}"
+
+                      cat ./dce.yml
+
+                      ./dce --config=./dce.yml leases login ${lease_id}
 
                 # Install Terraform
                 - task: TerraformInstaller@0
@@ -269,26 +347,44 @@ stages:
                     terraformVersion: "0.12.18"
                   displayName: "Install Terraform"
 
-                # terraform init
-                - task: TerraformTaskV1@0
-                  displayName: "terraform init"
-                  inputs:
-                    provider: "aws"
-                    command: "init"
-                    workingDirectory: "$(Pipeline.Workspace)/modules"
-                    backendServiceAWS: "AWS_Terraform_Connection"
-                    backendAWSBucketName: "$(BACKEND_AWS_BUCKET_NAME)"
-                    backendAWSKey: "$(namespace)/terraform.tfstate"
+                - bash: |
+                    set -ex
+                    namespace=$(cat ./namespace.txt)
 
-                # terraform destroy
-                - task: TerraformTaskV1@0
-                  displayName: "terraform destroy"
+                    cd modules
+                    terraform init -input=false
+                    terraform destroy -force \
+                      -var="namespace=$(namespace)" \
+                      -var="budget_notification_from_email=$(NOTIFY_EMAIL)"
+                  displayName: "Terraform destroy"
+
+                # End the DCE lease
+                - task: AWSShellScript@1
+                  displayName: "DCE Lease End"
                   inputs:
-                    provider: "aws"
-                    command: "destroy"
-                    workingDirectory: "$(Pipeline.Workspace)/modules"
-                    commandOptions: '-var="namespace=$(namespace)" -var="budget_notification_from_email=$(NOTIFY_EMAIL)"'
-                    environmentServiceNameAWS: "AWS_Terraform_Connection"
+                    awsCredentials: "AWS_DCE_API_NONPROD"
+                    regionName: "us-east-1"
+                    scriptType: "inline"
+                    inlineScript: |
+                      set -ex
+                      lease_id=$(cat ./lease_id.txt)
+                      namespace=$(cat ./namespace.txt)
+
+                      leases=$(
+                        ./dce --config=dce.yml leases list -s Active \
+                        2>&1 >/dev/null)
+                      account_id=$(
+                        echo $leases | \
+                          jq -r \
+                            --arg Id "${lease_id}" \
+                            '.[] | select( .id==$Id ) | .accountId'
+                      )
+
+                      echo "Ending lease ${lease_id}"
+
+                      ./dce --config=./dce.yml leases end \
+                        -p ${namespace} \
+                        -a ${account_id}
 
   - stage: Release
     dependsOn: Cleanup

@@ -127,6 +127,18 @@ output cognito_user_pool_id {
   value = module.api_gateway_authorizer.user_pool_id
 }
 
+output cognito_user_pool_client_id {
+  value = module.api_gateway_authorizer.client_id
+}
+
+output cognito_user_pool_endpoint {
+  value = module.api_gateway_authorizer.user_pool_endpoint
+}
+
+output cognito_identity_pool_id {
+  value = module.api_gateway_authorizer.identity_pool_id
+}
+
 output "role_user_arn" {
   value = module.api_gateway_authorizer.user_role_arn
 }
@@ -141,4 +153,8 @@ output "role_user_policy" {
 
 output "role_admin_policy" {
   value = module.api_gateway_authorizer.admin_policy_arn
+}
+
+output "codebuild_reset_name" {
+  value = aws_codebuild_project.reset_build.id
 }

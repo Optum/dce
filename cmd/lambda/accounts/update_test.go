@@ -10,6 +10,7 @@ import (
 
 	"github.com/Optum/dce/pkg/account"
 	"github.com/Optum/dce/pkg/account/accountiface/mocks"
+	"github.com/Optum/dce/pkg/arn"
 	"github.com/Optum/dce/pkg/config"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
@@ -45,7 +46,7 @@ func TestUpdateAccountByID(t *testing.T) {
 		{
 			name:      "success",
 			accountID: "123456789012",
-			reqBody:   fmt.Sprintf("{\"metadata\": {\"key\": \"value\"}}"),
+			reqBody:   "{\"metadata\": {\"key\": \"value\"}}",
 			reqAccount: &account.Account{
 				Metadata: map[string]interface{}{
 					"key": "value",
@@ -59,7 +60,7 @@ func TestUpdateAccountByID(t *testing.T) {
 			retAccount: &account.Account{
 				ID:           ptrString("123456789012"),
 				Status:       account.StatusReady.StatusPtr(),
-				AdminRoleArn: ptrString("arn:aws:iam::123456789012:role/test"),
+				AdminRoleArn: arn.New("aws", "iam", "", "123456789012", "role/test"),
 				Metadata: map[string]interface{}{
 					"key": "value",
 				},
@@ -69,9 +70,21 @@ func TestUpdateAccountByID(t *testing.T) {
 			retErr: nil,
 		},
 		{
+			name:       "failure validation",
+			accountID:  "123456789012",
+			reqBody:    "{\"accountStatus\": \"NotReady\"",
+			reqAccount: &account.Account{},
+			expResp: response{
+				StatusCode: 400,
+				Body:       "{\"error\":{\"message\":\"invalid request parameters\",\"code\":\"ClientError\"}}\n",
+			},
+			retAccount: nil,
+			retErr:     nil,
+		},
+		{
 			name:      "failure db",
 			accountID: "123456789012",
-			reqBody:   fmt.Sprintf("{\"metadata\": {\"key\": \"value\"}}"),
+			reqBody:   "{\"metadata\": {\"key\": \"value\"}}",
 			reqAccount: &account.Account{
 				Metadata: map[string]interface{}{
 					"key": "value",
@@ -87,7 +100,7 @@ func TestUpdateAccountByID(t *testing.T) {
 		{
 			name:      "failure decode",
 			accountID: "123456789012",
-			reqBody:   fmt.Sprintf("{\"metadata\": \"key\": \"value\"}}"),
+			reqBody:   "{\"metadata\": \"key\": \"value\"}}",
 			reqAccount: &account.Account{
 				Metadata: map[string]interface{}{
 					"key": "value",

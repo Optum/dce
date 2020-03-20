@@ -1,132 +1,106 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
-	"github.com/Optum/dce/pkg/rolemanager"
+	"github.com/Optum/dce/pkg/account"
+	"github.com/Optum/dce/pkg/account/accountiface/mocks"
+	"github.com/Optum/dce/pkg/config"
+	"github.com/Optum/dce/pkg/errors"
+	"github.com/stretchr/testify/assert"
 
-	awsMocks "github.com/Optum/dce/pkg/awsiface/mocks"
-	commonmock "github.com/Optum/dce/pkg/common/mocks"
-	"github.com/Optum/dce/pkg/db"
-	dbmock "github.com/Optum/dce/pkg/db/mocks"
-	roleMock "github.com/Optum/dce/pkg/rolemanager/mocks"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/arn"
-	"github.com/aws/aws-sdk-go/aws/client"
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
+	"github.com/aws/aws-lambda-go/events"
 )
-
-// testTransitionFinanceLockInput is the structured input for testing the helper
-// function transitionFinanceLock
-type testUpdatePrincipalPolicy struct {
-	ExpectedError              error
-	GetAccountResult           *db.Account
-	GetAccountError            error
-	TransitionLeaseStatusError error
-	PrincipalPolicyName        string
-	PrincipalRoleName          string
-	PrincipalPolicyHash        string
-	PrincipalIAMDenyTags       []string
-	StoragerPolicy             string
-	StoragerError              error
-}
 
 func TestUpdatePrincipalPolicy(t *testing.T) {
 
-	tests := []testUpdatePrincipalPolicy{
-		// Happy Path Update Principal Policy
+	tests := []struct {
+		name      string
+		acctID    string
+		input     events.SNSEvent
+		getAcct   *account.Account
+		getErr    error
+		upsertErr error
+		expErr    error
+	}{
 		{
-			GetAccountResult: &db.Account{
-				ID:           "123456789012",
-				AdminRoleArn: "arn:aws:iam::123456789012:role/AdminRole",
+			name:   "when valid lease provided upsert happens",
+			acctID: "123456789012",
+			input: events.SNSEvent{
+				Records: []events.SNSEventRecord{
+					{
+						SNS: events.SNSEntity{
+							Message: "{\"accountId\": \"123456789012\"}",
+						},
+					},
+				},
 			},
-			PrincipalPolicyName:  "PrincipalPolicy",
-			PrincipalRoleName:    "PrincipalRole",
-			PrincipalPolicyHash:  "aHash",
-			PrincipalIAMDenyTags: []string{"DoNotTouch"},
-			StoragerPolicy:       "{\"Test\" : \"Policy\"}",
 		},
-		// Same hash exists don't update.
 		{
-			GetAccountResult: &db.Account{
-				ID:                  "123456789012",
-				AdminRoleArn:        "arn:aws:iam::123456789012:role/AdminRole",
-				PrincipalPolicyHash: "aHash",
+			name: "when invalid lease provided an error occurs",
+			input: events.SNSEvent{
+				Records: []events.SNSEventRecord{
+					{
+						SNS: events.SNSEntity{
+							Message: "{\"accountId\", \"123456789012\"}",
+						},
+					},
+				},
 			},
-			PrincipalPolicyName:  "PrincipalPolicy",
-			PrincipalRoleName:    "PrincipalRole",
-			PrincipalPolicyHash:  "aHash",
-			PrincipalIAMDenyTags: []string{"DoNotTouch"},
-			StoragerPolicy:       "{\"Test\" : \"Policy\"}",
+			expErr: errors.NewInternalServer("unexpected error parsing SNS message", fmt.Errorf("invalid character ',' after object key")),
+		},
+		{
+			name:   "when valid lease provided but an account is not found return error",
+			acctID: "123456789012",
+			input: events.SNSEvent{
+				Records: []events.SNSEventRecord{
+					{
+						SNS: events.SNSEntity{
+							Message: "{\"accountId\": \"123456789012\"}",
+						},
+					},
+				},
+			},
+			getErr: errors.NewNotFound("account", "123456789012"),
+			expErr: errors.NewNotFound("account", "123456789012"),
+		},
+		{
+			name:   "when valid lease provided but there is an error upserting the policy",
+			acctID: "123456789012",
+			input: events.SNSEvent{
+				Records: []events.SNSEventRecord{
+					{
+						SNS: events.SNSEntity{
+							Message: "{\"accountId\": \"123456789012\"}",
+						},
+					},
+				},
+			},
+			upsertErr: errors.NewInternalServer("failure", fmt.Errorf("error")),
+			expErr:    errors.NewInternalServer("failure", fmt.Errorf("error")),
 		},
 	}
 
 	// Iterate through each test in the list
-	for _, test := range tests {
+	for _, tt := range tests {
+		cfgBldr := &config.ConfigurationBuilder{}
+		svcBldr := &config.ServiceBuilder{Config: cfgBldr}
 		// Setup mocks
-		mockDB := dbmock.DBer{}
-		mockDB.On("GetAccount", mock.Anything).Return(
-			test.GetAccountResult,
-			test.GetAccountError)
-		mockDB.On("UpdateAccountPrincipalPolicyHash",
-			test.GetAccountResult.ID,
-			test.GetAccountResult.PrincipalPolicyHash,
-			test.PrincipalPolicyHash,
-		).Return(nil, nil)
-		mockS3 := &commonmock.Storager{}
-		mockS3.On("GetTemplateObject", mock.Anything, mock.Anything, getPolicyInput{
-			PrincipalPolicyArn:   fmt.Sprintf("arn:aws:iam::%s:policy/%s", test.GetAccountResult.ID, test.PrincipalPolicyName),
-			PrincipalRoleArn:     fmt.Sprintf("arn:aws:iam::%s:role/%s", test.GetAccountResult.ID, test.PrincipalRoleName),
-			PrincipalIAMDenyTags: test.PrincipalIAMDenyTags,
-			AdminRoleArn:         test.GetAccountResult.AdminRoleArn,
-		}).Return(
-			test.StoragerPolicy,
-			test.PrincipalPolicyHash,
-			test.StoragerError,
-		)
 
-		mockAdminRoleSession := &awsMocks.AwsSession{}
-		mockToken := &commonmock.TokenService{}
-		mockRoleManager := &roleMock.PolicyManager{}
-		mockSession := &awsMocks.AwsSession{}
-		if test.PrincipalPolicyHash != test.GetAccountResult.PrincipalPolicyHash {
-			mockAdminRoleSession.On("ClientConfig", mock.Anything).Return(client.Config{
-				Config: &aws.Config{},
-			})
-			mockToken.On("NewSession", mock.Anything, test.GetAccountResult.AdminRoleArn).
-				Return(mockAdminRoleSession, nil)
-			mockToken.On("AssumeRole", mock.Anything).Return(nil, nil)
+		acctServiceMock := mocks.Servicer{}
+		acctServiceMock.On("Get", tt.acctID).Return(tt.getAcct, tt.getErr)
+		acctServiceMock.On("UpsertPrincipalAccess", tt.getAcct).Return(tt.upsertErr)
 
-			mockRoleManager.On("SetIAMClient", mock.Anything).Return()
-			policyArn, _ := arn.Parse(fmt.Sprintf("arn:aws:iam::%s:policy/%s", test.GetAccountResult.ID, test.PrincipalPolicyName))
-			mockRoleManager.On("MergePolicy", &rolemanager.MergePolicyInput{
-				PolicyArn:      policyArn,
-				PolicyName:     test.PrincipalPolicyName,
-				PolicyDocument: test.StoragerPolicy,
-			}).Return(nil)
-
+		svcBldr.Config.WithService(&acctServiceMock)
+		_, err := svcBldr.Build()
+		assert.Nil(t, err)
+		if err == nil {
+			services = svcBldr
 		}
 
-		// Call transitionFinanceLock
-		err := processRecord(processRecordInput{
-			AccountID:            test.GetAccountResult.ID,
-			DbSvc:                &mockDB,
-			StoragerSvc:          mockS3,
-			TokenSvc:             mockToken,
-			AwsSession:           mockSession,
-			RoleManager:          mockRoleManager,
-			PrincipalRoleName:    test.PrincipalRoleName,
-			PrincipalPolicyName:  test.PrincipalPolicyName,
-			PrincipalIAMDenyTags: test.PrincipalIAMDenyTags,
-		})
-
-		// Assert expectations
-		if test.ExpectedError != nil {
-			require.Equal(t, test.ExpectedError.Error(), err.Error())
-		} else {
-			require.Nil(t, err)
-		}
+		err = handler(context.TODO(), tt.input)
+		assert.True(t, errors.Is(err, tt.expErr))
 	}
 }

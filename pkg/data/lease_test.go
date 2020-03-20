@@ -103,68 +103,6 @@ func TestGetLeaseByAccountIDAndPrincipalID(t *testing.T) {
 
 }
 
-func TestLeaseDelete(t *testing.T) {
-
-	tests := []struct {
-		name         string
-		lease        *lease.Lease
-		dynamoErr    error
-		dynamoOutput *dynamodb.DeleteItemOutput
-		expectedErr  error
-	}{
-		{
-			name: "should delete a lease successfully",
-			lease: &lease.Lease{
-				AccountID:      ptrString("123456789012"),
-				PrincipalID:    ptrString("User1"),
-				Status:         lease.StatusActive.StatusPtr(),
-				LastModifiedOn: ptrInt64(1573592058),
-			},
-			dynamoErr: nil,
-			dynamoOutput: &dynamodb.DeleteItemOutput{
-				Attributes: map[string]*dynamodb.AttributeValue{},
-			},
-			expectedErr: nil,
-		},
-		{
-			name: "should delete a lease return error",
-			lease: &lease.Lease{
-				AccountID:      ptrString("123456789012"),
-				PrincipalID:    ptrString("User1"),
-				Status:         lease.StatusActive.StatusPtr(),
-				LastModifiedOn: ptrInt64(1573592058),
-			},
-			dynamoErr: gErrors.New("failure"),
-			dynamoOutput: &dynamodb.DeleteItemOutput{
-				Attributes: map[string]*dynamodb.AttributeValue{},
-			},
-			expectedErr: errors.NewInternalServer("delete lease failed for account \"123456789012\" and principal \"User1\"", gErrors.New("failure")),
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			mockDynamo := awsmocks.DynamoDBAPI{}
-
-			mockDynamo.On("DeleteItem", mock.MatchedBy(func(input *dynamodb.DeleteItemInput) bool {
-				return (*input.TableName == "Leases" &&
-					*input.Key["AccountId"].S == *tt.lease.AccountID &&
-					*input.Key["PrincipalId"].S == *tt.lease.PrincipalID)
-			})).Return(
-				tt.dynamoOutput, tt.dynamoErr,
-			)
-			leaseData := &Lease{
-				DynamoDB:  &mockDynamo,
-				TableName: "Leases",
-			}
-
-			err := leaseData.Delete(tt.lease)
-			assert.True(t, errors.Is(err, tt.expectedErr))
-		})
-	}
-
-}
-
 func TestLeaseUpdate(t *testing.T) {
 	tests := []struct {
 		name              string
@@ -378,7 +316,7 @@ func TestGetLeaseByID(t *testing.T) {
 				TableName: "Leases",
 			}
 
-			lease, err := leaseData.GetByID(tt.leaseID)
+			lease, err := leaseData.Get(tt.leaseID)
 			assert.Equal(t, tt.expectedLease, lease)
 			assert.True(t, errors.Is(err, tt.expectedErr))
 		})

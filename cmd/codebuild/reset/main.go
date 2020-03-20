@@ -17,7 +17,6 @@ import (
 	"github.com/Optum/dce/pkg/reset"
 	"github.com/avast/retry-go"
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/athena"
 	"github.com/aws/aws-sdk-go/service/sts"
 )
 
@@ -27,7 +26,6 @@ func main() {
 	// Initialize a service container
 	svc := &service{}
 	config := svc.config()
-	awsSession := svc.awsSession()
 	tokenService := svc.tokenService()
 
 	//get current Account ID
@@ -37,44 +35,22 @@ func main() {
 	}
 	_config.parentAccountID = *caller.Account
 
-	if !config.isNukeEnabled {
-		log.Println("INFO: Nuke is set in Dry Run mode and will not remove " +
-			"any resources and cannot set back the state of the DCE child account " +
-			"Please set 'RESET_NUKE_DRY_RUN' to not 'true' to exit Dry Run " +
-			"mode.")
-	}
-
-	// Delete items nuke doesn't support currently
 	if config.isNukeEnabled {
-
-		roleArn := "arn:aws:iam::" + config.childAccountID + ":role/" + config.accountAdminRoleName
-
-		// Delete Athena resources
-		log.Println("Starting Athena nuking")
-
-		athenaCreds := tokenService.NewCredentials(awsSession, roleArn)
-		athenaClient := athena.New(awsSession, &aws.Config{
-			Credentials: athenaCreds,
-		})
-		athenaReset := &reset.AthenaReset{
-			Client: athenaClient,
-		}
-		err = reset.DeleteAthenaResources(athenaReset)
+		// Execute aws-nuke, to delete all resources from the account
+		err = nukeAccount(
+			svc,
+			// Execute nuke as a dry run, if isNukeEnabled is off
+			!config.isNukeEnabled,
+		)
 		if err != nil {
-			log.Fatalf("Failed to execute aws-nuke athena on account %s: %s\n", config.childAccountID, err)
+			log.Fatalf("Failed to execute aws-nuke on account %s: %s\n", config.childAccountID, err)
 		}
+		log.Printf("%s  :  Nuke Success\n", config.childAccountID)
+	} else {
+		log.Println("INFO: aws-nuke is disabled and will not remove " +
+			"any resources and cannot set back the state of the DCE child account " +
+			"Please set 'RESET_NUKE_TOGGLE' to not 'true' to enable aws-nuke.")
 	}
-
-	// Execute aws-nuke, to delete all resources from the account
-	err = nukeAccount(
-		svc,
-		// Execute nuke as a dry run, if isNukeEnabled is off
-		!config.isNukeEnabled,
-	)
-	if err != nil {
-		log.Fatalf("Failed to execute aws-nuke on account %s: %s\n", config.childAccountID, err)
-	}
-	log.Printf("%s  :  Nuke Success\n", config.childAccountID)
 
 	// Update the DB with Account/Lease statuses
 	err = updateDBPostReset(svc.db(), svc.snsService(), config.childAccountID, common.RequireEnv("RESET_COMPLETE_TOPIC_ARN"))
@@ -141,6 +117,9 @@ func nukeAccount(svc *service, isDryRun bool) error {
 	}
 
 	// Print the contents of the config file, for logging/debugging
+	/*
+		#nosec CWE-22: This value is derived from env vars. I.e. it is not populated with data from external users.
+	*/
 	conf, err := ioutil.ReadFile(configFile)
 	if err != nil {
 		return err
@@ -211,7 +190,7 @@ func generateNukeConfig(svc *service, f io.Writer) error {
 
 	type templateParams struct {
 		ParentAccountID string
-		ChildAccountID  string
+		ID              string
 		AdminRole       string
 		PrincipalRole   string
 		PrincipalPolicy string
@@ -220,7 +199,7 @@ func generateNukeConfig(svc *service, f io.Writer) error {
 
 	err = template.ExecuteTemplate(f, templateFile, &templateParams{
 		ParentAccountID: config.parentAccountID,
-		ChildAccountID:  config.childAccountID,
+		ID:              config.childAccountID,
 		AdminRole:       config.accountAdminRoleName,
 		PrincipalRole:   config.accountPrincipalRoleName,
 		PrincipalPolicy: config.accountPrincipalPolicyName,

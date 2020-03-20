@@ -3,6 +3,21 @@ variable "aws_region" {
   default     = "us-east-1"
 }
 
+variable "account_pool_metrics_toggle" {
+  description = "Set to 'true' to enable periodic scanning of the Accounts table for account status metrics. Defaults to 'false'"
+  default     = "false"
+}
+
+variable "account_pool_metrics_collection_rate_expression" {
+  description = "The rate at which the Accounts table will be scanned for Account status metrics. Defaults to rate(30 minutes). See https://docs.aws.amazon.com/AmazonCloudWatch/latest/events/ScheduledEvents.html"
+  default     = "rate(30 minutes)"
+}
+
+variable "account_pool_metrics_widget_period" {
+  description = "The aggregation period used by the account pool metrics dashboard widget (in seconds). Must be less than the account_pool_metrics_collection_rate_expression. Defaults to 1200"
+  default     = "1200"
+}
+
 variable "global_tags" {
   description = "The tags to apply to all resources that support tags"
   type        = map(string)
@@ -48,7 +63,7 @@ variable "reset_image_pull_creds" {
 }
 
 variable "reset_nuke_toggle" {
-  description = "Indicator to set Nuke to not delete any resources. Use 'false' to indicate a Dry Run. NOTE: Cannot change Account status with this toggled off."
+  description = "Use 'false' to indicate a disable aws-nuke, and avoid deleted any resources in child accounts."
   default     = "true"
 }
 
@@ -174,7 +189,7 @@ variable "cognito_identity_providers" {
 
 variable "cognito_roles_attribute_admin_name" {
   type    = string
-  default = ""
+  default = "Admin"
 }
 
 variable "max_lease_budget_amount" {
@@ -207,4 +222,59 @@ variable "allowed_regions" {
     "us-east-1"
   ]
   description = "List of AWS regions which DCE Principals have access to. These regions will also be targeted for reset in nuke.yml."
+}
+
+variable "orphaned_accounts_alarm_threshold" {
+  type        = string
+  description = "Alarm when number of orphaned accounts is greater than or equal to this threshold."
+  default     = "1"
+}
+
+variable "ready_accounts_alarm_threshold" {
+  type        = string
+  description = "Alarm when number of ready accounts is less than or equal to this threshold."
+  default     = "20"
+}
+
+variable "usage_ttl" {
+  type = number
+  # 30 days
+  default     = 2592000
+  description = "TTL in seconds for records in the Usage DynamoDB table. Records older than this TTL will be automatically deleted."
+}
+
+variable "accounts_table_rcu" {
+  type        = number
+  default     = 5
+  description = "DynamoDB Accounts table provisioned Read Capacity Units (RCUs). See https://aws.amazon.com/dynamodb/pricing/provisioned/"
+}
+
+variable "accounts_table_wcu" {
+  type        = number
+  default     = 5
+  description = "DynamoDB Accounts table provisioned Write Capacity Units (WCUs). See https://aws.amazon.com/dynamodb/pricing/provisioned/"
+}
+
+variable "leases_table_rcu" {
+  type        = number
+  default     = 5
+  description = "DynamoDB Leases table provisioned Read Capacity Units (RCUs). See https://aws.amazon.com/dynamodb/pricing/provisioned/"
+}
+
+variable "leases_table_wcu" {
+  type        = number
+  default     = 5
+  description = "DynamoDB Leases table provisioned Write Capacity Units (WCUs). See https://aws.amazon.com/dynamodb/pricing/provisioned/"
+}
+
+variable "usage_table_rcu" {
+  type        = number
+  default     = 5
+  description = "DynamoDB Usage table provisioned Read Capacity Units (RCUs). See https://aws.amazon.com/dynamodb/pricing/provisioned/"
+}
+
+variable "usage_table_wcu" {
+  type        = number
+  default     = 5
+  description = "DynamoDB Usage table provisioned Write Capacity Units (WCUs). See https://aws.amazon.com/dynamodb/pricing/provisioned/"
 }

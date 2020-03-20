@@ -19,11 +19,11 @@ func GetAccounts(w http.ResponseWriter, r *http.Request) {
 	query := &account.Account{}
 	err := decoder.Decode(query, r.URL.Query())
 	if err != nil {
-		response.WriteRequestValidationError(w, fmt.Sprintf("Error parsing query params"))
+		response.WriteRequestValidationError(w, fmt.Sprintf("Error parsing query params: %s", err))
 		return
 	}
 
-	accounts, err := Services.Config.AccountService().List(query)
+	accounts, err := Services.AccountService().List(query)
 	if err != nil {
 		api.WriteAPIErrorResponse(w, err)
 		return

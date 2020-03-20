@@ -1,8 +1,10 @@
 package lease
 
 import (
+	"fmt"
 	"time"
 
+	"github.com/Optum/dce/pkg/account"
 	"github.com/Optum/dce/pkg/errors"
 	validation "github.com/go-ozzo/ozzo-validation"
 )
@@ -10,11 +12,6 @@ import (
 // Writer put an item into the data store
 type Writer interface {
 	Write(input *Lease, lastModifiedOn *int64) error
-}
-
-// Deleter Deletes an item from the data store
-type Deleter interface {
-	Delete(input *Lease) error
 }
 
 // SingleReader Reads an item information from the data store
@@ -33,32 +30,43 @@ type Reader interface {
 	MultipleReader
 }
 
-// WriterDeleter data layer
-type WriterDeleter interface {
-	Writer
-	Deleter
-}
-
-// ReaderWriterDeleter includes Reader and Writer interfaces
-type ReaderWriterDeleter interface {
+// ReaderWriter includes Reader and Writer interfaces
+type ReaderWriter interface {
 	Reader
-	WriterDeleter
+	Writer
 }
 
 // Eventer for publishing events
 type Eventer interface {
-	Publish() error
+	LeaseCreate(account *Lease) error
+	LeaseEnd(account *Lease) error
+	LeaseUpdate(old *Lease, new *Lease) error
 }
 
-// Manager manages all the actions against a lease
-type Manager interface {
-	Setup(adminRole string) error
+// AccountServicer is a partial implementation of the
+// accountiface.Servicer interface, with only the methods
+// needed by the LeaseService
+type AccountServicer interface {
+	// EndLease indicates that the provided account is no longer leased.
+	Reset(id string) (*account.Account, error)
 }
 
 // Service is a type corresponding to a Lease table record
 type Service struct {
-	dataSvc ReaderWriterDeleter
+	dataSvc                  ReaderWriter
+	eventSvc                 Eventer
+	accountSvc               AccountServicer
+	defaultLeaseLengthInDays int
+	principalBudgetAmount    float64
+	principalBudgetPeriod    string
+	maxLeaseBudgetAmount     float64
+	maxLeasePeriod           int64
 }
+
+// Weekly
+const (
+	Weekly = "WEEKLY"
+)
 
 // Get returns a lease from ID
 func (a *Service) Get(ID string) (*Lease, error) {
@@ -79,6 +87,7 @@ func (a *Service) Save(data *Lease) error {
 		lastModifiedOn = nil
 		data.CreatedOn = &now
 		data.LastModifiedOn = &now
+		data.StatusModifiedOn = &now
 	} else {
 		lastModifiedOn = data.LastModifiedOn
 		data.LastModifiedOn = &now
@@ -95,15 +104,40 @@ func (a *Service) Save(data *Lease) error {
 	return nil
 }
 
-// Delete finds a given lease and deletes it if it is not of status `Active`. Returns the lease.
-func (a *Service) Delete(data *Lease) error {
+// Delete finds a given lease and checks if it's active and then updates it to status `Inactive`. Returns the lease.
+func (a *Service) Delete(ID string) (*Lease, error) {
 
-	err := a.dataSvc.Delete(data)
+	data, err := a.dataSvc.Get(ID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	err = validation.ValidateStruct(data,
+		validation.Field(&data.Status, validation.NotNil, validation.By(isLeaseActive)),
+		validation.Field(&data.AccountID, validateAccountID...),
+	)
+	if err != nil {
+		return nil, errors.NewConflict("lease", *data.ID, err)
+	}
+
+	data.Status = StatusInactive.StatusPtr()
+	data.StatusReason = StatusReasonDestroyed.StatusReasonPtr()
+	err = a.dataSvc.Write(data, data.LastModifiedOn)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = a.accountSvc.Reset(*data.AccountID)
+	if err != nil {
+		return nil, err
+	}
+
+	err = a.eventSvc.LeaseEnd(data)
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
 }
 
 // List Get a list of leases based on Principal ID
@@ -124,14 +158,145 @@ func (a *Service) List(query *Lease) (*Leases, error) {
 	return leases, nil
 }
 
+// Create creates a new lease using the data provided. Returns the lease record
+func (a *Service) Create(data *Lease, principalSpentAmount float64) (*Lease, error) {
+
+	// Set default expiresOn
+	if data.ExpiresOn == nil {
+		leaseExpires := time.Now().AddDate(0, 0, a.defaultLeaseLengthInDays).Unix()
+		data.ExpiresOn = &leaseExpires
+	}
+
+	// Set default metadata (empty object)
+	if data.Metadata == nil {
+		data.Metadata = map[string]interface{}{}
+	}
+
+	// Set default budget amount
+	if data.BudgetAmount == nil {
+		data.BudgetAmount = &a.maxLeaseBudgetAmount
+	}
+
+	// Set default budget currency
+	if data.BudgetCurrency == nil {
+		currency := ""
+		data.BudgetCurrency = &currency
+	}
+
+	// Set default budget notification emails
+	if data.BudgetNotificationEmails == nil {
+		notificationEmails := []string{""}
+		data.BudgetNotificationEmails = &notificationEmails
+	}
+
+	// Validate the incoming record doesn't have unneeded fields
+	err := validation.ValidateStruct(data,
+		validation.Field(&data.AccountID, validateAccountID...),
+		validation.Field(&data.PrincipalID, validatePrincipalID...),
+		validation.Field(&data.ID, validation.By(isNil)),
+		validation.Field(&data.Status, validation.By(isNil)),
+		validation.Field(&data.StatusReason, validation.By(isNil)),
+		validation.Field(&data.ExpiresOn, validation.NotNil, validation.By(isExpiresOnValid(a))),
+	)
+	if err != nil {
+		return nil, errors.NewValidation("lease", err)
+	}
+
+	err = validation.ValidateStruct(data,
+		validation.Field(&data.BudgetAmount, validation.By(isBudgetAmountValid(a, *data.PrincipalID, principalSpentAmount))),
+	)
+	if err != nil {
+		return nil, errors.NewValidation("lease", err)
+	}
+
+	// Check if principal already has an active lease
+	query := &Lease{
+		PrincipalID: data.PrincipalID,
+		Status:      StatusActive.StatusPtr(),
+	}
+
+	existingLeases, err := a.List(query)
+	if err != nil {
+		return nil, errors.NewInternalServer("lease", err)
+	}
+	if existingLeases != nil && len(*existingLeases) > 0 {
+		message := fmt.Sprintf("with principal %s and account %s", *data.PrincipalID, *data.AccountID)
+		return nil, errors.NewAlreadyExists("lease", message)
+	}
+
+	newLeaseRecord := NewLease(NewLeaseInput{
+		AccountID:                *data.AccountID,
+		PrincipalID:              *data.PrincipalID,
+		BudgetAmount:             *data.BudgetAmount,
+		BudgetCurrency:           *data.BudgetCurrency,
+		BudgetNotificationEmails: *data.BudgetNotificationEmails,
+		ExpiresOn:                *data.ExpiresOn,
+	})
+
+	if data.LastModifiedOn != nil {
+		newLeaseRecord.LastModifiedOn = data.LastModifiedOn
+	}
+	if data.CreatedOn != nil {
+		newLeaseRecord.CreatedOn = data.CreatedOn
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	err = a.Save(newLeaseRecord)
+	if err != nil {
+		return nil, err
+	}
+
+	err = a.eventSvc.LeaseCreate(newLeaseRecord)
+	if err != nil {
+		return nil, err
+	}
+
+	return newLeaseRecord, nil
+}
+
+// ListPages runs a function on each page in a list
+func (a *Service) ListPages(query *Lease, fn func(*Leases) bool) error {
+
+	for {
+		records, err := a.dataSvc.List(query)
+		if err != nil {
+			return err
+		}
+		if !fn(records) {
+			break
+		}
+		if query.PrincipalID == nil {
+			break
+		}
+	}
+
+	return nil
+}
+
 // NewServiceInput Input for creating a new Service
 type NewServiceInput struct {
-	DataSvc ReaderWriterDeleter
+	DataSvc                  ReaderWriter
+	EventSvc                 Eventer
+	AccountSvc               AccountServicer
+	DefaultLeaseLengthInDays int     `env:"DEFAULT_LEASE_LENGTH_IN_DAYS" envDefault:"7"`
+	PrincipalBudgetAmount    float64 `env:"PRINCIPAL_BUDGET_AMOUNT" envDefault:"1000.00"`
+	PrincipalBudgetPeriod    string  `env:"PRINCIPAL_BUDGET_PERIOD" envDefault:"Weekly"`
+	MaxLeaseBudgetAmount     float64 `env:"MAX_LEASE_BUDGET_AMOUNT" envDefault:"1000.00"`
+	MaxLeasePeriod           int64   `env:"MAX_LEASE_PERIOD" envDefault:"704800"`
 }
 
 // NewService creates a new instance of the Service
 func NewService(input NewServiceInput) *Service {
 	return &Service{
-		dataSvc: input.DataSvc,
+		dataSvc:                  input.DataSvc,
+		eventSvc:                 input.EventSvc,
+		accountSvc:               input.AccountSvc,
+		defaultLeaseLengthInDays: input.DefaultLeaseLengthInDays,
+		principalBudgetAmount:    input.PrincipalBudgetAmount,
+		principalBudgetPeriod:    input.PrincipalBudgetPeriod,
+		maxLeaseBudgetAmount:     input.MaxLeaseBudgetAmount,
+		maxLeasePeriod:           input.MaxLeasePeriod,
 	}
 }

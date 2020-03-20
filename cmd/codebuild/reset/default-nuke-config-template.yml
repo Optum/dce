@@ -13,7 +13,7 @@ resource-types:
     - S3Object # Let the S3Bucket delete all Objects instead of individual objects (optimization)
 
 accounts:
-  "{{ .ChildAccountID}}": # Child Account
+  "{{ .ID}}": # Child Account
     filters:
       IAMPolicy:
         - type: "contains"

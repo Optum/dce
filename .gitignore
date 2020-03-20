@@ -1,5 +1,6 @@
 ## Project
 bin
+build
 bin/*
 local_terraform.tfvars
 
@@ -87,3 +88,5 @@ venv.bak/
 /site
 
 .vscode/
+
+tests/integration/test.cfg

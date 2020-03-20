@@ -53,7 +53,7 @@ func (controller CreateController) Call(ctx context.Context, req *events.APIGate
 	}
 
 	// Get the User Information
-	user := controller.UserDetailer.GetUser(req)
+	user := controller.UserDetailer.GetUser(&req.RequestContext)
 	if user.Role != api.AdminGroupName {
 		if lease.PrincipalID != user.Username {
 			log.Printf("User (%s) doesn't have access to lease %s", user.Username, leaseID)

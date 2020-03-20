@@ -1,5 +1,25 @@
 ## vNext
 
+- Add `tag:*` to support finding resources by tag, and changing tags for existing resources.
+- Fix bug where account status would not transition from `Leased` --> `NotReady`, on lease deletion.
+- Do not run `aws-nuke` if `var.reset_nuke_toggle = false`. Previously, ran aws-nuke in dry-run mode.
+- Remove Lease table stream processing to change the account status to be `NotReady`
+- Add Account Service to the Lease Service so we can reset account status directly when removing or adding a lease
+- Update Populate Reset Queue to skip the Account Service and publish the Reset event directly
+- Update the visibility timeout on the Reset SQS to be 6 times the runtime of the process reset queue Lambda
+- Fix an issue when comparing the current Principal Policy Hash to the new version where the pointers were being compared and not the values
+- Update functional testing timeout to be 20 minutes from the default of 10 minutes
+- Fix to allow budget notification email templates > 4Kb
+
+## v0.28.0
+
+- Add `usage_ttl` Terraform var, to configure Usage DB record TTLs.
+- Added account pool status monitoring and dashboard widget
+- Allow `athena:*` for DCE Principal IAM role
+- Prevent non-admins from performing CRUD operations on other user's leases
+
+## v0.27.0
+
 - Add CloudWatch Dashboard for monitoring DCE
 - Support deleting a lease by ID at `GET /leases/{ID}` endpoint
 - Update `GET /accounts` to allow for querying with `adminRoleArn`, `principalRoleArn`, and `principalPolicyHash`
@@ -37,6 +57,7 @@ The list of allowed regions is configurable as an `allowed_regions` Terraform va
 
 ## v0.24.0
 
+- **BREAKING CHANGE:** Enable aws-nuke to run by default (disable dry-run mode)
 - Update Status Lambda - budget_check: Terminate lease if spend > Principal budget amount
 - Support `metadata` parameter in `/accounts` API endpoints
 - Add `PUT /accounts/:id` endpoint
@@ -44,6 +65,18 @@ The list of allowed regions is configurable as an `allowed_regions` Terraform va
 - Add `GET /auth` and `GET /auth/{file+}` endpoints for retrieving credentials web page
 - Merged quickstarts into how-to guide
 - Support query params for `GET /usage` endpoints
+
+**Migration Notes**
+
+In previous versions of DCE, aws-nuke would run in [_Dry Run Mode_](https://github.com/rebuy-de/aws-nuke#usage) by default, during account resets. This version changes that default behavior, so that aws-nuke runs to completion by default.
+
+If you would like to maintain previous behavior and run aws-nuke in _Dry Run Mode_, you may set the terraform variable:
+
+```hcl
+reset_nuke_toggle = false
+```
+
+See documentation on [_Configuring Terraform Variables_](https://dce.readthedocs.io/en/latest/terraform.html#configuring-terraform-variables).
 
 ## v0.23.0
 

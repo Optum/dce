@@ -2,6 +2,7 @@ package lease
 
 import (
 	"fmt"
+	"github.com/google/uuid"
 	"strings"
 
 	"github.com/Optum/dce/pkg/errors"
@@ -11,22 +12,25 @@ import (
 // Lease is a type corresponding to a Lease
 // table record
 type Lease struct {
-	AccountID                *string                `json:"accountId,omitempty" dynamodbav:"AccountId"`                                         // AWS Account ID
-	PrincipalID              *string                `json:"principalId,omitempty" dynamodbav:"PrincipalId"`                                     // Azure User Principal ID
-	ID                       *string                `json:"id,omitempty" dynamodbav:"Id,omitempty"`                                             // Lease ID
-	Status                   *Status                `json:"leaseStatus,omitempty" dynamodbav:"LeaseStatus,omitempty"`                           // Status of the Lease
-	StatusReason             *StatusReason          `json:"leaseStatusReason,omitempty" dynamodbav:"LeaseStatusReason,omitempty"`               // Reason for the status of the lease
-	CreatedOn                *int64                 `json:"createdOn,omitempty" dynamodbav:"CreatedOn,omitempty"`                               // Created Epoch Timestamp
-	LastModifiedOn           *int64                 `json:"lastModifiedOn,omitempty" dynamodbav:"LastModifiedOn,omitempty"`                     // Last Modified Epoch Timestamp
-	BudgetAmount             *float64               `json:"budgetAmount,omitempty" dynamodbav:"BudgetAmount,omitempty"`                         // Budget Amount allocated for this lease
-	BudgetCurrency           *string                `json:"budgetCurrency,omitempty" dynamodbav:"BudgetCurrency,omitempty"`                     // Budget currency
-	BudgetNotificationEmails *[]string              `json:"budgetNotificationEmails,omitempty" dynamodbav:"BudgetNotificationEmails,omitempty"` // Budget notification emails
-	StatusModifiedOn         *int64                 `json:"leaseStatusModifiedOn,omitempty" dynamodbav:"LeaseStatusModifiedOn,omitempty"`       // Last Modified Epoch Timestamp
-	ExpiresOn                *int64                 `json:"expiresOn,omitempty" dynamodbav:"ExpiresOn,omitempty"`                               // Lease expiration time as Epoch
-	Metadata                 map[string]interface{} `json:"metadata,omitempty" dynamodbav:"Metadata,omitempty"`                                 // Arbitrary key-value metadata to store with lease object
+	AccountID                *string                `json:"accountId,omitempty" dynamodbav:"AccountId" schema:"accountId,omitempty"`                                                        // AWS Account ID
+	PrincipalID              *string                `json:"principalId,omitempty" dynamodbav:"PrincipalId" schema:"principalId,omitempty"`                                                  // Azure User Principal ID
+	ID                       *string                `json:"id,omitempty" dynamodbav:"Id,omitempty" schema:"id,omitempty"`                                                                   // Lease ID
+	Status                   *Status                `json:"leaseStatus,omitempty" dynamodbav:"LeaseStatus,omitempty" schema:"status,omitempty"`                                             // Status of the Lease
+	StatusReason             *StatusReason          `json:"leaseStatusReason,omitempty" dynamodbav:"LeaseStatusReason,omitempty" schema:"-"`                                                // Reason for the status of the lease
+	CreatedOn                *int64                 `json:"createdOn,omitempty" dynamodbav:"CreatedOn,omitempty" schema:"createdOn,omitempty"`                                              // Created Epoch Timestamp
+	LastModifiedOn           *int64                 `json:"lastModifiedOn,omitempty" dynamodbav:"LastModifiedOn,omitempty" schema:"lastModifiedOn,omitempty"`                               // Last Modified Epoch Timestamp
+	BudgetAmount             *float64               `json:"budgetAmount,omitempty" dynamodbav:"BudgetAmount,omitempty" schema:"budgetAmount,omitempty"`                                     // Budget Amount allocated for this lease
+	BudgetCurrency           *string                `json:"budgetCurrency,omitempty" dynamodbav:"BudgetCurrency,omitempty" schema:"budgetCurrency,omitempty"`                               // Budget currency
+	BudgetNotificationEmails *[]string              `json:"budgetNotificationEmails,omitempty" dynamodbav:"BudgetNotificationEmails,omitempty" schema:"budgetNotificationEmails,omitempty"` // Budget notification emails
+	StatusModifiedOn         *int64                 `json:"leaseStatusModifiedOn,omitempty" dynamodbav:"LeaseStatusModifiedOn,omitempty" schema:"leaseStatusModifiedOn,omitempty"`          // Last Modified Epoch Timestamp
+	ExpiresOn                *int64                 `json:"expiresOn,omitempty" dynamodbav:"ExpiresOn,omitempty" schema:"expiresOn,omitempty"`                                              // Lease expiration time as Epoch
+	Metadata                 map[string]interface{} `json:"metadata,omitempty"  dynamodbav:"Metadata,omitempty" schema:"-"`
+	Limit                    *int64                 `json:"-" dynamodbav:"-" schema:"limit,omitempty"`
+	NextAccountID            *string                `json:"-" dynamodbav:"-" schema:"nextAccountId,omitempty"`
+	NextPrincipalID          *string                `json:"-" dynamodbav:"-" schema:"nextPrincipalId,omitempty"`
 }
 
-// Validate the account data
+// Validate the lease data
 func (l *Lease) Validate() error {
 	err := validation.ValidateStruct(l,
 		validation.Field(&l.ID, validateID...),
@@ -42,7 +46,7 @@ func (l *Lease) Validate() error {
 	return nil
 }
 
-// Leases is a list of type Account
+// Leases is a list of type Lease
 type Leases []Lease
 
 // Status is a lease status type
@@ -106,3 +110,37 @@ const (
 	// which means the leases are also made Inactive
 	StatusReasonAccountOrphaned StatusReason = "LeaseAccountOrphaned"
 )
+
+// StatusReasonPtr returns a pointer to the string value of StatusReason
+func (c StatusReason) StatusReasonPtr() *StatusReason {
+	v := c
+	return &v
+}
+
+// NewLeaseInput contains all the data for creating a new Lease
+type NewLeaseInput struct {
+	AccountID                string
+	PrincipalID              string
+	BudgetAmount             float64
+	BudgetCurrency           string
+	BudgetNotificationEmails []string
+	Metadata                 map[string]interface{}
+	ExpiresOn                int64
+}
+
+// NewLease creates a new instance of lease
+func NewLease(input NewLeaseInput) *Lease {
+	newID := uuid.New().String()
+	return &Lease{
+		ID:                       &newID,
+		AccountID:                &input.AccountID,
+		PrincipalID:              &input.PrincipalID,
+		BudgetAmount:             &input.BudgetAmount,
+		BudgetCurrency:           &input.BudgetCurrency,
+		BudgetNotificationEmails: &input.BudgetNotificationEmails,
+		Metadata:                 input.Metadata,
+		Status:                   StatusActive.StatusPtr(),
+		StatusReason:             StatusReasonActive.StatusReasonPtr(),
+		ExpiresOn:                &input.ExpiresOn,
+	}
+}

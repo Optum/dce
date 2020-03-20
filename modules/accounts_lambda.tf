@@ -14,6 +14,7 @@ module "accounts_lambda" {
 
   environment = {
     DEBUG                          = "false"
+    ACCOUNT_ID                     = local.account_id
     NAMESPACE                      = var.namespace
     AWS_CURRENT_REGION             = var.aws_region
     ACCOUNT_DB                     = aws_dynamodb_table.accounts.id

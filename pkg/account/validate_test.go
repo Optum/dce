@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/Optum/dce/pkg/account"
+	"github.com/Optum/dce/pkg/arn"
 	"github.com/Optum/dce/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
@@ -23,7 +24,7 @@ func TestValidate(t *testing.T) {
 			account: account.Account{
 				ID:             ptrString("123456789012"),
 				Status:         account.StatusReady.StatusPtr(),
-				AdminRoleArn:   ptrString("test:arn"),
+				AdminRoleArn:   arn.New("aws", "iam", "", "123456789012", "role/AdminRoleArn"),
 				CreatedOn:      &now,
 				LastModifiedOn: &now,
 			},

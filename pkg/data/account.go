@@ -87,7 +87,7 @@ func (a *Account) Delete(account *account.Account) error {
 			// Query in Lease Table
 			TableName: aws.String(a.TableName),
 			// Return the updated record
-			ReturnValues: aws.String("ALL_NEW"),
+			ReturnValues: aws.String("NONE"),
 			Key: map[string]*dynamodb.AttributeValue{
 				"Id": {
 					S: account.ID,

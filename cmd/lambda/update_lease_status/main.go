@@ -3,6 +3,8 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"log"
 	"time"
 
@@ -54,6 +56,12 @@ func main() {
 			log.Fatalf("Failed to configure Usage service %s", err)
 		}
 
+		// Configure the S3 service
+		s3Svc := &common.S3{
+			Client:  s3.New(awsSession),
+			Manager: s3manager.NewDownloader(awsSession),
+		}
+
 		err = lambdaHandler(&lambdaHandlerInput{
 			dbSvc:                                  dbSvc,
 			lease:                                  lease,
@@ -62,18 +70,20 @@ func main() {
 			budgetSvc:                              &budget.AWSBudgetService{},
 			usageSvc:                               usageSvc,
 			sqsSvc:                                 sqs.New(awsSession),
-			resetQueueURL:                          common.RequireEnv("RESET_QUEUE_URL"),
 			snsSvc:                                 &common.SNS{Client: sns.New(awsSession)},
 			leaseLockedTopicArn:                    common.RequireEnv("LEASE_LOCKED_TOPIC_ARN"),
 			emailSvc:                               &email.SESEmailService{SES: ses.New(awsSession)},
+			s3Svc:                                  s3Svc,
 			budgetNotificationFromEmail:            common.RequireEnv("BUDGET_NOTIFICATION_FROM_EMAIL"),
 			budgetNotificationBCCEmails:            common.RequireEnvStringSlice("BUDGET_NOTIFICATION_BCC_EMAILS", ","),
-			budgetNotificationTemplateHTML:         common.RequireEnv("BUDGET_NOTIFICATION_TEMPLATE_HTML"),
-			budgetNotificationTemplateText:         common.RequireEnv("BUDGET_NOTIFICATION_TEMPLATE_TEXT"),
+			budgetNotificationTemplatesBucket:      common.RequireEnv("BUDGET_NOTIFICATION_TEMPLATES_BUCKET"),
+			budgetNotificationTemplateHTMLKey:      common.RequireEnv("BUDGET_NOTIFICATION_TEMPLATE_HTML_KEY"),
+			budgetNotificationTemplateTextKey:      common.RequireEnv("BUDGET_NOTIFICATION_TEMPLATE_TEXT_KEY"),
 			budgetNotificationTemplateSubject:      common.RequireEnv("BUDGET_NOTIFICATION_TEMPLATE_SUBJECT"),
 			budgetNotificationThresholdPercentiles: common.RequireEnvFloatSlice("BUDGET_NOTIFICATION_THRESHOLD_PERCENTILES", ","),
 			principalBudgetAmount:                  common.RequireEnvFloat("PRINCIPAL_BUDGET_AMOUNT"),
 			principalBudgetPeriod:                  common.RequireEnv("PRINCIPAL_BUDGET_PERIOD"),
+			usageTTL:                               common.RequireEnvInt("USAGE_TTL"),
 		})
 		if err != nil {
 			log.Fatalf("Failed check budget: %s", err)
@@ -105,20 +115,22 @@ type lambdaHandlerInput struct {
 	awsSession                             awsiface.AwsSession
 	tokenSvc                               common.TokenService
 	budgetSvc                              budget.Service
-	usageSvc                               usage.Service
+	usageSvc                               usage.DBer
 	snsSvc                                 common.Notificationer
 	leaseLockedTopicArn                    string
 	sqsSvc                                 awsiface.SQSAPI
-	resetQueueURL                          string
 	emailSvc                               email.Service
+	s3Svc                                  common.Storager
 	budgetNotificationFromEmail            string
 	budgetNotificationBCCEmails            []string
-	budgetNotificationTemplateHTML         string
-	budgetNotificationTemplateText         string
+	budgetNotificationTemplatesBucket      string
+	budgetNotificationTemplateHTMLKey      string
+	budgetNotificationTemplateTextKey      string
 	budgetNotificationTemplateSubject      string
 	budgetNotificationThresholdPercentiles []float64
 	principalBudgetAmount                  float64
 	principalBudgetPeriod                  string
+	usageTTL                               int // TTL in seconds for Usage DynamoDB records
 }
 
 func lambdaHandler(input *lambdaHandlerInput) error {
@@ -145,6 +157,7 @@ func lambdaHandler(input *lambdaHandlerInput) error {
 		usageSvc:              input.usageSvc,
 		awsSession:            input.awsSession,
 		principalBudgetPeriod: input.principalBudgetPeriod,
+		usageTTL:              input.usageTTL,
 	})
 	if err != nil {
 		return errors.Wrapf(err, "Failed to calculate spend for lease %s", leaseLogID)
@@ -184,10 +197,12 @@ func lambdaHandler(input *lambdaHandlerInput) error {
 	err = sendBudgetNotificationEmail(&sendBudgetNotificationEmailInput{
 		lease:                                  input.lease,
 		emailSvc:                               input.emailSvc,
+		s3Svc:                                  input.s3Svc,
 		budgetNotificationFromEmail:            input.budgetNotificationFromEmail,
 		budgetNotificationBCCEmails:            input.budgetNotificationBCCEmails,
-		budgetNotificationTemplateHTML:         input.budgetNotificationTemplateHTML,
-		budgetNotificationTemplateText:         input.budgetNotificationTemplateText,
+		budgetNotificationTemplatesBucket:      input.budgetNotificationTemplatesBucket,
+		budgetNotificationTemplateHTMLKey:      input.budgetNotificationTemplateHTMLKey,
+		budgetNotificationTemplateTextKey:      input.budgetNotificationTemplateTextKey,
 		budgetNotificationTemplateSubject:      input.budgetNotificationTemplateSubject,
 		budgetNotificationThresholdPercentiles: input.budgetNotificationThresholdPercentiles,
 		actualLeaseSpend:                       actualLeaseSpend,

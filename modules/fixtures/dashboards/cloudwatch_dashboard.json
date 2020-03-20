@@ -2,15 +2,82 @@
   "widgets": [
     {
       "type": "metric",
-      "x": 0,
-      "y": 0,
       "width": 24,
       "height": 6,
       "properties": {
         "metrics": [
-          [ "AWS/ApiGateway", "5XXError", "ApiName", "${api_name}", "Stage", "${api_stage_name}", { "color": "#d62728" } ],
-          [ ".", "4XXError", ".", ".", ".", "." ],
-          [ ".", "Count", ".", "." ]
+          [
+            "${metrics_namespace_var}",
+            "LeasedAccounts",
+            {
+              "color": "#2ca02c",
+              "label": "[last: $${LAST}] LeasedAccounts"
+            }
+          ],
+          [
+            ".",
+            "ReadyAccounts",
+            {
+              "color": "#1f77b4",
+              "label": "[last: $${LAST}] ReadyAccounts"
+            }
+          ],
+          [
+            ".",
+            "NotReadyAccounts",
+            {
+              "color": "#ff7f0e",
+              "label": "[last: $${LAST}] NotReadyAccounts"
+            }
+          ],
+          [
+            ".",
+            "OrphanedAccounts",
+            {
+              "color": "#d62728",
+              "label": "[last: $${LAST}] OrphanedAccounts"
+            }
+          ]
+        ],
+        "view": "timeSeries",
+        "stacked": true,
+        "title": "Account Pool",
+        "region": "us-east-1",
+        "stat": "Average",
+        "period": ${account_pool_metrics_widget_period}
+      }
+    },
+    {
+      "type": "metric",
+      "width": 24,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          [
+            "AWS/ApiGateway",
+            "5XXError",
+            "ApiName",
+            "${api_name}",
+            "Stage",
+            "${api_stage_name}",
+            {
+              "color": "#d62728"
+            }
+          ],
+          [
+            ".",
+            "4XXError",
+            ".",
+            ".",
+            ".",
+            "."
+          ],
+          [
+            ".",
+            "Count",
+            ".",
+            "."
+          ]
         ],
         "view": "timeSeries",
         "stacked": false,
@@ -25,16 +92,30 @@
     },
     {
       "type": "metric",
-      "x": 0,
-      "y": 6,
       "width": 12,
       "height": 6,
       "properties": {
         "view": "timeSeries",
         "stacked": false,
         "metrics": [
-          [ "AWS/CodeBuild", "SucceededBuilds", "ProjectName", "${codebuild_name}", { "color": "#1f77b4" } ],
-          [ ".", "FailedBuilds", ".", ".", { "color": "#d62728" } ]
+          [
+            "AWS/CodeBuild",
+            "SucceededBuilds",
+            "ProjectName",
+            "${codebuild_name}",
+            {
+              "color": "#1f77b4"
+            }
+          ],
+          [
+            ".",
+            "FailedBuilds",
+            ".",
+            ".",
+            {
+              "color": "#d62728"
+            }
+          ]
         ],
         "region": "${region}",
         "period": 300,
@@ -44,8 +125,6 @@
     },
     {
       "type": "log",
-      "x": 12,
-      "y": 6,
       "width": 6,
       "height": 6,
       "properties": {
@@ -58,8 +137,6 @@
     },
     {
       "type": "log",
-      "x": 18,
-      "y": 6,
       "width": 6,
       "height": 6,
       "properties": {
@@ -72,12 +149,10 @@
     },
     {
       "type": "log",
-      "x": 0,
-      "y": 12,
       "width": 24,
       "height": 6,
       "properties": {
-        "query": "SOURCE '/aws/codebuild/${codebuild_name}' | ${error_scraper_query}",
+        "query": "SOURCE '/aws/codebuild/${codebuild_name}' | fields @timestamp, @message | sort @timestamp desc | filter @message like /(delete failed|Failed to execute aws-nuke on account)/ | display @timestamp, @message, @logStream| limit 50",
         "region": "us-east-1",
         "stacked": false,
         "view": "table",
@@ -86,14 +161,28 @@
     },
     {
       "type": "metric",
-      "x": 0,
-      "y": 18,
       "width": 12,
       "height": 6,
       "properties": {
         "metrics": [
-          [ "AWS/Lambda", "Invocations", "FunctionName", "${accounts_lambda_name}", { "color": "#1f77b4" } ],
-          [ ".", "Errors", ".", ".", { "color": "#d62728" } ]
+          [
+            "AWS/Lambda",
+            "Invocations",
+            "FunctionName",
+            "${accounts_lambda_name}",
+            {
+              "color": "#1f77b4"
+            }
+          ],
+          [
+            ".",
+            "Errors",
+            ".",
+            ".",
+            {
+              "color": "#d62728"
+            }
+          ]
         ],
         "view": "timeSeries",
         "stacked": false,
@@ -105,8 +194,6 @@
     },
     {
       "type": "log",
-      "x": 12,
-      "y": 18,
       "width": 12,
       "height": 6,
       "properties": {
@@ -119,14 +206,28 @@
     },
     {
       "type": "metric",
-      "x": 0,
-      "y": 24,
       "width": 12,
       "height": 6,
       "properties": {
         "metrics": [
-          [ "AWS/Lambda", "Invocations", "FunctionName", "${leases_lambda_name}", { "color": "#1f77b4" } ],
-          [ ".", "Errors", ".", ".", { "color": "#d62728" } ]
+          [
+            "AWS/Lambda",
+            "Invocations",
+            "FunctionName",
+            "${leases_lambda_name}",
+            {
+              "color": "#1f77b4"
+            }
+          ],
+          [
+            ".",
+            "Errors",
+            ".",
+            ".",
+            {
+              "color": "#d62728"
+            }
+          ]
         ],
         "view": "timeSeries",
         "stacked": false,
@@ -138,8 +239,6 @@
     },
     {
       "type": "log",
-      "x": 12,
-      "y": 24,
       "width": 12,
       "height": 6,
       "properties": {
@@ -152,14 +251,28 @@
     },
     {
       "type": "metric",
-      "x": 0,
-      "y": 30,
       "width": 12,
       "height": 6,
       "properties": {
         "metrics": [
-          [ "AWS/Lambda", "Invocations", "FunctionName", "${lease_auth_lambda_name}", { "color": "#1f77b4" } ],
-          [ ".", "Errors", ".", ".", { "color": "#d62728" } ]
+          [
+            "AWS/Lambda",
+            "Invocations",
+            "FunctionName",
+            "${lease_auth_lambda_name}",
+            {
+              "color": "#1f77b4"
+            }
+          ],
+          [
+            ".",
+            "Errors",
+            ".",
+            ".",
+            {
+              "color": "#d62728"
+            }
+          ]
         ],
         "view": "timeSeries",
         "stacked": false,
@@ -171,8 +284,6 @@
     },
     {
       "type": "log",
-      "x": 12,
-      "y": 30,
       "width": 12,
       "height": 6,
       "properties": {
@@ -185,14 +296,28 @@
     },
     {
       "type": "metric",
-      "x": 0,
-      "y": 36,
       "width": 12,
       "height": 6,
       "properties": {
         "metrics": [
-          [ "AWS/Lambda", "Invocations", "FunctionName", "${usage_lambda_name}", { "color": "#1f77b4" } ],
-          [ ".", "Errors", ".", ".", { "color": "#d62728" } ]
+          [
+            "AWS/Lambda",
+            "Invocations",
+            "FunctionName",
+            "${usage_lambda_name}",
+            {
+              "color": "#1f77b4"
+            }
+          ],
+          [
+            ".",
+            "Errors",
+            ".",
+            ".",
+            {
+              "color": "#d62728"
+            }
+          ]
         ],
         "view": "timeSeries",
         "stacked": false,
@@ -204,8 +329,6 @@
     },
     {
       "type": "log",
-      "x": 12,
-      "y": 36,
       "width": 12,
       "height": 6,
       "properties": {
@@ -218,16 +341,30 @@
     },
     {
       "type": "metric",
-      "x": 0,
-      "y": 42,
       "width": 12,
       "height": 6,
       "properties": {
         "view": "timeSeries",
         "stacked": false,
         "metrics": [
-          [ "AWS/Lambda", "Invocations", "FunctionName", "${update_lease_status_lambda_name}", { "color": "#1f77b4" } ],
-          [ ".", "Errors", ".", ".", { "color": "#d62728" } ]
+          [
+            "AWS/Lambda",
+            "Invocations",
+            "FunctionName",
+            "${update_lease_status_lambda_name}",
+            {
+              "color": "#1f77b4"
+            }
+          ],
+          [
+            ".",
+            "Errors",
+            ".",
+            ".",
+            {
+              "color": "#d62728"
+            }
+          ]
         ],
         "region": "${region}",
         "title": "${update_lease_status_lambda_name} λ",
@@ -236,8 +373,6 @@
     },
     {
       "type": "log",
-      "x": 12,
-      "y": 42,
       "width": 12,
       "height": 6,
       "properties": {
@@ -250,16 +385,30 @@
     },
     {
       "type": "metric",
-      "x": 0,
-      "y": 48,
       "width": 12,
       "height": 6,
       "properties": {
         "view": "timeSeries",
         "stacked": false,
         "metrics": [
-          [ "AWS/Lambda", "Invocations", "FunctionName", "${fan_out_update_lease_status_lambda_name}", { "color": "#1f77b4" } ],
-          [ ".", "Errors", ".", ".", { "color": "#d62728" } ]
+          [
+            "AWS/Lambda",
+            "Invocations",
+            "FunctionName",
+            "${fan_out_update_lease_status_lambda_name}",
+            {
+              "color": "#1f77b4"
+            }
+          ],
+          [
+            ".",
+            "Errors",
+            ".",
+            ".",
+            {
+              "color": "#d62728"
+            }
+          ]
         ],
         "region": "${region}",
         "title": "${fan_out_update_lease_status_lambda_name} λ",
@@ -268,8 +417,6 @@
     },
     {
       "type": "log",
-      "x": 12,
-      "y": 48,
       "width": 12,
       "height": 6,
       "properties": {
@@ -282,16 +429,30 @@
     },
     {
       "type": "metric",
-      "x": 0,
-      "y": 54,
       "width": 12,
       "height": 6,
       "properties": {
         "view": "timeSeries",
         "stacked": false,
         "metrics": [
-          [ "AWS/Lambda", "Invocations", "FunctionName", "${populate_reset_queue_name}", { "color": "#1f77b4" } ],
-          [ ".", "Errors", ".", ".", { "color": "#d62728" } ]
+          [
+            "AWS/Lambda",
+            "Invocations",
+            "FunctionName",
+            "${populate_reset_queue_name}",
+            {
+              "color": "#1f77b4"
+            }
+          ],
+          [
+            ".",
+            "Errors",
+            ".",
+            ".",
+            {
+              "color": "#d62728"
+            }
+          ]
         ],
         "region": "${region}",
         "title": "${populate_reset_queue_name} λ",
@@ -300,8 +461,6 @@
     },
     {
       "type": "log",
-      "x": 12,
-      "y": 54,
       "width": 12,
       "height": 6,
       "properties": {
@@ -314,16 +473,30 @@
     },
     {
       "type": "metric",
-      "x": 0,
-      "y": 60,
       "width": 12,
       "height": 6,
       "properties": {
         "view": "timeSeries",
         "stacked": false,
         "metrics": [
-          [ "AWS/Lambda", "Invocations", "FunctionName", "${process_reset_queue_name}", { "color": "#1f77b4" } ],
-          [ ".", "Errors", ".", ".", { "color": "#d62728" } ]
+          [
+            "AWS/Lambda",
+            "Invocations",
+            "FunctionName",
+            "${process_reset_queue_name}",
+            {
+              "color": "#1f77b4"
+            }
+          ],
+          [
+            ".",
+            "Errors",
+            ".",
+            ".",
+            {
+              "color": "#d62728"
+            }
+          ]
         ],
         "region": "${region}",
         "title": "${process_reset_queue_name} λ",
@@ -332,8 +505,6 @@
     },
     {
       "type": "log",
-      "x": 12,
-      "y": 60,
       "width": 12,
       "height": 6,
       "properties": {
@@ -346,48 +517,30 @@
     },
     {
       "type": "metric",
-      "x": 0,
-      "y": 66,
       "width": 12,
       "height": 6,
       "properties": {
         "view": "timeSeries",
         "stacked": false,
         "metrics": [
-          [ "AWS/Lambda", "Invocations", "FunctionName", "${publish_lease_events_lambda_name}", { "color": "#1f77b4" } ],
-          [ ".", "Errors", ".", ".", { "color": "#d62728" } ]
-        ],
-        "region": "${region}",
-        "title": "${publish_lease_events_lambda_name} λ",
-        "stat": "Sum"
-      }
-    },
-    {
-      "type": "log",
-      "x": 12,
-      "y": 66,
-      "width": 12,
-      "height": 6,
-      "properties": {
-        "query": "SOURCE '/aws/lambda/${publish_lease_events_lambda_name}' | ${error_scraper_query}",
-        "region": "${region}",
-        "stacked": false,
-        "view": "table",
-        "title": "${publish_lease_events_lambda_name} λ error scraper"
-      }
-    },
-    {
-      "type": "metric",
-      "x": 0,
-      "y": 78,
-      "width": 12,
-      "height": 6,
-      "properties": {
-        "view": "timeSeries",
-        "stacked": false,
-        "metrics": [
-          [ "AWS/Lambda", "Invocations", "FunctionName", "${update_principal_policy_name}", { "color": "#1f77b4" } ],
-          [ ".", "Errors", ".", ".", { "color": "#d62728" } ]
+          [
+            "AWS/Lambda",
+            "Invocations",
+            "FunctionName",
+            "${update_principal_policy_name}",
+            {
+              "color": "#1f77b4"
+            }
+          ],
+          [
+            ".",
+            "Errors",
+            ".",
+            ".",
+            {
+              "color": "#d62728"
+            }
+          ]
         ],
         "region": "${region}",
         "title": "${update_principal_policy_name} λ",
@@ -396,8 +549,6 @@
     },
     {
       "type": "log",
-      "x": 12,
-      "y": 78,
       "width": 12,
       "height": 6,
       "properties": {

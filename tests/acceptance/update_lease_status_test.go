@@ -1,23 +1,28 @@
 package tests
 
 import (
+	"net/http"
+	"testing"
+	"time"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/gruntwork-io/terratest/modules/terraform"
 	"github.com/stretchr/testify/require"
-	"net/http"
-	"testing"
-	"time"
 
 	"encoding/json"
 	"fmt"
+
 	"github.com/stretchr/testify/assert"
 
 	"github.com/Optum/dce/pkg/db"
 	"github.com/Optum/dce/pkg/usage"
-	"github.com/Optum/dce/tests/acceptance/testutil"
+	"github.com/Optum/dce/tests/testutils"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+
+	"github.com/aws/aws-sdk-go/service/codebuild"
+	"github.com/aws/aws-sdk-go/service/sqs"
 )
 
 type getItemsResponseError struct {
@@ -59,7 +64,7 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 		aws.NewConfig().WithRegion(tfOut["aws_region"].(string)))
 	require.Nil(t, err)
 	require.Nil(t, err)
-	dbSvc := db.New(
+	dbSvc = db.New(
 		dynamodb.New(
 			awsSession,
 			aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
@@ -68,9 +73,10 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 		tfOut["leases_table_name"].(string),
 		7,
 	)
+	dbSvc.ConsistentRead = true
 
 	// Configure the usage service
-	usageSvc := usage.New(
+	usageSvc = usage.New(
 		dynamodb.New(
 			awsSession,
 			aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
@@ -79,6 +85,17 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 		"StartDate",
 		"PrincipalId",
 	)
+
+	sqsSvc = sqs.New(
+		awsSession,
+		aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
+	)
+	codeBuildSvc = codebuild.New(
+		awsSession,
+		aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
+	)
+	sqsResetURL = tfOut["sqs_reset_queue_url"].(string)
+	codeBuildResetName = tfOut["codebuild_reset_name"].(string)
 
 	// Create Lambda service client
 	lambdaClient := lambda.New(awsSession)
@@ -103,18 +120,15 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 	}
 	adminRoleRes := createAdminRole(t, awsSession, adminRoleName, policies)
 
+	// Cleanup tables before and after tests
+	givenEmptySystem(t)
+	defer givenEmptySystem(t)
 	defer deletePolicy(t, *cePolicy.Arn)
 	defer deleteAdminRole(t, adminRoleName, policies)
 
 	t.Run("Not exceeded lease budget result in Active lease with reason Active.", func(t *testing.T) {
 
-		// Make sure the DB is clean
-		truncateDBTables(t, dbSvc)
-		truncateUsageTable(t, usageSvc)
-
-		// Cleanup the DB after test is done
-		defer truncateDBTables(t, dbSvc)
-		defer truncateUsageTable(t, usageSvc)
+		givenEmptySystem(t)
 
 		accountID := adminRoleRes.accountID
 		adminRoleArn := adminRoleRes.adminRoleArn
@@ -129,28 +143,26 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 				AdminRoleArn: adminRoleArn,
 			},
 			maxAttempts: 15,
-			f: func(r *testutil.R, apiResp *apiResponse) {
+			f: func(r *testutils.R, apiResp *apiResponse) {
 				assert.Equal(r, 201, apiResp.StatusCode)
 			},
 		})
 
-		// Update Account status to ready
-		_, err = dbSvc.TransitionAccountStatus(
-			accountID,
-			db.NotReady, db.Ready,
-		)
-		require.Nil(t, err)
+		waitForAccountStatus(t, apiURL, accountID, "Ready")
 
 		// Create a lease for above created account
 		apiRequest(t, &apiRequestInput{
 			method: "POST",
 			url:    apiURL + "/leases",
-			json: inputLeaseRequest{
+			json: struct {
+				PrincipalID  string  `json:"principalId"`
+				BudgetAmount float64 `json:"budgetAmount"`
+			}{
 				PrincipalID:  principalID,
 				BudgetAmount: 200.00,
 			},
 			maxAttempts: 15,
-			f: func(r *testutil.R, apiResp *apiResponse) {
+			f: func(r *testutils.R, apiResp *apiResponse) {
 				assert.Equal(r, 201, apiResp.StatusCode)
 			},
 		})
@@ -183,13 +195,7 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 
 	t.Run("Expired lease result in Inactive lease with reason Expired.", func(t *testing.T) {
 
-		// Make sure the DB is clean
-		truncateDBTables(t, dbSvc)
-		truncateUsageTable(t, usageSvc)
-
-		// Cleanup the DB after test is done
-		defer truncateDBTables(t, dbSvc)
-		defer truncateUsageTable(t, usageSvc)
+		givenEmptySystem(t)
 
 		accountID := adminRoleRes.accountID
 		adminRoleArn := adminRoleRes.adminRoleArn
@@ -204,28 +210,26 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 				AdminRoleArn: adminRoleArn,
 			},
 			maxAttempts: 15,
-			f: func(r *testutil.R, apiResp *apiResponse) {
+			f: func(r *testutils.R, apiResp *apiResponse) {
 				assert.Equal(r, 201, apiResp.StatusCode)
 			},
 		})
 
-		// Update Account status to ready
-		_, err = dbSvc.TransitionAccountStatus(
-			accountID,
-			db.NotReady, db.Ready,
-		)
-		require.Nil(t, err)
+		waitForAccountStatus(t, apiURL, accountID, "Ready")
 
 		// Create a lease for above created account
 		apiRequest(t, &apiRequestInput{
 			method: "POST",
 			url:    apiURL + "/leases",
-			json: inputLeaseRequest{
+			json: struct {
+				PrincipalID  string  `json:"principalId"`
+				BudgetAmount float64 `json:"budgetAmount"`
+			}{
 				PrincipalID:  principalID,
 				BudgetAmount: 200.00,
 			},
 			maxAttempts: 15,
-			f: func(r *testutil.R, apiResp *apiResponse) {
+			f: func(r *testutils.R, apiResp *apiResponse) {
 				assert.Equal(r, 201, apiResp.StatusCode)
 			},
 		})
@@ -258,13 +262,7 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 
 	t.Run("Exceeded lease budget result in Inactive lease with reason OverBudget.", func(t *testing.T) {
 
-		// Make sure the DB is clean
-		truncateDBTables(t, dbSvc)
-		truncateUsageTable(t, usageSvc)
-
-		// Cleanup the DB when test execution is done
-		defer truncateDBTables(t, dbSvc)
-		defer truncateUsageTable(t, usageSvc)
+		givenEmptySystem(t)
 
 		accountID := adminRoleRes.accountID
 		adminRoleArn := adminRoleRes.adminRoleArn
@@ -279,28 +277,26 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 				AdminRoleArn: adminRoleArn,
 			},
 			maxAttempts: 15,
-			f: func(r *testutil.R, apiResp *apiResponse) {
+			f: func(r *testutils.R, apiResp *apiResponse) {
 				assert.Equal(r, 201, apiResp.StatusCode)
 			},
 		})
 
-		// Update Account status to ready
-		_, err = dbSvc.TransitionAccountStatus(
-			accountID,
-			db.NotReady, db.Ready,
-		)
-		require.Nil(t, err)
+		waitForAccountStatus(t, apiURL, accountID, "Ready")
 
 		// Create a lease for above created account
 		apiRequest(t, &apiRequestInput{
 			method: "POST",
 			url:    apiURL + "/leases",
-			json: inputLeaseRequest{
+			json: struct {
+				PrincipalID  string  `json:"principalId"`
+				BudgetAmount float64 `json:"budgetAmount"`
+			}{
 				PrincipalID:  principalID,
 				BudgetAmount: 199.00,
 			},
 			maxAttempts: 15,
-			f: func(r *testutil.R, apiResp *apiResponse) {
+			f: func(r *testutils.R, apiResp *apiResponse) {
 				assert.Equal(r, 201, apiResp.StatusCode)
 			},
 		})
@@ -336,13 +332,7 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 
 	t.Run("Exceeded principal budget result in Inactive lease with reason OverPrincipalBudget.", func(t *testing.T) {
 
-		// Make sure the DB is clean
-		truncateDBTables(t, dbSvc)
-		truncateUsageTable(t, usageSvc)
-
-		// Cleanup the DB when test execution is done
-		defer truncateDBTables(t, dbSvc)
-		defer truncateUsageTable(t, usageSvc)
+		givenEmptySystem(t)
 
 		accountID := adminRoleRes.accountID
 		adminRoleArn := adminRoleRes.adminRoleArn
@@ -357,28 +347,26 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 				AdminRoleArn: adminRoleArn,
 			},
 			maxAttempts: 15,
-			f: func(r *testutil.R, apiResp *apiResponse) {
+			f: func(r *testutils.R, apiResp *apiResponse) {
 				assert.Equal(r, 201, apiResp.StatusCode)
 			},
 		})
 
-		// Update Account status to ready
-		_, err = dbSvc.TransitionAccountStatus(
-			accountID,
-			db.NotReady, db.Ready,
-		)
-		require.Nil(t, err)
+		waitForAccountStatus(t, apiURL, accountID, "Ready")
 
 		// Create a lease for above created account
 		apiRequest(t, &apiRequestInput{
 			method: "POST",
 			url:    apiURL + "/leases",
-			json: inputLeaseRequest{
+			json: struct {
+				PrincipalID  string  `json:"principalId"`
+				BudgetAmount float64 `json:"budgetAmount"`
+			}{
 				PrincipalID:  principalID,
 				BudgetAmount: 300.00,
 			},
 			maxAttempts: 15,
-			f: func(r *testutil.R, apiResp *apiResponse) {
+			f: func(r *testutils.R, apiResp *apiResponse) {
 				assert.Equal(r, 201, apiResp.StatusCode)
 			},
 		})
@@ -414,13 +402,7 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 
 	t.Run("Exceeded both lease and principal budget result in Inactive lease with reason OverBudget.", func(t *testing.T) {
 
-		// Make sure the DB is clean
-		truncateDBTables(t, dbSvc)
-		truncateUsageTable(t, usageSvc)
-
-		// Cleanup the DB when test execution is done
-		defer truncateDBTables(t, dbSvc)
-		defer truncateUsageTable(t, usageSvc)
+		givenEmptySystem(t)
 
 		accountID := adminRoleRes.accountID
 		adminRoleArn := adminRoleRes.adminRoleArn
@@ -435,28 +417,26 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 				AdminRoleArn: adminRoleArn,
 			},
 			maxAttempts: 15,
-			f: func(r *testutil.R, apiResp *apiResponse) {
+			f: func(r *testutils.R, apiResp *apiResponse) {
 				assert.Equal(r, 201, apiResp.StatusCode)
 			},
 		})
 
-		// Update Account status to ready
-		_, err = dbSvc.TransitionAccountStatus(
-			accountID,
-			db.NotReady, db.Ready,
-		)
-		require.Nil(t, err)
+		waitForAccountStatus(t, apiURL, accountID, "Ready")
 
 		// Create a lease for above created account
 		apiRequest(t, &apiRequestInput{
 			method: "POST",
 			url:    apiURL + "/leases",
-			json: inputLeaseRequest{
+			json: struct {
+				PrincipalID  string  `json:"principalId"`
+				BudgetAmount float64 `json:"budgetAmount"`
+			}{
 				PrincipalID:  principalID,
 				BudgetAmount: 300.00,
 			},
 			maxAttempts: 15,
-			f: func(r *testutil.R, apiResp *apiResponse) {
+			f: func(r *testutils.R, apiResp *apiResponse) {
 				assert.Equal(r, 201, apiResp.StatusCode)
 			},
 		})
@@ -492,7 +472,7 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 
 }
 
-func createUsageForInputAmount(t *testing.T, apiURL string, accountID string, usageSvc usage.Service, costAmount float64) []*usage.Usage {
+func createUsageForInputAmount(t *testing.T, apiURL string, accountID string, usageSvc usage.DBer, costAmount float64) []*usage.Usage {
 	// Create usage
 	// Setup usage dates
 	const ttl int = 3
@@ -515,19 +495,22 @@ func createUsageForInputAmount(t *testing.T, apiURL string, accountID string, us
 
 	for i := 1; i <= 10; i++ {
 
-		input := usage.Usage{
-			PrincipalID:  testPrincipalID,
-			AccountID:    testAccountID,
-			StartDate:    startDate.Unix(),
-			EndDate:      endDate.Unix(),
-			CostAmount:   costAmount,
-			CostCurrency: "USD",
-			TimeToLive:   timeToLive.Unix(),
-		}
-		err := usageSvc.PutUsage(input)
+		input, err := usage.NewUsage(
+			usage.NewUsageInput{
+				PrincipalID:  testPrincipalID,
+				AccountID:    testAccountID,
+				StartDate:    startDate.Unix(),
+				EndDate:      endDate.Unix(),
+				CostAmount:   costAmount,
+				CostCurrency: "USD",
+				TimeToLive:   timeToLive.Unix(),
+			},
+		)
+		require.Nil(t, err)
+		err = usageSvc.PutUsage(*input)
 		require.Nil(t, err)
 
-		expectedUsages = append(expectedUsages, &input)
+		expectedUsages = append(expectedUsages, input)
 
 		usageEndDate = endDate
 		startDate = startDate.AddDate(0, 0, -1)
@@ -536,7 +519,7 @@ func createUsageForInputAmount(t *testing.T, apiURL string, accountID string, us
 
 	queryString := fmt.Sprintf("/usage?startDate=%d&endDate=%d", usageStartDate.Unix(), usageEndDate.Unix())
 
-	testutil.Retry(t, 10, 10*time.Millisecond, func(r *testutil.R) {
+	testutils.Retry(t, 10, 10*time.Millisecond, func(r *testutils.R) {
 
 		resp := apiRequest(t, &apiRequestInput{
 			method: "GET",

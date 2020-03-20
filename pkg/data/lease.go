@@ -18,6 +18,7 @@ type Lease struct {
 	DynamoDB       dynamodbiface.DynamoDBAPI
 	TableName      string `env:"LEASE_DB"`
 	ConsistentRead bool   `env:"USE_CONSISTENT_READS" envDefault:"false"`
+	Limit          int64  `env:"LIMIT" envDefault:"25"`
 }
 
 // Write the Lease record in DynamoDB
@@ -74,35 +75,6 @@ func (a *Lease) Write(lease *lease.Lease, prevLastModifiedOn *int64) error {
 
 }
 
-// Delete the Lease record in DynamoDB
-func (a *Lease) Delete(lease *lease.Lease) error {
-
-	input := &dynamodb.DeleteItemInput{
-		// Query in Lease Table
-		TableName: aws.String(a.TableName),
-		// Return the updated record
-		ReturnValues: aws.String("ALL_NEW"),
-		Key: map[string]*dynamodb.AttributeValue{
-			"AccountId": {
-				S: lease.AccountID,
-			},
-			"PrincipalId": {
-				S: lease.PrincipalID,
-			},
-		},
-	}
-	_, err := deleteItem(input, a.DynamoDB)
-
-	if err != nil {
-		return errors.NewInternalServer(
-			fmt.Sprintf("delete lease failed for account %q and principal %q", *lease.AccountID, *lease.PrincipalID),
-			err,
-		)
-	}
-
-	return nil
-}
-
 // GetByAccountIDAndPrincipalID gets the Lease record by AccountID and PrincipalID
 func (a *Lease) GetByAccountIDAndPrincipalID(accountID string, principalID string) (*lease.Lease, error) {
 
@@ -145,7 +117,7 @@ func (a *Lease) GetByAccountIDAndPrincipalID(accountID string, principalID strin
 }
 
 // GetByID gets the Lease record by ID
-func (a *Lease) GetByID(leaseID string) (*lease.Lease, error) {
+func (a *Lease) Get(leaseID string) (*lease.Lease, error) {
 
 	input := &dynamodb.QueryInput{
 		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
@@ -186,5 +158,6 @@ func (a *Lease) GetByID(leaseID string) (*lease.Lease, error) {
 			err,
 		)
 	}
+
 	return &lease, nil
 }

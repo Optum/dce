@@ -23,6 +23,8 @@ fi
 golangci-lint run
 echo "done."
 
+gosec ./...
+
 echo -n "Formatting terraform code.... "
 terraform fmt -diff -check -recursive ./modules/
 echo "done."

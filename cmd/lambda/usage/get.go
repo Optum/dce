@@ -44,7 +44,15 @@ func GetUsageByStartDateAndEndDate(w http.ResponseWriter, r *http.Request) {
 	usageResponseItems := []*response.UsageResponse{}
 
 	for _, a := range usageRecords {
-		usageRes := response.UsageResponse(*a)
+		usageRes := response.UsageResponse{
+			PrincipalID:  *a.PrincipalID,
+			AccountID:    *a.AccountID,
+			StartDate:    *a.StartDate,
+			EndDate:      *a.EndDate,
+			CostAmount:   *a.CostAmount,
+			CostCurrency: *a.CostCurrency,
+			TimeToLive:   *a.TimeToLive,
+		}
 		usageRes.StartDate = startDate.Unix()
 		usageRes.EndDate = endDate.Unix()
 		log.Printf("usage: %v", usageRes)
@@ -88,7 +96,15 @@ func GetUsageByStartDateAndPrincipalID(w http.ResponseWriter, r *http.Request) {
 	usageResponseItems := []*response.UsageResponse{}
 
 	for _, a := range usageRecords {
-		usageRes := response.UsageResponse(*a)
+		usageRes := response.UsageResponse{
+			PrincipalID:  *a.PrincipalID,
+			AccountID:    *a.AccountID,
+			StartDate:    *a.StartDate,
+			EndDate:      *a.EndDate,
+			CostAmount:   *a.CostAmount,
+			CostCurrency: *a.CostCurrency,
+			TimeToLive:   *a.TimeToLive,
+		}
 		usageResponseItems = append(usageResponseItems, &usageRes)
 	}
 

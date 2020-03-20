@@ -9,18 +9,28 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
 )
 
-func getFiltersFromStruct(i interface{}, keyName *string) (*expression.KeyConditionBuilder, *expression.ConditionBuilder) {
+type stringer interface {
+	String() string
+}
+
+func getFiltersFromStruct(input interface{}, keyName *string) (*expression.KeyConditionBuilder, *expression.ConditionBuilder) {
 	var cb *expression.ConditionBuilder
 	var kb *expression.KeyConditionBuilder
-	v := reflect.ValueOf(i).Elem()
+	var dValue interface{}
+	v := reflect.ValueOf(input).Elem()
 	for i := 0; i < v.NumField(); i++ {
 		dField := strings.Split(v.Type().Field(i).Tag.Get("dynamodbav"), ",")[0]
 		if dField != "-" {
 			value := v.Field(i).Interface()
 			if !reflect.ValueOf(value).IsNil() {
-				switch v.Field(i).Kind() {
+				t := v.Field(i)
+				switch t.Kind() {
 				case reflect.Ptr:
-					dValue := reflect.Indirect(v.Field(i)).Interface()
+					if u, ok := t.Interface().(stringer); ok {
+						dValue = u.String()
+					} else {
+						dValue = reflect.Indirect(v.Field(i)).Interface()
+					}
 					if keyName != nil {
 						if dField == *keyName {
 							newFilter := expression.Key(dField).Equal(expression.Value(dValue))
@@ -51,17 +61,7 @@ func query(input *dynamodb.QueryInput, dataInterface dynamodbiface.DynamoDBAPI) 
 	return output, err
 }
 
-func scan(input *dynamodb.ScanInput, dataInterface dynamodbiface.DynamoDBAPI) (*dynamodb.ScanOutput, error) {
-	output, err := dataInterface.Scan(input)
-	return output, err
-}
-
 func getItem(input *dynamodb.GetItemInput, dataInterface dynamodbiface.DynamoDBAPI) (*dynamodb.GetItemOutput, error) {
 	output, err := dataInterface.GetItem(input)
-	return output, err
-}
-
-func deleteItem(input *dynamodb.DeleteItemInput, dataInterface dynamodbiface.DynamoDBAPI) (*dynamodb.DeleteItemOutput, error) {
-	output, err := dataInterface.DeleteItem(input)
 	return output, err
 }

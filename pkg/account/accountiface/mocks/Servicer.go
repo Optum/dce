@@ -11,6 +11,29 @@ type Servicer struct {
 	mock.Mock
 }
 
+// Create provides a mock function with given fields: data
+func (_m *Servicer) Create(data *account.Account) (*account.Account, error) {
+	ret := _m.Called(data)
+
+	var r0 *account.Account
+	if rf, ok := ret.Get(0).(func(*account.Account) *account.Account); ok {
+		r0 = rf(data)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*account.Account)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*account.Account) error); ok {
+		r1 = rf(data)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // Delete provides a mock function with given fields: data
 func (_m *Servicer) Delete(data *account.Account) error {
 	ret := _m.Called(data)
@@ -71,6 +94,43 @@ func (_m *Servicer) List(query *account.Account) (*account.Accounts, error) {
 	return r0, r1
 }
 
+// ListPages provides a mock function with given fields: query, fn
+func (_m *Servicer) ListPages(query *account.Account, fn func(*account.Accounts) bool) error {
+	ret := _m.Called(query, fn)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(*account.Account, func(*account.Accounts) bool) error); ok {
+		r0 = rf(query, fn)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// Reset provides a mock function with given fields: id
+func (_m *Servicer) Reset(id string) (*account.Account, error) {
+	ret := _m.Called(id)
+
+	var r0 *account.Account
+	if rf, ok := ret.Get(0).(func(string) *account.Account); ok {
+		r0 = rf(id)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*account.Account)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(id)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // Save provides a mock function with given fields: data
 func (_m *Servicer) Save(data *account.Account) error {
 	ret := _m.Called(data)
@@ -106,4 +166,18 @@ func (_m *Servicer) Update(ID string, data *account.Account) (*account.Account, 
 	}
 
 	return r0, r1
+}
+
+// UpsertPrincipalAccess provides a mock function with given fields: data
+func (_m *Servicer) UpsertPrincipalAccess(data *account.Account) error {
+	ret := _m.Called(data)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(*account.Account) error); ok {
+		r0 = rf(data)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
 }
