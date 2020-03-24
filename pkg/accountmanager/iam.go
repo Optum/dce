@@ -32,7 +32,7 @@ func (p *principalService) MergeRole() error {
 	})
 	if err != nil {
 		if isAWSAlreadyExistsError(err) {
-			log.Print(err.Error() + " (Ignoring)")
+			log.Print(err.Error() + fmt.Sprintf(" (Ignoring this error for account %q)", *p.account.ID))
 		} else {
 			return errors.NewInternalServer(fmt.Sprintf("unexpected error creating role %q", p.account.PrincipalRoleArn.String()), err)
 		}
@@ -48,7 +48,7 @@ func (p *principalService) DeleteRole() error {
 	})
 	if err != nil {
 		if isAWSNoSuchEntityError(err) {
-			log.Print(err.Error() + " (Ignoring)")
+			log.Print(err.Error() + fmt.Sprintf(" (Ignoring this error for account %q)", *p.account.ID))
 		} else {
 			return errors.NewInternalServer(fmt.Sprintf("unexpected error deleting the role %q", p.account.PrincipalRoleArn.String()), err)
 		}
@@ -67,12 +67,12 @@ func (p *principalService) MergePolicy() error {
 	// if they match there is nothing to do
 	if p.account.PrincipalPolicyHash != nil {
 		if *policyHash == *p.account.PrincipalPolicyHash {
-			log.Printf("SKIP: Policy Hash matches.  Old %q and New %q", *p.account.PrincipalPolicyHash, *policyHash)
+			log.Printf("SKIP: For account %q, Policy Hash matches.  Old %q and New %q", *p.account.ID, *p.account.PrincipalPolicyHash, *policyHash)
 			return nil
 		}
-		log.Printf("UPDATE: Policy Hash doesn't match.  Old %q and New %q", *p.account.PrincipalPolicyHash, *policyHash)
+		log.Printf("UPDATE: For account %q, Policy Hash doesn't match.  Old %q and New %q", *p.account.ID, *p.account.PrincipalPolicyHash, *policyHash)
 	} else {
-		log.Printf("UPDATE: Old Policy Hash is null. New %q", *policyHash)
+		log.Printf("UPDATE: For account %q, Old Policy Hash is null. New %q", *p.account.ID, *policyHash)
 	}
 
 	_, err = p.iamSvc.CreatePolicy(&iam.CreatePolicyInput{
@@ -83,7 +83,7 @@ func (p *principalService) MergePolicy() error {
 
 	if err != nil {
 		if isAWSAlreadyExistsError(err) {
-			log.Print(err.Error() + " (Ignoring)")
+			log.Print(err.Error() + fmt.Sprintf(" (Ignoring this error for account %q)", *p.account.ID))
 		} else {
 			return errors.NewInternalServer(fmt.Sprintf("unexpected error creating policy %q", p.account.PrincipalPolicyArn.String()), err)
 		}
@@ -137,7 +137,7 @@ func (p *principalService) DeletePolicy() error {
 
 	if err != nil {
 		if isAWSNoSuchEntityError(err) {
-			log.Print(err.Error() + " (Ignoring)")
+			log.Print(err.Error() + fmt.Sprintf(" (Ignoring this error for account %q)", *p.account.ID))
 		} else {
 			return errors.NewInternalServer(fmt.Sprintf("unexpected error deleting the policy %q", p.account.PrincipalPolicyArn.String()), err)
 		}
@@ -155,7 +155,7 @@ func (p *principalService) AttachRoleWithPolicy() error {
 	})
 	if err != nil {
 		if isAWSAlreadyExistsError(err) {
-			log.Print(err.Error() + " (Ignoring)")
+			log.Print(err.Error() + fmt.Sprintf(" (Ignoring this error for account %q)", *p.account.ID))
 		} else {
 			return errors.NewInternalServer(
 				fmt.Sprintf("unexpected error attaching policy %q to role %q", p.account.PrincipalPolicyArn.String(), p.account.PrincipalRoleArn.String()),
@@ -175,7 +175,7 @@ func (p *principalService) DetachRoleWithPolicy() error {
 	})
 	if err != nil {
 		if isAWSNoSuchEntityError(err) {
-			log.Print(err.Error() + " (Ignoring)")
+			log.Print(err.Error() + fmt.Sprintf(" (Ignoring this error for account %q)", *p.account.ID))
 		} else {
 			return errors.NewInternalServer(
 				fmt.Sprintf("unexpected error detaching policy %q from role %q", p.account.PrincipalPolicyArn.String(), p.account.PrincipalRoleArn.String()),
