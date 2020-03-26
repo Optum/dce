@@ -23,6 +23,10 @@ module "update_principal_policy" {
     TAG_ENVIRONMENT                = var.namespace == "prod" ? "PROD" : "NON-PROD"
     TAG_APP_NAME                   = lookup(var.global_tags, "AppName")
   }
+
+  dead_letter_config = {
+    target_arn = aws_sqs_queue.update_principal_policy_dlq.arn
+  }
 }
 
 resource "aws_sns_topic_subscription" "update_principal_policy" {
@@ -76,4 +80,10 @@ resource "aws_iam_role_policy" "update_principal_policy" {
   ]
 }
 POLICY
+}
+
+resource "aws_sqs_queue" "update_principal_policy_dlq" {
+  name                       = "update-principal-policy-dlq-${var.namespace}"
+  tags                       = var.global_tags
+  visibility_timeout_seconds = 30
 }
