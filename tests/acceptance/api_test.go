@@ -38,6 +38,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/iam"
 	aws2 "github.com/gruntwork-io/terratest/modules/aws"
 	"github.com/gruntwork-io/terratest/modules/terraform"
+	"github.com/stretchr/testify/require"
 
 	"github.com/Optum/dce/pkg/db"
 	"github.com/Optum/dce/pkg/usage"
@@ -66,11 +67,11 @@ func TestApi(t *testing.T) {
 	}
 	tfOut := terraform.OutputAll(t, tfOpts)
 	apiURL := tfOut["api_url"].(string)
-	assert.NotNil(t, apiURL)
+	require.NotNil(t, apiURL)
 
 	// Configure the DB service
 	awsSession, err := session.NewSession()
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	dbSvc = db.New(
 		dynamodb.New(
 			awsSession,
@@ -137,20 +138,20 @@ func TestApi(t *testing.T) {
 		t.Run("should forbid unauthenticated requests", func(t *testing.T) {
 			// Send request to the /status API
 			resp, err := http.Get(apiURL + "/leases")
-			assert.Nil(t, err)
+			require.Nil(t, err)
 
 			// Should receive a 403
-			assert.Equal(t, http.StatusForbidden, resp.StatusCode,
+			require.Equal(t, http.StatusForbidden, resp.StatusCode,
 				"should return a 403")
 
 			// Parse response json
 			defer resp.Body.Close()
 			var data map[string]string
 			err = json.NewDecoder(resp.Body).Decode(&data)
-			assert.Nil(t, err)
+			require.Nil(t, err)
 
 			// Should return an Auth error message
-			assert.Equal(t, "Missing Authentication Token", data["message"])
+			require.Equal(t, "Missing Authentication Token", data["message"])
 		})
 
 		t.Run("should allow IAM authenticated requests", func(t *testing.T) {
@@ -177,11 +178,11 @@ func TestApi(t *testing.T) {
 
 			// Grab policy name from Terraform outputs
 			policyArn := terraform.Output(t, tfOpts, "api_access_policy_arn")
-			assert.NotNil(t, policyArn)
+			require.NotNil(t, policyArn)
 
 			// Configure IAM service
 			awsSession, err := session.NewSession()
-			assert.Nil(t, err)
+			require.Nil(t, err)
 			iamSvc := iam.New(awsSession)
 
 			// Create a Role we can assume, to test out our policy
@@ -205,14 +206,14 @@ func TestApi(t *testing.T) {
 				Path:                     aws.String("/"),
 				RoleName:                 aws.String(roleName),
 			})
-			assert.Nil(t, err)
+			require.Nil(t, err)
 
 			// Cleanup: Delete the Role
 			defer func() {
 				_, err = iamSvc.DeleteRole(&iam.DeleteRoleInput{
 					RoleName: aws.String(roleName),
 				})
-				assert.Nil(t, err)
+				require.Nil(t, err)
 			}()
 
 			// Attach our managed API access policy to the roleRes
@@ -220,7 +221,7 @@ func TestApi(t *testing.T) {
 				PolicyArn: aws.String(policyArn),
 				RoleName:  aws.String(roleName),
 			})
-			assert.Nil(t, err)
+			require.Nil(t, err)
 
 			// Cleanup: Detach the policy from the role (required to delete the Role)
 			defer func() {
@@ -228,7 +229,7 @@ func TestApi(t *testing.T) {
 					PolicyArn: aws.String(policyArn),
 					RoleName:  aws.String(roleName),
 				})
-				assert.Nil(t, err)
+				require.Nil(t, err)
 			}()
 
 			// Assume the roleRes we just created
@@ -260,11 +261,11 @@ func TestApi(t *testing.T) {
 
 		// Grab policy name from Terraform outputs
 		policyArn := terraform.Output(t, tfOpts, "role_user_policy")
-		assert.NotNil(t, policyArn)
+		require.NotNil(t, policyArn)
 
 		// Configure IAM service
 		awsSession, err := session.NewSession()
-		assert.Nil(t, err)
+		require.Nil(t, err)
 		iamSvc := iam.New(awsSession)
 
 		// Create a Role we can assume, to test out our policy
@@ -288,14 +289,14 @@ func TestApi(t *testing.T) {
 			Path:                     aws.String("/"),
 			RoleName:                 aws.String(roleName),
 		})
-		assert.Nil(t, err)
+		require.Nil(t, err)
 
 		// Cleanup: Delete the Role
 		defer func() {
 			_, err = iamSvc.DeleteRole(&iam.DeleteRoleInput{
 				RoleName: aws.String(roleName),
 			})
-			assert.Nil(t, err)
+			require.Nil(t, err)
 		}()
 
 		// Attach our managed API access policy to the roleRes
@@ -303,7 +304,7 @@ func TestApi(t *testing.T) {
 			PolicyArn: aws.String(policyArn),
 			RoleName:  aws.String(roleName),
 		})
-		assert.Nil(t, err)
+		require.Nil(t, err)
 
 		// Cleanup: Detach the policy from the role (required to delete the Role)
 		defer func() {
@@ -311,7 +312,7 @@ func TestApi(t *testing.T) {
 				PolicyArn: aws.String(policyArn),
 				RoleName:  aws.String(roleName),
 			})
-			assert.Nil(t, err)
+			require.Nil(t, err)
 		}()
 
 		//time.Sleep(10 * time.Second)
@@ -411,19 +412,19 @@ func TestApi(t *testing.T) {
 			})
 
 			// Verify response code
-			assert.Equal(t, http.StatusCreated, resp.StatusCode)
+			require.Equal(t, http.StatusCreated, resp.StatusCode)
 
 			// Parse response json
 			data := parseResponseJSON(t, resp)
 
 			// Verify provisioned response json
-			assert.Equal(t, principalID, data["principalId"].(string))
-			assert.Equal(t, accountID, data["accountId"].(string))
-			assert.Equal(t, string(db.Active),
+			require.Equal(t, principalID, data["principalId"].(string))
+			require.Equal(t, accountID, data["accountId"].(string))
+			require.Equal(t, string(db.Active),
 				data["leaseStatus"].(string))
-			assert.NotNil(t, data["createdOn"])
-			assert.NotNil(t, data["lastModifiedOn"])
-			assert.NotNil(t, data["leaseStatusModifiedOn"])
+			require.NotNil(t, data["createdOn"])
+			require.NotNil(t, data["lastModifiedOn"])
+			require.NotNil(t, data["leaseStatusModifiedOn"])
 
 			// Account should be marked as status=Leased
 			waitForAccountStatus(t, apiURL, accountID, "Leased")
@@ -479,7 +480,7 @@ func TestApi(t *testing.T) {
 				PrincipalRoleArn: fmt.Sprintf("arn:aws:iam::%s:role/principalRole", accountID),
 				LastModifiedOn:   timeNow,
 			})
-			assert.Nil(t, err)
+			require.Nil(t, err)
 
 			//////////////////
 			// Create Lease //
@@ -654,19 +655,19 @@ func TestApi(t *testing.T) {
 			})
 
 			// Verify response code
-			assert.Equal(t, http.StatusCreated, resp.StatusCode)
+			require.Equal(t, http.StatusCreated, resp.StatusCode)
 
 			// Parse response json
 			data := parseResponseJSON(t, resp)
 
 			// Verify provisioned response json
-			assert.Equal(t, "user", data["principalId"].(string))
-			assert.Equal(t, accountID, data["accountId"].(string))
-			assert.Equal(t, string(db.Active),
+			require.Equal(t, "user", data["principalId"].(string))
+			require.Equal(t, accountID, data["accountId"].(string))
+			require.Equal(t, string(db.Active),
 				data["leaseStatus"].(string))
-			assert.NotNil(t, data["createdOn"])
-			assert.NotNil(t, data["lastModifiedOn"])
-			assert.NotNil(t, data["leaseStatusModifiedOn"])
+			require.NotNil(t, data["createdOn"])
+			require.NotNil(t, data["lastModifiedOn"])
+			require.NotNil(t, data["leaseStatusModifiedOn"])
 
 			// Delete the lease
 			resp = apiRequest(t, &apiRequestInput{
@@ -814,7 +815,7 @@ func TestApi(t *testing.T) {
 				AdminRoleArn:     fmt.Sprintf("arn:aws:iam::%s:role/adminRole", acctID),
 				PrincipalRoleArn: fmt.Sprintf("arn:aws:iam::%s:role/principalRole", acctID),
 			})
-			assert.Nil(t, err)
+			require.Nil(t, err)
 
 			// Create an Lease Entry
 			_, err = dbSvc.PutLease(db.Lease{
@@ -826,7 +827,7 @@ func TestApi(t *testing.T) {
 				LastModifiedOn:        timeNow,
 				LeaseStatusModifiedOn: timeNow,
 			})
-			assert.Nil(t, err)
+			require.Nil(t, err)
 
 			// Create the Provision Request Body
 			wrongAcctID := "456"
@@ -870,7 +871,7 @@ func TestApi(t *testing.T) {
 				AdminRoleArn:     fmt.Sprintf("arn:aws:iam::%s:role/adminRole", acctID),
 				PrincipalRoleArn: fmt.Sprintf("arn:aws:iam::%s:role/principalRole", acctID),
 			})
-			assert.Nil(t, err)
+			require.Nil(t, err)
 
 			// Create an Lease Entry
 			_, err = dbSvc.PutLease(db.Lease{
@@ -882,7 +883,7 @@ func TestApi(t *testing.T) {
 				LastModifiedOn:        timeNow,
 				LeaseStatusModifiedOn: timeNow,
 			})
-			assert.Nil(t, err)
+			require.Nil(t, err)
 
 			// Create the Provision Request Body
 			body := leaseRequest{
@@ -938,18 +939,18 @@ func TestApi(t *testing.T) {
 
 			// Check the response
 			postResJSON := parseResponseJSON(t, createAccountRes)
-			assert.Equal(t, accountID, postResJSON["id"])
-			assert.Equal(t, "NotReady", postResJSON["accountStatus"])
-			assert.Equal(t, adminRoleArn, postResJSON["adminRoleArn"])
+			require.Equal(t, accountID, postResJSON["id"])
+			require.Equal(t, "NotReady", postResJSON["accountStatus"])
+			require.Equal(t, adminRoleArn, postResJSON["adminRoleArn"])
 			expectedPrincipalRoleArn := fmt.Sprintf("arn:aws:iam::%s:role/%s", accountID, tfOut["principal_role_name"])
-			assert.Equal(t, expectedPrincipalRoleArn, postResJSON["principalRoleArn"])
-			assert.True(t, postResJSON["lastModifiedOn"].(float64) > 1561518000)
-			assert.True(t, postResJSON["createdOn"].(float64) > 1561518000)
+			require.Equal(t, expectedPrincipalRoleArn, postResJSON["principalRoleArn"])
+			require.True(t, postResJSON["lastModifiedOn"].(float64) > 1561518000)
+			require.True(t, postResJSON["createdOn"].(float64) > 1561518000)
 
 			// Check that the account is added to the DB
 			dbAccount, err := dbSvc.GetAccount(accountID)
-			assert.Nil(t, err)
-			assert.Equal(t, &db.Account{
+			require.Nil(t, err)
+			require.Equal(t, &db.Account{
 				ID:                  accountID,
 				AccountStatus:       "NotReady",
 				LastModifiedOn:      int64(postResJSON["lastModifiedOn"].(float64)),
@@ -963,19 +964,19 @@ func TestApi(t *testing.T) {
 			// Lookup the principal IAM Role
 			iamSvc := iam.New(awsSession)
 			roleArn, err := arn.Parse(postResJSON["principalRoleArn"].(string))
-			assert.Nil(t, err)
+			require.Nil(t, err)
 			roleName := strings.Split(roleArn.Resource, "/")[1]
 			_, err = iamSvc.GetRole(&iam.GetRoleInput{
 				RoleName: aws.String(roleName),
 			})
-			assert.Nil(t, err)
+			require.Nil(t, err)
 
 			// Check the Role policies
 			res, err := iamSvc.ListAttachedRolePolicies(&iam.ListAttachedRolePoliciesInput{
 				RoleName: aws.String(roleName),
 			})
-			assert.Nil(t, err)
-			assert.Len(t, res.AttachedPolicies, 1)
+			require.Nil(t, err)
+			require.Len(t, res.AttachedPolicies, 1)
 			principalPolicyArn := res.AttachedPolicies[0].PolicyArn
 
 			t.Run("STEP: Get Account by ID", func(t *testing.T) {
@@ -1055,18 +1056,18 @@ func TestApi(t *testing.T) {
 					s[i] = v
 				}
 
-				assert.Contains(t, resJSON, "id")
-				assert.Equal(t, "test-user", resJSON["principalId"])
-				assert.Equal(t, accountID, resJSON["accountId"])
-				assert.Equal(t, "Active", resJSON["leaseStatus"])
-				assert.NotNil(t, resJSON["createdOn"])
-				assert.NotNil(t, resJSON["lastModifiedOn"])
-				assert.Equal(t, budgetAmount, resJSON["budgetAmount"])
-				assert.Equal(t, "USD", resJSON["budgetCurrency"])
-				assert.Equal(t, s, resJSON["budgetNotificationEmails"])
+				require.Contains(t, resJSON, "id")
+				require.Equal(t, "test-user", resJSON["principalId"])
+				require.Equal(t, accountID, resJSON["accountId"])
+				require.Equal(t, "Active", resJSON["leaseStatus"])
+				require.NotNil(t, resJSON["createdOn"])
+				require.NotNil(t, resJSON["lastModifiedOn"])
+				require.Equal(t, budgetAmount, resJSON["budgetAmount"])
+				require.Equal(t, "USD", resJSON["budgetCurrency"])
+				require.Equal(t, s, resJSON["budgetNotificationEmails"])
 				_, err = uuid.Parse(fmt.Sprintf("%v", resJSON["id"]))
-				assert.Nil(t, err)
-				assert.NotNil(t, resJSON["leaseStatusModifiedOn"])
+				require.Nil(t, err)
+				require.NotNil(t, resJSON["leaseStatusModifiedOn"])
 
 				// Check the lease is created
 				res = apiRequest(t, &apiRequestInput{
@@ -1077,7 +1078,7 @@ func TestApi(t *testing.T) {
 					},
 				})
 				leaseJSON := parseResponseJSON(t, res)
-				assert.Equal(t, accountID, leaseJSON["accountId"])
+				require.Equal(t, accountID, leaseJSON["accountId"])
 
 				// Account should be marked as status=Leased
 				waitForAccountStatus(t, apiURL, accountID, "Leased")
@@ -1095,7 +1096,7 @@ func TestApi(t *testing.T) {
 						PrincipalRoleArn: fmt.Sprintf("arn:aws:iam::%s:role/principalRole", testAccount),
 						LastModifiedOn:   timeNow,
 					})
-					assert.Nil(t, error)
+					require.Nil(t, error)
 
 					// Create a lease
 					testPrincipal := "test-user"
@@ -1113,7 +1114,7 @@ func TestApi(t *testing.T) {
 						},
 					})
 
-					assert.Equal(t, map[string]interface{}{
+					require.Equal(t, map[string]interface{}{
 						"error": map[string]interface{}{
 							"code":    "AlreadyExistsError",
 							"message": fmt.Sprintf("lease \"with principal %s and account %s\" already exists", testPrincipal, testAccount),
@@ -1129,7 +1130,7 @@ func TestApi(t *testing.T) {
 						},
 					})
 					leasesData := parseResponseArrayJSON(t, res)
-					assert.Len(t, leasesData, 1)
+					require.Len(t, leasesData, 1)
 				})
 
 				t.Run("STEP: Delete Account (with Lease)", func(t *testing.T) {
@@ -1204,15 +1205,15 @@ func TestApi(t *testing.T) {
 						_, err = iamSvc.GetRole(&iam.GetRoleInput{
 							RoleName: aws.String(roleName),
 						})
-						assert.NotNil(t, err)
-						assert.Equal(t, iam.ErrCodeNoSuchEntityException, err.(awserr.Error).Code())
+						require.NotNil(t, err)
+						require.Equal(t, iam.ErrCodeNoSuchEntityException, err.(awserr.Error).Code())
 
 						// Check that the Principal Policy was deleted
 						_, err = iamSvc.GetPolicy(&iam.GetPolicyInput{
 							PolicyArn: principalPolicyArn,
 						})
-						assert.NotNil(t, err)
-						assert.Equal(t, iam.ErrCodeNoSuchEntityException, err.(awserr.Error).Code())
+						require.NotNil(t, err)
+						require.Equal(t, iam.ErrCodeNoSuchEntityException, err.(awserr.Error).Code())
 					})
 				})
 
@@ -1246,9 +1247,9 @@ func TestApi(t *testing.T) {
 		})
 
 		// Check the response
-		assert.Equal(t, res.StatusCode, 201)
+		require.Equal(t, res.StatusCode, 201)
 		resJSON := parseResponseJSON(t, res)
-		assert.Equal(t, map[string]interface{}{
+		require.Equal(t, map[string]interface{}{
 			"foo": map[string]interface{}{
 				"bar": "baz",
 			},
@@ -1257,8 +1258,8 @@ func TestApi(t *testing.T) {
 
 		// Check the DB record
 		dbAccount, err := dbSvc.GetAccount(accountID)
-		assert.Nil(t, err)
-		assert.Equal(t, map[string]interface{}{
+		require.Nil(t, err)
+		require.Equal(t, map[string]interface{}{
 			"foo": map[string]interface{}{
 				"bar": "baz",
 			},
@@ -1273,9 +1274,9 @@ func TestApi(t *testing.T) {
 				assert.Equal(r, 200, apiResp.StatusCode)
 			},
 		})
-		assert.Equal(t, getRes.StatusCode, 200)
+		require.Equal(t, getRes.StatusCode, 200)
 		getResJSON := parseResponseJSON(t, getRes)
-		assert.Equal(t, map[string]interface{}{
+		require.Equal(t, map[string]interface{}{
 			"foo": map[string]interface{}{
 				"bar": "baz",
 			},
@@ -1323,7 +1324,7 @@ func TestApi(t *testing.T) {
 					assert.Equal(r, 201, apiResp.StatusCode)
 				},
 			})
-			assert.Equal(t, 201, res.StatusCode)
+			require.Equal(t, 201, res.StatusCode)
 
 			// Account should be Leased
 			log.Println("Lease created. Waiting for account to be marked 'Leased'")
@@ -1342,7 +1343,7 @@ func TestApi(t *testing.T) {
 					assert.Equal(r, 200, apiResp.StatusCode, apiResp.json)
 				},
 			})
-			assert.Equal(t, 200, res.StatusCode)
+			require.Equal(t, 200, res.StatusCode)
 
 			// Account should be NotReady, while nuke runs
 			log.Println("Lease ended. Waiting for account to be marked 'NotReady'")
@@ -1403,20 +1404,20 @@ func TestApi(t *testing.T) {
 
 			// Check the JSON response
 			resJSON := parseResponseJSON(t, res)
-			assert.Equal(t, map[string]interface{}{
+			require.Equal(t, map[string]interface{}{
 				"foo": "bar",
 			}, resJSON["metadata"], "Response includes updated metadata")
-			assert.True(t, resJSON["lastModifiedOn"].(float64) > resJSON["createdOn"].(float64),
+			require.True(t, resJSON["lastModifiedOn"].(float64) > resJSON["createdOn"].(float64),
 				"should update lastModifiedOn timestamp")
 
 			// Check the DB record, to make sure it's updated
 			account, err := dbSvc.GetAccount(accountID)
-			assert.Nil(t, err)
+			require.Nil(t, err)
 
-			assert.Equal(t, map[string]interface{}{
+			require.Equal(t, map[string]interface{}{
 				"foo": "bar",
 			}, account.Metadata, "db record metadata is updated")
-			assert.True(t, account.LastModifiedOn > account.CreatedOn,
+			require.True(t, account.LastModifiedOn > account.CreatedOn,
 				"should update lastModifiedOn timestamp")
 		})
 
@@ -1433,7 +1434,7 @@ func TestApi(t *testing.T) {
 			})
 
 			resJSON := parseResponseJSON(t, res)
-			assert.Equal(t, map[string]interface{}{
+			require.Equal(t, map[string]interface{}{
 				"error": map[string]interface{}{
 					"code":    "RequestValidationError",
 					"message": "account validation error: adminRoleArn: must be an admin role arn that can be assumed.",
@@ -1453,10 +1454,10 @@ func TestApi(t *testing.T) {
 					},
 				},
 			})
-			assert.Equal(t, 404, res.StatusCode)
+			require.Equal(t, 404, res.StatusCode)
 
 			resJSON := parseResponseJSON(t, res)
-			assert.Equal(t, map[string]interface{}{
+			require.Equal(t, map[string]interface{}{
 				"error": map[string]interface{}{
 					"code":    "NotFoundError",
 					"message": "account \"123456789012\" not found",
@@ -1487,8 +1488,8 @@ func TestApi(t *testing.T) {
 			// Verify error response json
 			// Get nested json in response json
 			errResp := data["error"].(map[string]interface{})
-			assert.Equal(t, "RequestValidationError", errResp["code"].(string))
-			assert.Equal(t, "Failed to parse usage start date: strconv.ParseInt: parsing \"2019-09-2\": invalid syntax",
+			require.Equal(t, "RequestValidationError", errResp["code"].(string))
+			require.Equal(t, "Failed to parse usage start date: strconv.ParseInt: parsing \"2019-09-2\": invalid syntax",
 				errResp["message"].(string))
 		})
 
@@ -1509,7 +1510,7 @@ func TestApi(t *testing.T) {
 			data := parseResponseArrayJSON(t, resp)
 
 			// Verify response json
-			assert.Equal(t, []map[string]interface{}([]map[string]interface{}{}), data)
+			require.Equal(t, []map[string]interface{}([]map[string]interface{}{}), data)
 		})
 
 		t.Run("Should be able to get usage", func(t *testing.T) {
@@ -1958,7 +1959,7 @@ func TestApi(t *testing.T) {
 			PrincipalRoleArn: fmt.Sprintf("arn:aws:iam::%s:role/principalRole", accountID),
 			LastModifiedOn:   timeNow,
 		})
-		assert.Nil(t, error)
+		require.Nil(t, error)
 
 		t.Run("Should validate requested lease has a desired expiry date less than today", func(t *testing.T) {
 
@@ -1981,7 +1982,7 @@ func TestApi(t *testing.T) {
 			})
 
 			// Verify response code
-			assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+			require.Equal(t, http.StatusBadRequest, resp.StatusCode)
 
 			// Parse response json
 			data := parseResponseJSON(t, resp)
@@ -1989,9 +1990,9 @@ func TestApi(t *testing.T) {
 			// Verify error response json
 			// Get nested json in response json
 			err := data["error"].(map[string]interface{})
-			assert.Equal(t, "RequestValidationError", err["code"].(string))
+			require.Equal(t, "RequestValidationError", err["code"].(string))
 			errStr := fmt.Sprintf("lease validation error: expiresOn: Requested lease has a desired expiry date less than today: %d.", expiresOn)
-			assert.Equal(t, errStr, err["message"].(string))
+			require.Equal(t, errStr, err["message"].(string))
 		})
 
 		t.Run("Should validate requested budget amount", func(t *testing.T) {
@@ -2015,7 +2016,7 @@ func TestApi(t *testing.T) {
 			})
 
 			// Verify response code
-			assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+			require.Equal(t, http.StatusBadRequest, resp.StatusCode)
 
 			// Parse response json
 			data := parseResponseJSON(t, resp)
@@ -2023,8 +2024,8 @@ func TestApi(t *testing.T) {
 			// Verify error response json
 			// Get nested json in response json
 			err := data["error"].(map[string]interface{})
-			assert.Equal(t, "RequestValidationError", err["code"].(string))
-			assert.Equal(t, "lease validation error: budgetAmount: Requested lease has a budget amount of 30000.000000, which is greater than max lease budget amount of 1000.000000.",
+			require.Equal(t, "RequestValidationError", err["code"].(string))
+			require.Equal(t, "lease validation error: budgetAmount: Requested lease has a budget amount of 30000.000000, which is greater than max lease budget amount of 1000.000000.",
 				err["message"].(string))
 
 		})
@@ -2050,7 +2051,7 @@ func TestApi(t *testing.T) {
 			})
 
 			// Verify response code
-			assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+			require.Equal(t, http.StatusBadRequest, resp.StatusCode)
 
 			// Parse response json
 			data := parseResponseJSON(t, resp)
@@ -2059,8 +2060,8 @@ func TestApi(t *testing.T) {
 			// Get nested json in response json
 			err := data["error"].(map[string]interface{})
 			errStr := fmt.Sprintf("Requested lease has a budget expires on of %d, which is greater than max lease period of", expiresOnAfterOneYear)
-			assert.Equal(t, "RequestValidationError", err["code"].(string))
-			assert.Contains(t, err["message"].(string), errStr)
+			require.Equal(t, "RequestValidationError", err["code"].(string))
+			require.Contains(t, err["message"].(string), errStr)
 
 		})
 
@@ -2086,7 +2087,7 @@ func TestApi(t *testing.T) {
 			})
 
 			// Verify response code
-			assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+			require.Equal(t, http.StatusBadRequest, resp.StatusCode)
 
 			// Parse response json
 			data := parseResponseJSON(t, resp)
@@ -2094,10 +2095,10 @@ func TestApi(t *testing.T) {
 			// Verify error response json
 			// Get nested json in response json
 			err := data["error"].(map[string]interface{})
-			assert.Equal(t, "RequestValidationError", err["code"].(string))
+			require.Equal(t, "RequestValidationError", err["code"].(string))
 			// Weekday + 1 since Sunday is 0.  Min of 5 because thats what the write usage does
 			weekday := math.Min(float64(time.Now().Weekday())+1, 5)
-			assert.Equal(t,
+			require.Equal(t,
 				fmt.Sprintf("lease validation error: budgetAmount: Unable to create lease: User principal TestUser1 "+
 					"has already spent %.2f of their 1000.00 principal budget.", weekday*2000),
 				err["message"].(string),
@@ -2364,7 +2365,7 @@ func apiRequest(t *testing.T, input *apiRequestInput) *apiResponse {
 			req.Header.Set("Content-Type", "application/json")
 			signedHeaders, err = signer.Sign(req, bytes.NewReader(payload),
 				"execute-api", input.region, now)
-			assert.Nil(t, err)
+			require.Nil(t, err)
 		} else {
 			signedHeaders, err = signer.Sign(req, nil, "execute-api",
 				input.region, now)
@@ -2406,12 +2407,12 @@ func apiRequest(t *testing.T, input *apiRequestInput) *apiResponse {
 	return apiResp
 }
 
-func parseResponseJSON(t assert.TestingT, resp *apiResponse) map[string]interface{} {
-	assert.NotNil(t, resp.json)
+func parseResponseJSON(t require.TestingT, resp *apiResponse) map[string]interface{} {
+	require.NotNil(t, resp.json)
 	return resp.json.(map[string]interface{})
 }
 
-func responseJSONString(t assert.TestingT, resp *apiResponse, key string) string {
+func responseJSONString(t require.TestingT, resp *apiResponse, key string) string {
 	resJSON := parseResponseJSON(t, resp)
 	val, ok := resJSON[key]
 	assert.True(t, ok, "response has key %s", key)
@@ -2420,13 +2421,13 @@ func responseJSONString(t assert.TestingT, resp *apiResponse, key string) string
 	return valStr
 }
 
-func parseResponseArrayJSON(t assert.TestingT, resp *apiResponse) []map[string]interface{} {
-	assert.NotNil(t, resp.json)
+func parseResponseArrayJSON(t require.TestingT, resp *apiResponse) []map[string]interface{} {
+	require.NotNil(t, resp.json)
 
 	// Go doesn't allow you to cast directly to []map[string]interface{}
 	// so we need to mess around here a bit.
 	// This might be relevant: https://stackoverflow.com/questions/38579485/golang-convert-slices-into-map
-	assert.IsTypef(t, []interface{}{}, resp.json, "Expected JSON array response, got %v", resp.json)
+	require.IsTypef(t, []interface{}{}, resp.json, "Expected JSON array response, got %v", resp.json)
 	respJSON := resp.json.([]interface{})
 
 	arrJSON := []map[string]interface{}{}
@@ -2448,7 +2449,7 @@ func createPolicy(t *testing.T, awsSession client.ConfigProvider, name string, b
 	if err != nil && strings.Contains(err.Error(), iam.ErrCodeEntityAlreadyExistsException) {
 		err = nil
 	}
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	return policy.Policy
 }
 
@@ -2482,7 +2483,7 @@ func createAdminRole(t *testing.T, awsSession client.ConfigProvider, adminRoleNa
 		Path:                     aws.String("/"),
 		RoleName:                 aws.String(adminRoleName),
 	})
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	adminRoleArn := *roleRes.Role.Arn
 
@@ -2491,7 +2492,7 @@ func createAdminRole(t *testing.T, awsSession client.ConfigProvider, adminRoleNa
 			RoleName:  aws.String(adminRoleName),
 			PolicyArn: aws.String(p),
 		})
-		assert.Nil(t, err)
+		require.Nil(t, err)
 	}
 
 	// Wait for the role to be assumable
@@ -2546,9 +2547,9 @@ func createUsage(t *testing.T, apiURL string, usageSvc usage.DBer) {
 				TimeToLive:   timeToLive.Unix(),
 			},
 		)
-		assert.Nil(t, err)
+		require.Nil(t, err)
 		err = usageSvc.PutUsage(*input)
-		assert.Nil(t, err)
+		require.Nil(t, err)
 
 		usageEndDate = endDate
 		startDate = startDate.AddDate(0, 0, -1)
@@ -2680,7 +2681,7 @@ func NewCognitoUser(t *testing.T, tfOut map[string]interface{}, awsSession *sess
 	if err != nil {
 		defer cognitoUser.delete(t, tfOut, awsSession)
 	}
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	// Reset user's password
 	permPassword := getRandString(t, 4, "abcdefghijklmnopqrstuvwxyz") +
@@ -2697,7 +2698,7 @@ func NewCognitoUser(t *testing.T, tfOut map[string]interface{}, awsSession *sess
 	if err != nil {
 		defer cognitoUser.delete(t, tfOut, awsSession)
 	}
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	// Update user pool client to allow ADMIN_USER_PASSWORD_AUTH
 	clientID := tfOut["cognito_user_pool_client_id"].(string)
@@ -2708,7 +2709,7 @@ func NewCognitoUser(t *testing.T, tfOut map[string]interface{}, awsSession *sess
 	if err != nil {
 		defer cognitoUser.delete(t, tfOut, awsSession)
 	}
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	ALLOW_REFRESH_TOKEN_AUTH := "ALLOW_REFRESH_TOKEN_AUTH"
 	ALLOW_ADMIN_USER_PASSWORD_AUTH := "ALLOW_ADMIN_USER_PASSWORD_AUTH"
 	allowedAuthFlows := []*string{&ALLOW_REFRESH_TOKEN_AUTH, &ALLOW_ADMIN_USER_PASSWORD_AUTH}
@@ -2722,7 +2723,7 @@ func NewCognitoUser(t *testing.T, tfOut map[string]interface{}, awsSession *sess
 	if err != nil {
 		defer cognitoUser.delete(t, tfOut, awsSession)
 	}
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	// authenticate with use pool to get Access, Identity, and Refresh JWTs
 	userCreds := make(map[string]*string)
@@ -2738,7 +2739,7 @@ func NewCognitoUser(t *testing.T, tfOut map[string]interface{}, awsSession *sess
 	if err != nil {
 		defer cognitoUser.delete(t, tfOut, awsSession)
 	}
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	// Exchange Identity JWT with identity pool for iam creds
 	// https://github.com/aws/aws-sdk-go/issues/406#issuecomment-150666885
@@ -2754,7 +2755,7 @@ func NewCognitoUser(t *testing.T, tfOut map[string]interface{}, awsSession *sess
 	if err != nil {
 		defer cognitoUser.delete(t, tfOut, awsSession)
 	}
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	idCredOutput, err := identityPoolSvc.GetCredentialsForIdentity(&cognitoidentity.GetCredentialsForIdentityInput{
 		IdentityId: identityID.IdentityId,
@@ -2763,7 +2764,7 @@ func NewCognitoUser(t *testing.T, tfOut map[string]interface{}, awsSession *sess
 	if err != nil {
 		defer cognitoUser.delete(t, tfOut, awsSession)
 	}
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	// Change session to use user creds
 	cognitoUser.UserCredsValue = credentials.Value{
@@ -2797,7 +2798,7 @@ func waitForAccountStatus(t *testing.T, apiURL, accountID, expectedStatus string
 
 	// Fail now if the status change never happened
 	actualStatus := responseJSONString(t, res, "accountStatus")
-	assert.Equalf(t, expectedStatus, actualStatus,
+	require.Equalf(t, expectedStatus, actualStatus,
 		"Expected account status to change from %s to %s", actualStatus, expectedStatus)
 
 	time.Sleep(time.Second * 5)
