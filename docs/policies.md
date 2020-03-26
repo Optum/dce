@@ -140,7 +140,7 @@ Implementing DCE in an AWS Organization provides the ability to use SCPs, which 
                 "waf:*",
                 "waf-regional:*",
                 "worklink:*",
-                "workspaces:*",
+                "workspaces:*"
             ],
             "Resource": "*"
         }
