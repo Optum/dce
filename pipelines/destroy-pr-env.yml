@@ -44,7 +44,7 @@ steps:
   # Install Terraform
   - task: TerraformInstaller@0
     inputs:
-      terraformVersion: "0.12.18"
+      terraformVersion: "0.12.24"
     displayName: "Install Terraform"
 
   # terraform init
