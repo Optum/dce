@@ -12,6 +12,10 @@
 - Fix an issue when comparing the current Principal Policy Hash to the new version where the pointers were being compared and not the values
 - Update functional testing timeout to be 20 minutes from the default of 10 minutes
 - Fix to allow budget notification email templates > 4Kb
+<<<<<<< HEAD
+=======
+- Prevent non-admins from performing CRUD operations on other user's leases
+>>>>>>> ee575e0b48e6001c6c26747b563489ea8c3223ac
 
 ## v0.28.0
 
