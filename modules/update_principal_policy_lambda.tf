@@ -23,7 +23,6 @@ module "update_principal_policy" {
     TAG_ENVIRONMENT                = var.namespace == "prod" ? "PROD" : "NON-PROD"
     TAG_APP_NAME                   = lookup(var.global_tags, "AppName")
   }
-
 }
 
 resource "aws_sns_topic_subscription" "update_principal_policy" {

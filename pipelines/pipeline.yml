@@ -27,7 +27,7 @@ stages:
           # Install Terraform
           - task: TerraformInstaller@0
             inputs:
-              terraformVersion: "0.12.24"
+              terraformVersion: "0.12.18"
             displayName: "Install Terraform"
 
           # Install GO
@@ -219,7 +219,7 @@ stages:
                 # Install Terraform
                 - task: TerraformInstaller@0
                   inputs:
-                    terraformVersion: "0.12.24"
+                    terraformVersion: "0.12.18"
                   displayName: "Install Terraform"
 
                 # Configure the Terraform backend
@@ -344,7 +344,7 @@ stages:
                 # Install Terraform
                 - task: TerraformInstaller@0
                   inputs:
-                    terraformVersion: "0.12.24"
+                    terraformVersion: "0.12.18"
                   displayName: "Install Terraform"
 
                 - bash: |
