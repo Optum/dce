@@ -6,7 +6,7 @@ resource "aws_cloudwatch_metric_alarm" "lambda_errors" {
   namespace                 = "AWS/Lambda"
   period                    = 60
   statistic                 = "Sum"
-  threshold                 = 2
+  threshold                 = 0
   insufficient_data_actions = []
   alarm_actions             = [var.alarm_topic_arn]
 
