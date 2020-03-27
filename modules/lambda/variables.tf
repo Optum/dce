@@ -25,7 +25,3 @@ variable "alarm_topic_arn" {
   type        = string
   description = "ARN of SNS Topic, for alarm notifications"
 }
-variable "dlq_arn" {
-  type        = string
-  description = "ARN of SQS, for dlq setup"
-}
