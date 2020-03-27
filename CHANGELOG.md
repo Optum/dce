@@ -14,6 +14,9 @@
   support. See README in `tools/awsnukedocgen`.
 - Added new services supported by DCE: Kinesis Analytics, Kinesis Video, Opsworks CM, Robomaker,
   and Worklink.
+- Added new `make setup` target for installing tools on local developer machines.
+- Hardened `scripts/install_ci.sh` to be used by developers.
+- Added documenation for local developer environment setup.
 
 ## v0.28.0
 
