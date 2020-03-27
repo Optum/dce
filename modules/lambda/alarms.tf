@@ -54,12 +54,14 @@ resource "aws_cloudwatch_metric_alarm" "lambda_throttles" {
 }
 
 resource "aws_sqs_queue" "lambda_dlq" {
+  count                      = var.dlq_enabled ? 1 : 0
   name                       = "${var.name}-dlq"
   tags                       = var.global_tags
   visibility_timeout_seconds = 30
 }
 
 resource "aws_cloudwatch_metric_alarm" "dlq_not_empty" {
+  count               = var.dlq_enabled ? 1 : 0
   alarm_name          = "${var.name}-dlq-not-empty"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = 1
@@ -70,7 +72,7 @@ resource "aws_cloudwatch_metric_alarm" "dlq_not_empty" {
   statistic           = "Sum"
   alarm_actions       = [var.alarm_topic_arn]
 
-  dimensions {
+  dimensions = {
     QueueName = aws_sqs_queue.lambda_dlq.arn
   }
 
