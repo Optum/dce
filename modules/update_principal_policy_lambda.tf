@@ -24,9 +24,6 @@ module "update_principal_policy" {
     TAG_APP_NAME                   = lookup(var.global_tags, "AppName")
   }
 
-  dead_letter_config = {
-    target_arn = aws_sqs_queue.update_principal_policy_dlq.arn
-  }
 }
 
 resource "aws_sns_topic_subscription" "update_principal_policy" {
@@ -80,28 +77,4 @@ resource "aws_iam_role_policy" "update_principal_policy" {
   ]
 }
 POLICY
-}
-
-resource "aws_sqs_queue" "update_principal_policy_dlq" {
-  name                       = "update-principal-policy-dlq-${var.namespace}"
-  tags                       = var.global_tags
-  visibility_timeout_seconds = 30
-}
-
-resource "aws_cloudwatch_metric_alarm" "update_principal_policy_dlq_not_empty" {
-  alarm_name          = "update-principal-policy-dlq-not-empty-${var.namespace}"
-  comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = 1
-  metric_name         = "ApproximateNumberOfMessagesVisible"
-  namespace           = "AWS/SQS"
-  period              = 60
-  threshold           = 0
-  statistic           = "Sum"
-  alarm_actions       = aws_sns_topic.alarms_topic.arn
-
-  dimensions {
-    QueueName = aws_sqs_queue.update_principal_policy_dlq.arn
-  }
-
-  tags = var.global_tags
 }

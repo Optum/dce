@@ -52,3 +52,27 @@ resource "aws_cloudwatch_metric_alarm" "lambda_throttles" {
 
   tags = var.global_tags
 }
+
+resource "aws_sqs_queue" "lambda_dlq" {
+  name                       = "${var.name}-dlq"
+  tags                       = var.global_tags
+  visibility_timeout_seconds = 30
+}
+
+resource "aws_cloudwatch_metric_alarm" "dlq_not_empty" {
+  alarm_name          = "${var.name}-dlq-not-empty"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 1
+  metric_name         = "ApproximateNumberOfMessagesVisible"
+  namespace           = "AWS/SQS"
+  period              = 60
+  threshold           = 0
+  statistic           = "Sum"
+  alarm_actions       = [var.alarm_topic_arn]
+
+  dimensions {
+    QueueName = aws_sqs_queue.lambda_dlq.arn
+  }
+
+  tags = var.global_tags
+}
