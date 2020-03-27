@@ -73,7 +73,7 @@ resource "aws_cloudwatch_metric_alarm" "dlq_not_empty" {
   alarm_actions       = [var.alarm_topic_arn]
 
   dimensions = {
-    QueueName = aws_sqs_queue.lambda_dlq.arn
+    QueueName = aws_sqs_queue.lambda_dlq[0].arn
   }
 
   tags = var.global_tags
