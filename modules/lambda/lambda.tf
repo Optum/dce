@@ -23,7 +23,7 @@ resource "aws_lambda_function" "fn" {
 
 
   dead_letter_config {
-    target_arn = var.dlq_enabled ? aws_sqs_queue.lambda_dlq.arn : ""
+    target_arn = var.dlq_enabled ? aws_sqs_queue.lambda_dlq[0].arn : ""
   }
 
   tags = var.global_tags
