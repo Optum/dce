@@ -21,7 +21,10 @@ resource "aws_lambda_function" "fn" {
     variables = var.environment
   }
 
-  dead_letter_config = var.dlq_enabled ? { target_arn = aws_sqs_queue.lambda_dlq.arn } : {}
+
+  dead_letter_config {
+    target_arn = var.dlq_enabled ? aws_sqs_queue.lambda_dlq.arn : ""
+  }
 
   tags = var.global_tags
 }
