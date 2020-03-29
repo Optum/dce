@@ -1,6 +1,7 @@
 ## vNext
 
 - Add `tag:*` to support finding resources by tag, and changing tags for existing resources.
+- add `application-autoscaling:*` to support auto-scaling targets and policies
 - Fix bug where account status would not transition from `Leased` --> `NotReady`, on lease deletion.
 - Do not run `aws-nuke` if `var.reset_nuke_toggle = false`. Previously, ran aws-nuke in dry-run mode.
 - Remove Lease table stream processing to change the account status to be `NotReady`
