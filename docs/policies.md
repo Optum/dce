@@ -54,6 +54,7 @@ Implementing DCE in an AWS Organization provides the ability to use SCPs, which 
                 "acm:*",
                 "acm-pca:*",
                 "apigateway:*",
+                "application-autoscaling:*",
                 "appstream:*",
                 "athena:*",
                 "autoscaling:*",
