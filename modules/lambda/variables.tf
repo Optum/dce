@@ -28,6 +28,6 @@ variable "alarm_topic_arn" {
 
 variable "dlq_enabled" {
   type        = bool
-  description = "dead letter config enabled"
+  description = "Enable Dead Letter Queues (DLQs) for AWS Lambda functions. If enabled, Cloudwatch alarms are also created to monitor DLQs"
   default     = false
 }
