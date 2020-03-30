@@ -31,11 +31,3 @@ variable "dlq_enabled" {
   description = "dead letter config enabled"
   default     = false
 }
-
-variable "dead_letter_config" {
-  type = object({
-    target_arn = string
-  })
-  description = "target_arn for dlq"
-  default = null
-}

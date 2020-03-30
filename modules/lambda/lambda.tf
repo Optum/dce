@@ -22,9 +22,9 @@ resource "aws_lambda_function" "fn" {
   }
 
   dynamic "dead_letter_config" {
-    for_each = var.dlq_enabled == false ? [] : [var.dead_letter_config]
+    for_each = aws_sqs_queue.lambda_dlq.*.arn
     content {
-      target_arn = var.dlq_enabled ? aws_sqs_queue.lambda_dlq[0].arn : null
+      target_arn = dead_letter_config.value
     }
   }
 
