@@ -6,6 +6,7 @@ module "update_principal_policy" {
   global_tags     = var.global_tags
   handler         = "update_principal_policy"
   alarm_topic_arn = aws_sns_topic.alarms_topic.arn
+  dlq_enabled     = true
 
   environment = {
     DEBUG                          = "false"
