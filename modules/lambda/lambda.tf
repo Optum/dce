@@ -21,6 +21,13 @@ resource "aws_lambda_function" "fn" {
     variables = var.environment
   }
 
+  dynamic "dead_letter_config" {
+    for_each = aws_sqs_queue.lambda_dlq.*.arn
+    content {
+      target_arn = dead_letter_config.value
+    }
+  }
+
   tags = var.global_tags
 }
 

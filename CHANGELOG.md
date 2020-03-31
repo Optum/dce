@@ -1,5 +1,13 @@
 ## vNext
 
+- Added new tool in `tools` folder for generating Markdown and IAM example policy for AWS Nuke
+  support. See README in `tools/awsnukedocgen`.
+- Added new services supported by DCE: Kinesis Analytics, Kinesis Video, Opsworks CM, Robomaker,
+  and Worklink.
+- Added new `make setup` target for installing tools on local developer machines.
+- Hardened `scripts/install_ci.sh` to be used by developers.
+- Added documenation for local developer environment setup.
+
 ## v0.29.0
 
 - Add `tag:*` to support finding resources by tag, and changing tags for existing resources.
