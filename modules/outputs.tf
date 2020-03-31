@@ -103,8 +103,13 @@ output "api_url" {
 }
 
 output "alarm_sns_topic_arn" {
-  description = "The ARN of the SNS Alarms topic"
+  description = "The ARN of the SNS Alarms topic for high urgency"
   value       = aws_sns_topic.alarms_topic.arn
+}
+
+output "alarm_sns_topic_low_urgency_arn" {
+  description = "The ARN of the SNS Alarms topic for low urgency"
+  value       = aws_sns_topic.alarms_topic_low_urgency.arn
 }
 
 output "api_access_policy_name" {
