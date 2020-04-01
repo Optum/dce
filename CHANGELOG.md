@@ -1,5 +1,15 @@
 ## vNext
 
+- Added new tool in `tools` folder for generating Markdown and IAM example policy for AWS Nuke
+  support. See README in `tools/awsnukedocgen`.
+- Added new services supported by DCE: Kinesis Analytics, Kinesis Video, Opsworks CM, Robomaker,
+  and Worklink.
+- Added new `make setup` target for installing tools on local developer machines.
+- Hardened `scripts/install_ci.sh` to be used by developers.
+- Added documenation for local developer environment setup.
+
+## v0.29.0
+
 - Add `tag:*` to support finding resources by tag, and changing tags for existing resources.
 - add `application-autoscaling:*` to support auto-scaling targets and policies
 - Fix bug where account status would not transition from `Leased` --> `NotReady`, on lease deletion.
@@ -11,20 +21,13 @@
 - Fix an issue when comparing the current Principal Policy Hash to the new version where the pointers were being compared and not the values
 - Update functional testing timeout to be 20 minutes from the default of 10 minutes
 - Fix to allow budget notification email templates > 4Kb
-- Added new tool in `tools` folder for generating Markdown and IAM example policy for AWS Nuke
-  support. See README in `tools/awsnukedocgen`.
-- Added new services supported by DCE: Kinesis Analytics, Kinesis Video, Opsworks CM, Robomaker,
-  and Worklink.
-- Added new `make setup` target for installing tools on local developer machines.
-- Hardened `scripts/install_ci.sh` to be used by developers.
-- Added documenation for local developer environment setup.
+- Prevent non-admins from performing CRUD operations on other user's leases
 
 ## v0.28.0
 
 - Add `usage_ttl` Terraform var, to configure Usage DB record TTLs.
 - Added account pool status monitoring and dashboard widget
 - Allow `athena:*` for DCE Principal IAM role
-- Prevent non-admins from performing CRUD operations on other user's leases
 
 ## v0.27.0
 
