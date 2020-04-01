@@ -1,4 +1,5 @@
 resource "aws_cloudwatch_metric_alarm" "lambda_errors" {
+  count                     = var.dlq_enabled ? 0 : 1
   alarm_name                = "${var.name}-errors"
   comparison_operator       = "GreaterThanThreshold"
   evaluation_periods        = 1
