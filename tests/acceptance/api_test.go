@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"math"
 	"math/rand"
 	"net/http"
 	"net/url"
@@ -43,7 +42,7 @@ import (
 )
 
 func TestApi(t *testing.T) {
-	// Grab the API url from Terraform outputrem
+	// Grab the API url from Terraform output
 	require.NotNil(t, testConfig.ApiUrl)
 
 	tfOpts := &terraform.Options{
@@ -1742,45 +1741,6 @@ func TestApi(t *testing.T) {
 			require.Equal(t, "RequestValidationError", err["code"].(string))
 			require.Contains(t, err["message"].(string), errStr)
 
-		})
-
-		t.Run("Should validate requested budget amount against principal budget amount", func(t *testing.T) {
-
-			principalID := "TestUser1"
-			expiresOn := time.Now().AddDate(0, 0, 6).Unix()
-
-			// Create the Provision Request Body
-			body := inputLeaseRequest{
-				PrincipalID:  principalID,
-				AccountID:    "123",
-				BudgetAmount: 430.00,
-				ExpiresOn:    expiresOn,
-			}
-
-			// Send an API request
-			resp := apiRequest(t, &apiRequestInput{
-				method: "POST",
-				url:    testConfig.ApiUrl + "/leases",
-				json:   body,
-			})
-
-			// Verify response code
-			require.Equal(t, http.StatusBadRequest, resp.StatusCode)
-
-			// Parse response json
-			data := parseResponseJSON(t, resp)
-
-			// Verify error response json
-			// Get nested json in response json
-			err := data["error"].(map[string]interface{})
-			require.Equal(t, "RequestValidationError", err["code"].(string))
-			// Weekday + 1 since Sunday is 0.  Min of 5 because thats what the write usage does
-			weekday := math.Min(float64(time.Now().Weekday())+1, 5)
-			require.Equal(t,
-				fmt.Sprintf("Unable to create lease: User principal TestUser1 "+
-					"has already spent %.2f of their 1000.00 principal budget", weekday*2000),
-				err["message"].(string),
-			)
 		})
 
 	})
