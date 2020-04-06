@@ -91,6 +91,7 @@ func (a *Service) Save(data *Lease) error {
 	} else {
 		lastModifiedOn = data.LastModifiedOn
 		data.LastModifiedOn = &now
+		data.StatusModifiedOn = &now
 	}
 
 	err := data.Validate()

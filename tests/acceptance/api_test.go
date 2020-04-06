@@ -1342,6 +1342,8 @@ func TestApi(t *testing.T) {
 			assert.Equal(t, 1, len(results), "one lease should be returned")
 			assert.Equal(t, "Active", results[0]["leaseStatus"])
 			assert.NotNil(t, results[0]["leaseStatusModifiedOn"])
+			// Assert leaseStatusModifiedOn is updated with same value as lastModifiedOn
+			assert.Equal(t, results[0]["leaseStatusModifiedOn"], results[0]["lastModifiedOn"])
 
 			// Destroy the lease
 			res = apiRequest(t, &apiRequestInput{
