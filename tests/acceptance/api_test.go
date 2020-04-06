@@ -1330,6 +1330,19 @@ func TestApi(t *testing.T) {
 			log.Println("Lease created. Waiting for account to be marked 'Leased'")
 			waitForAccountStatus(t, apiURL, accountID, "Leased")
 
+			// Check the lease LeaseStatusModifiedOn
+			resp := apiRequest(t, &apiRequestInput{
+				method: "GET",
+				url:    apiURL + fmt.Sprintf("/leases?principalId=test-user&accountId=%s", accountID),
+				json:   nil,
+			})
+
+			results := parseResponseArrayJSON(t, resp)
+			assert.Equal(t, 200, resp.StatusCode)
+			assert.Equal(t, 1, len(results), "one lease should be returned")
+			assert.Equal(t, "Active", results[0]["leaseStatus"])
+			assert.NotNil(t, results[0]["leaseStatusModifiedOn"])
+
 			// Destroy the lease
 			res = apiRequest(t, &apiRequestInput{
 				method:      "DELETE",
