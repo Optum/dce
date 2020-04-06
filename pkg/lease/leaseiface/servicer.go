@@ -7,6 +7,7 @@ import (
 )
 
 // Servicer makes working with the Lease Service struct easier
+//go:generate mockery -name Servicer
 type Servicer interface {
 	// Get returns an lease from ID
 	Get(ID string) (*lease.Lease, error)
