@@ -6,8 +6,6 @@ import (
 	"math"
 	"net/http"
 	"time"
-
-	"github.com/Optum/dce/pkg/usage"
 )
 
 type leaseValidationContext struct {
@@ -19,6 +17,11 @@ type leaseValidationContext struct {
 }
 
 // ValidateLease validates lease budget amount and period
+// Returns:
+// - createLeaseRequest Lease request
+// - bool is lease request valid
+// - string validation error message
+// - error other (non-validation) errors
 func validateLeaseFromRequest(context *leaseValidationContext, req *http.Request) (*createLeaseRequest, bool, string, error) {
 
 	// Validate body from the Request
@@ -60,25 +63,6 @@ func validateLeaseFromRequest(context *leaseValidationContext, req *http.Request
 	maxLeaseExpiresOn := currentTime.Add(time.Second * time.Duration(context.maxLeasePeriod))
 	if requestBody.ExpiresOn > maxLeaseExpiresOn.Unix() {
 		validationErrStr := fmt.Sprintf("Requested lease has a budget expires on of %d, which is greater than max lease period of %d", requestBody.ExpiresOn, maxLeaseExpiresOn.Unix())
-		return requestBody, false, validationErrStr, nil
-	}
-
-	// Validate requested lease budget amount is less than PRINCIPAL_BUDGET_AMOUNT for current principal billing period
-	_ = getBeginningOfCurrentBillingPeriod(context.principalBudgetPeriod)
-
-	var usageRecords []*usage.Lease
-
-	// Group by PrincipalID to get sum of total spent for current billing period
-	spent := 0.0
-	for _, usageItem := range usageRecords {
-		spent = spent + *usageItem.CostAmount
-	}
-
-	if spent > context.principalBudgetAmount {
-		validationErrStr := fmt.Sprintf(
-			"Unable to create lease: User principal %s has already spent %.2f of their %.2f principal budget",
-			requestBody.PrincipalID, spent, context.principalBudgetAmount,
-		)
 		return requestBody, false, validationErrStr, nil
 	}
 

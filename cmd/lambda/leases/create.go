@@ -240,8 +240,8 @@ func publishLease(snsSvc common.Notificationer,
 	return &message, nil
 }
 
-// getBeginningOfCurrentBillingPeriod returns starts of the billing period based on budget period
-func getBeginningOfCurrentBillingPeriod(input string) time.Time {
+// getStartOfPrincipalBudgetPeriod returns starts of the billing period based on budget period
+func getStartOfPrincipalBudgetPeriod(input string) time.Time {
 	currentTime := time.Now()
 	if input == Weekly {
 
