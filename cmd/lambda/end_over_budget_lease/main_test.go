@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"github.com/aws/aws-sdk-go/aws"
 	"strconv"
 	"testing"
 
@@ -172,6 +173,8 @@ func TestEndLeaseOverBudget(t *testing.T) {
 		}
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
+				// Simulate the DynDB stream event
+				// for an update to the Principal usage record
 				event := events.DynamoDBEvent{
 					Records: []events.DynamoDBEventRecord{
 						{
@@ -179,7 +182,7 @@ func TestEndLeaseOverBudget(t *testing.T) {
 							Change: events.DynamoDBStreamRecord{
 								NewImage: map[string]events.DynamoDBAttributeValue{
 									"SK":          events.NewStringAttribute(tt.sortKey),
-									"PrincipalId": events.NewStringAttribute(""),
+									"PrincipalId": events.NewStringAttribute("mock-principal-id"),
 									"CostAmount":  events.NewNumberAttribute(tt.costAmount),
 								},
 							},
@@ -198,7 +201,28 @@ func TestEndLeaseOverBudget(t *testing.T) {
 				svcBldr := &config.ServiceBuilder{Config: cfgBldr}
 				leaseSvc := mocks.Servicer{}
 				if tt.expIsLeaseDeleted {
-					leaseSvc.On("ListPages", mock.Anything, mock.Anything).Return(nil)
+					// Mock the DynDB query for active leases, for this principal
+					leaseSvc.
+						On("ListPages", &lease.Lease{
+							PrincipalID: aws.String("mock-principal-id"),
+							Status:      lease.StatusActive.StatusPtr(),
+						}, mock.Anything).
+						// Invoke the pagination callback with a mock lease
+						Return(func(query *lease.Lease, onPage func(*lease.Leases) bool) error {
+							leases := lease.Leases([]lease.Lease{
+								{ID: aws.String("mock-lease")},
+							})
+							shouldContinue := onPage(&leases)
+							assert.True(t, shouldContinue, "lease paginator should continue")
+
+							return nil
+						})
+
+					// Should inactivate our mock lease
+					leaseSvc.
+						On("Delete", "mock-lease").
+						Return(&lease.Lease{}, nil)
+
 				}
 				svcBldr.Config.WithService(&leaseSvc)
 				_, _ = svcBldr.Build()
