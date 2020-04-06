@@ -14,8 +14,9 @@ type Servicer interface {
 	UpsertLeaseUsage(data *usage.Lease) error
 	// GetLease gets a lease usage record
 	GetLease(id string) (*usage.Lease, error)
-	// GetLease gets a lease usage record
-	GetPrincipal(id string, date time.Time) (*usage.Principal, error)
+	// GetPrincipal retrieves the usage record for the principal,
+	// aggregated across the principal budget period
+	GetPrincipal(principalID string, principalBudgetStartDate time.Time) (*usage.Principal, error)
 	// ListLease returns usage lease usage records
 	ListLease(query *usage.Lease) (*usage.Leases, error)
 	// ListPrincipal returns usage lease usage records

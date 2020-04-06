@@ -4,7 +4,7 @@ import "time"
 
 // PrincipalReader reads principal usage information form the data store
 type PrincipalReader interface {
-	Get(id string, date time.Time) (*Principal, error)
+	Get(principalID string, principalBudgetStartDate time.Time) (*Principal, error)
 	List(query *Principal) (*Principals, error)
 }
 
@@ -60,9 +60,8 @@ func (a *Service) GetLease(id string) (*Lease, error) {
 }
 
 // GetPrincipal gets a single Principal Usage record
-func (a *Service) GetPrincipal(id string, date time.Time) (*Principal, error) {
-
-	usg, err := a.dataPrincipalSvc.Get(id, date)
+func (a *Service) GetPrincipal(principalID string, principalBudgetStartDate time.Time) (*Principal, error) {
+	usg, err := a.dataPrincipalSvc.Get(principalID, principalBudgetStartDate)
 	if err != nil {
 		return nil, err
 	}

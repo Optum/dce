@@ -32,17 +32,17 @@ type UsagePrincipal struct {
 }
 
 // Get usage Principal summary
-func (a *UsagePrincipal) Get(id string, date time.Time) (*usage.Principal, error) {
+func (a *UsagePrincipal) Get(principalID string, principalBudgetStartDate time.Time) (*usage.Principal, error) {
 	res, err := a.DynamoDB.GetItem(
 		&dynamodb.GetItemInput{
 			// Query in Lease Table
 			TableName: aws.String(a.TableName),
 			Key: map[string]*dynamodb.AttributeValue{
 				"PrincipalId": {
-					S: aws.String(id),
+					S: aws.String(principalID),
 				},
 				"SK": {
-					S: aws.String(fmt.Sprintf("%s%s", UsagePrincipalSkPrefix, strconv.FormatInt(date.UTC().Unix(), 10))),
+					S: aws.String(fmt.Sprintf("%s%s", UsagePrincipalSkPrefix, strconv.FormatInt(principalBudgetStartDate.UTC().Unix(), 10))),
 				},
 			},
 			ConsistentRead: aws.Bool(a.ConsistentRead),
@@ -51,20 +51,20 @@ func (a *UsagePrincipal) Get(id string, date time.Time) (*usage.Principal, error
 
 	if err != nil {
 		return nil, errors.NewInternalServer(
-			fmt.Sprintf("get failed for usage %q", id),
+			fmt.Sprintf("get failed for usage %q", principalID),
 			err,
 		)
 	}
 
 	if len(res.Item) == 0 {
-		return nil, errors.NewNotFound("usage", id)
+		return nil, errors.NewNotFound("usage", principalID)
 	}
 
 	usg := &usage.Principal{}
 	err = dynamodbattribute.UnmarshalMap(res.Item, usg)
 	if err != nil {
 		return nil, errors.NewInternalServer(
-			fmt.Sprintf("failure unmarshaling usage %q", id),
+			fmt.Sprintf("failure unmarshaling usage %q", principalID),
 			err,
 		)
 	}

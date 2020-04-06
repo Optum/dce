@@ -122,7 +122,7 @@ func (a *UsagePrincipal) scan(query *usage.Principal) (*queryScanOutput, error) 
 	}, nil
 }
 
-// List Get a list of accounts
+// List retrieves a list of principal usage record
 func (a *UsagePrincipal) List(query *usage.Principal) (*usage.Principals, error) {
 
 	var outputs *queryScanOutput
