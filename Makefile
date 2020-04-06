@@ -77,3 +77,6 @@ install:
 
 clean:
 	rm -rf ./bin ./vendor ./html-doc ./site
+
+setup:
+	./scripts/install_ci.sh

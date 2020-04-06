@@ -5,6 +5,7 @@ additionalServices:
 - execute-api
 - tag
 - waf-regional
+- application-autoscaling
 serviceAliases:
   acmpca: acm-pca
   cloudhsmv2: cloudhsm

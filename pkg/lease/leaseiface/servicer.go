@@ -11,8 +11,8 @@ type Servicer interface {
 	// Get returns an lease from ID
 	Get(ID string) (*lease.Lease, error)
 
-	//// Save writes the record to the dataSvc
-	//Save(data *lease.Lease) error
+	// Save writes the record to the dataSvc
+	Create(data *lease.Lease) (*lease.Lease, error)
 
 	// Update the Lease record to status Inactive in DynamoDB
 	Delete(ID string) (*lease.Lease, error)
