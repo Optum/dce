@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/Optum/dce/pkg/api"
 	"github.com/aws/aws-sdk-go/service/sfn"
-	"github.com/aws/aws-sdk-go/service/sfn/sfniface"
 	"log"
 	"net/http"
 	"time"
@@ -163,11 +162,7 @@ func CreateLease(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// start step function
-	var sfnSvc sfniface.SFNAPI
-	err = Services.Config.GetService(&sfnSvc)
-	if err != nil {
-		log.Printf("Failed to retrieve step functions service %s", err)
-	}
+	sfnSvc := Services.StepFunctions()
 	sfnInput := leasePkg.Lease{
 		AccountID:                &lease.AccountID,
 		PrincipalID:              &lease.PrincipalID,

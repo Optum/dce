@@ -150,6 +150,15 @@ func (bldr *ServiceBuilder) WithStepFunctions() *ServiceBuilder {
 	return bldr
 }
 
+func (bldr *ServiceBuilder) StepFunctions() sfniface.SFNAPI {
+	var sfnService sfniface.SFNAPI
+	err := bldr.Config.GetService(&sfnService)
+	if err != nil {
+		panic(err)
+	}
+	return sfnService
+}
+
 // WithStorageService tells the builder to add the DCE DAO (DBer) service to the `ConfigurationBuilder`
 func (bldr *ServiceBuilder) WithStorageService() *ServiceBuilder {
 	bldr.WithS3()
