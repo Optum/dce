@@ -240,9 +240,6 @@ func (a *Service) Create(data *Lease) (*Lease, error) {
 	if data.CreatedOn != nil {
 		newLeaseRecord.CreatedOn = data.CreatedOn
 	}
-	if err != nil {
-		return nil, err
-	}
 
 	err = a.Save(newLeaseRecord)
 	if err != nil {

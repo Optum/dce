@@ -38,7 +38,7 @@ var (
 )
 
 var (
-	baseRequest url.URL
+	baseRequest           url.URL
 	userDetailsMiddleware api.UserDetailsMiddleware
 )
 

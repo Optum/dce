@@ -440,10 +440,10 @@ func TestApi(t *testing.T) {
 			givenEmptySystem(t)
 
 			// Create cognito users
-			cognitoUser1 := NewCognitoUser(t, tfOut, awsSession, accountID)
-			defer cognitoUser1.delete(t, tfOut, awsSession)
-			cognitoUser2 := NewCognitoUser(t, tfOut, awsSession, accountID)
-			defer cognitoUser2.delete(t, tfOut, awsSession)
+			cognitoUser1 := NewCognitoUser(t, awsSession, accountID)
+			defer cognitoUser1.delete(t, awsSession)
+			cognitoUser2 := NewCognitoUser(t, awsSession, accountID)
+			defer cognitoUser2.delete(t, awsSession)
 
 			// Create an Account Entry
 			timeNow := time.Now().Unix()
@@ -1307,7 +1307,7 @@ func TestApi(t *testing.T) {
 			// Check the lease LeaseStatusModifiedOn
 			resp := apiRequest(t, &apiRequestInput{
 				method: "GET",
-				url:    apiURL + fmt.Sprintf("/leases?principalId=test-user&accountId=%s", accountID),
+				url:    testConfig.ApiUrl + fmt.Sprintf("/leases?principalId=test-user&accountId=%s", accountID),
 				json:   nil,
 			})
 

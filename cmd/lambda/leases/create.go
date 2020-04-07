@@ -62,13 +62,12 @@ func CreateLease(w http.ResponseWriter, r *http.Request) {
 	}
 	availableAccount := (*accounts)[0]
 
-
 	// Check if an inactive lease already exists with same principal id and account id
 	// if an inactive lease exists, then get the lastModifiedOn value from it
 	queryLeases := &lease.Lease{
-		AccountID: availableAccount.ID,
+		AccountID:   availableAccount.ID,
 		PrincipalID: newLease.PrincipalID,
-		Status: lease.StatusInactive.StatusPtr(),
+		Status:      lease.StatusInactive.StatusPtr(),
 	}
 	foundLeases, err := Services.LeaseService().List(queryLeases)
 	if err != nil {
@@ -136,7 +135,7 @@ func CreateLease(w http.ResponseWriter, r *http.Request) {
 }
 
 // getStartOfPrincipalBudgetPeriod returns starts of the billing period based on budget period
-func getStartOfPrincipalBudgetPeriod(input string) time.Time {
+func getStartOfPrincipalBudgetPeriod(input string) time.Time { //nolint
 	currentTime := time.Now()
 	if input == Weekly {
 

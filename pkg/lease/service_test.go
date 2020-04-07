@@ -423,32 +423,6 @@ func TestCreate(t *testing.T) {
 			principalSpentAmount: 0.0,
 		},
 		{
-			name: "should fail on lease validation error caused by user already over principal budget amount",
-			req: &lease.Lease{
-				PrincipalID:              ptrString("User1"),
-				AccountID:                ptrString("123456789012"),
-				BudgetAmount:             ptrFloat(200.00),
-				BudgetCurrency:           ptrString("USD"),
-				BudgetNotificationEmails: ptrArrayString([]string{"test1@test.com", "test2@test.com"}),
-				Metadata:                 map[string]interface{}{},
-			},
-			exp: response{
-				data: nil,
-				err:  errors.NewValidation("lease", fmt.Errorf("budgetAmount: Unable to create lease: User principal User1 has already spent 2000.00 of their 1000.00 principal budget.")),
-			},
-			getResponse: &lease.Leases{
-				lease.Lease{
-					PrincipalID:              ptrString("User1"),
-					AccountID:                ptrString("123456789012"),
-					BudgetAmount:             ptrFloat(200.00),
-					BudgetCurrency:           ptrString("USD"),
-					BudgetNotificationEmails: ptrArrayString([]string{"test1@test.com", "test2@test.com"}),
-					Metadata:                 map[string]interface{}{},
-				},
-			},
-			principalSpentAmount: 2000.0,
-		},
-		{
 			name: "should fail on lease expires yesterday",
 			req: &lease.Lease{
 				PrincipalID:              ptrString("User1"),
@@ -629,7 +603,7 @@ func TestCreate(t *testing.T) {
 				},
 			)
 
-			result, err := leaseSvc.Create(tt.req, tt.principalSpentAmount)
+			result, err := leaseSvc.Create(tt.req)
 
 			assert.Truef(t, errors.Is(err, tt.exp.err), "actual error %q doesn't match expected error %q", err, tt.exp.err)
 			if result != nil {
