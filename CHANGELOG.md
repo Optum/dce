@@ -1,5 +1,6 @@
 ## vNext
 
+## v0.30.0
 - Added new tool in `tools` folder for generating Markdown and IAM example policy for AWS Nuke
   support. See README in `tools/awsnukedocgen`.
 - Added new services supported by DCE: Kinesis Analytics, Kinesis Video, Opsworks CM, Robomaker,
@@ -7,6 +8,7 @@
 - Added new `make setup` target for installing tools on local developer machines.
 - Hardened `scripts/install_ci.sh` to be used by developers.
 - Added documenation for local developer environment setup.
+- Fix bug where update lease should update LeaseStatusModifiedOn
 
 ## v0.29.0
 
