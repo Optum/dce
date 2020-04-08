@@ -7,6 +7,7 @@
 - Added new `make setup` target for installing tools on local developer machines.
 - Hardened `scripts/install_ci.sh` to be used by developers.
 - Added documenation for local developer environment setup.
+- Updated aws-nuke version.
 
 ## v0.29.0
 
