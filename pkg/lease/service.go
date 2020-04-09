@@ -17,6 +17,7 @@ type Writer interface {
 // SingleReader Reads an item information from the data store
 type SingleReader interface {
 	Get(leaseID string) (*Lease, error)
+	GetByAccountIDAndPrincipalID(accountID string, principalID string) (*Lease, error)
 }
 
 // MultipleReader reads multiple items from the data store
@@ -76,6 +77,15 @@ func (a *Service) Get(ID string) (*Lease, error) {
 		return nil, err
 	}
 
+	return new, err
+}
+
+// GetByAccountIDAndPrincipalID gets the Lease record by AccountID and PrincipalID
+func (a *Service) GetByAccountIDAndPrincipalID(accountID string, principalID string) (*Lease, error) {
+	new, err := a.dataSvc.GetByAccountIDAndPrincipalID(accountID, principalID)
+	if err != nil {
+		return nil, err
+	}
 	return new, err
 }
 
