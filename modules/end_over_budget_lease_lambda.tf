@@ -22,7 +22,12 @@ resource "aws_lambda_event_source_mapping" "principal_events_from_dynamo_db" {
   starting_position = "LATEST"
   // workaround until aws_lambda_event_source_mapping.maximum_retry_attempts is implemented in AWS provider
   provisioner "local-exec" {
-    command = "aws lambda update-event-source-mapping --uuid ${aws_lambda_event_source_mapping.principal_events_from_dynamo_db.uuid} --maximum-retry-attempts 0"
+    command = <<CMD
+      AWS_DEFAULT_REGION=${var.aws_region} \
+      aws lambda update-event-source-mapping \
+        --uuid ${aws_lambda_event_source_mapping.principal_events_from_dynamo_db.uuid} \
+        --maximum-retry-attempts 0
+CMD
   }
 }
 
