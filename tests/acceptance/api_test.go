@@ -501,7 +501,11 @@ func TestApi(t *testing.T) {
 				maxAttempts: 3,
 				creds:       credentials.NewStaticCredentialsFromCreds(cognitoUser1.UserCredsValue),
 			})
+			require.Equal(t, http.StatusCreated, resp.StatusCode)
+
 			createLeaseOutput := parseResponseJSON(t, resp)
+			require.Contains(t, createLeaseOutput, "id", "")
+
 			///////////////
 			// Get Lease //
 			///////////////
