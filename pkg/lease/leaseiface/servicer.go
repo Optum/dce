@@ -12,6 +12,9 @@ type Servicer interface {
 	// Get returns an lease from ID
 	Get(ID string) (*lease.Lease, error)
 
+	// GetByAccountIDAndPrincipalID gets the Lease record by AccountID and PrincipalID
+	GetByAccountIDAndPrincipalID(accountID string, principalID string) (*lease.Lease, error)
+
 	// Save writes the record to the dataSvc
 	Create(data *lease.Lease) (*lease.Lease, error)
 

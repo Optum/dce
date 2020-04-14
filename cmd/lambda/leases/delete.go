@@ -2,11 +2,9 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/Optum/dce/pkg/api"
-	"github.com/Optum/dce/pkg/api/response"
 	"github.com/Optum/dce/pkg/errors"
 	"github.com/Optum/dce/pkg/lease"
 	"github.com/gorilla/mux"
@@ -72,25 +70,13 @@ func DeleteLease(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	leases, err := Services.LeaseService().List(queryLease)
+	lease, err := Services.LeaseService().GetByAccountIDAndPrincipalID(*queryLease.AccountID, *queryLease.PrincipalID)
 	if err != nil {
 		api.WriteAPIErrorResponse(w, err)
 		return
 	}
 
-	if len(*leases) == 0 {
-		api.WriteAPIErrorResponse(w,
-			errors.NewNotFound("lease", fmt.Sprintf("with Principal ID %s and Account ID %s", *queryLease.PrincipalID, *queryLease.AccountID)))
-		return
-	}
-
-	if len(*leases) > 1 {
-		response.WriteRequestValidationError(w, "Found more than one lease")
-		return
-	}
-
-	leaseID := (*leases)[0].ID
-	deletedLease, err := Services.LeaseService().Delete(*leaseID)
+	deletedLease, err := Services.LeaseService().Delete(*lease.ID)
 	if err != nil {
 		api.WriteAPIErrorResponse(w, err)
 		return

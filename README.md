@@ -2,7 +2,14 @@
 
 > **DCE<sup>TM</sup> is your playground in the cloud**
 
-Disposable Cloud Environment (aka DCE) manages ephemeral AWS accounts for easy and secure access to the cloud. 
+DCE helps you quickly and safely explore the public cloud by managing temporary AWS accounts. 
+
+Common use cases for a public cloud account include: 
+- Developing, testing, or operating cloud networks and applications
+- Improving infrastructure utilization with autoscaling 
+- Leveraging cloud-native developer tooling 
+- Exploring data with analytical and machine learning services 
+- And much [more](https://aws.amazon.com/)! 
 
 DCE users can "lease" an AWS account for a defined period of time and with a limited budget. 
 

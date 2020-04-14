@@ -64,7 +64,7 @@ func TestGetLeaseByAccountIDAndPrincipalID(t *testing.T) {
 			dynamoOutput: &dynamodb.GetItemOutput{
 				Item: map[string]*dynamodb.AttributeValue{},
 			},
-			expectedErr: errors.NewNotFound("lease", "123456789012"),
+			expectedErr: errors.NewNotFound("lease", "with Principal ID User1 and Account ID 123456789012"),
 		},
 		{
 			name:          "should return nil when dynamodb err",
