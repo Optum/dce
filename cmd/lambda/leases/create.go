@@ -102,22 +102,25 @@ func CreateLease(w http.ResponseWriter, r *http.Request) {
 	// Start the step function to track usage for this lease
 	sfnSvc := Services.StepFunctions()
 	sfnInput := lease.Lease{
-		AccountID:                newLease.AccountID,
-		PrincipalID:              newLease.PrincipalID,
-		ID:                       newLease.ID,
-		Status:                   newLease.Status.StatusPtr(),
-		StatusReason:             newLease.StatusReason.StatusReasonPtr(),
-		CreatedOn:                newLease.CreatedOn,
-		LastModifiedOn:           newLease.LastModifiedOn,
-		BudgetAmount:             newLease.BudgetAmount,
-		BudgetCurrency:           newLease.BudgetCurrency,
-		BudgetNotificationEmails: newLease.BudgetNotificationEmails,
-		StatusModifiedOn:         newLease.StatusModifiedOn,
-		ExpiresOn:                newLease.ExpiresOn,
+		AccountID:                leaseCreated.AccountID,
+		PrincipalID:              leaseCreated.PrincipalID,
+		ID:                       leaseCreated.ID,
+		Status:                   leaseCreated.Status.StatusPtr(),
+		StatusReason:             leaseCreated.StatusReason.StatusReasonPtr(),
+		CreatedOn:                leaseCreated.CreatedOn,
+		LastModifiedOn:           leaseCreated.LastModifiedOn,
+		BudgetAmount:             leaseCreated.BudgetAmount,
+		BudgetCurrency:           leaseCreated.BudgetCurrency,
+		BudgetNotificationEmails: leaseCreated.BudgetNotificationEmails,
+		StatusModifiedOn:         leaseCreated.StatusModifiedOn,
+		ExpiresOn:                leaseCreated.ExpiresOn,
 	}
 	sfnInputBytes, err := json.Marshal(sfnInput)
 	if err != nil {
-		log.Printf("Failed to retrieve step functions service %s", err)
+		log.Printf("Failed to prepare Step Functions input %s", err)
+		api.WriteAPIErrorResponse(w,
+			errors.NewInternalServer("Lease creation failed", nil))
+		return
 	}
 	sfnInputString := string(sfnInputBytes)
 	_, err = sfnSvc.StartExecution(&sfn.StartExecutionInput{
