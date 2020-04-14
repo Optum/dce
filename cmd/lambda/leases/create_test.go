@@ -2,7 +2,11 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"encoding/json"
+	"errors"
+	awsmocks "github.com/Optum/dce/pkg/awsiface/mocks"
+	"github.com/aws/aws-sdk-go/service/sfn"
+	"github.com/stretchr/testify/require"
 	"net/http"
 	"testing"
 
@@ -20,393 +24,402 @@ import (
 )
 
 func TestWhenCreateSuccess(t *testing.T) {
-	standardHeaders := map[string][]string{
-		"Access-Control-Allow-Origin": []string{"*"},
-		"Content-Type":                []string{"application/json"},
-	}
-
 	tests := []struct {
-		name                 string
-		user                 *api.User
-		expResp              events.APIGatewayProxyResponse
-		request              events.APIGatewayProxyRequest
-		retLease             *lease.Lease
-		retAccounts          *account.Accounts
-		retAccount           *account.Account
-		getExistingLeases    *lease.Leases
+		// Test case name
+		name string
+
+		// Mock API user
+		user *api.User
+
+		// JSON body to send to API controller
+		requestBody map[string]interface{}
+
+		// Lease we expect to be created in DB
+		expectedLeaseToCreate *lease.Lease
+
+		// Expected HTTP Response code from API controller
+		expectedResponseCode int
+
+		// Expected HTTP Response JSON body
+		expectedResponseBody map[string]interface{}
+
+		// List of ready account to return from DB
+		mockReadyAccounts *account.Accounts
+
+		// Lease to return, when checking for existing lease
+		// for this principal/account
+		getExistingLeases *lease.Leases
+
+		// Errors to return from DB operations
 		getExistingLeasesErr error
-		retListErr           error
+		listAccountError     error
 		retUpdateErr         error
 		retCreateErr         error
 	}{
 		{
-			name: "When given good values for a new lease. Then success is returned.",
+			name: "Should create a new lease",
 			user: &api.User{
 				Username: "admin1",
 				Role:     api.AdminGroupName,
 			},
-			expResp: events.APIGatewayProxyResponse{
-				StatusCode:        http.StatusCreated,
-				Body:              "{}\n",
-				MultiValueHeaders: standardHeaders,
+			requestBody: map[string]interface{}{
+				"principalId":  "User1",
+				"budgetAmount": 200.00,
 			},
-			request: events.APIGatewayProxyRequest{
-				HTTPMethod: http.MethodPost,
-				Path:       "/leases",
-				Body:       "{ \"principalId\": \"User1\", \"budgetAmount\": 200.00 }",
-			},
-			retAccounts: &account.Accounts{
+			mockReadyAccounts: &account.Accounts{
 				account.Account{
 					ID:     ptrString("1234567890"),
 					Status: account.StatusReady.StatusPtr(),
 				},
 			},
-			retAccount: &account.Account{
-				ID:     ptrString("1234567890"),
-				Status: account.StatusReady.StatusPtr(),
+			expectedLeaseToCreate: &lease.Lease{
+				PrincipalID:  ptrString("User1"),
+				BudgetAmount: ptrFloat64(200),
+				AccountID:    ptrString("1234567890"),
 			},
-			retLease:             &lease.Lease{},
-			getExistingLeases:    nil,
-			getExistingLeasesErr: nil,
-			retListErr:           nil,
-			retUpdateErr:         nil,
-			retCreateErr:         nil,
+			expectedResponseCode: http.StatusCreated,
+			expectedResponseBody: map[string]interface{}{
+				"id":                "mock-lease-id",
+				"principalId":       "User1",
+				"budgetAmount":      200.00,
+				"accountId":         "1234567890",
+				"leaseStatus":       "Active",
+				"leaseStatusReason": "Active",
+			},
 		},
 		{
-			name: "When given good values for an existing inactive lease. Then success is returned.",
+			name: "Should reactivate an existing inactive lease, " +
+				"for the sam principal ID / account ID",
 			user: &api.User{
 				Username: "admin1",
 				Role:     api.AdminGroupName,
 			},
-			expResp: events.APIGatewayProxyResponse{
-				StatusCode:        http.StatusCreated,
-				Body:              "{}\n",
-				MultiValueHeaders: standardHeaders,
+			requestBody: map[string]interface{}{
+				"principalId":  "User1",
+				"budgetAmount": 200.00,
 			},
-			request: events.APIGatewayProxyRequest{
-				HTTPMethod: http.MethodPost,
-				Path:       "/leases",
-				Body:       "{ \"principalId\": \"User1\", \"budgetAmount\": 200.00 }",
-			},
-			retAccounts: &account.Accounts{
-				account.Account{
+			mockReadyAccounts: &account.Accounts{
+				{
 					ID:     ptrString("1234567890"),
 					Status: account.StatusReady.StatusPtr(),
 				},
 			},
-			retAccount: &account.Account{
-				ID:     ptrString("1234567890"),
-				Status: account.StatusReady.StatusPtr(),
-			},
-			retLease: &lease.Lease{},
+			// Return an existing inactive lease for this same
+			// principalID / accountID combo
 			getExistingLeases: &lease.Leases{
-				lease.Lease{
+				{
 					AccountID:      ptrString("1234567890"),
 					PrincipalID:    ptrString("User1"),
 					Status:         lease.StatusInactive.StatusPtr(),
-					LastModifiedOn: ptrInt64(1584390390),
+					CreatedOn:      ptrInt64(100),
+					LastModifiedOn: ptrInt64(200),
 				},
 			},
-			getExistingLeasesErr: nil,
-			retListErr:           nil,
-			retUpdateErr:         nil,
-			retCreateErr:         nil,
+			expectedLeaseToCreate: &lease.Lease{
+				PrincipalID:  ptrString("User1"),
+				BudgetAmount: ptrFloat64(200),
+				AccountID:    ptrString("1234567890"),
+				// Should pass timestamps of existing lease
+				// to data svc.
+				// This is to fignal that we are updating (not creating) a lease record
+				CreatedOn:      ptrInt64(100),
+				LastModifiedOn: ptrInt64(200),
+			},
+			expectedResponseCode: http.StatusCreated,
+			expectedResponseBody: map[string]interface{}{
+				"id":                "mock-lease-id",
+				"principalId":       "User1",
+				"budgetAmount":      200.00,
+				"accountId":         "1234567890",
+				"leaseStatus":       "Active",
+				"leaseStatusReason": "Active",
+				"createdOn":         100.00,
+				"lastModifiedOn":    200.00,
+			},
 		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			cfgBldr := &config.ConfigurationBuilder{}
-			svcBldr := &config.ServiceBuilder{Config: cfgBldr}
-
-			leaseSvc := leasemocks.Servicer{}
-			accountSvc := accountmocks.Servicer{}
-
-			userDetailSvc := apiMocks.UserDetailer{}
-			userDetailSvc.On("GetUser", mock.Anything).Return(tt.user)
-
-			accountSvc.On("List", mock.Anything).Return(
-				tt.retAccounts, tt.retListErr,
-			)
-			accountSvc.On("Update", mock.Anything, mock.Anything).Return(
-				tt.retAccount, tt.retUpdateErr,
-			)
-			leaseSvc.On("List", mock.AnythingOfType("*lease.Lease"), mock.Anything).Return(
-				tt.getExistingLeases, tt.getExistingLeasesErr,
-			)
-			leaseSvc.On("Create", mock.AnythingOfType("*lease.Lease"), mock.Anything).Return(
-				tt.retLease, tt.retCreateErr,
-			)
-
-			svcBldr.Config.WithService(&accountSvc).WithService(&leaseSvc).WithEnv("PrincipalBudgetPeriod", "PRINCIPAL_BUDGET_PERIOD", "Weekly").WithService(&userDetailSvc)
-			_, err := svcBldr.Build()
-
-			assert.Nil(t, err)
-			if err == nil {
-				Services = svcBldr
-			}
-
-			resp, err := Handler(context.TODO(), tt.request)
-
-			assert.Nil(t, err)
-			assert.Equal(t, tt.expResp, resp)
-		})
-	}
-
-}
-
-func TestWhenCreateError(t *testing.T) {
-	standardHeaders := map[string][]string{
-		"Access-Control-Allow-Origin": []string{"*"},
-		"Content-Type":                []string{"application/json"},
-	}
-
-	tests := []struct {
-		name         string
-		user         *api.User
-		expResp      events.APIGatewayProxyResponse
-		request      events.APIGatewayProxyRequest
-		retLease     *lease.Lease
-		retAccounts  *account.Accounts
-		retAccount   *account.Account
-		retListErr   error
-		retUpdateErr error
-		retCreateErr error
-	}{
 		{
-			name: "When principalId is missing. Then a client error is returned.",
+			name: "Should return a client error if principalId is missing",
 			user: &api.User{
 				Username: "admin1",
 				Role:     api.AdminGroupName,
 			},
-			request: events.APIGatewayProxyRequest{
-				HTTPMethod: http.MethodPost,
-				Path:       "/leases",
-				Body:       "{\"budgetAmount\": 200.00 }",
+			// Send request, missing required "principalId" field
+			requestBody: map[string]interface{}{
+				"budgetAmount": 200.00,
 			},
-			expResp: events.APIGatewayProxyResponse{
-				StatusCode:        http.StatusBadRequest,
-				Body:              "{\"error\":{\"message\":\"invalid request parameters: missing principalId\",\"code\":\"ClientError\"}}\n",
-				MultiValueHeaders: standardHeaders,
+			// Should return a 400 error
+			expectedResponseCode: http.StatusBadRequest,
+			expectedResponseBody: map[string]interface{}{
+				"error": map[string]interface{}{
+					"message": "invalid request parameters: missing principalId",
+					"code":    "ClientError",
+				},
 			},
-			retLease:     nil,
-			retListErr:   nil,
-			retUpdateErr: nil,
-			retCreateErr: nil,
 		},
 		{
-			name: "When given bad values like budget amount is a string. Then a syntax error is returned.",
+			name: "Should return a client error for budget amount as string",
 			user: &api.User{
 				Username: "admin1",
 				Role:     api.AdminGroupName,
 			},
-			request: events.APIGatewayProxyRequest{
-				HTTPMethod: http.MethodPost,
-				Path:       "/leases",
-				Body:       "{ \"principalId\": \"User1\", \"budgetAmount\": \"200.00\", }",
+			requestBody: map[string]interface{}{
+				"budgetAmount": "as much as you'd like",
 			},
-			expResp: events.APIGatewayProxyResponse{
-				StatusCode:        http.StatusBadRequest,
-				Body:              "{\"error\":{\"message\":\"invalid request parameters\",\"code\":\"ClientError\"}}\n",
-				MultiValueHeaders: standardHeaders,
-			},
-			retAccounts: &account.Accounts{
-				account.Account{
-					ID:     ptrString("1234567890"),
-					Status: account.StatusReady.StatusPtr(),
+			// Should return a 400 error
+			expectedResponseCode: http.StatusBadRequest,
+			expectedResponseBody: map[string]interface{}{
+				"error": map[string]interface{}{
+					"message": "invalid request parameters",
+					"code":    "ClientError",
 				},
 			},
-			retLease:     &lease.Lease{},
-			retListErr:   nil,
-			retUpdateErr: nil,
-			retCreateErr: nil,
 		},
 		{
-			name: "When non admin makes creates lease request. Then an unauthorized error is returned.",
+			name: "Should return auth error if non-admin user creates a lease for another user",
 			user: &api.User{
-				Username: "admin1",
+				Username: "User1",
 				Role:     api.UserGroupName,
 			},
-			request: events.APIGatewayProxyRequest{
-				HTTPMethod: http.MethodPost,
-				Path:       "/leases",
-				Body:       "{ \"principalId\": \"User1\", \"budgetAmount\": 200.00 }",
+			requestBody: map[string]interface{}{
+				"principalId":  "User2",
+				"budgetAmount": 200.00,
 			},
-			expResp: events.APIGatewayProxyResponse{
-				StatusCode:        http.StatusUnauthorized,
-				Body:              "{\"error\":{\"message\":\"User [admin1] with role: [User] attempted to act on a lease for [User1], but was not authorized\",\"code\":\"UnauthorizedError\"}}\n",
-				MultiValueHeaders: standardHeaders,
+			// Should return a 400 error
+			expectedResponseCode: http.StatusUnauthorized,
+			expectedResponseBody: map[string]interface{}{
+				"error": map[string]interface{}{
+					"message": "User [User1] with role: [User] attempted to act on a lease for [User2], but was not authorized",
+					"code":    "UnauthorizedError",
+				},
 			},
-			retAccounts: &account.Accounts{
+		},
+		{
+			name: "Should allow non-admin user to create a lease for themselves",
+			user: &api.User{
+				Username: "User1",
+				Role:     api.UserGroupName,
+			},
+			requestBody: map[string]interface{}{
+				"principalId":  "User1",
+				"budgetAmount": 200.00,
+			},
+			mockReadyAccounts: &account.Accounts{
 				account.Account{
 					ID:     ptrString("1234567890"),
 					Status: account.StatusReady.StatusPtr(),
 				},
 			},
-			retLease:     &lease.Lease{},
-			retListErr:   nil,
-			retUpdateErr: nil,
-			retCreateErr: nil,
+			expectedLeaseToCreate: &lease.Lease{
+				PrincipalID:  ptrString("User1"),
+				BudgetAmount: ptrFloat64(200),
+				AccountID:    ptrString("1234567890"),
+			},
+			expectedResponseCode: http.StatusCreated,
+			expectedResponseBody: map[string]interface{}{
+				"id":                "mock-lease-id",
+				"principalId":       "User1",
+				"budgetAmount":      200.00,
+				"accountId":         "1234567890",
+				"leaseStatus":       "Active",
+				"leaseStatusReason": "Active",
+			},
 		},
 		{
-			name: "When checking for first available ready account fails. Then an internal server error is returned.",
+			name: "Should return ServerError if accounts DB query fails",
 			user: &api.User{
 				Username: "admin1",
 				Role:     api.AdminGroupName,
 			},
-			request: events.APIGatewayProxyRequest{
-				HTTPMethod: http.MethodPost,
-				Path:       "/leases",
-				Body:       "{ \"principalId\": \"User1\", \"budgetAmount\": 200.00 }",
+			requestBody: map[string]interface{}{
+				"principalId":  "User1",
+				"budgetAmount": 200.00,
 			},
-			expResp: events.APIGatewayProxyResponse{
-				StatusCode:        http.StatusInternalServerError,
-				Body:              "{\"error\":{\"message\":\"unknown error\",\"code\":\"ServerError\"}}\n",
-				MultiValueHeaders: standardHeaders,
+			listAccountError:     errors.New("DB request failed"),
+			expectedResponseCode: http.StatusInternalServerError,
+			expectedResponseBody: map[string]interface{}{
+				"error": map[string]interface{}{
+					"code":    "ServerError",
+					"message": "unknown error",
+				},
 			},
-			retLease:     nil,
-			retListErr:   fmt.Errorf("failure"),
-			retUpdateErr: nil,
-			retCreateErr: nil,
 		},
 		{
-			name: "When no available accounts to lease. Then an internal server error is returned.",
+			name: "Should return ServerError if lease DB update fails",
 			user: &api.User{
 				Username: "admin1",
 				Role:     api.AdminGroupName,
 			},
-			request: events.APIGatewayProxyRequest{
-				HTTPMethod: http.MethodPost,
-				Path:       "/leases",
-				Body:       "{ \"principalId\": \"User1\", \"budgetAmount\": 200.00 }",
+			requestBody: map[string]interface{}{
+				"principalId":  "User1",
+				"budgetAmount": 200.00,
 			},
-			expResp: events.APIGatewayProxyResponse{
-				StatusCode:        http.StatusInternalServerError,
-				Body:              "{\"error\":{\"message\":\"No Available accounts at this moment\",\"code\":\"ServerError\"}}\n",
-				MultiValueHeaders: standardHeaders,
-			},
-			retAccounts:  &account.Accounts{},
-			retLease:     nil,
-			retListErr:   nil,
-			retUpdateErr: nil,
-			retCreateErr: nil,
-		},
-		{
-			name: "When updating account status to leased fails. Then an internal server error is returned.",
-			user: &api.User{
-				Username: "admin1",
-				Role:     api.AdminGroupName,
-			},
-			request: events.APIGatewayProxyRequest{
-				HTTPMethod: http.MethodPost,
-				Path:       "/leases",
-				Body:       "{ \"principalId\": \"User1\", \"budgetAmount\": 200.00 }",
-			},
-			expResp: events.APIGatewayProxyResponse{
-				StatusCode:        http.StatusInternalServerError,
-				Body:              "{\"error\":{\"message\":\"unknown error\",\"code\":\"ServerError\"}}\n",
-				MultiValueHeaders: standardHeaders,
-			},
-			retAccounts: &account.Accounts{
+			mockReadyAccounts: &account.Accounts{
 				account.Account{
 					ID:     ptrString("1234567890"),
 					Status: account.StatusReady.StatusPtr(),
 				},
 			},
-			retLease:     nil,
-			retListErr:   nil,
-			retUpdateErr: fmt.Errorf("failure"),
-			retCreateErr: nil,
+			expectedLeaseToCreate: &lease.Lease{
+				PrincipalID:  ptrString("User1"),
+				BudgetAmount: ptrFloat64(200),
+				AccountID:    ptrString("1234567890"),
+			},
+			retUpdateErr:         errors.New("DB request failed"),
+			expectedResponseCode: http.StatusInternalServerError,
+			expectedResponseBody: map[string]interface{}{
+				"error": map[string]interface{}{
+					"code":    "ServerError",
+					"message": "unknown error",
+				},
+			},
 		},
 		{
-			name: "When getting principal spend fails. Then an internal server error is returned.",
+			name: "Should return a ServerError if no accounts are available",
 			user: &api.User{
 				Username: "admin1",
 				Role:     api.AdminGroupName,
 			},
-			request: events.APIGatewayProxyRequest{
-				HTTPMethod: http.MethodPost,
-				Path:       "/leases",
-				Body:       "{ \"principalId\": \"User1\", \"budgetAmount\": 200.00 }",
+			requestBody: map[string]interface{}{
+				"principalId":  "User1",
+				"budgetAmount": 200.00,
 			},
-			expResp: events.APIGatewayProxyResponse{
-				StatusCode:        http.StatusInternalServerError,
-				Body:              "{\"error\":{\"message\":\"unknown error\",\"code\":\"ServerError\"}}\n",
-				MultiValueHeaders: standardHeaders,
-			},
-			retAccounts: &account.Accounts{
-				account.Account{
-					ID:     ptrString("1234567890"),
-					Status: account.StatusReady.StatusPtr(),
+			// no accounts ready and available
+			mockReadyAccounts:    &account.Accounts{},
+			expectedResponseCode: http.StatusInternalServerError,
+			expectedResponseBody: map[string]interface{}{
+				"error": map[string]interface{}{
+					"code":    "ServerError",
+					"message": "No Available accounts at this moment",
 				},
 			},
-			retLease:     nil,
-			retListErr:   nil,
-			retUpdateErr: nil,
-			retCreateErr: nil,
-		},
-		{
-			name: "When creating lease fails. Then an internal server error is returned.",
-			user: &api.User{
-				Username: "admin1",
-				Role:     api.AdminGroupName,
-			},
-			request: events.APIGatewayProxyRequest{
-				HTTPMethod: http.MethodPost,
-				Path:       "/leases",
-				Body:       "{ \"principalId\": \"User1\", \"budgetAmount\": 200.00 }",
-			},
-			expResp: events.APIGatewayProxyResponse{
-				StatusCode:        http.StatusInternalServerError,
-				Body:              "{\"error\":{\"message\":\"unknown error\",\"code\":\"ServerError\"}}\n",
-				MultiValueHeaders: standardHeaders,
-			},
-			retAccounts: &account.Accounts{
-				account.Account{
-					ID:     ptrString("1234567890"),
-					Status: account.StatusReady.StatusPtr(),
-				},
-			},
-			retLease:     nil,
-			retListErr:   nil,
-			retUpdateErr: nil,
-			retCreateErr: fmt.Errorf("Error"),
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Prepare Mocks
 			cfgBldr := &config.ConfigurationBuilder{}
 			svcBldr := &config.ServiceBuilder{Config: cfgBldr}
 
 			leaseSvc := leasemocks.Servicer{}
 			accountSvc := accountmocks.Servicer{}
-
 			userDetailSvc := apiMocks.UserDetailer{}
+
+			// Return a mock API user
 			userDetailSvc.On("GetUser", mock.Anything).Return(tt.user)
 
-			accountSvc.On("List", mock.Anything).Return(
-				tt.retAccounts, tt.retListErr,
-			)
-			accountSvc.On("Update", mock.Anything, mock.Anything).Return(
-				tt.retAccount, tt.retUpdateErr,
-			)
-			leaseSvc.On("Create", mock.AnythingOfType("*lease.Lease"), mock.Anything).Return(
-				tt.retLease, tt.retCreateErr,
-			)
+			// Mock a list of ready accounts from the DB
+			accountSvc.
+				On("List", &account.Account{
+					Status: account.StatusReady.StatusPtr(),
+				}).
+				Return(tt.mockReadyAccounts, tt.listAccountError)
 
-			svcBldr.Config.WithService(&accountSvc).WithService(&leaseSvc).WithEnv("PrincipalBudgetPeriod", "PRINCIPAL_BUDGET_PERIOD", "Weekly").WithService(&userDetailSvc)
+			if tt.mockReadyAccounts != nil && len(*tt.mockReadyAccounts) > 0 {
+				// Should mark the account as leased
+				firstReadyAccount := (*tt.mockReadyAccounts)[0]
+				accountSvc.
+					On("Update", *firstReadyAccount.ID, mock.MatchedBy(func(acct *account.Account) bool {
+						assert.Equal(t, account.StatusLeased.StatusPtr(), acct.Status)
+						return true
+					})).
+					Return(func(id string, acct *account.Account) *account.Account {
+						// Return the updated account
+						return acct
+					}, tt.retUpdateErr)
+
+				// Should query for existing inactive leases for the same account / principal
+				leaseSvc.
+					On("List", &lease.Lease{
+						AccountID:   firstReadyAccount.ID,
+						PrincipalID: ptrString(tt.requestBody["principalId"].(string)),
+						Status:      lease.StatusInactive.StatusPtr(),
+					}).
+					Return(tt.getExistingLeases, tt.getExistingLeasesErr)
+			}
+
+			// Should create a lease
+			var leaseFromDB *lease.Lease
+			leaseSvc.
+				On("Create", tt.expectedLeaseToCreate).
+				Return(func(leaseInput *lease.Lease) *lease.Lease {
+					// Create a copy of the lease,
+					// with Status=Active
+					leaseFromDB = leaseInput
+					leaseFromDB.ID = ptrString("mock-lease-id")
+					leaseFromDB.Status = lease.StatusActive.StatusPtr()
+					leaseFromDB.StatusReason = lease.StatusReasonActive.StatusReasonPtr()
+
+					return leaseFromDB
+				}, tt.retCreateErr)
+
+			// Should initialize our lease usage step function
+			sfnService := awsmocks.SFNAPI{}
+			sfnService.
+				On("StartExecution", mock.MatchedBy(func(input *sfn.StartExecutionInput) bool {
+					// Check the state machine ARN, matches our configured value
+					// (from env vars)
+					assert.Equal(t, "mock-step-function-arn", *input.StateMachineArn)
+
+					// Deserialize the JSON input
+					var inputData map[string]interface{}
+					err := json.Unmarshal([]byte(*input.Input), &inputData)
+					assert.Nil(t, err)
+
+					// Check the values of the JSON input,
+					// should be equal to our lease object
+					assert.Equal(t, *leaseFromDB.ID, inputData["id"].(string))
+					assert.Equal(t, *leaseFromDB.AccountID, inputData["accountId"].(string))
+					assert.Equal(t, *leaseFromDB.PrincipalID, inputData["principalId"].(string))
+					assert.Equal(t, "Active", inputData["leaseStatus"].(string))
+
+					return true
+				})).
+				Return(&sfn.StartExecutionOutput{}, nil)
+
+			svcBldr.Config.
+				WithService(&accountSvc).
+				WithService(&leaseSvc).
+				WithService(&userDetailSvc).
+				WithService(&sfnService).
+				WithEnv("PrincipalBudgetPeriod", "PRINCIPAL_BUDGET_PERIOD", "Weekly")
 			_, err := svcBldr.Build()
+
+			Settings.UsageStepFunctionArn = "mock-step-function-arn"
 
 			assert.Nil(t, err)
 			if err == nil {
 				Services = svcBldr
 			}
 
-			resp, err := Handler(context.TODO(), tt.request)
+			requestBody, err := json.Marshal(tt.requestBody)
+			assert.Nil(t, err)
+			request := events.APIGatewayProxyRequest{
+				HTTPMethod: http.MethodPost,
+				Path:       "/leases",
+				Body:       string(requestBody),
+			}
+			resp, err := Handler(context.TODO(), request)
 
 			assert.Nil(t, err)
-			assert.Equal(t, tt.expResp, resp)
+
+			assert.Equal(t, tt.expectedResponseCode, resp.StatusCode)
+
+			var respJSON map[string]interface{}
+			err = json.Unmarshal([]byte(resp.Body), &respJSON)
+			require.Nil(t, err)
+			assert.Equal(t, tt.expectedResponseBody, respJSON, "response JSON body")
+			assert.Equal(t, map[string][]string{
+				"Access-Control-Allow-Origin": {"*"},
+				"Content-Type":                {"application/json"},
+			}, resp.MultiValueHeaders)
+
+			if tt.expectedResponseCode < 400 {
+				accountSvc.AssertExpectations(t)
+				leaseSvc.AssertExpectations(t)
+				userDetailSvc.AssertExpectations(t)
+				sfnService.AssertExpectations(t)
+			}
 		})
 	}
 
