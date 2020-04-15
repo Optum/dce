@@ -1,5 +1,39 @@
 ## vNext
 
+**MAJOR BREAKING CHANGES**
+
+This release introduces a major restructuring of budget and usage controls, and of lease lifecycle management. Upgrading to this release **requires some manual migration steps** in order to avoid data loss and system failures.
+
+Please carefully read through the migration notes below, before upgrading to this version. If anything here is unclear, or you have questions about upgrading, please open an issue in the github repo.
+
+We recognize the disruption caused by these breaking changes. We only undertook this course of action after carefully considering alternatives. In short, the previous data model did not accurately represent actual cloud spend, and was not flexible enough to be fixed as-is.
+
+**Migration Notes: Usage Data and APIs**
+
+This release introduces a new data structure for managing usage (cloud spend), along with a new DynamoDB table to store this data. When you upgrade **your existing DynamoDB `Usage` table will be destroyed**. If you wish to retain this data, please [create a backup of your `Usage` table](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Backup.Tutorial.html) before deploying this upgrade.
+
+Also, note that the previous API endpoints for accessing usage data will no longer be available. We are working on new endpoints, but they should not yet be considered stable. 
+
+**Migration Notes: Expiration of Existing Leases**
+
+In this release, we now manage lease expiration within a step function, which is initialized at the time of lease creation. For any existing leases in your system, this step function will not have been initialized, and **existing leases will not expire on their own.**
+
+The same is true for budget checks -- **existing leases will not have budget checks applied to them.**
+
+As a workaround, you may want to expire all existing leases via the `DELETE /leases` endpoint before upgrading to this release.  
+
+**Migration Notes: Principal Budgets**
+
+In previous versions of DCE, users were subject to two types of budget checks:
+
+- Lease budgets checks, for spend accumulated during the lifetime of the lease
+- Principal budget becks, for spend accumulated by the principal (user) across all their leases during a weekly or monthly period
+
+This release no longer supports principal budget checks. We intend to reimplement this feature in a future release.  
+
+
+**Other Changes**
+
 - Added new tool in `tools` folder for generating Markdown and IAM example policy for AWS Nuke
   support. See README in `tools/awsnukedocgen`.
 - Added new services supported by DCE: Kinesis Analytics, Kinesis Video, Opsworks CM, Robomaker,
@@ -7,7 +41,7 @@
 - Added new `make setup` target for installing tools on local developer machines.
 - Hardened `scripts/install_ci.sh` to be used by developers.
 - Added documenation for local developer environment setup.
-- Fix bug with delete lease, replace list method call with GetByAccountIdAndPrincipalId.
+- Fix bug with `DELETE /leases` returning a 404 for an existing lease (#336)
 
 ## v0.29.0
 
