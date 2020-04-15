@@ -2,8 +2,6 @@ package api
 
 import (
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
 // TestUsage tests the components of Usage
@@ -14,8 +12,6 @@ func TestUsage(t *testing.T) {
 	givenSystemHasUsageData(t)
 
 	t.Run("Given system has usage data", func(t *testing.T) {
-
-		assert.Nil(t, "1")
 
 		t.Run("When listing all principal usage", func(t *testing.T) {
 			t.Run("Then should get all principal usage records", func(t *testing.T) {
