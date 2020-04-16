@@ -21,7 +21,7 @@ docs/dce/
 # Local .terraform directories
 **/.terraform/*
 # Backend configuration is created on-the-fly by CI pipeline
-modules/backend..tf
+modules/backend.tf
 
 # .tfstate files
 *.tfstate
