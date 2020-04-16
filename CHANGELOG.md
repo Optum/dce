@@ -8,6 +8,7 @@
 - Hardened `scripts/install_ci.sh` to be used by developers.
 - Added documenation for local developer environment setup.
 - Fix bug with delete lease, replace list method call with GetByAccountIdAndPrincipalId.
+- Fix to issue to include tflint package for MacOS user and upgrade version for Linux user.
 
 ## v0.29.0
 
