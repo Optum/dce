@@ -56,7 +56,7 @@ func handler(ctx context.Context, event lease.Lease) (lease.Lease, error) {
 	}
 
 	if getLease.Status.String() == lease.StatusActive.String() {
-		updLease, err := services.LeaseService().Delete(*getLease.ID)
+		updLease, err := services.LeaseService().Delete(*getLease.ID, lease.StatusReasonExpired)
 		if err != nil {
 			log.Printf("Error: %+v", err)
 			return lease.Lease{}, err

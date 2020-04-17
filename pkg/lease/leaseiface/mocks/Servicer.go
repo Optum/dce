@@ -34,13 +34,13 @@ func (_m *Servicer) Create(data *lease.Lease) (*lease.Lease, error) {
 	return r0, r1
 }
 
-// Delete provides a mock function with given fields: ID
-func (_m *Servicer) Delete(ID string) (*lease.Lease, error) {
-	ret := _m.Called(ID)
+// Delete provides a mock function with given fields: ID, reason
+func (_m *Servicer) Delete(ID string, reason lease.StatusReason) (*lease.Lease, error) {
+	ret := _m.Called(ID, reason)
 
 	var r0 *lease.Lease
-	if rf, ok := ret.Get(0).(func(string) *lease.Lease); ok {
-		r0 = rf(ID)
+	if rf, ok := ret.Get(0).(func(string, lease.StatusReason) *lease.Lease); ok {
+		r0 = rf(ID, reason)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*lease.Lease)
@@ -48,8 +48,8 @@ func (_m *Servicer) Delete(ID string) (*lease.Lease, error) {
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(string) error); ok {
-		r1 = rf(ID)
+	if rf, ok := ret.Get(1).(func(string, lease.StatusReason) error); ok {
+		r1 = rf(ID, reason)
 	} else {
 		r1 = ret.Error(1)
 	}

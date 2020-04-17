@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/Optum/dce/pkg/errors"
-	"github.com/Optum/dce/pkg/lease"
+	leases "github.com/Optum/dce/pkg/lease"
 	"github.com/Optum/dce/pkg/lease/mocks"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/stretchr/testify/assert"
@@ -16,6 +16,11 @@ import (
 func ptrString(s string) *string {
 	ptrS := s
 	return &ptrS
+}
+
+func ptrInt64(i int64) *int64 {
+	ptr := i
+	return &ptr
 }
 
 func ptrFloat(s float64) *float64 {
@@ -30,7 +35,7 @@ func ptrArrayString(s []string) *[]string {
 func TestGetLeaseByID(t *testing.T) {
 
 	type response struct {
-		data *lease.Lease
+		data *leases.Lease
 		err  error
 	}
 
@@ -41,19 +46,19 @@ func TestGetLeaseByID(t *testing.T) {
 		exp  response
 	}{
 		{
-			name: "should get a lease by ID",
+			name: "should get a leases by ID",
 			ID:   "70c2d96d-7938-4ec9-917d-476f2b09cc04",
 			ret: response{
-				data: &lease.Lease{
+				data: &leases.Lease{
 					ID:     ptrString("70c2d96d-7938-4ec9-917d-476f2b09cc04"),
-					Status: lease.StatusActive.StatusPtr(),
+					Status: leases.StatusActive.StatusPtr(),
 				},
 				err: nil,
 			},
 			exp: response{
-				data: &lease.Lease{
+				data: &leases.Lease{
 					ID:     ptrString("70c2d96d-7938-4ec9-917d-476f2b09cc04"),
-					Status: lease.StatusActive.StatusPtr(),
+					Status: leases.StatusActive.StatusPtr(),
 				},
 				err: nil,
 			},
@@ -77,7 +82,7 @@ func TestGetLeaseByID(t *testing.T) {
 
 			mocksRwd.On("Get", tt.ID).Return(tt.ret.data, tt.ret.err)
 
-			leaseSvc := lease.NewService(lease.NewServiceInput{
+			leaseSvc := leases.NewService(leases.NewServiceInput{
 				DataSvc: mocksRwd,
 			})
 
@@ -92,7 +97,7 @@ func TestGetLeaseByID(t *testing.T) {
 func TestGetByAccountIDAndPrincipalID(t *testing.T) {
 
 	type response struct {
-		data *lease.Lease
+		data *leases.Lease
 		err  error
 	}
 
@@ -104,24 +109,24 @@ func TestGetByAccountIDAndPrincipalID(t *testing.T) {
 		exp         response
 	}{
 		{
-			name:        "should get a lease by accountId and principalId",
+			name:        "should get a leases by accountId and principalId",
 			accountId:   "123456789012",
 			principalId: "TestUser",
 			ret: response{
-				data: &lease.Lease{
+				data: &leases.Lease{
 					ID:          ptrString("70c2d96d-7938-4ec9-917d-476f2b09cc04"),
 					AccountID:   ptrString("123456789012"),
 					PrincipalID: ptrString("TestUser"),
-					Status:      lease.StatusActive.StatusPtr(),
+					Status:      leases.StatusActive.StatusPtr(),
 				},
 				err: nil,
 			},
 			exp: response{
-				data: &lease.Lease{
+				data: &leases.Lease{
 					ID:          ptrString("70c2d96d-7938-4ec9-917d-476f2b09cc04"),
 					AccountID:   ptrString("123456789012"),
 					PrincipalID: ptrString("TestUser"),
-					Status:      lease.StatusActive.StatusPtr(),
+					Status:      leases.StatusActive.StatusPtr(),
 				},
 				err: nil,
 			},
@@ -145,7 +150,7 @@ func TestGetByAccountIDAndPrincipalID(t *testing.T) {
 
 			mocksRwd.On("GetByAccountIDAndPrincipalID", tt.accountId, tt.principalId).Return(tt.ret.data, tt.ret.err)
 
-			leaseSvc := lease.NewService(lease.NewServiceInput{
+			leaseSvc := leases.NewService(leases.NewServiceInput{
 				DataSvc: mocksRwd,
 			})
 
@@ -159,55 +164,101 @@ func TestGetByAccountIDAndPrincipalID(t *testing.T) {
 
 func TestDelete(t *testing.T) {
 	tests := []struct {
-		name      string
-		ID        string
-		expErr    error
-		returnErr error
-		expLease  *lease.Lease
+		name              string
+		ID                string
+		StatusReason      leases.StatusReason
+		mockDBWriteError  error
+		mockPreviousLease *leases.Lease
+		expectedError     error
 	}{
 		{
-			name: "should delete a lease",
+			name: "should delete a leases",
 			ID:   "70c2d96d-7938-4ec9-917d-476f2b09cc04",
-			expLease: &lease.Lease{
+			StatusReason: leases.StatusReasonOverPrincipalBudget,
+			mockPreviousLease: &leases.Lease{
 				ID:           ptrString("70c2d96d-7938-4ec9-917d-476f2b09cc04"),
 				AccountID:    ptrString("123456789012"),
-				Status:       lease.StatusActive.StatusPtr(),
-				StatusReason: lease.StatusReasonDestroyed.StatusReasonPtr(),
+				Status:       leases.StatusActive.StatusPtr(),
+				StatusReason: leases.StatusReasonActive.StatusReasonPtr(),
+				LastModifiedOn: ptrInt64(100),
 			},
-			returnErr: nil,
+			mockDBWriteError: nil,
 		},
 		{
-			name:      "should error when delete fails",
-			ID:        "70c2d96d-7938-4ec9-917d-476f2b09cc04",
-			expLease:  nil,
-			returnErr: errors.NewInternalServer("failure", fmt.Errorf("original failure")),
-			expErr:    errors.NewInternalServer("failure", nil),
+			name:              "should error when delete fails",
+			ID:                "70c2d96d-7938-4ec9-917d-476f2b09cc04",
+			StatusReason:      leases.StatusReasonDestroyed,
+			mockPreviousLease: &leases.Lease{
+				ID:           ptrString("70c2d96d-7938-4ec9-917d-476f2b09cc04"),
+				AccountID:    ptrString("123456789012"),
+				Status:       leases.StatusActive.StatusPtr(),
+				StatusReason: leases.StatusReasonActive.StatusReasonPtr(),
+				LastModifiedOn: ptrInt64(100),
+			},
+			mockDBWriteError:  errors.NewInternalServer("failure", fmt.Errorf("original failure")),
+			expectedError:     errors.NewInternalServer("failure", nil),
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mocksRwd := &mocks.ReaderWriter{}
-			mocksRwd.On("Get", tt.ID).Return(tt.expLease, tt.returnErr)
-			mocksRwd.On("Write", mock.Anything, mock.Anything).Return(tt.returnErr)
+			mockDataSvc := &mocks.ReaderWriter{}
 
+			// Mock the DB query for the existing leases record (before writing to it)
+			mockDataSvc.On("Get", tt.ID).
+				Return(tt.mockPreviousLease, tt.mockDBWriteError)
+
+			// Assert that we write the updated leases to the DB,
+			// via the leases data svc
+			mockDataSvc.On("Write", mock.MatchedBy(func(lease *leases.Lease) bool {
+				assert.Equal(t, tt.StatusReason.StatusReasonPtr(), lease.StatusReason,
+					"should update lease with provided StatusReason")
+				assert.Equal(t, leases.StatusInactive.StatusPtr(), lease.Status,
+					"should mark lease as Status=Inactive")
+
+				now := time.Now().Unix()
+				assert.InDelta(t, now, *lease.LastModifiedOn, 30,
+					"should update LastModifiedOn timestamp to current time")
+				assert.InDelta(t, now, *lease.StatusModifiedOn, 30,
+					"should update StatusModifiedOn timestamp to current time")
+
+				return true
+			}), tt.mockPreviousLease.LastModifiedOn).
+				Return(tt.mockDBWriteError)
+
+			// Mock the AccountSvc.Reset() method
+			// which adds our account to the reset SQS queue
 			mocksAccountSvc := &mocks.AccountServicer{}
-			mocksAccountSvc.On("Reset", mock.AnythingOfType("string")).Return(nil, nil)
+			mocksAccountSvc.On("Reset", mock.AnythingOfType("string")).
+				Return(nil, nil)
 
+			// Mock the `EventSvc.LeaseEnd()` method.
+			// which triggers an SNS event
 			mocksEvents := &mocks.Eventer{}
-			mocksEvents.On("LeaseEnd", mock.AnythingOfType("*lease.Lease")).Return(nil)
+			mocksEvents.On("LeaseEnd", mock.Anything).Return(nil)
 
-			leaseSvc := lease.NewService(
-				lease.NewServiceInput{
-					DataSvc:    mocksRwd,
+			leaseSvc := leases.NewService(
+				leases.NewServiceInput{
+					DataSvc:    mockDataSvc,
 					EventSvc:   mocksEvents,
 					AccountSvc: mocksAccountSvc,
 				},
 			)
-			actualLease, err := leaseSvc.Delete(tt.ID)
-			assert.True(t, errors.Is(err, tt.expErr), "actual error %q doesn't match expected error %q", err, tt.expErr)
-			assert.Equal(t, tt.expLease, actualLease)
+			result, err := leaseSvc.Delete(tt.ID, tt.StatusReason)
+			assert.True(t, errors.Is(err, tt.expectedError), "actual error %q doesn't match expected error %q", err, tt.expectedError)
 
+			if tt.expectedError == nil {
+				assert.Equal(t, tt.ID, *result.ID,
+					"returned lease has lease ID")
+				assert.Equal(t, leases.StatusInactive, *result.Status,
+					"returned lease is Status=Inactive")
+				assert.Equal(t, tt.StatusReason, *result.StatusReason,
+					"returned lease has updated status reason")
+
+				mockDataSvc.AssertExpectations(t)
+				mocksAccountSvc.AssertExpectations(t)
+				mocksEvents.AssertExpectations(t)
+			}
 		})
 	}
 }
@@ -216,30 +267,30 @@ func TestSave(t *testing.T) {
 	now := time.Now().Unix()
 
 	type response struct {
-		data *lease.Lease
+		data *leases.Lease
 		err  error
 	}
 
 	tests := []struct {
 		name      string
 		returnErr error
-		lease     *lease.Lease
+		lease     *leases.Lease
 		exp       response
 	}{
 		{
-			name: "should save lease with timestamps",
-			lease: &lease.Lease{
+			name: "should save leases with timestamps",
+			lease: &leases.Lease{
 				ID:             ptrString("70c2d96d-7938-4ec9-917d-476f2b09cc04"),
-				Status:         lease.StatusActive.StatusPtr(),
+				Status:         leases.StatusActive.StatusPtr(),
 				AccountID:      ptrString("123456789012"),
 				PrincipalID:    ptrString("test:arn"),
 				CreatedOn:      &now,
 				LastModifiedOn: &now,
 			},
 			exp: response{
-				data: &lease.Lease{
+				data: &leases.Lease{
 					ID:               ptrString("70c2d96d-7938-4ec9-917d-476f2b09cc04"),
-					Status:           lease.StatusActive.StatusPtr(),
+					Status:           leases.StatusActive.StatusPtr(),
 					AccountID:        ptrString("123456789012"),
 					PrincipalID:      ptrString("test:arn"),
 					LastModifiedOn:   &now,
@@ -252,16 +303,16 @@ func TestSave(t *testing.T) {
 		},
 		{
 			name: "should save with new created on",
-			lease: &lease.Lease{
+			lease: &leases.Lease{
 				ID:          ptrString("70c2d96d-7938-4ec9-917d-476f2b09cc04"),
-				Status:      lease.StatusActive.StatusPtr(),
+				Status:      leases.StatusActive.StatusPtr(),
 				PrincipalID: ptrString("test:arn"),
 				AccountID:   ptrString("123456789012"),
 			},
 			exp: response{
-				data: &lease.Lease{
+				data: &leases.Lease{
 					ID:               ptrString("70c2d96d-7938-4ec9-917d-476f2b09cc04"),
-					Status:           lease.StatusActive.StatusPtr(),
+					Status:           leases.StatusActive.StatusPtr(),
 					PrincipalID:      ptrString("test:arn"),
 					AccountID:        ptrString("123456789012"),
 					LastModifiedOn:   &now,
@@ -274,16 +325,16 @@ func TestSave(t *testing.T) {
 		},
 		{
 			name: "should fail on return err",
-			lease: &lease.Lease{
+			lease: &leases.Lease{
 				ID:          ptrString("70c2d96d-7938-4ec9-917d-476f2b09cc04"),
-				Status:      lease.StatusActive.StatusPtr(),
+				Status:      leases.StatusActive.StatusPtr(),
 				PrincipalID: ptrString("test:arn"),
 				AccountID:   ptrString("123456789012"),
 			},
 			exp: response{
-				data: &lease.Lease{
+				data: &leases.Lease{
 					ID:               ptrString("70c2d96d-7938-4ec9-917d-476f2b09cc04"),
-					Status:           lease.StatusActive.StatusPtr(),
+					Status:           leases.StatusActive.StatusPtr(),
 					PrincipalID:      ptrString("test:arn"),
 					AccountID:        ptrString("123456789012"),
 					LastModifiedOn:   &now,
@@ -300,10 +351,10 @@ func TestSave(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mocksRwd := &mocks.ReaderWriter{}
 
-			mocksRwd.On("Write", mock.AnythingOfType("*lease.Lease"), mock.AnythingOfType("*int64")).Return(tt.returnErr)
+			mocksRwd.On("Write", mock.AnythingOfType("*leases.Lease"), mock.AnythingOfType("*int64")).Return(tt.returnErr)
 
-			leaseSvc := lease.NewService(
-				lease.NewServiceInput{
+			leaseSvc := leases.NewService(
+				leases.NewServiceInput{
 					DataSvc: mocksRwd,
 				},
 			)
@@ -320,43 +371,43 @@ func TestSave(t *testing.T) {
 func TestGetLeases(t *testing.T) {
 
 	type response struct {
-		data *lease.Leases
+		data *leases.Leases
 		err  error
 	}
 
 	tests := []struct {
 		name      string
-		inputData lease.Lease
+		inputData leases.Lease
 		ret       response
 		exp       response
 	}{
 		{
 			name: "standard",
-			inputData: lease.Lease{
-				Status: lease.StatusActive.StatusPtr(),
+			inputData: leases.Lease{
+				Status: leases.StatusActive.StatusPtr(),
 			},
 			ret: response{
-				data: &lease.Leases{
-					lease.Lease{
+				data: &leases.Leases{
+					leases.Lease{
 						ID:     aws.String("1"),
-						Status: lease.StatusActive.StatusPtr(),
+						Status: leases.StatusActive.StatusPtr(),
 					},
-					lease.Lease{
+					leases.Lease{
 						ID:     aws.String("2"),
-						Status: lease.StatusActive.StatusPtr(),
+						Status: leases.StatusActive.StatusPtr(),
 					},
 				},
 				err: nil,
 			},
 			exp: response{
-				data: &lease.Leases{
-					lease.Lease{
+				data: &leases.Leases{
+					leases.Lease{
 						ID:     ptrString("1"),
-						Status: lease.StatusActive.StatusPtr(),
+						Status: leases.StatusActive.StatusPtr(),
 					},
-					lease.Lease{
+					leases.Lease{
 						ID:     ptrString("2"),
-						Status: lease.StatusActive.StatusPtr(),
+						Status: leases.StatusActive.StatusPtr(),
 					},
 				},
 				err: nil,
@@ -364,8 +415,8 @@ func TestGetLeases(t *testing.T) {
 		},
 		{
 			name: "internal error",
-			inputData: lease.Lease{
-				Status: lease.StatusActive.StatusPtr(),
+			inputData: leases.Lease{
+				Status: leases.StatusActive.StatusPtr(),
 			},
 			ret: response{
 				data: nil,
@@ -378,7 +429,7 @@ func TestGetLeases(t *testing.T) {
 		},
 		{
 			name: "validation error",
-			inputData: lease.Lease{
+			inputData: leases.Lease{
 				ID: ptrString("70c2d96d-7938-4ec9-917d-476f2b09cc04"),
 			},
 			ret: response{
@@ -387,7 +438,7 @@ func TestGetLeases(t *testing.T) {
 			},
 			exp: response{
 				data: nil,
-				err:  errors.NewValidation("lease", fmt.Errorf("id: must be empty.")),
+				err:  errors.NewValidation("leases", fmt.Errorf("id: must be empty.")),
 			},
 		},
 	}
@@ -395,10 +446,10 @@ func TestGetLeases(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mocksRWD := &mocks.ReaderWriter{}
-			mocksRWD.On("List", mock.AnythingOfType("*lease.Lease")).Return(tt.ret.data, tt.ret.err)
+			mocksRWD.On("List", mock.AnythingOfType("*leases.Lease")).Return(tt.ret.data, tt.ret.err)
 
-			leasesSvc := lease.NewService(
-				lease.NewServiceInput{
+			leasesSvc := leases.NewService(
+				leases.NewServiceInput{
 					DataSvc: mocksRWD,
 				},
 			)
@@ -414,7 +465,7 @@ func TestGetLeases(t *testing.T) {
 func TestCreate(t *testing.T) {
 
 	type response struct {
-		data *lease.Lease
+		data *leases.Lease
 		err  error
 	}
 
@@ -425,16 +476,16 @@ func TestCreate(t *testing.T) {
 
 	tests := []struct {
 		name                 string
-		req                  *lease.Lease
+		req                  *leases.Lease
 		exp                  response
-		getResponse          *lease.Leases
+		getResponse          *leases.Leases
 		writeErr             error
 		leaseCreateErr       error
 		principalSpentAmount float64
 	}{
 		{
 			name: "should create",
-			req: &lease.Lease{
+			req: &leases.Lease{
 				PrincipalID:              ptrString("User1"),
 				AccountID:                ptrString("123456789012"),
 				BudgetAmount:             ptrFloat(200.00),
@@ -443,12 +494,12 @@ func TestCreate(t *testing.T) {
 				Metadata:                 map[string]interface{}{},
 			},
 			exp: response{
-				data: &lease.Lease{
+				data: &leases.Lease{
 					ID:                       ptrString("6d666a28-4f2c-43af-8c94-1b715ca079ae"),
 					PrincipalID:              ptrString("User1"),
 					AccountID:                ptrString("123456789012"),
-					Status:                   lease.StatusActive.StatusPtr(),
-					StatusReason:             lease.StatusReasonActive.StatusReasonPtr(),
+					Status:                   leases.StatusActive.StatusPtr(),
+					StatusReason:             leases.StatusReasonActive.StatusReasonPtr(),
 					BudgetAmount:             ptrFloat(200.00),
 					BudgetCurrency:           ptrString("USD"),
 					BudgetNotificationEmails: ptrArrayString([]string{"test1@test.com", "test2@test.com"}),
@@ -465,8 +516,8 @@ func TestCreate(t *testing.T) {
 			principalSpentAmount: 0.0,
 		},
 		{
-			name: "should fail on lease validation error caused by budget amount greater than max lease budget amount",
-			req: &lease.Lease{
+			name: "should fail on leases validation error caused by budget amount greater than max leases budget amount",
+			req: &leases.Lease{
 				PrincipalID:              ptrString("User1"),
 				AccountID:                ptrString("123456789012"),
 				BudgetAmount:             ptrFloat(2000.00),
@@ -476,10 +527,10 @@ func TestCreate(t *testing.T) {
 			},
 			exp: response{
 				data: nil,
-				err:  errors.NewValidation("lease", fmt.Errorf("budgetAmount: Requested lease has a budget amount of 2000.000000, which is greater than max lease budget amount of 1000.000000.")),
+				err:  errors.NewValidation("leases", fmt.Errorf("budgetAmount: Requested leases has a budget amount of 2000.000000, which is greater than max leases budget amount of 1000.000000.")),
 			},
-			getResponse: &lease.Leases{
-				lease.Lease{
+			getResponse: &leases.Leases{
+				leases.Lease{
 					PrincipalID:              ptrString("User1"),
 					AccountID:                ptrString("123456789012"),
 					BudgetAmount:             ptrFloat(200.00),
@@ -491,8 +542,8 @@ func TestCreate(t *testing.T) {
 			principalSpentAmount: 0.0,
 		},
 		{
-			name: "should fail on lease expires yesterday",
-			req: &lease.Lease{
+			name: "should fail on leases expires yesterday",
+			req: &leases.Lease{
 				PrincipalID:              ptrString("User1"),
 				AccountID:                ptrString("123456789012"),
 				BudgetAmount:             ptrFloat(200.00),
@@ -503,10 +554,10 @@ func TestCreate(t *testing.T) {
 			},
 			exp: response{
 				data: nil,
-				err:  errors.NewValidation("lease", fmt.Errorf("expiresOn: Requested lease has a desired expiry date less than today: %d.", leaseExpiresYesterday)),
+				err:  errors.NewValidation("leases", fmt.Errorf("expiresOn: Requested leases has a desired expiry date less than today: %d.", leaseExpiresYesterday)),
 			},
-			getResponse: &lease.Leases{
-				lease.Lease{
+			getResponse: &leases.Leases{
+				leases.Lease{
 					PrincipalID:              ptrString("User1"),
 					AccountID:                ptrString("123456789012"),
 					BudgetAmount:             ptrFloat(200.00),
@@ -518,8 +569,8 @@ func TestCreate(t *testing.T) {
 			principalSpentAmount: 0.0,
 		},
 		{
-			name: "should fail on lease expires after a year",
-			req: &lease.Lease{
+			name: "should fail on leases expires after a year",
+			req: &leases.Lease{
 				PrincipalID:              ptrString("User1"),
 				AccountID:                ptrString("123456789012"),
 				BudgetAmount:             ptrFloat(200.00),
@@ -530,10 +581,10 @@ func TestCreate(t *testing.T) {
 			},
 			exp: response{
 				data: nil,
-				err:  errors.NewValidation("lease", fmt.Errorf("expiresOn: Requested lease has a budget expires on of %d, which is greater than max lease period of 704800.", leaseExpiresAfterAYear)),
+				err:  errors.NewValidation("leases", fmt.Errorf("expiresOn: Requested leases has a budget expires on of %d, which is greater than max leases period of 704800.", leaseExpiresAfterAYear)),
 			},
-			getResponse: &lease.Leases{
-				lease.Lease{
+			getResponse: &leases.Leases{
+				leases.Lease{
 					PrincipalID:              ptrString("User1"),
 					AccountID:                ptrString("123456789012"),
 					BudgetAmount:             ptrFloat(200.00),
@@ -546,7 +597,7 @@ func TestCreate(t *testing.T) {
 		},
 		{
 			name: "should fail on principalId missing",
-			req: &lease.Lease{
+			req: &leases.Lease{
 				AccountID:                ptrString("123456789012"),
 				BudgetAmount:             ptrFloat(200.00),
 				BudgetCurrency:           ptrString("USD"),
@@ -556,14 +607,14 @@ func TestCreate(t *testing.T) {
 			},
 			exp: response{
 				data: nil,
-				err:  errors.NewValidation("lease", fmt.Errorf("principalId: must be a string.")),
+				err:  errors.NewValidation("leases", fmt.Errorf("principalId: must be a string.")),
 			},
 			getResponse:          nil,
 			principalSpentAmount: 0.0,
 		},
 		{
 			name: "should fail on accountId missing",
-			req: &lease.Lease{
+			req: &leases.Lease{
 				PrincipalID:              ptrString("User1"),
 				BudgetAmount:             ptrFloat(200.00),
 				BudgetCurrency:           ptrString("USD"),
@@ -573,14 +624,14 @@ func TestCreate(t *testing.T) {
 			},
 			exp: response{
 				data: nil,
-				err:  errors.NewValidation("lease", fmt.Errorf("accountId: must be a string.")),
+				err:  errors.NewValidation("leases", fmt.Errorf("accountId: must be a string.")),
 			},
 			getResponse:          nil,
 			principalSpentAmount: 0.0,
 		},
 		{
 			name: "should fail on leaseId must be empty",
-			req: &lease.Lease{
+			req: &leases.Lease{
 				ID:                       ptrString(""),
 				PrincipalID:              ptrString("User1"),
 				AccountID:                ptrString("123456789012"),
@@ -592,18 +643,18 @@ func TestCreate(t *testing.T) {
 			},
 			exp: response{
 				data: nil,
-				err:  errors.NewValidation("lease", fmt.Errorf("id: must be empty.")),
+				err:  errors.NewValidation("leases", fmt.Errorf("id: must be empty.")),
 			},
 			getResponse:          nil,
 			principalSpentAmount: 0.0,
 		},
 		{
 			name: "should fail on status and statusReason must be empty",
-			req: &lease.Lease{
+			req: &leases.Lease{
 				PrincipalID:              ptrString("User1"),
 				AccountID:                ptrString("123456789012"),
-				Status:                   lease.StatusActive.StatusPtr(),
-				StatusReason:             lease.StatusReasonExpired.StatusReasonPtr(),
+				Status:                   leases.StatusActive.StatusPtr(),
+				StatusReason:             leases.StatusReasonExpired.StatusReasonPtr(),
 				BudgetAmount:             ptrFloat(200.00),
 				BudgetCurrency:           ptrString("USD"),
 				BudgetNotificationEmails: ptrArrayString([]string{"test1@test.com", "test2@test.com"}),
@@ -612,14 +663,14 @@ func TestCreate(t *testing.T) {
 			},
 			exp: response{
 				data: nil,
-				err:  errors.NewValidation("lease", fmt.Errorf("leaseStatus: must be empty; leaseStatusReason: must be empty.")),
+				err:  errors.NewValidation("leases", fmt.Errorf("leaseStatus: must be empty; leaseStatusReason: must be empty.")),
 			},
 			getResponse:          nil,
 			principalSpentAmount: 0.0,
 		},
 		{
-			name: "should fail on lease already exists",
-			req: &lease.Lease{
+			name: "should fail on leases already exists",
+			req: &leases.Lease{
 				PrincipalID:              ptrString("User1"),
 				AccountID:                ptrString("123456789012"),
 				BudgetAmount:             ptrFloat(200.00),
@@ -629,13 +680,13 @@ func TestCreate(t *testing.T) {
 			},
 			exp: response{
 				data: nil,
-				err:  errors.NewAlreadyExists("lease", "with principal User1 and account 123456789012"),
+				err:  errors.NewAlreadyExists("leases", "with principal User1 and account 123456789012"),
 			},
-			getResponse: &lease.Leases{
-				lease.Lease{
+			getResponse: &leases.Leases{
+				leases.Lease{
 					PrincipalID:              ptrString("User1"),
 					AccountID:                ptrString("123456789012"),
-					Status:                   lease.StatusActive.StatusPtr(),
+					Status:                   leases.StatusActive.StatusPtr(),
 					BudgetAmount:             ptrFloat(200.00),
 					BudgetCurrency:           ptrString("USD"),
 					BudgetNotificationEmails: ptrArrayString([]string{"test1@test.com", "test2@test.com"}),
@@ -654,12 +705,12 @@ func TestCreate(t *testing.T) {
 
 			mocksAccountSvc := &mocks.AccountServicer{}
 
-			mocksRwd.On("List", mock.AnythingOfType("*lease.Lease")).Return(tt.getResponse, nil)
-			mocksRwd.On("Write", mock.AnythingOfType("*lease.Lease"), mock.AnythingOfType("*int64")).Return(tt.writeErr)
-			mocksEventer.On("LeaseCreate", mock.AnythingOfType("*lease.Lease")).Return(nil)
+			mocksRwd.On("List", mock.AnythingOfType("*leases.Lease")).Return(tt.getResponse, nil)
+			mocksRwd.On("Write", mock.AnythingOfType("*leases.Lease"), mock.AnythingOfType("*int64")).Return(tt.writeErr)
+			mocksEventer.On("LeaseCreate", mock.AnythingOfType("*leases.Lease")).Return(nil)
 
-			leaseSvc := lease.NewService(
-				lease.NewServiceInput{
+			leaseSvc := leases.NewService(
+				leases.NewServiceInput{
 					DataSvc:                  mocksRwd,
 					EventSvc:                 mocksEventer,
 					AccountSvc:               mocksAccountSvc,

@@ -6,11 +6,11 @@ import (
 
 	"github.com/Optum/dce/pkg/api"
 	"github.com/Optum/dce/pkg/errors"
-	"github.com/Optum/dce/pkg/lease"
+	leases "github.com/Optum/dce/pkg/lease"
 	"github.com/gorilla/mux"
 )
 
-// DeleteLeaseByID - Deletes the given lease by Lease ID
+// DeleteLeaseByID - Deletes the given leases by Lease ID
 func DeleteLeaseByID(w http.ResponseWriter, r *http.Request) {
 	leaseID := mux.Vars(r)["leaseID"]
 	_lease, err := Services.LeaseService().Get(leaseID)
@@ -27,7 +27,7 @@ func DeleteLeaseByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	deletedLease, err := Services.LeaseService().Delete(leaseID)
+	deletedLease, err := Services.LeaseService().Delete(leaseID, leases.StatusReasonDestroyed)
 
 	if err != nil {
 		api.WriteAPIErrorResponse(w, err)
@@ -37,11 +37,11 @@ func DeleteLeaseByID(w http.ResponseWriter, r *http.Request) {
 	api.WriteAPIResponse(w, http.StatusOK, deletedLease)
 }
 
-// DeleteLease - Deletes the given lease
+// DeleteLease - Deletes the given leases
 func DeleteLease(w http.ResponseWriter, r *http.Request) {
 
 	// Deserialize the request JSON as an request object
-	queryLease := &lease.Lease{}
+	queryLease := &leases.Lease{}
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(queryLease)
 	if err != nil {
@@ -76,7 +76,7 @@ func DeleteLease(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	deletedLease, err := Services.LeaseService().Delete(*lease.ID)
+	deletedLease, err := Services.LeaseService().Delete(*lease.ID, leases.StatusReasonDestroyed)
 	if err != nil {
 		api.WriteAPIErrorResponse(w, err)
 		return

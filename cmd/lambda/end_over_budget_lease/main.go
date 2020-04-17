@@ -103,7 +103,7 @@ func handleRecord(input *handleRecordInput) error {
 		if isLeaseOverBudget(&leaseSummary) {
 			leaseID := leaseSummary.LeaseID
 			log.Printf("lease id %s is over budget", *leaseID)
-			_, err := Services.LeaseService().Delete(*leaseID)
+			_, err := Services.LeaseService().Delete(*leaseID, lease.StatusReasonOverBudget)
 			if err != nil {
 				return errors2.NewInternalServer(fmt.Sprintf("Failed to delete lease for leaseID %s", *leaseID), err)
 			}
@@ -125,7 +125,7 @@ func handleRecord(input *handleRecordInput) error {
 			deferredErrors := []error{}
 			deleteLeases := func(leases *lease.Leases) bool {
 				for _, _lease := range *leases {
-					_, err := Services.LeaseService().Delete(*_lease.ID)
+					_, err := Services.LeaseService().Delete(*_lease.ID, lease.StatusReasonOverPrincipalBudget)
 					if err != nil {
 						deferredErrors = append(deferredErrors, err)
 					}

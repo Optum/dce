@@ -19,7 +19,7 @@ type Servicer interface {
 	Create(data *lease.Lease) (*lease.Lease, error)
 
 	// Update the Lease record to status Inactive in DynamoDB
-	Delete(ID string) (*lease.Lease, error)
+	Delete(ID string, reason lease.StatusReason) (*lease.Lease, error)
 
 	// List Get a list of lease based on Lease ID
 	List(query *lease.Lease) (*lease.Leases, error)

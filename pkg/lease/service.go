@@ -116,7 +116,7 @@ func (a *Service) Save(data *Lease) error {
 }
 
 // Delete finds a given lease and checks if it's active and then updates it to status `Inactive`. Returns the lease.
-func (a *Service) Delete(ID string) (*Lease, error) {
+func (a *Service) Delete(ID string, reason StatusReason) (*Lease, error) {
 
 	data, err := a.dataSvc.Get(ID)
 	if err != nil {
@@ -131,9 +131,20 @@ func (a *Service) Delete(ID string) (*Lease, error) {
 		return nil, errors.NewConflict("lease", *data.ID, err)
 	}
 
+	// Grab the previous LastModifiedOn value.
+	// We'll use this to ensure that the record hasn't been updated since we last queried it.
+	prevLastModifiedOn := *data.LastModifiedOn
+
+	// Update the lease, to be marked as inactive
 	data.Status = StatusInactive.StatusPtr()
-	data.StatusReason = StatusReasonDestroyed.StatusReasonPtr()
-	err = a.dataSvc.Write(data, data.LastModifiedOn)
+	data.StatusReason = reason.StatusReasonPtr()
+
+	// Update timestamps
+	now := time.Now().Unix()
+	data.LastModifiedOn = &now
+	data.StatusModifiedOn = &now
+
+	err = a.dataSvc.Write(data, &prevLastModifiedOn)
 	if err != nil {
 		return nil, err
 	}
