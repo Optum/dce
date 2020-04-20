@@ -98,7 +98,9 @@ func TestEndLeaseOverBudget(t *testing.T) {
 				svcBldr := &config.ServiceBuilder{Config: cfgBldr}
 				leaseSvc := mocks.Servicer{}
 				if tt.expIsLeaseDeleted {
-					leaseSvc.On("Delete", mock.Anything).Return(&lease.Lease{}, nil)
+					leaseSvc.
+						On("Delete", mock.Anything, lease.StatusReasonOverBudget).
+						Return(&lease.Lease{}, nil)
 				}
 				svcBldr.Config.WithService(&leaseSvc)
 				_, _ = svcBldr.Build()
@@ -220,7 +222,7 @@ func TestEndLeaseOverBudget(t *testing.T) {
 
 					// Should inactivate our mock lease
 					leaseSvc.
-						On("Delete", "mock-lease").
+						On("Delete", "mock-lease", lease.StatusReasonOverPrincipalBudget).
 						Return(&lease.Lease{}, nil)
 
 				}

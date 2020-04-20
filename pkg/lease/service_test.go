@@ -46,7 +46,7 @@ func TestGetLeaseByID(t *testing.T) {
 		exp  response
 	}{
 		{
-			name: "should get a leases by ID",
+			name: "should get a lease by ID",
 			ID:   "70c2d96d-7938-4ec9-917d-476f2b09cc04",
 			ret: response{
 				data: &leases.Lease{
@@ -109,7 +109,7 @@ func TestGetByAccountIDAndPrincipalID(t *testing.T) {
 		exp         response
 	}{
 		{
-			name:        "should get a leases by accountId and principalId",
+			name:        "should get a lease by accountId and principalId",
 			accountId:   "123456789012",
 			principalId: "TestUser",
 			ret: response{
@@ -172,7 +172,7 @@ func TestDelete(t *testing.T) {
 		expectedError     error
 	}{
 		{
-			name: "should delete a leases",
+			name: "should delete a lease",
 			ID:   "70c2d96d-7938-4ec9-917d-476f2b09cc04",
 			StatusReason: leases.StatusReasonOverPrincipalBudget,
 			mockPreviousLease: &leases.Lease{
@@ -351,7 +351,7 @@ func TestSave(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mocksRwd := &mocks.ReaderWriter{}
 
-			mocksRwd.On("Write", mock.AnythingOfType("*leases.Lease"), mock.AnythingOfType("*int64")).Return(tt.returnErr)
+			mocksRwd.On("Write", mock.AnythingOfType("*lease.Lease"), mock.AnythingOfType("*int64")).Return(tt.returnErr)
 
 			leaseSvc := leases.NewService(
 				leases.NewServiceInput{
@@ -438,7 +438,7 @@ func TestGetLeases(t *testing.T) {
 			},
 			exp: response{
 				data: nil,
-				err:  errors.NewValidation("leases", fmt.Errorf("id: must be empty.")),
+				err:  errors.NewValidation("lease", fmt.Errorf("id: must be empty.")),
 			},
 		},
 	}
@@ -446,7 +446,7 @@ func TestGetLeases(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mocksRWD := &mocks.ReaderWriter{}
-			mocksRWD.On("List", mock.AnythingOfType("*leases.Lease")).Return(tt.ret.data, tt.ret.err)
+			mocksRWD.On("List", mock.AnythingOfType("*lease.Lease")).Return(tt.ret.data, tt.ret.err)
 
 			leasesSvc := leases.NewService(
 				leases.NewServiceInput{
@@ -516,7 +516,7 @@ func TestCreate(t *testing.T) {
 			principalSpentAmount: 0.0,
 		},
 		{
-			name: "should fail on leases validation error caused by budget amount greater than max leases budget amount",
+			name: "should fail on lease validation error caused by budget amount greater than max lease budget amount",
 			req: &leases.Lease{
 				PrincipalID:              ptrString("User1"),
 				AccountID:                ptrString("123456789012"),
@@ -527,7 +527,7 @@ func TestCreate(t *testing.T) {
 			},
 			exp: response{
 				data: nil,
-				err:  errors.NewValidation("leases", fmt.Errorf("budgetAmount: Requested leases has a budget amount of 2000.000000, which is greater than max leases budget amount of 1000.000000.")),
+				err:  errors.NewValidation("lease", fmt.Errorf("budgetAmount: Requested lease has a budget amount of 2000.000000, which is greater than max lease budget amount of 1000.000000.")),
 			},
 			getResponse: &leases.Leases{
 				leases.Lease{
@@ -542,7 +542,7 @@ func TestCreate(t *testing.T) {
 			principalSpentAmount: 0.0,
 		},
 		{
-			name: "should fail on leases expires yesterday",
+			name: "should fail on lease expires yesterday",
 			req: &leases.Lease{
 				PrincipalID:              ptrString("User1"),
 				AccountID:                ptrString("123456789012"),
@@ -554,7 +554,7 @@ func TestCreate(t *testing.T) {
 			},
 			exp: response{
 				data: nil,
-				err:  errors.NewValidation("leases", fmt.Errorf("expiresOn: Requested leases has a desired expiry date less than today: %d.", leaseExpiresYesterday)),
+				err:  errors.NewValidation("lease", fmt.Errorf("expiresOn: Requested lease has a desired expiry date less than today: %d.", leaseExpiresYesterday)),
 			},
 			getResponse: &leases.Leases{
 				leases.Lease{
@@ -569,7 +569,7 @@ func TestCreate(t *testing.T) {
 			principalSpentAmount: 0.0,
 		},
 		{
-			name: "should fail on leases expires after a year",
+			name: "should fail on lease expires after a year",
 			req: &leases.Lease{
 				PrincipalID:              ptrString("User1"),
 				AccountID:                ptrString("123456789012"),
@@ -581,7 +581,7 @@ func TestCreate(t *testing.T) {
 			},
 			exp: response{
 				data: nil,
-				err:  errors.NewValidation("leases", fmt.Errorf("expiresOn: Requested leases has a budget expires on of %d, which is greater than max leases period of 704800.", leaseExpiresAfterAYear)),
+				err:  errors.NewValidation("lease", fmt.Errorf("expiresOn: Requested lease has a budget expires on of %d, which is greater than max lease period of 704800.", leaseExpiresAfterAYear)),
 			},
 			getResponse: &leases.Leases{
 				leases.Lease{
@@ -607,7 +607,7 @@ func TestCreate(t *testing.T) {
 			},
 			exp: response{
 				data: nil,
-				err:  errors.NewValidation("leases", fmt.Errorf("principalId: must be a string.")),
+				err:  errors.NewValidation("lease", fmt.Errorf("principalId: must be a string.")),
 			},
 			getResponse:          nil,
 			principalSpentAmount: 0.0,
@@ -624,7 +624,7 @@ func TestCreate(t *testing.T) {
 			},
 			exp: response{
 				data: nil,
-				err:  errors.NewValidation("leases", fmt.Errorf("accountId: must be a string.")),
+				err:  errors.NewValidation("lease", fmt.Errorf("accountId: must be a string.")),
 			},
 			getResponse:          nil,
 			principalSpentAmount: 0.0,
@@ -643,7 +643,7 @@ func TestCreate(t *testing.T) {
 			},
 			exp: response{
 				data: nil,
-				err:  errors.NewValidation("leases", fmt.Errorf("id: must be empty.")),
+				err:  errors.NewValidation("lease", fmt.Errorf("id: must be empty.")),
 			},
 			getResponse:          nil,
 			principalSpentAmount: 0.0,
@@ -663,13 +663,13 @@ func TestCreate(t *testing.T) {
 			},
 			exp: response{
 				data: nil,
-				err:  errors.NewValidation("leases", fmt.Errorf("leaseStatus: must be empty; leaseStatusReason: must be empty.")),
+				err:  errors.NewValidation("lease", fmt.Errorf("leaseStatus: must be empty; leaseStatusReason: must be empty.")),
 			},
 			getResponse:          nil,
 			principalSpentAmount: 0.0,
 		},
 		{
-			name: "should fail on leases already exists",
+			name: "should fail on lease already exists",
 			req: &leases.Lease{
 				PrincipalID:              ptrString("User1"),
 				AccountID:                ptrString("123456789012"),
@@ -680,7 +680,7 @@ func TestCreate(t *testing.T) {
 			},
 			exp: response{
 				data: nil,
-				err:  errors.NewAlreadyExists("leases", "with principal User1 and account 123456789012"),
+				err:  errors.NewAlreadyExists("lease", "with principal User1 and account 123456789012"),
 			},
 			getResponse: &leases.Leases{
 				leases.Lease{
@@ -705,9 +705,9 @@ func TestCreate(t *testing.T) {
 
 			mocksAccountSvc := &mocks.AccountServicer{}
 
-			mocksRwd.On("List", mock.AnythingOfType("*leases.Lease")).Return(tt.getResponse, nil)
-			mocksRwd.On("Write", mock.AnythingOfType("*leases.Lease"), mock.AnythingOfType("*int64")).Return(tt.writeErr)
-			mocksEventer.On("LeaseCreate", mock.AnythingOfType("*leases.Lease")).Return(nil)
+			mocksRwd.On("List", mock.AnythingOfType("*lease.Lease")).Return(tt.getResponse, nil)
+			mocksRwd.On("Write", mock.AnythingOfType("*lease.Lease"), mock.AnythingOfType("*int64")).Return(tt.writeErr)
+			mocksEventer.On("LeaseCreate", mock.AnythingOfType("*lease.Lease")).Return(nil)
 
 			leaseSvc := leases.NewService(
 				leases.NewServiceInput{

@@ -73,7 +73,9 @@ func handler(ctx context.Context, event events.DynamoDBEvent) error {
 	}
 
 	if len(deferredErrors) > 0 {
-		return errors2.NewMultiError("Failed to handle DynDB Event", deferredErrors)
+		multiError := errors2.NewMultiError("Failed to handle DynDB Event", deferredErrors)
+		log.Printf("%+v", multiError.Error())
+		return multiError
 	}
 
 	return nil

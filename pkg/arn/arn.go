@@ -85,7 +85,7 @@ func NewFromArn(arnString string) (*ARN, error) {
 	new := &ARN{}
 	err := new.parseString(arnString)
 	if err != nil {
-		return nil, errors.NewInternalServer("unexpexted error parsing arn", err)
+		return nil, errors.NewInternalServer("unexpected error parsing arn", err)
 	}
 	return new, nil
 }

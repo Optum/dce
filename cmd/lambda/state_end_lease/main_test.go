@@ -97,8 +97,12 @@ func TestEndLease(t *testing.T) {
 		// Setup mocks
 
 		leaseSvcMock := mocks.Servicer{}
-		leaseSvcMock.On("Get", *tt.input.ID).Return(tt.getLease, tt.getErr)
-		leaseSvcMock.On("Delete", *tt.input.ID).Return(tt.endLease, tt.getErr)
+		leaseSvcMock.
+			On("Get", *tt.input.ID).
+			Return(tt.getLease, tt.getErr)
+		leaseSvcMock.
+			On("Delete", *tt.input.ID, lease.StatusReasonExpired).
+			Return(tt.endLease, tt.getErr)
 
 		svcBldr.Config.WithService(&leaseSvcMock)
 		_, err := svcBldr.Build()

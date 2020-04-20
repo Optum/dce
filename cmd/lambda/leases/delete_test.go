@@ -121,12 +121,12 @@ func TestDeleteLeaseByLeaseID(t *testing.T) {
 			svcBldr := &config.ServiceBuilder{Config: cfgBldr}
 
 			leaseSvc := mocks.Servicer{}
-			leaseSvc.On("Get", tt.leaseID).Return(
-				tt.expLease, tt.getErr,
-			)
-			leaseSvc.On("Delete", tt.leaseID).Return(
-				tt.expLease, tt.getErr,
-			)
+			leaseSvc.
+				On("Get", tt.leaseID).
+				Return(tt.expLease, tt.getErr)
+			leaseSvc.
+				On("Delete", tt.leaseID, lease.StatusReasonDestroyed).
+				Return(tt.expLease, tt.getErr)
 
 			userDetailSvc := apiMocks.UserDetailer{}
 			userDetailSvc.On("GetUser", mock.Anything).Return(tt.user)
@@ -363,9 +363,9 @@ func TestDeleteLeaseByPrincipalIDAndAccountID(t *testing.T) {
 				tt.getLease, tt.getErr,
 			)
 
-			leaseSvc.On("Delete", *tt.expLease.ID).Return(
-				tt.expLease, tt.getErr,
-			)
+			leaseSvc.
+				On("Delete", *tt.expLease.ID, lease.StatusReasonDestroyed).
+				Return(tt.expLease, tt.getErr)
 			userDetailSvc := apiMocks.UserDetailer{}
 			userDetailSvc.On("GetUser", mock.Anything).Return(tt.user)
 			svcBldr.Config.WithService(&userDetailSvc)
