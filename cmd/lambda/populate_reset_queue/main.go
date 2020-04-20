@@ -58,6 +58,7 @@ func Handler(cloudWatchEvent events.CloudWatchEvent) error {
 	var api eventiface.Servicer
 	err := services.Config.GetService(&api)
 	if err != nil {
+		log.Printf("%+v", err)
 		return err
 	}
 
@@ -76,10 +77,12 @@ func Handler(cloudWatchEvent events.CloudWatchEvent) error {
 		},
 	)
 	if err != nil {
+		log.Printf("%+v", err)
 		return err
 	}
 
 	if len(errs) > 0 {
+		log.Printf("%+v", err)
 		return errors.NewMultiError("error when processing accounts", errs)
 	}
 	return nil

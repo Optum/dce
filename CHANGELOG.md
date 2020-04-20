@@ -44,6 +44,7 @@ This release no longer supports principal budget checks. We intend to reimplemen
 - Fix bug with `DELETE /leases` returning a 404 for an existing lease (#336)
 - Fix `ModifiedOn` timestamps not updating for deactivated leases
 - Fix incorrect `LeastStatusReason` values for overbudget/expired leases
+- Enable debug logging by default (logs error details)
 
 ## v0.29.0
 

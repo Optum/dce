@@ -64,11 +64,13 @@ func handler(ctx context.Context, snsEvent events.SNSEvent) error {
 
 		acct, err := services.AccountService().Get(*lease.AccountID)
 		if err != nil {
+			log.Printf("%+v", err)
 			return err
 		}
 
 		err = services.AccountService().UpsertPrincipalAccess(acct)
 		if err != nil {
+			log.Printf("%+v", err)
 			return err
 		}
 

@@ -65,6 +65,7 @@ func handler(ctx context.Context, sqsEvent events.SQSEvent) error {
 	for _, message := range sqsEvent.Records {
 		err := processMessage(codeBuildSvc, message)
 		if err != nil {
+			log.Printf("%+v", err)
 			return err
 		}
 	}

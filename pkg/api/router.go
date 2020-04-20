@@ -28,7 +28,7 @@ var (
 
 func init() {
 	config := common.DefaultEnvConfig{}
-	debug = config.GetEnvBoolVar("DEBUG", false)
+	debug = config.GetEnvBoolVar("DEBUG", true)
 }
 
 // Routes - The list of Routes

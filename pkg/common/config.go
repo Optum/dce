@@ -45,7 +45,10 @@ func (cfg DefaultEnvConfig) GetEnvIntVar(varName string, defaultValue int) int {
 // GetEnvBoolVar - Requires the environment variable with the provided varName
 //     and panics if the variable is not present.
 func (cfg DefaultEnvConfig) GetEnvBoolVar(varName string, defaultValue bool) bool {
-	strValue := GetEnv(varName, "false")
+	strValue := GetEnv(varName, "NOT_SET")
+	if strValue == "NOT_SET" {
+		return defaultValue
+	}
 	return strings.ToLower(strValue) == "true"
 }
 
