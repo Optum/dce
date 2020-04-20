@@ -11,7 +11,9 @@ module "end_over_budget_lease_lambda" {
     AWS_CURRENT_REGION      = var.aws_region
     PRINCIPAL_DB            = aws_dynamodb_table.principal.id
     LEASE_DB                = aws_dynamodb_table.leases.id
+    ACCOUNT_DB              = aws_dynamodb_table.accounts.id
     PRINCIPAL_BUDGET_AMOUNT = var.principal_budget_amount
+    RESET_SQS_URL           = aws_sqs_queue.account_reset.id
   }
 }
 
