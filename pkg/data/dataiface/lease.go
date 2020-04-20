@@ -12,6 +12,9 @@ type LeaseData interface {
 	// Get the Lease record by ID
 	Get(ID string) (*lease.Lease, error)
 
+	// GetByAccountIDAndPrincipalID gets the Lease record by AccountID and PrincipalID
+	GetByAccountIDAndPrincipalID(accountID string, principalID string) (*lease.Lease, error)
+
 	List(query *lease.Lease) (*lease.Leases, error)
 	// List Get a list of leases
 	// Write the Lease record in DynamoDB
