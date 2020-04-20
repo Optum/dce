@@ -52,7 +52,7 @@ func (e StatusError) Format(s fmt.State, verb rune) {
 	switch verb {
 	case 'v':
 		if s.Flag('+') {
-			_, _ = fmt.Fprintf(s, "%+v", e.OriginalError())
+			_, _ = fmt.Fprintf(s, "%s\n%+v", e.Error(), e.OriginalError())
 			e.stack.Format(s, verb)
 			return
 		}

@@ -14,8 +14,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var errOriginal = errors.New("original error")
-var errInternalServer = NewInternalServer("error", errOriginal)
 
 func TestNew(t *testing.T) {
 
@@ -205,21 +203,22 @@ func TestFrameFormat(t *testing.T) {
 		want   string
 	}{
 		{
-			errInternalServer,
+			NewInternalServer("error", errors.New("original error")),
 			"%s",
 			"error",
 		},
 		{
-			errInternalServer,
+			NewInternalServer("error", errors.New("original error")),
 			"%q",
 			"\"error\"",
 		},
 		{
-			errInternalServer,
+			NewInternalServer("top level error", errors.New("underlying cause")),
 			"%+v",
-			"original error\n" +
-				"github.com/Optum/dce/pkg/errors.init\n" +
-				"\t.+/.*/error_test.go:18\n",
+			"top level error\n" +
+				"underlying cause\n" +
+				"github.com/Optum/dce/pkg/errors..+\n" +
+				"\t.+/.*/error_test.go:.+\n",
 		},
 	}
 

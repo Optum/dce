@@ -2,6 +2,7 @@ package errors
 
 import (
 	"fmt"
+	"io"
 	"strings"
 )
 
@@ -37,5 +38,24 @@ func NewMultiError(msg string, errs []error) *MultiError {
 	return &MultiError{
 		Message: msg,
 		Errors:  errs,
+	}
+}
+
+// Format for the standard format library
+func (e MultiError) Format(s fmt.State, verb rune) {
+	switch verb {
+	case 'v':
+		if s.Flag('+') {
+			_, _ = fmt.Fprintf(s, "%s\n", e.Message)
+			for _, err := range e.Errors {
+				_, _ = fmt.Fprintf(s, "%+v", err)
+			}
+			return
+		}
+		fallthrough
+	case 's':
+		_, _ = io.WriteString(s, e.Error())
+	case 'q':
+		_, _ = fmt.Fprintf(s, "%q", e.Error())
 	}
 }
