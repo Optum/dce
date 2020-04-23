@@ -9,8 +9,6 @@ locals {
     leases_lambda_name                      = module.leases_lambda.name
     lease_auth_lambda_name                  = module.lease_auth_lambda.name
     usage_lambda_name                       = module.usage_lambda.name
-    update_lease_status_lambda_name         = module.update_lease_status_lambda.name
-    fan_out_update_lease_status_lambda_name = module.fan_out_update_lease_status_lambda.name
     populate_reset_queue_name               = module.populate_reset_queue.name
     process_reset_queue_name                = module.process_reset_queue.name
     update_principal_policy_name            = module.update_principal_policy.name
