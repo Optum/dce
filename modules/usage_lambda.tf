@@ -11,6 +11,6 @@ module "usage_lambda" {
     DEBUG              = "false"
     NAMESPACE          = var.namespace
     AWS_CURRENT_REGION = var.aws_region
-    PRINCIPAL_DB       = aws_dynamodb_table.principal.id
+    USAGE_DB       = aws_dynamodb_table.usage.id
   }
 }

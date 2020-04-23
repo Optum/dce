@@ -28,7 +28,7 @@ type usageLeaseData struct {
 // UsageLease - Data Layer Struct
 type UsageLease struct {
 	DynamoDB       dynamodbiface.DynamoDBAPI
-	TableName      string `env:"PRINCIPAL_DB"`
+	TableName      string `env:"USAGE_DB"`
 	ConsistentRead bool   `env:"USE_CONSISTENT_READS" envDefault:"false"`
 	Limit          int64  `env:"LIMIT" envDefault:"25"`
 	TimeToLive     int    `env:"USAGE_TTL" envDefault:"30"`

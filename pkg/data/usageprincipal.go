@@ -24,7 +24,7 @@ type usagePrincipalData struct {
 // UsagePrincipal - Data Layer Struct
 type UsagePrincipal struct {
 	DynamoDB       dynamodbiface.DynamoDBAPI
-	TableName      string `env:"PRINCIPAL_DB"`
+	TableName      string `env:"USAGE_DB"`
 	ConsistentRead bool   `env:"USE_CONSISTENT_READS" envDefault:"false"`
 	Limit          int64  `env:"LIMIT" envDefault:"25"`
 	BudgetPeriod   string `env:"PRINCIPAL_BUDGET_PERIOD" envDefault:"WEEKLY"`

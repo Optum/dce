@@ -9,7 +9,7 @@ module "end_over_budget_lease_lambda" {
 
   environment = {
     AWS_CURRENT_REGION      = var.aws_region
-    PRINCIPAL_DB            = aws_dynamodb_table.principal.id
+    USAGE_DB            = aws_dynamodb_table.usage.id
     LEASE_DB                = aws_dynamodb_table.leases.id
     ACCOUNT_DB              = aws_dynamodb_table.accounts.id
     PRINCIPAL_BUDGET_AMOUNT = var.principal_budget_amount
@@ -18,7 +18,7 @@ module "end_over_budget_lease_lambda" {
 }
 
 resource "aws_lambda_event_source_mapping" "principal_events_from_dynamo_db" {
-  event_source_arn  = aws_dynamodb_table.principal.stream_arn
+  event_source_arn  = aws_dynamodb_table.usage.stream_arn
   function_name     = module.end_over_budget_lease_lambda.name
   batch_size        = 1
   starting_position = "LATEST"
@@ -47,7 +47,7 @@ resource "aws_iam_role_policy" "end_over_budget_lease_lambda_dynamo_db" {
             "dynamodb:GetShardIterator",
             "dynamodb:ListStreams"
         ],
-        "Resource": "${aws_dynamodb_table.principal.stream_arn}"
+        "Resource": "${aws_dynamodb_table.usage.stream_arn}"
     }
   ]
 }

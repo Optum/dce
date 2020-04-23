@@ -124,8 +124,8 @@ resource "aws_dynamodb_table" "leases" {
   */
 }
 
-resource "aws_dynamodb_table" "principal" {
-  name             = "Principal${local.table_suffix}"
+resource "aws_dynamodb_table" "usage" {
+  name             = "Usage${local.table_suffix}"
   read_capacity    = var.usage_table_rcu
   write_capacity   = var.usage_table_wcu
   hash_key         = "PrincipalId"

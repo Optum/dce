@@ -60,7 +60,7 @@ module "state_get_lease_lambda" {
     NAMESPACE          = var.namespace
     AWS_CURRENT_REGION = var.aws_region
     LEASE_DB           = aws_dynamodb_table.leases.id
-    PRINCIPAL_DB       = aws_dynamodb_table.principal.id
+    USAGE_DB       = aws_dynamodb_table.usage.id
   }
 }
 
@@ -79,7 +79,7 @@ module "state_get_lease_usage_lambda" {
     AWS_CURRENT_REGION = var.aws_region
     USAGE_TTL          = var.usage_ttl
     ACCOUNT_DB         = aws_dynamodb_table.accounts.id
-    PRINCIPAL_DB       = aws_dynamodb_table.principal.id
+    USAGE_DB       = aws_dynamodb_table.usage.id
   }
 }
 
