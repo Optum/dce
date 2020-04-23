@@ -99,5 +99,6 @@ module "state_end_lease_lambda" {
     USAGE_TTL          = var.usage_ttl
     ACCOUNT_DB         = aws_dynamodb_table.accounts.id
     LEASE_DB           = aws_dynamodb_table.leases.id
+    RESET_SQS_URL      = aws_sqs_queue.account_reset.id
   }
 }
