@@ -62,6 +62,8 @@ func handler(ctx context.Context, event lease.Lease) (lease.Lease, error) {
 			return lease.Lease{}, err
 		}
 		return *updLease, nil
+	} else {
+		log.Printf("Not ending lease %s: lease is not active (%s)", *getLease.ID, getLease.Status.String())
 	}
 
 	return *getLease, nil
