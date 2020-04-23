@@ -96,14 +96,14 @@ func handleRecord(input *handleRecordInput) error {
 	principalRegex := regexp.MustCompile(data.UsagePrincipalSkPrefix + `[-\w]+`)
 	switch {
 	case leaseSummaryRegex.MatchString(sortKey):
-		leaseSummary := usage.Lease{}
-		err := UnmarshalStreamImage(record.Change.NewImage, &leaseSummary)
+		leaseUsageSummary := usage.Lease{}
+		err := UnmarshalStreamImage(record.Change.NewImage, &leaseUsageSummary)
 		if err != nil {
 			return errors2.NewInternalServer("Failed to unmarshal stream image", err)
 		}
 
-		if isLeaseOverBudget(&leaseSummary) {
-			leaseID := leaseSummary.LeaseID
+		if isLeaseOverBudget(&leaseUsageSummary) {
+			leaseID := leaseUsageSummary.LeaseID
 			log.Printf("lease id %s is over budget", *leaseID)
 			_, err := Services.LeaseService().Delete(*leaseID, lease.StatusReasonOverBudget)
 			if err != nil {
