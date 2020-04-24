@@ -41,6 +41,9 @@ This release no longer supports principal budget checks. We intend to reimplemen
 - Added new `make setup` target for installing tools on local developer machines.
 - Hardened `scripts/install_ci.sh` to be used by developers.
 - Added documenation for local developer environment setup.
+- Fix bug with delete lease, replace list method call with GetByAccountIdAndPrincipalId.
+- Fix to issue to include tflint package for MacOS user and upgrade version for Linux user.
+- Fixed a bug causing admins to be authorized as users.
 - Fix bug with `DELETE /leases` returning a 404 for an existing lease (#336)
 - Fix `ModifiedOn` timestamps not updating for deactivated leases
 - Fix incorrect `LeastStatusReason` values for overbudget/expired leases
