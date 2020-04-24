@@ -14,7 +14,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-
 func TestNew(t *testing.T) {
 
 	tests := []struct {

@@ -9,7 +9,7 @@ module "end_over_budget_lease_lambda" {
 
   environment = {
     AWS_CURRENT_REGION      = var.aws_region
-    USAGE_DB            = aws_dynamodb_table.usage.id
+    USAGE_DB                = aws_dynamodb_table.usage.id
     LEASE_DB                = aws_dynamodb_table.leases.id
     ACCOUNT_DB              = aws_dynamodb_table.accounts.id
     PRINCIPAL_BUDGET_AMOUNT = var.principal_budget_amount

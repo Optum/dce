@@ -172,31 +172,31 @@ func TestDelete(t *testing.T) {
 		expectedError     error
 	}{
 		{
-			name: "should delete a lease",
-			ID:   "70c2d96d-7938-4ec9-917d-476f2b09cc04",
+			name:         "should delete a lease",
+			ID:           "70c2d96d-7938-4ec9-917d-476f2b09cc04",
 			StatusReason: leases.StatusReasonOverPrincipalBudget,
 			mockPreviousLease: &leases.Lease{
-				ID:           ptrString("70c2d96d-7938-4ec9-917d-476f2b09cc04"),
-				AccountID:    ptrString("123456789012"),
-				Status:       leases.StatusActive.StatusPtr(),
-				StatusReason: leases.StatusReasonActive.StatusReasonPtr(),
+				ID:             ptrString("70c2d96d-7938-4ec9-917d-476f2b09cc04"),
+				AccountID:      ptrString("123456789012"),
+				Status:         leases.StatusActive.StatusPtr(),
+				StatusReason:   leases.StatusReasonActive.StatusReasonPtr(),
 				LastModifiedOn: ptrInt64(100),
 			},
 			mockDBWriteError: nil,
 		},
 		{
-			name:              "should error when delete fails",
-			ID:                "70c2d96d-7938-4ec9-917d-476f2b09cc04",
-			StatusReason:      leases.StatusReasonDestroyed,
+			name:         "should error when delete fails",
+			ID:           "70c2d96d-7938-4ec9-917d-476f2b09cc04",
+			StatusReason: leases.StatusReasonDestroyed,
 			mockPreviousLease: &leases.Lease{
-				ID:           ptrString("70c2d96d-7938-4ec9-917d-476f2b09cc04"),
-				AccountID:    ptrString("123456789012"),
-				Status:       leases.StatusActive.StatusPtr(),
-				StatusReason: leases.StatusReasonActive.StatusReasonPtr(),
+				ID:             ptrString("70c2d96d-7938-4ec9-917d-476f2b09cc04"),
+				AccountID:      ptrString("123456789012"),
+				Status:         leases.StatusActive.StatusPtr(),
+				StatusReason:   leases.StatusReasonActive.StatusReasonPtr(),
 				LastModifiedOn: ptrInt64(100),
 			},
-			mockDBWriteError:  errors.NewInternalServer("failure", fmt.Errorf("original failure")),
-			expectedError:     errors.NewInternalServer("failure", nil),
+			mockDBWriteError: errors.NewInternalServer("failure", fmt.Errorf("original failure")),
+			expectedError:    errors.NewInternalServer("failure", nil),
 		},
 	}
 

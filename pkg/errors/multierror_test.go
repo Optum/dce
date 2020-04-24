@@ -21,16 +21,16 @@ func TestMultiError(t *testing.T) {
 	})
 
 	t.Run("formatted multierror", func(t *testing.T) {
-			intErr := NewInternalServer("There's an internal error!", errors.New("Low Level Error Info."))
-			mErr := NewMultiError("We got a multi error!", []error{
-				intErr,
-			})
-			mErrFmtd := fmt.Sprintf("%+v", mErr)
+		intErr := NewInternalServer("There's an internal error!", errors.New("Low Level Error Info."))
+		mErr := NewMultiError("We got a multi error!", []error{
+			intErr,
+		})
+		mErrFmtd := fmt.Sprintf("%+v", mErr)
 
-			// Check that we're getting verbose formatting from nested errors
-			assert.Contains(t, mErrFmtd, "We got a multi error!")
-			assert.Contains(t, mErrFmtd, "There's an internal error!")
-			assert.Contains(t, mErrFmtd, "Low Level Error Info.")
+		// Check that we're getting verbose formatting from nested errors
+		assert.Contains(t, mErrFmtd, "We got a multi error!")
+		assert.Contains(t, mErrFmtd, "There's an internal error!")
+		assert.Contains(t, mErrFmtd, "Low Level Error Info.")
 	})
 
 }
