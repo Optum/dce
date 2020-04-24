@@ -2,7 +2,7 @@
 
 **MAJOR BREAKING CHANGES**
 
-This release introduces a major restructuring of budget and usage controls, and of lease lifecycle management. Upgrading to this release **requires some manual migration steps** in order to avoid data loss and system failures.
+This release introduces a **major restructuring of budget and usage controls**, and of lease lifecycle management. Upgrading to this release **requires some manual migration steps** in order to avoid data loss and system failures.
 
 Please carefully read through the migration notes below, before upgrading to this version. If anything here is unclear, or you have questions about upgrading, please open an issue in the github repo.
 
@@ -34,6 +34,12 @@ This release no longer supports principal budget checks. We intend to reimplemen
 
 **Other Changes**
 
+- Fix `ModifiedOn` timestamps not updating for deactivated leases
+- Fix incorrect `LeastStatusReason` values for overbudget/expired leases
+- Enable debug logging by default (logs error details)
+
+## v0.30.0
+
 - Added new tool in `tools` folder for generating Markdown and IAM example policy for AWS Nuke
   support. See README in `tools/awsnukedocgen`.
 - Added new services supported by DCE: Kinesis Analytics, Kinesis Video, Opsworks CM, Robomaker,
@@ -45,9 +51,6 @@ This release no longer supports principal budget checks. We intend to reimplemen
 - Fix to issue to include tflint package for MacOS user and upgrade version for Linux user.
 - Fixed a bug causing admins to be authorized as users.
 - Fix bug with `DELETE /leases` returning a 404 for an existing lease (#336)
-- Fix `ModifiedOn` timestamps not updating for deactivated leases
-- Fix incorrect `LeastStatusReason` values for overbudget/expired leases
-- Enable debug logging by default (logs error details)
 
 ## v0.29.0
 
