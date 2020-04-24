@@ -19,7 +19,7 @@ func TestUser(t *testing.T) {
 		mockCognitoIdp := &mocks.CognitoIdentityProviderAPI{}
 		userGetter := api.UserDetails{
 			CognitoUserPoolID:        "us_east_1-test",
-			RolesAttributesAdminName: "admin",
+			RolesAttributesAdminName: api.AdminGroupName,
 			CognitoClient:            mockCognitoIdp,
 		}
 
@@ -37,7 +37,7 @@ func TestUser(t *testing.T) {
 		mockCognitoIdp := &mocks.CognitoIdentityProviderAPI{}
 		userGetter := api.UserDetails{
 			CognitoUserPoolID:        "us_east_1-test",
-			RolesAttributesAdminName: "admins",
+			RolesAttributesAdminName: api.AdminGroupName,
 			CognitoClient:            mockCognitoIdp,
 		}
 
@@ -57,7 +57,7 @@ func TestUser(t *testing.T) {
 		}).Return(&cognitoidentityprovider.AdminListGroupsForUserOutput{
 			Groups: []*cognitoidentityprovider.GroupType{
 				{
-					GroupName: aws.String("Admins"),
+					GroupName: aws.String(api.AdminGroupName),
 				},
 			},
 		}, nil)
@@ -77,7 +77,7 @@ func TestUser(t *testing.T) {
 		mockCognitoIdp := &mocks.CognitoIdentityProviderAPI{}
 		userGetter := api.UserDetails{
 			CognitoUserPoolID:        "us_east_1-test",
-			RolesAttributesAdminName: "admins",
+			RolesAttributesAdminName: api.AdminGroupName,
 			CognitoClient:            mockCognitoIdp,
 		}
 
@@ -91,7 +91,7 @@ func TestUser(t *testing.T) {
 					Attributes: []*cognitoidentityprovider.AttributeType{
 						{
 							Name:  aws.String("custom:roles"),
-							Value: aws.String("group1, group2,group3, admins"),
+							Value: aws.String(fmt.Sprint("group1, group2,group3, ", api.AdminGroupName)),
 						},
 					},
 				},
@@ -119,7 +119,7 @@ func TestUser(t *testing.T) {
 		mockCognitoIdp := &mocks.CognitoIdentityProviderAPI{}
 		userGetter := api.UserDetails{
 			CognitoUserPoolID:        "us_east_1-test",
-			RolesAttributesAdminName: "admins",
+			RolesAttributesAdminName: api.AdminGroupName,
 			CognitoClient:            mockCognitoIdp,
 		}
 
@@ -133,7 +133,7 @@ func TestUser(t *testing.T) {
 					Attributes: []*cognitoidentityprovider.AttributeType{
 						{
 							Name:  aws.String("custom:roles"),
-							Value: aws.String("Group1,Group2,admins"),
+							Value: aws.String(fmt.Sprint("Group1,Group2,", api.AdminGroupName)),
 						},
 					},
 				},
@@ -155,7 +155,7 @@ func TestUser(t *testing.T) {
 		mockCognitoIdp := &mocks.CognitoIdentityProviderAPI{}
 		userGetter := api.UserDetails{
 			CognitoUserPoolID:        "us_east_1-test",
-			RolesAttributesAdminName: "admins",
+			RolesAttributesAdminName: api.AdminGroupName,
 			CognitoClient:            mockCognitoIdp,
 		}
 
@@ -197,7 +197,7 @@ func TestUser(t *testing.T) {
 		mockCognitoIdp := &mocks.CognitoIdentityProviderAPI{}
 		userGetter := api.UserDetails{
 			CognitoUserPoolID:        "us_east_1-test",
-			RolesAttributesAdminName: "admins",
+			RolesAttributesAdminName: api.AdminGroupName,
 			CognitoClient:            mockCognitoIdp,
 		}
 
@@ -223,7 +223,7 @@ func TestUser(t *testing.T) {
 		}).Return(&cognitoidentityprovider.AdminListGroupsForUserOutput{
 			Groups: []*cognitoidentityprovider.GroupType{
 				{
-					GroupName: aws.String("Admins"),
+					GroupName: aws.String(api.AdminGroupName),
 				},
 			},
 		}, nil)
@@ -242,7 +242,7 @@ func TestUser(t *testing.T) {
 		mockCognitoIdp := &mocks.CognitoIdentityProviderAPI{}
 		userGetter := api.UserDetails{
 			CognitoUserPoolID:        "us_east_1-test",
-			RolesAttributesAdminName: "admins",
+			RolesAttributesAdminName: api.AdminGroupName,
 			CognitoClient:            mockCognitoIdp,
 		}
 
@@ -287,7 +287,7 @@ func TestUser(t *testing.T) {
 		mockCognitoIdp := &mocks.CognitoIdentityProviderAPI{}
 		userGetter := api.UserDetails{
 			CognitoUserPoolID:        "us_east_1-test",
-			RolesAttributesAdminName: "admins",
+			RolesAttributesAdminName: api.AdminGroupName,
 			CognitoClient:            mockCognitoIdp,
 		}
 
@@ -316,7 +316,7 @@ func TestUser(t *testing.T) {
 					GroupName: aws.String("Users"),
 				},
 				{
-					GroupName: aws.String("Admins"),
+					GroupName: aws.String(api.AdminGroupName),
 				},
 			},
 		}, nil)
@@ -335,7 +335,7 @@ func TestUser(t *testing.T) {
 		mockCognitoIdp := &mocks.CognitoIdentityProviderAPI{}
 		userGetter := api.UserDetails{
 			CognitoUserPoolID:        "us_east_1-test",
-			RolesAttributesAdminName: "admins",
+			RolesAttributesAdminName: api.AdminGroupName,
 			CognitoClient:            mockCognitoIdp,
 		}
 
