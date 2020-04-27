@@ -21,7 +21,6 @@ func GetLeases(w http.ResponseWriter, r *http.Request) {
 		response.WriteRequestValidationError(w, fmt.Sprintf("Error parsing query params: %s", err))
 		return
 	}
-
 	// If user is not an admin, they may only list their own leases
 	user := r.Context().Value(api.User{}).(*api.User)
 	if user.Role != api.AdminGroupName {

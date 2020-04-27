@@ -8,6 +8,7 @@ import (
 	"github.com/Optum/dce/pkg/api"
 	apiMocks "github.com/Optum/dce/pkg/api/mocks"
 	"github.com/Optum/dce/pkg/config"
+	"github.com/Optum/dce/pkg/errors"
 	"github.com/Optum/dce/pkg/lease"
 	"github.com/Optum/dce/pkg/lease/leaseiface/mocks"
 	"github.com/aws/aws-lambda-go/events"
@@ -164,7 +165,7 @@ func TestDeleteLeaseByPrincipalIDAndAccountID(t *testing.T) {
 		name       string
 		user       *api.User
 		inputLease *lease.Lease
-		getLeases  *lease.Leases
+		getLease   *lease.Lease
 		expResp    response
 		getErr     error
 		expLease   *lease.Lease
@@ -179,12 +180,10 @@ func TestDeleteLeaseByPrincipalIDAndAccountID(t *testing.T) {
 				PrincipalID: ptrString("User1"),
 				AccountID:   ptrString("123456789012"),
 			},
-			getLeases: &lease.Leases{
-				lease.Lease{
-					ID:          ptrString("abc123"),
-					AccountID:   ptrString("123456789012"),
-					PrincipalID: ptrString("User1"),
-				},
+			getLease: &lease.Lease{
+				ID:          ptrString("abc123"),
+				AccountID:   ptrString("123456789012"),
+				PrincipalID: ptrString("User1"),
 			},
 			expResp: response{
 				StatusCode: 200,
@@ -209,12 +208,10 @@ func TestDeleteLeaseByPrincipalIDAndAccountID(t *testing.T) {
 				PrincipalID: ptrString("user1"),
 				AccountID:   ptrString("123456789012"),
 			},
-			getLeases: &lease.Leases{
-				lease.Lease{
-					ID:          ptrString("abc123"),
-					AccountID:   ptrString("123456789012"),
-					PrincipalID: ptrString("user1"),
-				},
+			getLease: &lease.Lease{
+				ID:          ptrString("abc123"),
+				AccountID:   ptrString("123456789012"),
+				PrincipalID: ptrString("user1"),
 			},
 			expResp: response{
 				StatusCode: 200,
@@ -239,12 +236,10 @@ func TestDeleteLeaseByPrincipalIDAndAccountID(t *testing.T) {
 				PrincipalID: ptrString("user2"),
 				AccountID:   ptrString("123456789012"),
 			},
-			getLeases: &lease.Leases{
-				lease.Lease{
-					ID:          ptrString("123"),
-					AccountID:   ptrString("123456789012"),
-					PrincipalID: ptrString("user2"),
-				},
+			getLease: &lease.Lease{
+				ID:          ptrString("123"),
+				AccountID:   ptrString("123456789012"),
+				PrincipalID: ptrString("user2"),
 			},
 			expResp: response{
 				StatusCode: 401,
@@ -268,12 +263,10 @@ func TestDeleteLeaseByPrincipalIDAndAccountID(t *testing.T) {
 			inputLease: &lease.Lease{
 				PrincipalID: ptrString("principal"),
 			},
-			getLeases: &lease.Leases{
-				lease.Lease{
-					ID:          ptrString("123"),
-					AccountID:   ptrString("123456789012"),
-					PrincipalID: ptrString("User1"),
-				},
+			getLease: &lease.Lease{
+				ID:          ptrString("123"),
+				AccountID:   ptrString("123456789012"),
+				PrincipalID: ptrString("User1"),
 			},
 			expResp: response{
 				StatusCode: 400,
@@ -297,7 +290,7 @@ func TestDeleteLeaseByPrincipalIDAndAccountID(t *testing.T) {
 			inputLease: &lease.Lease{
 				AccountID: ptrString("User1"),
 			},
-			getLeases: nil,
+			getLease: nil,
 			expResp: response{
 				StatusCode: 400,
 				Body:       "{\"error\":{\"message\":\"invalid request parameters: missing PrincipalID\",\"code\":\"ClientError\"}}\n",
@@ -321,7 +314,7 @@ func TestDeleteLeaseByPrincipalIDAndAccountID(t *testing.T) {
 				PrincipalID: ptrString("principal"),
 				AccountID:   ptrString("123456789012"),
 			},
-			getLeases: &lease.Leases{},
+			getLease: nil,
 			expResp: response{
 				StatusCode: 404,
 				Body:       "{\"error\":{\"message\":\"lease \\\"with Principal ID principal and Account ID 123456789012\\\" not found\",\"code\":\"NotFoundError\"}}\n",
@@ -333,7 +326,7 @@ func TestDeleteLeaseByPrincipalIDAndAccountID(t *testing.T) {
 				PrincipalID:  ptrString("principal"),
 				AccountID:    ptrString("123456789012"),
 			},
-			getErr: nil,
+			getErr: errors.NewNotFound("lease", "with Principal ID principal and Account ID 123456789012"),
 		},
 		{
 			name: "when Delete lease service returns a failure",
@@ -366,8 +359,8 @@ func TestDeleteLeaseByPrincipalIDAndAccountID(t *testing.T) {
 			svcBldr := &config.ServiceBuilder{Config: cfgBldr}
 
 			leaseSvc := mocks.Servicer{}
-			leaseSvc.On("List", mock.AnythingOfType("*lease.Lease")).Return(
-				tt.getLeases, tt.getErr,
+			leaseSvc.On("GetByAccountIDAndPrincipalID", mock.Anything, mock.Anything).Return(
+				tt.getLease, tt.getErr,
 			)
 
 			leaseSvc.On("Delete", *tt.expLease.ID).Return(

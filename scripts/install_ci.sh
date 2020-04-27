@@ -32,7 +32,11 @@ export GO111MODULE=off
 # as the other go tools.
 if [ -x "$(command -v wget)" ]; then
   if [ ! -x "$(command -v tflint)" ]; then
-    wget -q https://github.com/wata727/tflint/releases/download/v0.13.4/tflint_linux_amd64.zip -O /tmp/tflint.zip
+    if [[ $(uname -s) == "Darwin" ]]; then
+      wget -q https://github.com/wata727/tflint/releases/download/v0.15.4/tflint_darwin_amd64.zip -O /tmp/tflint.zip
+    else
+      wget -q https://github.com/wata727/tflint/releases/download/v0.15.4/tflint_linux_amd64.zip -O /tmp/tflint.zip
+    fi
     (cd /tmp && unzip tflint.zip)
     chmod +x /tmp/tflint
     mv /tmp/tflint $GOBIN

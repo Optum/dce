@@ -41,7 +41,7 @@ func TestGetLeaseByID(t *testing.T) {
 		exp  response
 	}{
 		{
-			name: "should get an lease by ID",
+			name: "should get a lease by ID",
 			ID:   "70c2d96d-7938-4ec9-917d-476f2b09cc04",
 			ret: response{
 				data: &lease.Lease{
@@ -82,6 +82,74 @@ func TestGetLeaseByID(t *testing.T) {
 			})
 
 			getLease, err := leaseSvc.Get(tt.ID)
+			assert.True(t, errors.Is(err, tt.exp.err), "actual error %q doesn't match expected error %q", err, tt.exp.err)
+
+			assert.Equal(t, tt.exp.data, getLease)
+		})
+	}
+}
+
+func TestGetByAccountIDAndPrincipalID(t *testing.T) {
+
+	type response struct {
+		data *lease.Lease
+		err  error
+	}
+
+	tests := []struct {
+		name        string
+		accountId   string
+		principalId string
+		ret         response
+		exp         response
+	}{
+		{
+			name:        "should get a lease by accountId and principalId",
+			accountId:   "123456789012",
+			principalId: "TestUser",
+			ret: response{
+				data: &lease.Lease{
+					ID:          ptrString("70c2d96d-7938-4ec9-917d-476f2b09cc04"),
+					AccountID:   ptrString("123456789012"),
+					PrincipalID: ptrString("TestUser"),
+					Status:      lease.StatusActive.StatusPtr(),
+				},
+				err: nil,
+			},
+			exp: response{
+				data: &lease.Lease{
+					ID:          ptrString("70c2d96d-7938-4ec9-917d-476f2b09cc04"),
+					AccountID:   ptrString("123456789012"),
+					PrincipalID: ptrString("TestUser"),
+					Status:      lease.StatusActive.StatusPtr(),
+				},
+				err: nil,
+			},
+		},
+		{
+			name: "should get failure",
+			ret: response{
+				data: nil,
+				err:  errors.NewInternalServer("failure", fmt.Errorf("original failure")),
+			},
+			exp: response{
+				data: nil,
+				err:  errors.NewInternalServer("failure", fmt.Errorf("original failure")),
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mocksRwd := &mocks.ReaderWriter{}
+
+			mocksRwd.On("GetByAccountIDAndPrincipalID", tt.accountId, tt.principalId).Return(tt.ret.data, tt.ret.err)
+
+			leaseSvc := lease.NewService(lease.NewServiceInput{
+				DataSvc: mocksRwd,
+			})
+
+			getLease, err := leaseSvc.GetByAccountIDAndPrincipalID(tt.accountId, tt.principalId)
 			assert.True(t, errors.Is(err, tt.exp.err), "actual error %q doesn't match expected error %q", err, tt.exp.err)
 
 			assert.Equal(t, tt.exp.data, getLease)
