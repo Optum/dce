@@ -26,6 +26,8 @@ fi
 
 gopath=$(command -v go)
 export GOBIN=$(dirname ${gopath})
+# Must be enabled to install certain tools
+# eg. https://github.com/golangci/golangci-lint/issues/1040#issuecomment-618269286
 export GO111MODULE=on
 
 # Get the proper version of tflint first and install it into the same path
