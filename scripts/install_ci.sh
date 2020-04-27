@@ -14,7 +14,7 @@ function safeGoGet() {
   echo "Checking for ${binname} on the path..."
   if [ ! -x "$(command -v ${binname})" ]; then 
     echo -n "Getting ${binname} from $1..."
-    go get $1 >/dev/null 2>&1
+    go get $1
     echo "Done."
   fi
 }
@@ -26,7 +26,9 @@ fi
 
 gopath=$(command -v go)
 export GOBIN=$(dirname ${gopath})
-export GO111MODULE=off
+# Must be enabled to install certain tools
+# eg. https://github.com/golangci/golangci-lint/issues/1040#issuecomment-618269286
+export GO111MODULE=on
 
 # Get the proper version of tflint first and install it into the same path
 # as the other go tools.
