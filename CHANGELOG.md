@@ -1,6 +1,6 @@
 ## vNext
 
-## v0.30.0
+## v0.30.1
 - Added new tool in `tools` folder for generating Markdown and IAM example policy for AWS Nuke
   support. See README in `tools/awsnukedocgen`.
 - Added new services supported by DCE: Kinesis Analytics, Kinesis Video, Opsworks CM, Robomaker,
