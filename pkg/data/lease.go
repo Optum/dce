@@ -102,7 +102,7 @@ func (a *Lease) GetByAccountIDAndPrincipalID(accountID string, principalID strin
 	}
 
 	if len(res.Item) == 0 {
-		return nil, errors.NewNotFound("lease", accountID)
+		return nil, errors.NewNotFound("lease", fmt.Sprintf("with Principal ID %s and Account ID %s", principalID, accountID))
 	}
 
 	lease := lease.Lease{}
