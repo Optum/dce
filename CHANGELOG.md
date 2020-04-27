@@ -38,7 +38,7 @@ This release no longer supports principal budget checks. We intend to reimplemen
 - Fix incorrect `LeastStatusReason` values for overbudget/expired leases
 - Enable debug logging by default (logs error details)
 
-## v0.30.0
+## v0.30.1
 
 - Added new tool in `tools` folder for generating Markdown and IAM example policy for AWS Nuke
   support. See README in `tools/awsnukedocgen`.
@@ -47,6 +47,7 @@ This release no longer supports principal budget checks. We intend to reimplemen
 - Added new `make setup` target for installing tools on local developer machines.
 - Hardened `scripts/install_ci.sh` to be used by developers.
 - Added documenation for local developer environment setup.
+- Fix bug where update lease should update LeaseStatusModifiedOn
 - Fix bug with delete lease, replace list method call with GetByAccountIdAndPrincipalId.
 - Fix to issue to include tflint package for MacOS user and upgrade version for Linux user.
 - Fixed a bug causing admins to be authorized as users.
