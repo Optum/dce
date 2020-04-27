@@ -142,7 +142,7 @@ stages:
                     # Download dce-cli
                     wget -q https://github.com/Optum/dce-cli/releases/download/v0.5.0/dce_linux_amd64.zip
                     # Validate checksum
-                    expected_sha="d19e1ecee5eb9646dbd5bf509ea813f4db1c22bf843551bd1ec8c8f42efe54c2"
+                    expected_sha="cb140c743373e28a6c1bd4ba3fe1b81a7431dd538e1ad430fede3c1aff4508db"
                     test $(shasum -a256 ./dce_linux_amd64.zip | awk '{print $1}') == "${expected_sha}"
                     unzip ./dce_linux_amd64.zip -d ./
                   displayName: "Download pipeline dependencies"
