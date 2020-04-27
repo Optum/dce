@@ -169,28 +169,14 @@ stages:
                       " > ./dce.yml
 
 
-                      # Check if we already have an active lease for this PR
-                      # (note that dce-cli exits 1, if none exist
-                      #  see https://github.com/Optum/dce/issues/204)
-                      echo "Checking if a lease exists for ${NAMESPACE}..."
-                      # We can't filter by status and principal together
-                      # (see https://github.com/Optum/dce-cli/issues/58)
-                      # so we'll just filter by status, and then
-                      # filter by principalId client side
-                      set +e
-
-                      leases=$(./dce --config=dce.yml leases list -s Active)
-                      echo $leases
-
+                      # Check to see if there's an active lease for this PR
                       lease_id=$(
-                        echo $leases | \
-                        jq -r \
-                          --arg PrincipalID "${NAMESPACE}" \
-                          '.[] | select( .principalId==$PrincipalID ) | .id'
+                        ./dce --config=dce.yml leases list \
+                          -p ${NAMESPACE} -s Active | \
+                        jq -r '.[].id'
                       )
-                      retVal=$?
-                      set -e
-                      if [ $retVal -ne 0 ] || [ ! "${lease_id}" ]; then
+
+                      if [ ! "${lease_id}" ]; then
                         echo "No lease exists for ${NAMESPACE}. Creating one..."
                         created_lease=$(
                           ./dce --config=dce.yml leases create \
