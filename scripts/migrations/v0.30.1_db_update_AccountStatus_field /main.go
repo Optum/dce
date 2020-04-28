@@ -41,7 +41,7 @@ func updateStatus(input *UpdateStatusInput) error {
 	}
 
 	// Update Account record
-	result, err := input.dynDB.UpdateItem(
+	_, err = input.dynDB.UpdateItem(
 		&dynamodb.UpdateItemInput{
 			// Query in Account Table
 			TableName: aws.String(input.accountTableName),
@@ -65,7 +65,7 @@ func updateStatus(input *UpdateStatusInput) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println(result)
+	fmt.Printf("Account updated %v", input.accountId)
 
 	return nil
 }
@@ -90,6 +90,7 @@ func main() {
 	n := 368
 	for i := 1; i < n; i++ {
 		accountId := xlsx.GetCellValue("Sheet1", fmt.Sprintf("D%d", i))
+		//fmt.Println(accountId)
 
 		err = updateStatus(&UpdateStatusInput{
 			accountId:        accountId,
