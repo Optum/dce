@@ -80,7 +80,7 @@ func main() {
 		aws.NewConfig().WithRegion("us-east-1"),
 	)
 
-	xlsx, err := excelize.OpenFile("accountsdelete.xlsx")
+	xlsx, err := excelize.OpenFile("accountsdelete2.xlsx")
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -90,7 +90,6 @@ func main() {
 	n := 368
 	for i := 1; i < n; i++ {
 		accountId := xlsx.GetCellValue("Sheet1", fmt.Sprintf("D%d", i))
-		fmt.Println(accountId)
 
 		err = updateStatus(&UpdateStatusInput{
 			accountId:        accountId,
