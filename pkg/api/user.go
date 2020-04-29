@@ -83,7 +83,6 @@ func (u *UserDetails) GetUser(reqCtx *events.APIGatewayProxyRequestContext) *Use
 		log.Printf("Did not get the current user.  Found %d instead of 1.", len(users.Users))
 		return &User{}
 	}
-
 	user := &User{
 		Role:     UserGroupName,
 		Username: *users.Users[0].Username,
@@ -122,7 +121,7 @@ func (u *UserDetails) isUserInAdminGroup(username string) (bool, error) {
 		return false, fmt.Errorf("Was not abile to query a users for its groups: %s", err)
 	}
 	for _, group := range groups.Groups {
-		if *group.GroupName == "Admins" {
+		if *group.GroupName == AdminGroupName {
 			return true, nil
 		}
 	}

@@ -1,5 +1,7 @@
 ## vNext
+- Updated aws-nuke version.
 
+## v0.30.1
 - Added new tool in `tools` folder for generating Markdown and IAM example policy for AWS Nuke
   support. See README in `tools/awsnukedocgen`.
 - Added new services supported by DCE: Kinesis Analytics, Kinesis Video, Opsworks CM, Robomaker,
@@ -7,9 +9,10 @@
 - Added new `make setup` target for installing tools on local developer machines.
 - Hardened `scripts/install_ci.sh` to be used by developers.
 - Added documenation for local developer environment setup.
-- Updated aws-nuke version.
+- Fix bug where update lease should update LeaseStatusModifiedOn
 - Fix bug with delete lease, replace list method call with GetByAccountIdAndPrincipalId.
 - Fix to issue to include tflint package for MacOS user and upgrade version for Linux user.
+- Fixed a bug causing admins to be authorized as users.
 
 ## v0.29.0
 
