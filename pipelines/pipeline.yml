@@ -140,9 +140,9 @@ stages:
                     go get github.com/jstemmer/go-junit-report
 
                     # Download dce-cli
-                    wget -q https://github.com/Optum/dce-cli/releases/download/v0.3.0/dce_linux_amd64.zip
+                    wget -q https://github.com/Optum/dce-cli/releases/download/v0.5.0/dce_linux_amd64.zip
                     # Validate checksum
-                    expected_sha="d19e1ecee5eb9646dbd5bf509ea813f4db1c22bf843551bd1ec8c8f42efe54c2"
+                    expected_sha="cb140c743373e28a6c1bd4ba3fe1b81a7431dd538e1ad430fede3c1aff4508db"
                     test $(shasum -a256 ./dce_linux_amd64.zip | awk '{print $1}') == "${expected_sha}"
                     unzip ./dce_linux_amd64.zip -d ./
                   displayName: "Download pipeline dependencies"
@@ -169,39 +169,21 @@ stages:
                       " > ./dce.yml
 
 
-                      # Check if we already have an active lease for this PR
-                      # (note that dce-cli exits 1, if none exist
-                      #  see https://github.com/Optum/dce/issues/204)
-                      echo "Checking if a lease exists for ${NAMESPACE}..."
-                      # We can't filter by status and principal together
-                      # (see https://github.com/Optum/dce-cli/issues/58)
-                      # so we'll just filter by status, and then
-                      # filter by principalId client side
-                      set +e
-                      leases=$(
-                        ./dce --config=dce.yml leases list -s Active \
-                        2>&1 >/dev/null)
-                      echo $leases
+                      # Check to see if there's an active lease for this PR
                       lease_id=$(
-                        echo $leases | \
-                        jq -r \
-                          --arg PrincipalID "${NAMESPACE}" \
-                          '.[] | select( .principalId==$PrincipalID ) | .id'
+                        ./dce --config=dce.yml leases list \
+                          -p ${NAMESPACE} -s Active | \
+                        jq -r '.[].id'
                       )
-                      retVal=$?
-                      set -e
-                      if [ $retVal -ne 0 ] || [ ! "${lease_id}" ]; then
+
+                      if [ ! "${lease_id}" ]; then
                         echo "No lease exists for ${NAMESPACE}. Creating one..."
-                        # Note that dce lease create doesn't return valid JSON
-                        # See https://github.com/Optum/dce-cli/issues/11
                         created_lease=$(
                           ./dce --config=dce.yml leases create \
                             --principal-id ${NAMESPACE} \
                             --expires-on 2d \
                             --budget-amount 100 --budget-currency USD \
-                            --email noreply@example.com \
-                              2>&1 >/dev/null | \
-                            sed 's/Lease created://'
+                            --email noreply@example.com
                         )
                         echo "Created lease: ${created_lease}"
                         lease_id=$(echo "${created_lease}" | jq -r .id)
@@ -372,7 +354,7 @@ stages:
 
                       leases=$(
                         ./dce --config=dce.yml leases list -s Active \
-                        2>&1 >/dev/null)
+                      )
                       account_id=$(
                         echo $leases | \
                           jq -r \
