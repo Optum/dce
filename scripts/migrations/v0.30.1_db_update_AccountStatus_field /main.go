@@ -20,6 +20,7 @@ type UpdateStatusInput struct {
 // updateStatus runs main logic
 func updateStatus(input *UpdateStatusInput) error {
 
+	// Check if account exists
 	res, err := input.dynDB.GetItem(
 		&dynamodb.GetItemInput{
 			// Query in Account Table
@@ -32,11 +33,7 @@ func updateStatus(input *UpdateStatusInput) error {
 		},
 	)
 
-	if err != nil {
-		return fmt.Errorf("get failed for account %q", input.accountId)
-	}
-
-	if len(res.Item) == 0 {
+	if err != nil || len(res.Item) == 0 {
 		return fmt.Errorf("get failed for account %q", input.accountId)
 	}
 
@@ -51,7 +48,7 @@ func updateStatus(input *UpdateStatusInput) error {
 					S: aws.String(input.accountId),
 				},
 			},
-			// Set Status="Active"
+			// Set Status="DeleteReady"
 			UpdateExpression: aws.String("set AccountStatus=:accountStatus"),
 			ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
 				":accountStatus": {
@@ -65,7 +62,7 @@ func updateStatus(input *UpdateStatusInput) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Account updated %v", input.accountId)
+	fmt.Printf("Account updated %q", input.accountId)
 
 	return nil
 }
