@@ -86,7 +86,7 @@ func main() {
 	// Read input file
 	n := 368
 	for i := 1; i < n; i++ {
-		accountId := xlsx.GetCellValue("Sheet1", fmt.Sprintf("D%d", i))
+		accountId := xlsx.GetCellValue("To Decom", fmt.Sprintf("D%d", i))
 		//fmt.Println(accountId)
 
 		err = updateStatus(&UpdateStatusInput{
