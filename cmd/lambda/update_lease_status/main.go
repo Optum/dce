@@ -29,6 +29,16 @@ type leaseContext struct {
 	actualSpend float64
 }
 
+type configuration struct {
+	Debug string `env:"DEBUG" envDefault:"false"`
+}
+
+var (
+	services *config.ServiceBuilder
+	// Settings - the configuration settings for the controller
+	settings *configuration
+)
+
 func main() {
 	lambda.Start(func(event interface{}) {
 		log.Printf("Initializing budget check")
@@ -246,16 +256,30 @@ func handleLeaseExpire(input *lambdaHandlerInput, prevLeaseStatus db.LeaseStatus
 	// can continue on error
 	deferredErrors := []error{}
 
-	// Here we will save the update to the account status. From
-	// there, a Lambda listening to the account status Dynamodb stream
-	// and then forwarding events to SNS and SQS from there.
-	_, err := input.dbSvc.TransitionLeaseStatus(
-		input.lease.AccountID,
-		input.lease.PrincipalID,
-		prevLeaseStatus,
-		input.lease.LeaseStatus,
-		leaseStatusReason,
-	)
+	cfgBldr := &config.ConfigurationBuilder{}
+	settings = &configuration{}
+	if err := cfgBldr.Unmarshal(settings); err != nil {
+		log.Fatalf("Could not load configuration: %s", err.Error())
+	}
+
+	// load up the values into the various settings...
+	err := cfgBldr.WithEnv("AWS_CURRENT_REGION", "AWS_CURRENT_REGION", "us-east-1").Build()
+	if err != nil {
+		log.Printf("Error: %+v", err)
+	}
+	svcBldr := &config.ServiceBuilder{Config: cfgBldr}
+
+	_, err = svcBldr.
+		WithLeaseService().
+		Build()
+	if err != nil {
+		panic(err)
+	}
+
+	services = svcBldr
+
+	_, err = services.LeaseService().Delete(input.lease.ID)
+
 
 	if err != nil {
 		log.Printf("Failed to add account to reset queue for lease %s @ %s: %s", input.lease.PrincipalID, input.lease.AccountID, err)
