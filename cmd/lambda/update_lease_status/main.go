@@ -11,6 +11,7 @@ import (
 	"github.com/Optum/dce/pkg/awsiface"
 	"github.com/Optum/dce/pkg/budget"
 	"github.com/Optum/dce/pkg/common"
+	"github.com/Optum/dce/pkg/config"
 	"github.com/Optum/dce/pkg/db"
 	"github.com/Optum/dce/pkg/email"
 	multierrors "github.com/Optum/dce/pkg/errors"
