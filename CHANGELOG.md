@@ -1,4 +1,5 @@
 ## vNext
+- Fix bug: Status change in account table fails for leased accounts that are expired. See https://github.com/Optum/dce/issues/344
 
 ## v0.30.1
 - Added new tool in `tools` folder for generating Markdown and IAM example policy for AWS Nuke
