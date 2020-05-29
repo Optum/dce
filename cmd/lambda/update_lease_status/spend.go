@@ -74,15 +74,8 @@ func calculateLeaseSpend(input *calculateSpendInput) (float64, error) {
 	// We can look at the `leaseStatusModifiedOn` to know
 	// when the lease status changed from `ResetLock` --> `Active`
 	budgetStartTime := time.Unix(input.lease.LeaseStatusModifiedOn, 0)
-	currentDate := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.UTC)
-	budgetStartDate := time.Date(budgetStartTime.Year(), budgetStartTime.Month(), budgetStartTime.Day(), 0, 0, 0, 0, time.UTC)
-
 	// budget's `endTime` is set to yesterday
 	budgetEndTime := usageEndTime.AddDate(0, 0, -1)
-
-	if currentDate.Sub(budgetStartDate) <= 0 {
-		budgetEndTime = usageEndTime
-	}
 
 	log.Printf("Retrieving usage for lease %s @ %s for period %s to %s...",
 		input.lease.PrincipalID, input.lease.AccountID,
