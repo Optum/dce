@@ -77,6 +77,7 @@ has exceeded its budget of $100. Actual spend is $150
 		expectedEmailBodyHTML         string
 		expectedEmailBodyText         string
 		expectedError                 string
+		LeaseStatusModifiedOn         int64
 	}
 
 	checkBudgetTest := func(test *checkBudgetTestInput) {
@@ -97,7 +98,7 @@ has exceeded its budget of $100. Actual spend is $150
 				BudgetAmount:             test.budgetAmount,
 				BudgetCurrency:           "USD",
 				BudgetNotificationEmails: []string{"recipA@example.com", "recipB@example.com"},
-				LeaseStatusModifiedOn:    time.Unix(100, 0).Unix(),
+				LeaseStatusModifiedOn:    map[bool]int64{true: time.Unix(100, 0).Unix(), false: test.LeaseStatusModifiedOn}[test.LeaseStatusModifiedOn == 0],
 				ExpiresOn:                time.Now().AddDate(0, 0, +1000).Unix(), //Make sure it expires in the distant future as we aren't testing that
 			},
 			awsSession:                             &awsMocks.AwsSession{},
@@ -299,6 +300,21 @@ Actual spend is $76
 			expectedError: "DB transition failed",
 		})
 
+	})
+
+	t.Run("Scenario: Under budget Lease: Lease started and spend calculated the same day", func(t *testing.T) {
+		checkBudgetTest(&checkBudgetTestInput{
+			budgetAmount: 100,
+			actualSpend:  50,
+			leaseStatus:  db.Active,
+			// Should not finance lock or reset
+			shouldTransitionLeaseStatus: false,
+			shouldSNS:                   false,
+			shouldSQSReset:              false,
+			// Should not send notification email
+			shouldSendEmail:       false,
+			LeaseStatusModifiedOn: time.Now().Unix(),
+		})
 	})
 }
 func Test_isLeaseExpired(t *testing.T) {
