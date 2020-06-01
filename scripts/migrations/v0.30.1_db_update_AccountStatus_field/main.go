@@ -52,7 +52,7 @@ func updateStatus(input *UpdateStatusInput) error {
 			UpdateExpression: aws.String("set AccountStatus=:accountStatus"),
 			ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
 				":accountStatus": {
-					S: aws.String("DeleteReady"),
+					S: aws.String("NotReady"),
 				},
 			},
 			// Return the updated record
@@ -77,21 +77,26 @@ func main() {
 		aws.NewConfig().WithRegion("us-east-1"),
 	)
 
-	xlsx, err := excelize.OpenFile("accountstodelete.xlsx")
+	xlsx, err := excelize.OpenFile("Accounts_NonProd_06012020.xlsx")
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
 	// Read input file
-	n := 368
+	n := 17
 	for i := 1; i < n; i++ {
-		accountId := xlsx.GetCellValue("To Decom", fmt.Sprintf("D%d", i))
+		accountId, err := xlsx.GetCellValue("Accounts", fmt.Sprintf("A%d", i))
 		//fmt.Println(accountId)
+
+		if err != nil {
+			fmt.Printf("error reading cell value %d", i)
+			continue
+		}
 
 		err = updateStatus(&UpdateStatusInput{
 			accountId:        accountId,
-			accountTableName: "Accounts",
+			accountTableName: "AccountsNonprod",
 			dynDB:            dynDB,
 		})
 		fmt.Println(err)
