@@ -172,6 +172,8 @@ has exceeded its budget of $100. Actual spend is $150
 				input.lease.LeaseStatus = test.expectedLeaseStatusTransition
 				return input.lease
 			}, test.transitionLeaseError)
+
+			dbSvc.On("TransitionAccountStatus", "1234567890", db.Leased, db.NotReady).Return(nil, nil)
 		}
 
 		// Should send a notification email

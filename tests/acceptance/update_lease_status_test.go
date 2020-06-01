@@ -253,11 +253,16 @@ func TestUpdateLeaseStatusLambda(t *testing.T) {
 		err = json.Unmarshal(result.Payload, &resp)
 		require.Nil(t, err)
 
-		// Check lease status is active
+		// Check lease status is inactive
 		lease, err := dbSvc.GetLease(accountID, "user")
 		require.Nil(t, err)
 		require.Equal(t, db.LeaseStatus("Inactive"), lease.LeaseStatus)
 		require.Equal(t, db.LeaseStatusReason("Expired"), lease.LeaseStatusReason)
+
+		// Check account status is updated to NotReady
+		account, err := dbSvc.GetAccount(accountID)
+		require.Nil(t, err)
+		require.Equal(t, db.NotReady, account.AccountStatus)
 	})
 
 	t.Run("Exceeded lease budget result in Inactive lease with reason OverBudget.", func(t *testing.T) {
