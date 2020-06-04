@@ -1,4 +1,4 @@
-## vNext
+## v0.31.0
 - Fix bug: Status change in account table fails for leased accounts that are expired. See https://github.com/Optum/dce/issues/344
 
 ## v0.30.1
