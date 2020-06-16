@@ -128,11 +128,11 @@
       "width": 6,
       "height": 6,
       "properties": {
-        "query": "SOURCE '/aws/codebuild/${codebuild_name}' | FIELDS @message, @logStream, @timestamp\n| filter @message ~= \": # Child Account\"\n| parse @message \"*: # Child Account\" as account\n| display account, @logStream, @timestamp",
+        "query": "SOURCE '/aws/codebuild/${codebuild_name}' | FIELDS @message, @logStream, @timestamp\n| filter @message ~= \"Setting Account Status from NotReady to Ready\"\n| parse @message \"Setting Account Status from NotReady to Ready\" as account\n| display account, @logStream, @timestamp",
         "region": "${region}",
         "stacked": false,
         "view": "table",
-        "title": "Recent Resets"
+        "title": "resets accounts"
       }
     },
     {
@@ -140,10 +140,10 @@
       "width": 6,
       "height": 6,
       "properties": {
-        "query": "SOURCE '/aws/codebuild/${codebuild_name}' | FIELDS @message, @logStream, @timestamp\n| filter @message ~= \": # Child Account\"\n| parse @message \"*: # Child Account\" as account\n| display account, @logStream, @timestamp\n| stats count() by account as resetNum\n| sort resetNum asc",
+        "query": "SOURCE '/aws/codebuild/${codebuild_name}' | FIELDS @message, @logStream, @timestamp\n| filter @message ~= \"Setting Account Status from NotReady to Ready\"\n| parse @message \"Setting Account Status from NotReady to Ready\" as account\n| display account, @logStream, @timestamp\n| stats count() as reset_count by account\n| sort reset_count asc",
         "region": "${region}",
         "stacked": false,
-        "title": "Most Reset Accounts",
+        "title": "resets accounts stats",
         "view": "table"
       }
     },
