@@ -81,13 +81,16 @@ func calculateLeaseSpend(input *calculateSpendInput) (float64, error) {
 	budgetEndTime := usageEndTime.AddDate(0, 0, -1)
 
 	if currentDate.Sub(budgetStartDate) <= 0 {
-		budgetEndTime = usageEndTime
+		log.Printf("Retrieving usage for lease %s @ %s for period %s to %s...",
+			input.lease.PrincipalID, input.lease.AccountID,
+			budgetStartTime.Format("2006-01-02"), usageEndTime.Format("2006-01-02"),
+		)
+	} else {
+		log.Printf("Retrieving usage for lease %s @ %s for period %s to %s...",
+			input.lease.PrincipalID, input.lease.AccountID,
+			budgetStartTime.Format("2006-01-02"), budgetEndTime.Format("2006-01-02"),
+		)
 	}
-
-	log.Printf("Retrieving usage for lease %s @ %s for period %s to %s...",
-		input.lease.PrincipalID, input.lease.AccountID,
-		budgetStartTime.Format("2006-01-02"), budgetEndTime.Format("2006-01-02"),
-	)
 
 	// Query Usage cache DB
 	usageRecords, err := input.usageSvc.GetUsageByDateRange(budgetStartTime, budgetEndTime)
