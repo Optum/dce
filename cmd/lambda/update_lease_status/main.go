@@ -262,6 +262,18 @@ func handleLeaseExpire(input *lambdaHandlerInput, prevLeaseStatus db.LeaseStatus
 		deferredErrors = append(deferredErrors, err)
 	}
 
+	// Update Account Status to "NotReady"
+	_, err = input.dbSvc.TransitionAccountStatus(
+		input.lease.AccountID,
+		db.Leased,
+		db.NotReady,
+	)
+
+	if err != nil {
+		log.Printf("Account status update: Failed to add account to reset queue for lease %s @ %s: %s", input.lease.PrincipalID, input.lease.AccountID, err)
+		deferredErrors = append(deferredErrors, err)
+	}
+
 	// Return errors
 	if len(deferredErrors) > 0 {
 		return multierrors.NewMultiError("Failed to lock over-budget account: ", deferredErrors)
