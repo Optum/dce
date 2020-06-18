@@ -130,8 +130,10 @@ func (a *Account) List(query *account.Account) (*account.Accounts, error) {
 	}
 
 	query.NextID = nil
-	for _, v := range outputs.lastEvaluatedKey {
-		query.NextID = v.S
+	for k, v := range outputs.lastEvaluatedKey {
+		if strings.Contains(k, "Id") {
+			query.NextID = v.S
+		}
 	}
 
 	accounts := &account.Accounts{}
