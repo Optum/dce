@@ -69,7 +69,7 @@ variable "reset_nuke_toggle" {
 
 variable "cloudwatch_dashboard_toggle" {
   description = "Set to 'true' to enable an out of the box cloudwatch dashboard. Defaults to 'false."
-  default     = "false"
+  default     = "true"
 }
 
 variable "populate_reset_queue_schedule_expression" {
