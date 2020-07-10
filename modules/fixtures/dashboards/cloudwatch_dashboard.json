@@ -132,7 +132,7 @@
         "region": "${region}",
         "stacked": false,
         "view": "table",
-        "title": "resets accounts"
+        "title": "reset accounts"
       }
     },
     {
@@ -143,7 +143,7 @@
         "query": "SOURCE '/aws/codebuild/${codebuild_name}' | FIELDS @message, @logStream, @timestamp\n| filter @message ~= \"Setting Account Status from NotReady to Ready\"\n| parse @message \"Setting Account Status from NotReady to Ready\" as account\n| display account, @logStream, @timestamp\n| stats count() as reset_count by account\n| sort reset_count asc",
         "region": "${region}",
         "stacked": false,
-        "title": "resets accounts stats",
+        "title": "reset accounts stats",
         "view": "table"
       }
     },
