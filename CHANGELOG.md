@@ -1,4 +1,4 @@
-## vNext
+## v0.31.3
 - Fix data and update visualization for codebuild reset widget and error scrappers.
 
 ## v0.31.2
