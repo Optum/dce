@@ -132,6 +132,7 @@ Implementing DCE in an AWS Organization provides the ability to use SCPs, which 
                 "glue:*",
                 "iam:*",
                 "iot:*",
+                "iotanalytics:*",
                 "kafka:*",
                 "kinesis:*",
                 "kms:*",
