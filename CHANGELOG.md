@@ -1,5 +1,5 @@
-## vNext
-- Add `iotanalytics:*` to the principal IAM policy
+## v0.31.4
+- Add `iotanalytics:*` policy to the set of allowed services.
 
 ## v0.31.3
 - Fix data and update visualization for codebuild reset widget and error scrappers.
