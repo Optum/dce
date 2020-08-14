@@ -1,5 +1,6 @@
 ## vNext
 - Add `iotanalytics:*` to the principal IAM policy
+- Add `imagebuilder:*` to the principal IAM policy
 
 ## v0.31.3
 - Fix data and update visualization for codebuild reset widget and error scrappers.
