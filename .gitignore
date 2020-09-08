@@ -89,4 +89,4 @@ venv.bak/
 
 .vscode/
 
-tests/integration/test.cfg
+tests/integration/test.cfg.idea
