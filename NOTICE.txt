@@ -7,7 +7,9 @@ Project Description:
 Disposable Cloud Environment (DCE) manages ephemeral AWS accounts for easy and secure access to the cloud.
 
 Author(s):
-Amuda Palani (@AmudaPalani)
+Ranjan Prasad (@robologic)
+Jaya Nanda (@jayanandagit)
+Fabrizio Torelli (@hellgate75)
 Edan Schwartz (@eschwartz)
 Nathan A. Good (@nathanagood)
 Kevin DeJong (@kddejong)
