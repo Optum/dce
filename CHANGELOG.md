@@ -1,5 +1,7 @@
-## vNext
-- Add `iotanalytics:*` to the principal IAM policy
+## v0.32.0
+- Upgrade go to 1.15
+- Upgrade go mod dependencies version.
+- Add `iotanalytics:*` policy to the set of allowed services.
 
 ## v0.31.3
 - Fix data and update visualization for codebuild reset widget and error scrappers.

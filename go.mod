@@ -1,8 +1,9 @@
 module github.com/Optum/dce
 
-go 1.13
+go 1.15
 
 require (
+	github.com/360EntSecGroup-Skylar/excelize v1.4.1
 	github.com/asaskevich/govalidator v0.0.0-20200108200545-475eaeb16496 // indirect
 	github.com/avast/retry-go v2.3.0+incompatible
 	github.com/aws/aws-lambda-go v1.11.1
