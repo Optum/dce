@@ -15,9 +15,13 @@ import (
 )
 
 func TestWhenCreate(t *testing.T) {
-	standardHeaders := map[string][]string{
+	standardMultiValueHeaders := map[string][]string{
 		"Access-Control-Allow-Origin": []string{"*"},
 		"Content-Type":                []string{"application/json"},
+	}
+	standardHeaders := map[string]string{
+		"Access-Control-Allow-Origin": "*",
+		"Content-Type":                "application/json",
 	}
 
 	tests := []struct {
@@ -32,7 +36,8 @@ func TestWhenCreate(t *testing.T) {
 			expResp: events.APIGatewayProxyResponse{
 				StatusCode:        http.StatusCreated,
 				Body:              "{}\n",
-				MultiValueHeaders: standardHeaders,
+				Headers:           standardHeaders,
+				MultiValueHeaders: standardMultiValueHeaders,
 			},
 			request: events.APIGatewayProxyRequest{
 				HTTPMethod: http.MethodPost,
@@ -47,7 +52,8 @@ func TestWhenCreate(t *testing.T) {
 			expResp: events.APIGatewayProxyResponse{
 				StatusCode:        http.StatusBadRequest,
 				Body:              "{\"error\":{\"message\":\"invalid request parameters\",\"code\":\"ClientError\"}}\n",
-				MultiValueHeaders: standardHeaders,
+				Headers:           standardHeaders,
+				MultiValueHeaders: standardMultiValueHeaders,
 			},
 			request: events.APIGatewayProxyRequest{
 				HTTPMethod: http.MethodPost,
@@ -67,7 +73,8 @@ func TestWhenCreate(t *testing.T) {
 			expResp: events.APIGatewayProxyResponse{
 				StatusCode:        http.StatusInternalServerError,
 				Body:              "{\"error\":{\"message\":\"unknown error\",\"code\":\"ServerError\"}}\n",
-				MultiValueHeaders: standardHeaders,
+				Headers:           standardHeaders,
+				MultiValueHeaders: standardMultiValueHeaders,
 			},
 			retAccount: nil,
 			retErr:     fmt.Errorf("failure"),

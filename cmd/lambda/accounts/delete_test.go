@@ -15,9 +15,13 @@ import (
 )
 
 func TestWhenDelete(t *testing.T) {
-	standardHeaders := map[string][]string{
+	standardMultiValueHeaders := map[string][]string{
 		"Access-Control-Allow-Origin": []string{"*"},
 		"Content-Type":                []string{"application/json"},
+	}
+	standardHeaders := map[string]string{
+		"Access-Control-Allow-Origin": "*",
+		"Content-Type":                "application/json",
 	}
 
 	tests := []struct {
@@ -35,7 +39,8 @@ func TestWhenDelete(t *testing.T) {
 			expResp: events.APIGatewayProxyResponse{
 				StatusCode:        http.StatusNoContent,
 				Body:              "",
-				MultiValueHeaders: standardHeaders,
+				Headers:           standardHeaders,
+				MultiValueHeaders: standardMultiValueHeaders,
 			},
 			request: events.APIGatewayProxyRequest{
 				HTTPMethod: http.MethodDelete,
@@ -52,7 +57,8 @@ func TestWhenDelete(t *testing.T) {
 			expResp: events.APIGatewayProxyResponse{
 				StatusCode:        http.StatusNotFound,
 				Body:              "{\"error\":{\"message\":\"account \\\"210987654321\\\" not found\",\"code\":\"NotFoundError\"}}\n",
-				MultiValueHeaders: standardHeaders,
+				Headers:           standardHeaders,
+				MultiValueHeaders: standardMultiValueHeaders,
 			},
 			request: events.APIGatewayProxyRequest{
 				HTTPMethod: http.MethodDelete,
@@ -71,7 +77,8 @@ func TestWhenDelete(t *testing.T) {
 			expResp: events.APIGatewayProxyResponse{
 				StatusCode:        http.StatusInternalServerError,
 				Body:              "{\"error\":{\"message\":\"failure\",\"code\":\"ServerError\"}}\n",
-				MultiValueHeaders: standardHeaders,
+				Headers:           standardHeaders,
+				MultiValueHeaders: standardMultiValueHeaders,
 			},
 			getAccount: &account.Account{
 				ID: ptrString("123456789012"),

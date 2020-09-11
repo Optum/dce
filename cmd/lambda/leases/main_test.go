@@ -11,11 +11,12 @@ import (
 
 	"context"
 	gErrors "errors"
+	"net/http"
+
 	"github.com/Optum/dce/pkg/config"
 	"github.com/Optum/dce/pkg/lease/leaseiface/mocks"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/stretchr/testify/assert"
-	"net/http"
 )
 
 func TestMain(m *testing.M) {
@@ -31,6 +32,10 @@ func MockAPIResponse(status int, body string) events.APIGatewayProxyResponse {
 			"Content-Type":                []string{"application/json"},
 			"Access-Control-Allow-Origin": []string{"*"},
 		},
+		Headers: map[string]string{
+			"Access-Control-Allow-Origin": "*",
+			"Content-Type":                "application/json",
+		},
 		Body: body,
 	}
 }
@@ -42,6 +47,10 @@ func MockAPIErrorResponse(status int, body string) events.APIGatewayProxyRespons
 		MultiValueHeaders: map[string][]string{
 			"Content-Type":                []string{"application/json"},
 			"Access-Control-Allow-Origin": []string{"*"},
+		},
+		Headers: map[string]string{
+			"Access-Control-Allow-Origin": "*",
+			"Content-Type":                "application/json",
 		},
 		Body: body,
 	}
