@@ -3,7 +3,7 @@
 - Upgrade go mod dependencies version.
 - Improved test scenarios.
 - Add `iotanalytics:*` policy to the set of allowed services.
-- Increase timeout for functional test execution.
+- Increase timeout for functional test execution. 
 
 ## v0.31.3
 - Fix data and update visualization for codebuild reset widget and error scrappers.
