@@ -1,6 +1,7 @@
 ## v0.32.0
 - Upgrade go to 1.15
 - Upgrade go mod dependencies version.
+- Improved test scenarios.
 - Add `iotanalytics:*` policy to the set of allowed services.
 
 ## v0.31.3
