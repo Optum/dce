@@ -1,6 +1,8 @@
 package main
 
 import (
+	"testing"
+
 	"github.com/Optum/dce/pkg/account"
 	accountMocks "github.com/Optum/dce/pkg/account/accountiface/mocks"
 	awsMocks "github.com/Optum/dce/pkg/awsiface/mocks"
@@ -8,7 +10,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"testing"
 )
 
 func TestGetMetrics(t *testing.T) {

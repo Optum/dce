@@ -63,6 +63,8 @@ func TestProcessResetQueue(t *testing.T) {
 			cfgBldr := &config.ConfigurationBuilder{}
 			svcBldr := &config.ServiceBuilder{Config: cfgBldr}
 
+			// var mocksCodeBuild codebuildiface.CodeBuildAPI
+			// mocksCodeBuild = codebuildiface.CodeBuildAPI(&mocks.CodeBuildAPI{})
 			mocksCodeBuild := &mocks.CodeBuildAPI{}
 			mocksCodeBuild.On("StartBuild", mock.Anything).Return(nil, tt.codeBuildErr)
 			svcBldr.Config.WithService(mocksCodeBuild)

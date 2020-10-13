@@ -21,9 +21,13 @@ import (
 )
 
 func TestWhenCreateSuccess(t *testing.T) {
-	standardHeaders := map[string][]string{
+	standardMultiValueHeaders := map[string][]string{
 		"Access-Control-Allow-Origin": []string{"*"},
 		"Content-Type":                []string{"application/json"},
+	}
+	standardHeaders := map[string]string{
+		"Access-Control-Allow-Origin": "*",
+		"Content-Type":                "application/json",
 	}
 
 	usageSvcMock := &mockUsage.DBer{}
@@ -52,7 +56,8 @@ func TestWhenCreateSuccess(t *testing.T) {
 			expResp: events.APIGatewayProxyResponse{
 				StatusCode:        http.StatusCreated,
 				Body:              "{}\n",
-				MultiValueHeaders: standardHeaders,
+				Headers:           standardHeaders,
+				MultiValueHeaders: standardMultiValueHeaders,
 			},
 			request: events.APIGatewayProxyRequest{
 				HTTPMethod: http.MethodPost,
@@ -85,7 +90,8 @@ func TestWhenCreateSuccess(t *testing.T) {
 			expResp: events.APIGatewayProxyResponse{
 				StatusCode:        http.StatusCreated,
 				Body:              "{}\n",
-				MultiValueHeaders: standardHeaders,
+				Headers:           standardHeaders,
+				MultiValueHeaders: standardMultiValueHeaders,
 			},
 			request: events.APIGatewayProxyRequest{
 				HTTPMethod: http.MethodPost,
@@ -161,9 +167,13 @@ func TestWhenCreateSuccess(t *testing.T) {
 }
 
 func TestWhenCreateError(t *testing.T) {
-	standardHeaders := map[string][]string{
+	standardMultiValueHeaders := map[string][]string{
 		"Access-Control-Allow-Origin": []string{"*"},
 		"Content-Type":                []string{"application/json"},
+	}
+	standardHeaders := map[string]string{
+		"Access-Control-Allow-Origin": "*",
+		"Content-Type":                "application/json",
 	}
 
 	usageSvcMock := &mockUsage.DBer{}
@@ -195,7 +205,8 @@ func TestWhenCreateError(t *testing.T) {
 			expResp: events.APIGatewayProxyResponse{
 				StatusCode:        http.StatusBadRequest,
 				Body:              "{\"error\":{\"message\":\"invalid request parameters: missing principalId\",\"code\":\"ClientError\"}}\n",
-				MultiValueHeaders: standardHeaders,
+				Headers:           standardHeaders,
+				MultiValueHeaders: standardMultiValueHeaders,
 			},
 			retLease:     nil,
 			retListErr:   nil,
@@ -216,7 +227,8 @@ func TestWhenCreateError(t *testing.T) {
 			expResp: events.APIGatewayProxyResponse{
 				StatusCode:        http.StatusBadRequest,
 				Body:              "{\"error\":{\"message\":\"invalid request parameters\",\"code\":\"ClientError\"}}\n",
-				MultiValueHeaders: standardHeaders,
+				Headers:           standardHeaders,
+				MultiValueHeaders: standardMultiValueHeaders,
 			},
 			retAccounts: &account.Accounts{
 				account.Account{
@@ -243,7 +255,8 @@ func TestWhenCreateError(t *testing.T) {
 			expResp: events.APIGatewayProxyResponse{
 				StatusCode:        http.StatusUnauthorized,
 				Body:              "{\"error\":{\"message\":\"User [admin1] with role: [User] attempted to act on a lease for [User1], but was not authorized\",\"code\":\"UnauthorizedError\"}}\n",
-				MultiValueHeaders: standardHeaders,
+				Headers:           standardHeaders,
+				MultiValueHeaders: standardMultiValueHeaders,
 			},
 			retAccounts: &account.Accounts{
 				account.Account{
@@ -270,7 +283,8 @@ func TestWhenCreateError(t *testing.T) {
 			expResp: events.APIGatewayProxyResponse{
 				StatusCode:        http.StatusInternalServerError,
 				Body:              "{\"error\":{\"message\":\"unknown error\",\"code\":\"ServerError\"}}\n",
-				MultiValueHeaders: standardHeaders,
+				Headers:           standardHeaders,
+				MultiValueHeaders: standardMultiValueHeaders,
 			},
 			retLease:     nil,
 			retListErr:   fmt.Errorf("failure"),
@@ -291,7 +305,8 @@ func TestWhenCreateError(t *testing.T) {
 			expResp: events.APIGatewayProxyResponse{
 				StatusCode:        http.StatusInternalServerError,
 				Body:              "{\"error\":{\"message\":\"No Available accounts at this moment\",\"code\":\"ServerError\"}}\n",
-				MultiValueHeaders: standardHeaders,
+				Headers:           standardHeaders,
+				MultiValueHeaders: standardMultiValueHeaders,
 			},
 			retAccounts:  &account.Accounts{},
 			retLease:     nil,
@@ -313,7 +328,8 @@ func TestWhenCreateError(t *testing.T) {
 			expResp: events.APIGatewayProxyResponse{
 				StatusCode:        http.StatusInternalServerError,
 				Body:              "{\"error\":{\"message\":\"unknown error\",\"code\":\"ServerError\"}}\n",
-				MultiValueHeaders: standardHeaders,
+				Headers:           standardHeaders,
+				MultiValueHeaders: standardMultiValueHeaders,
 			},
 			retAccounts: &account.Accounts{
 				account.Account{
@@ -340,7 +356,8 @@ func TestWhenCreateError(t *testing.T) {
 			expResp: events.APIGatewayProxyResponse{
 				StatusCode:        http.StatusInternalServerError,
 				Body:              "{\"error\":{\"message\":\"unknown error\",\"code\":\"ServerError\"}}\n",
-				MultiValueHeaders: standardHeaders,
+				Headers:           standardHeaders,
+				MultiValueHeaders: standardMultiValueHeaders,
 			},
 			retAccounts: &account.Accounts{
 				account.Account{
@@ -367,7 +384,8 @@ func TestWhenCreateError(t *testing.T) {
 			expResp: events.APIGatewayProxyResponse{
 				StatusCode:        http.StatusInternalServerError,
 				Body:              "{\"error\":{\"message\":\"unknown error\",\"code\":\"ServerError\"}}\n",
-				MultiValueHeaders: standardHeaders,
+				Headers:           standardHeaders,
+				MultiValueHeaders: standardMultiValueHeaders,
 			},
 			retAccounts: &account.Accounts{
 				account.Account{
