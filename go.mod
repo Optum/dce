@@ -13,7 +13,6 @@ require (
 	github.com/awslabs/aws-lambda-go-api-proxy v0.8.0
 	github.com/caarlos0/env v3.5.0+incompatible
 	github.com/dchest/safefile v0.0.0-20151022103144-855e8d98f185 // indirect
-	github.com/fatih/color v1.9.0 // indirect
 	github.com/flosch/pongo2 v0.0.0-20190707114632-bbf5a6c351f4 // indirect
 	github.com/go-ozzo/ozzo-validation v3.6.0+incompatible
 	github.com/google/shlex v0.0.0-20181106134648-c34317bd91bf // indirect
@@ -33,16 +32,12 @@ require (
 	github.com/mitchellh/mapstructure v1.3.3
 	github.com/oleiade/reflections v1.0.0 // indirect
 	github.com/pkg/errors v0.9.1
-	github.com/pquerna/otp v1.2.0 // indirect
 	github.com/rebuy-de/aws-nuke v1.4.0
 	github.com/securego/gosec v0.0.0-20200316084457-7da9f46445fd // indirect
-	github.com/sirupsen/logrus v1.6.0 // indirect
-	github.com/spf13/cobra v1.0.0 // indirect
 	github.com/stretchr/objx v0.3.0 // indirect
 	github.com/stretchr/testify v1.6.1
 	golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a
 	golang.org/x/net v0.0.0-20200904194848-62affa334b73 // indirect
-	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208 // indirect
 	golang.org/x/sys v0.0.0-20200909081042-eff7692f9009 // indirect
 	google.golang.org/appengine v1.6.6 // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
@@ -53,4 +48,4 @@ require (
 	gopkg.in/yaml.v2 v2.3.0
 )
 
-replace github.com/rebuy-de/aws-nuke => github.com/Optum/aws-nuke v1.1.0
+replace github.com/rebuy-de/aws-nuke => github.com/Optum/aws-nuke v1.3.0
