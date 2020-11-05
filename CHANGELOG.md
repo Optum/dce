@@ -1,3 +1,6 @@
+## vNext
+- Upgrade aws-nuke to v1.3.0
+
 ## v0.32.0
 - Upgrade go to 1.15
 - Upgrade go mod dependencies version.
