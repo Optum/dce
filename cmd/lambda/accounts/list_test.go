@@ -28,7 +28,7 @@ func TestGetAccounts(t *testing.T) {
 		query       *account.Account
 		retAccounts *account.Accounts
 		retErr      error
-		nextID      *string
+		nextID      *account.NextID
 	}{
 		{
 			name:  "get all accounts",
@@ -38,6 +38,7 @@ func TestGetAccounts(t *testing.T) {
 				Body:       "[]\n",
 			},
 			retAccounts: &account.Accounts{},
+			nextID:      nil,
 			retErr:      nil,
 		},
 		{
@@ -52,8 +53,11 @@ func TestGetAccounts(t *testing.T) {
 					ID: ptrString("123456789012"),
 				},
 			},
-			nextID:  ptrString("234567890123"),
-			expLink: "<https://example.com/unit/accounts?limit=1&nextId=234567890123>; rel=\"next\"",
+			nextID: &account.NextID{
+				ID:            "234567890123",
+				AccountStatus: "NotReady",
+			},
+			expLink: "<https://example.com/unit/accounts?AccountStatus=NotReady&ID=234567890123&limit=1>; rel=\"next\"",
 			retErr:  nil,
 		},
 		{
@@ -66,6 +70,7 @@ func TestGetAccounts(t *testing.T) {
 				Body:       "{\"error\":{\"message\":\"unknown error\",\"code\":\"ServerError\"}}\n",
 			},
 			retAccounts: nil,
+			nextID:      nil,
 			retErr:      fmt.Errorf("failure"),
 		},
 	}
@@ -81,6 +86,7 @@ func TestGetAccounts(t *testing.T) {
 
 			values := url.Values{}
 			err := schema.NewEncoder().Encode(tt.query, values)
+
 			assert.Nil(t, err)
 
 			r.URL.RawQuery = values.Encode()
@@ -93,7 +99,10 @@ func TestGetAccounts(t *testing.T) {
 			accountSvc.On("List", mock.MatchedBy(func(input *account.Account) bool {
 				if (input.ID != nil && tt.query.ID != nil && *input.ID == *tt.query.ID) || input.ID == tt.query.ID {
 					if tt.nextID != nil {
-						input.NextID = tt.nextID
+						input.NextID = &account.NextID{}
+						input.NextID.ID = tt.nextID.ID
+						input.NextID.AccountStatus = tt.nextID.AccountStatus
+
 						input.Limit = ptr64(1)
 					}
 					return true

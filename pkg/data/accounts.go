@@ -1,6 +1,8 @@
 package data
 
 import (
+	"fmt"
+
 	"github.com/Optum/dce/pkg/account"
 	"github.com/Optum/dce/pkg/errors"
 	"github.com/aws/aws-sdk-go/aws"
@@ -44,12 +46,27 @@ func (a *Account) queryAccounts(query *account.Account, keyName string, index st
 
 	queryInput.SetLimit(*query.Limit)
 	if query.NextID != nil {
+		attributeValues := make(map[string]*dynamodb.AttributeValue)
+
+		attributeValues["Id"] = &dynamodb.AttributeValue{
+			S: &query.NextID.ID,
+		}
+
+		attributeValues["AccountStatus"] = &dynamodb.AttributeValue{
+			S: &query.NextID.AccountStatus,
+		}
+
+		queryInput.SetExclusiveStartKey(attributeValues)
+
 		// Should be more dynamic
-		queryInput.SetExclusiveStartKey(map[string]*dynamodb.AttributeValue{
+		/*queryInput.SetExclusiveStartKey(map[string]*dynamodb.AttributeValue{
 			"Id": &dynamodb.AttributeValue{
 				S: query.NextID,
 			},
-		})
+			"AccountStatus": &dynamodb.AttributeValue{
+				S: aws.String(query.Status.String()),
+			},
+		})*/
 	}
 
 	res, err = a.DynamoDB.Query(queryInput)
@@ -90,12 +107,26 @@ func (a *Account) scanAccounts(query *account.Account) (*queryScanOutput, error)
 
 	scanInput.SetLimit(*query.Limit)
 	if query.NextID != nil {
+		attributeValues := make(map[string]*dynamodb.AttributeValue)
+
+		attributeValues["Id"] = &dynamodb.AttributeValue{
+			S: &query.NextID.ID,
+		}
+
+		attributeValues["AccountStatus"] = &dynamodb.AttributeValue{
+			S: &query.NextID.AccountStatus,
+		}
+
+		scanInput.SetExclusiveStartKey(attributeValues)
 		// Should be more dynamic
-		scanInput.SetExclusiveStartKey(map[string]*dynamodb.AttributeValue{
+		/*scanInput.SetExclusiveStartKey(map[string]*dynamodb.AttributeValue{
 			"Id": &dynamodb.AttributeValue{
 				S: query.NextID,
 			},
-		})
+			"AccountStatus": &dynamodb.AttributeValue{
+				S: aws.String(query.Status.String()),
+			},
+		})*/
 	}
 
 	res, err = a.DynamoDB.Scan(scanInput)
@@ -129,9 +160,31 @@ func (a *Account) List(query *account.Account) (*account.Accounts, error) {
 		return nil, err
 	}
 
-	query.NextID = nil
-	for _, v := range outputs.lastEvaluatedKey {
-		query.NextID = v.S
+	if outputs.lastEvaluatedKey != nil {
+		query.NextID = &account.NextID{}
+		fmt.Printf("Last Evaluated key: %v\n", outputs.lastEvaluatedKey)
+		/*fmt.Printf("Last Evaluated key ID: %v\n", *outputs.lastEvaluatedKey["Id"])
+		fmt.Printf("Last Evaluated key AccountStatus: %v\n", *outputs.lastEvaluatedKey["AccountStatus"])*/
+
+		query.NextID = &account.NextID{}
+
+		if outputs.lastEvaluatedKey["Id"] != nil {
+			query.NextID.ID = *outputs.lastEvaluatedKey["Id"].S
+		}
+		if outputs.lastEvaluatedKey["AccountStatus"] != nil {
+			query.NextID.AccountStatus = *outputs.lastEvaluatedKey["AccountStatus"].S
+		}
+
+		/*query.NextID = &account.NextID{
+			ID:            *outputs.lastEvaluatedKey["Id"].S,
+			AccountStatus: *outputs.lastEvaluatedKey["AccountStatus"].S,
+		}*/
+		//query.NextID.ID = *outputs.lastEvaluatedKey["Id"].S
+		//query.NextID.AccountStatus = *outputs.lastEvaluatedKey["AccountStatus"].S
+		fmt.Println("Has more pages")
+	} else {
+		query.NextID = nil
+		fmt.Println("No more pages")
 	}
 
 	accounts := &account.Accounts{}

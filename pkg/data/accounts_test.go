@@ -2,6 +2,8 @@ package data
 
 import (
 	"fmt"
+	"math/rand"
+	"reflect"
 	"testing"
 
 	"github.com/Optum/dce/pkg/account"
@@ -14,11 +16,14 @@ import (
 )
 
 func TestGetAccountsScan(t *testing.T) {
+	testAccounts := GetRandomStrings(20)
+
 	tests := []struct {
 		name        string
 		query       *account.Account
 		expAccounts *account.Accounts
 		expErr      error
+		expNextId   *account.NextID
 		sOutputRec  *dynamodb.ScanOutput
 		sInput      *dynamodb.ScanInput
 		sOutputErr  error
@@ -108,6 +113,31 @@ func TestGetAccountsScan(t *testing.T) {
 			expAccounts: nil,
 			expErr:      errors.NewInternalServer("error getting accounts", fmt.Errorf("failure")),
 		},
+		{
+			name:  "scan get all accounts with pagination",
+			query: &account.Account{},
+			sInput: &dynamodb.ScanInput{
+				ConsistentRead: aws.Bool(false),
+				TableName:      aws.String("Accounts"),
+				Limit:          aws.Int64(5),
+			},
+			sOutputRec: &dynamodb.ScanOutput{
+				Items: GetRandomAccounts(testAccounts),
+				LastEvaluatedKey: map[string]*dynamodb.AttributeValue{
+					"Id": {
+						S: ptrString("123456789012"),
+					},
+					"AccountStatus": {
+						S: ptrString("NotReady"),
+					},
+				},
+			},
+			expAccounts: MakeAccounts(testAccounts),
+			expNextId: &account.NextID{
+				ID:            "123456789012",
+				AccountStatus: "NotReady",
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -123,22 +153,26 @@ func TestGetAccountsScan(t *testing.T) {
 			accountData := &Account{
 				DynamoDB:  &mockDynamo,
 				TableName: "Accounts",
-				Limit:     5,
+				Limit:     *tt.sInput.Limit,
 			}
 			accounts, err := accountData.List(tt.query)
 			assert.True(t, errors.Is(err, tt.expErr))
-			assert.Equal(t, tt.expAccounts, accounts)
+			assert.True(t, reflect.DeepEqual(tt.expAccounts, accounts))
+			assert.Equal(t, tt.expNextId, tt.query.NextID)
 		})
 	}
 
 }
 
 func TestGetAccountsQuery(t *testing.T) {
+	testAccounts := GetRandomStrings(20)
+
 	tests := []struct {
 		name        string
 		query       *account.Account
 		expAccounts *account.Accounts
 		expErr      error
+		expNextId   *account.NextID
 		qInput      *dynamodb.QueryInput
 		qOutputRec  *dynamodb.QueryOutput
 		qOutputErr  error
@@ -252,6 +286,43 @@ func TestGetAccountsQuery(t *testing.T) {
 			expAccounts: nil,
 			expErr:      errors.NewInternalServer("failed to query accounts", fmt.Errorf("failure")),
 		},
+		{
+			name: "query all accounts by status with pagination",
+			query: &account.Account{
+				Status: account.StatusNotReady.StatusPtr(),
+			},
+			qInput: &dynamodb.QueryInput{
+				ConsistentRead: aws.Bool(false),
+				TableName:      aws.String("Accounts"),
+				IndexName:      aws.String("AccountStatus"),
+				ExpressionAttributeNames: map[string]*string{
+					"#0": aws.String("AccountStatus"),
+				},
+				ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+					":0": {
+						S: aws.String("NotReady"),
+					},
+				},
+				KeyConditionExpression: aws.String("#0 = :0"),
+				Limit:                  aws.Int64(25),
+			},
+			qOutputRec: &dynamodb.QueryOutput{
+				Items: GetRandomAccounts(testAccounts),
+				LastEvaluatedKey: map[string]*dynamodb.AttributeValue{
+					"Id": {
+						S: ptrString("123456789012"),
+					},
+					"AccountStatus": {
+						S: ptrString("NotReady"),
+					},
+				},
+			},
+			expAccounts: MakeAccounts(testAccounts),
+			expNextId: &account.NextID{
+				ID:            "123456789012",
+				AccountStatus: "NotReady",
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -267,12 +338,59 @@ func TestGetAccountsQuery(t *testing.T) {
 			accountData := &Account{
 				DynamoDB:  &mockDynamo,
 				TableName: "Accounts",
-				Limit:     5,
+				Limit:     *tt.qInput.Limit,
 			}
 			accounts, err := accountData.List(tt.query)
 			assert.True(t, errors.Is(err, tt.expErr))
-			assert.Equal(t, tt.expAccounts, accounts)
+			assert.True(t, reflect.DeepEqual(tt.expAccounts, accounts))
+			assert.Equal(t, tt.expNextId, tt.query.NextID)
 		})
 	}
 
+}
+
+func GetRandomAccounts(accounts []string) []map[string]*dynamodb.AttributeValue {
+	var items []map[string]*dynamodb.AttributeValue
+
+	for _, account := range accounts {
+		item := map[string]*dynamodb.AttributeValue{
+			"Id": {
+				S: aws.String(account),
+			},
+		}
+
+		items = append(items, item)
+	}
+
+	return items
+}
+
+func GetRandomStrings(n int) []string {
+	accounts := make([]string, n)
+
+	for i := 0; i < n; i++ {
+		var letter = []rune("0123456789")
+
+		b := make([]rune, 12)
+		for i := range b {
+			b[i] = letter[rand.Intn(len(letter))]
+		}
+
+		accounts[i] = string(b)
+	}
+
+	return accounts
+}
+
+func MakeAccounts(accountSlice []string) *account.Accounts {
+	accounts := make(account.Accounts, len(accountSlice))
+
+	for i := 0; i < len(accountSlice); i++ {
+		accounts[i] = account.Account{
+			ID:                 &accountSlice[i],
+			PrincipalPolicyArn: arn.New("aws", "iam", "", accountSlice[i], "policy/DCEPrincipalDefaultPolicy"),
+		}
+	}
+
+	return &accounts
 }
