@@ -1,3 +1,8 @@
+## v0.33.1
+- Fix populate reset queue when dynamodb returns paginated result
+- Add account status to last evaluated key when querying account table using global secondary index
+- Fix gosec issue related to G601 (CWE-118): Implicit memory aliasing in for loop
+
 ## v0.33.0
 - Upgrade aws-nuke to v1.3.0 
 
