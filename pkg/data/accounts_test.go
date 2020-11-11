@@ -119,7 +119,7 @@ func TestGetAccountsScan(t *testing.T) {
 			sInput: &dynamodb.ScanInput{
 				ConsistentRead: aws.Bool(false),
 				TableName:      aws.String("Accounts"),
-				Limit:          aws.Int64(5),
+				Limit:          aws.Int64(25),
 			},
 			sOutputRec: &dynamodb.ScanOutput{
 				Items: GetRandomAccounts(testAccounts),
