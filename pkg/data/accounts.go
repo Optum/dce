@@ -1,7 +1,7 @@
 package data
 
 import (
-	"fmt"
+	"encoding/json"
 
 	"github.com/Optum/dce/pkg/account"
 	"github.com/Optum/dce/pkg/errors"
@@ -45,28 +45,16 @@ func (a *Account) queryAccounts(query *account.Account, keyName string, index st
 	}
 
 	queryInput.SetLimit(*query.Limit)
+
 	if query.NextID != nil {
-		attributeValues := make(map[string]*dynamodb.AttributeValue)
-
-		attributeValues["Id"] = &dynamodb.AttributeValue{
-			S: &query.NextID.ID,
-		}
-
-		attributeValues["AccountStatus"] = &dynamodb.AttributeValue{
-			S: &query.NextID.AccountStatus,
-		}
-
-		queryInput.SetExclusiveStartKey(attributeValues)
-
-		// Should be more dynamic
-		/*queryInput.SetExclusiveStartKey(map[string]*dynamodb.AttributeValue{
-			"Id": &dynamodb.AttributeValue{
+		queryInput.SetExclusiveStartKey(map[string]*dynamodb.AttributeValue{
+			"Id": &dynamodb.AttributeValue{ // partition key
 				S: query.NextID,
 			},
-			"AccountStatus": &dynamodb.AttributeValue{
-				S: aws.String(query.Status.String()),
+			"AccountStatus": &dynamodb.AttributeValue{ // global secondary index
+				S: query.NextAccountStatus,
 			},
-		})*/
+		})
 	}
 
 	res, err = a.DynamoDB.Query(queryInput)
@@ -106,27 +94,16 @@ func (a *Account) scanAccounts(query *account.Account) (*queryScanOutput, error)
 	}
 
 	scanInput.SetLimit(*query.Limit)
+
 	if query.NextID != nil {
-		attributeValues := make(map[string]*dynamodb.AttributeValue)
-
-		attributeValues["Id"] = &dynamodb.AttributeValue{
-			S: &query.NextID.ID,
-		}
-
-		attributeValues["AccountStatus"] = &dynamodb.AttributeValue{
-			S: &query.NextID.AccountStatus,
-		}
-
-		scanInput.SetExclusiveStartKey(attributeValues)
-		// Should be more dynamic
-		/*scanInput.SetExclusiveStartKey(map[string]*dynamodb.AttributeValue{
-			"Id": &dynamodb.AttributeValue{
+		scanInput.SetExclusiveStartKey(map[string]*dynamodb.AttributeValue{
+			"Id": &dynamodb.AttributeValue{ // partition key
 				S: query.NextID,
 			},
-			"AccountStatus": &dynamodb.AttributeValue{
-				S: aws.String(query.Status.String()),
+			"AccountStatus": &dynamodb.AttributeValue{ // global secondary index
+				S: query.NextAccountStatus,
 			},
-		})*/
+		})
 	}
 
 	res, err = a.DynamoDB.Scan(scanInput)
@@ -161,30 +138,25 @@ func (a *Account) List(query *account.Account) (*account.Accounts, error) {
 	}
 
 	if outputs.lastEvaluatedKey != nil {
-		query.NextID = &account.NextID{}
-		fmt.Printf("Last Evaluated key: %v\n", outputs.lastEvaluatedKey)
-		/*fmt.Printf("Last Evaluated key ID: %v\n", *outputs.lastEvaluatedKey["Id"])
-		fmt.Printf("Last Evaluated key AccountStatus: %v\n", *outputs.lastEvaluatedKey["AccountStatus"])*/
+		jsondata, err := json.Marshal(outputs.lastEvaluatedKey)
 
-		query.NextID = &account.NextID{}
-
-		if outputs.lastEvaluatedKey["Id"] != nil {
-			query.NextID.ID = *outputs.lastEvaluatedKey["Id"].S
-		}
-		if outputs.lastEvaluatedKey["AccountStatus"] != nil {
-			query.NextID.AccountStatus = *outputs.lastEvaluatedKey["AccountStatus"].S
+		if err != nil {
+			return nil, errors.NewInternalServer("failed marshaling of last evaluated key", err)
 		}
 
-		/*query.NextID = &account.NextID{
-			ID:            *outputs.lastEvaluatedKey["Id"].S,
-			AccountStatus: *outputs.lastEvaluatedKey["AccountStatus"].S,
-		}*/
-		//query.NextID.ID = *outputs.lastEvaluatedKey["Id"].S
-		//query.NextID.AccountStatus = *outputs.lastEvaluatedKey["AccountStatus"].S
-		fmt.Println("Has more pages")
+		nextID := account.LastEvaluatedKey{}
+
+		// set last evaluated key to next id for next query/scan
+		if err := json.Unmarshal(jsondata, &nextID); err != nil {
+			return nil, errors.NewInternalServer("failed unmarshaling of last evaluated key to next ID", err)
+		}
+
+		query.NextID = nextID.ID.S
+		query.NextAccountStatus = nextID.AccountStatus.S
 	} else {
+		// clear next id and account status if there is no more page
 		query.NextID = nil
-		fmt.Println("No more pages")
+		query.NextAccountStatus = nil
 	}
 
 	accounts := &account.Accounts{}

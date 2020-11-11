@@ -19,14 +19,14 @@ func TestGetAccountsScan(t *testing.T) {
 	testAccounts := GetRandomStrings(20)
 
 	tests := []struct {
-		name        string
-		query       *account.Account
-		expAccounts *account.Accounts
-		expErr      error
-		expNextId   *account.NextID
-		sOutputRec  *dynamodb.ScanOutput
-		sInput      *dynamodb.ScanInput
-		sOutputErr  error
+		name                string
+		query               *account.Account
+		expAccounts         *account.Accounts
+		expErr              error
+		expLastEvaluatedKey *account.LastEvaluatedKey
+		sOutputRec          *dynamodb.ScanOutput
+		sInput              *dynamodb.ScanInput
+		sOutputErr          error
 	}{
 		{
 			name:  "scan get all accounts but empty",
@@ -133,9 +133,13 @@ func TestGetAccountsScan(t *testing.T) {
 				},
 			},
 			expAccounts: MakeAccounts(testAccounts),
-			expNextId: &account.NextID{
-				ID:            "123456789012",
-				AccountStatus: "NotReady",
+			expLastEvaluatedKey: &account.LastEvaluatedKey{
+				ID: dynamodb.AttributeValue{
+					S: ptrString("123456789012"),
+				},
+				AccountStatus: dynamodb.AttributeValue{
+					S: ptrString("NotReady"),
+				},
 			},
 		},
 	}
@@ -158,7 +162,11 @@ func TestGetAccountsScan(t *testing.T) {
 			accounts, err := accountData.List(tt.query)
 			assert.True(t, errors.Is(err, tt.expErr))
 			assert.True(t, reflect.DeepEqual(tt.expAccounts, accounts))
-			assert.Equal(t, tt.expNextId, tt.query.NextID)
+
+			if tt.expLastEvaluatedKey != nil {
+				assert.Equal(t, tt.expLastEvaluatedKey.ID.S, tt.query.NextID)
+				assert.Equal(t, tt.expLastEvaluatedKey.AccountStatus.S, tt.query.NextAccountStatus)
+			}
 		})
 	}
 
@@ -168,14 +176,14 @@ func TestGetAccountsQuery(t *testing.T) {
 	testAccounts := GetRandomStrings(20)
 
 	tests := []struct {
-		name        string
-		query       *account.Account
-		expAccounts *account.Accounts
-		expErr      error
-		expNextId   *account.NextID
-		qInput      *dynamodb.QueryInput
-		qOutputRec  *dynamodb.QueryOutput
-		qOutputErr  error
+		name                string
+		query               *account.Account
+		expAccounts         *account.Accounts
+		expErr              error
+		expLastEvaluatedKey *account.LastEvaluatedKey
+		qInput              *dynamodb.QueryInput
+		qOutputRec          *dynamodb.QueryOutput
+		qOutputErr          error
 	}{
 		{
 			name: "query all accounts by status",
@@ -318,9 +326,13 @@ func TestGetAccountsQuery(t *testing.T) {
 				},
 			},
 			expAccounts: MakeAccounts(testAccounts),
-			expNextId: &account.NextID{
-				ID:            "123456789012",
-				AccountStatus: "NotReady",
+			expLastEvaluatedKey: &account.LastEvaluatedKey{
+				ID: dynamodb.AttributeValue{
+					S: ptrString("123456789012"),
+				},
+				AccountStatus: dynamodb.AttributeValue{
+					S: ptrString("NotReady"),
+				},
 			},
 		},
 	}
@@ -343,7 +355,11 @@ func TestGetAccountsQuery(t *testing.T) {
 			accounts, err := accountData.List(tt.query)
 			assert.True(t, errors.Is(err, tt.expErr))
 			assert.True(t, reflect.DeepEqual(tt.expAccounts, accounts))
-			assert.Equal(t, tt.expNextId, tt.query.NextID)
+
+			if tt.expLastEvaluatedKey != nil {
+				assert.Equal(t, tt.expLastEvaluatedKey.ID.S, tt.query.NextID)
+				assert.Equal(t, tt.expLastEvaluatedKey.AccountStatus.S, tt.query.NextAccountStatus)
+			}
 		})
 	}
 

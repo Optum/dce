@@ -25,12 +25,13 @@ func ptrString(s string) *string {
 // provided into the reset queue and transition the finance lock if necessary
 func TestPopulateResetQeue(t *testing.T) {
 	tests := []struct {
-		name         string
-		expErr       error
-		listAccounts *account.Accounts
-		listErr      error
-		alertErr     error
-		nextID       *account.NextID
+		name              string
+		expErr            error
+		listAccounts      *account.Accounts
+		listErr           error
+		alertErr          error
+		nextId            *string
+		nextAccountStatus *string
 	}{
 		{
 			name: "should send accounts to reset queue",
@@ -54,11 +55,9 @@ func TestPopulateResetQeue(t *testing.T) {
 					PrincipalRoleArn: arn.New("aws", "iam", "", "123456789012", "role/AdminRole"),
 				},
 			},
-			nextID: &account.NextID{
-				ID:            "123456789013",
-				AccountStatus: "NotReady",
-			},
-			listErr: nil,
+			nextId:            ptrString("123456789013"),
+			nextAccountStatus: ptrString("NotReady"),
+			listErr:           nil,
 		},
 		{
 			name: "should fail on list err",
@@ -96,23 +95,22 @@ func TestPopulateResetQeue(t *testing.T) {
 			svcBldr := &config.ServiceBuilder{Config: cfgBldr}
 
 			mocksRwd := &mocks.ReaderWriterDeleter{}
+
 			mocksRwd.On("List", mock.MatchedBy(func(input *account.Account) bool {
 				if input.Status.String() == "NotReady" {
 					if input.NextID == nil {
-						input.NextID = tt.nextID
+						input.NextID = tt.nextId
+						input.NextAccountStatus = tt.nextAccountStatus
 						return true
 					}
 				}
 				return false
 			})).Return(tt.listAccounts, tt.listErr)
+
 			mocksRwd.On("List", mock.MatchedBy(func(input *account.Account) bool {
 				if input.Status.String() == "NotReady" {
-					if input.NextID == nil || tt.nextID == nil {
-						return false
-					}
-
-					if (input.NextID.ID == tt.nextID.ID) &&
-						(input.NextID.AccountStatus == tt.nextID.AccountStatus) {
+					if (input.NextID == tt.nextId) &&
+						(input.NextAccountStatus == tt.nextAccountStatus) {
 						input.NextID = nil
 						return true
 					}

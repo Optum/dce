@@ -45,7 +45,8 @@ type Account struct {
 	PrincipalPolicyHash *string                `json:"principalPolicyHash,omitempty" dynamodbav:"PrincipalPolicyHash,omitempty" schema:"principalPolicyHash,omitempty"` // The the hash of the policy version deployed
 	Metadata            map[string]interface{} `json:"metadata,omitempty"  dynamodbav:"Metadata,omitempty" schema:"-"`                                                  // Any org specific metadata pertaining to the account
 	Limit               *int64                 `json:"-" dynamodbav:"-" schema:"limit,omitempty"`
-	NextID              *NextID                `json:"-" dynamodbav:"-" schema:"nextId,omitempty"`
+	NextID              *string                `json:"-" dynamodbav:"-" schema:"nextId,omitempty"`
+	NextAccountStatus   *string                `json:"-" dynamodbav:"-" schema:"nextAccountStatus,omitempty"`
 	PrincipalPolicyArn  *arn.ARN               `json:"-" dynamodbav:"-" schema:"-"`
 }
 
@@ -149,9 +150,9 @@ type Accounts []Account
 // Status is an account status type
 type Status string
 
-type NextID struct {
-	ID            string
-	AccountStatus string
+type LastEvaluatedKey struct {
+	ID            dynamodb.AttributeValue
+	AccountStatus dynamodb.AttributeValue
 }
 
 const (
