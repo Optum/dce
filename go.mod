@@ -50,4 +50,4 @@ require (
 	gopkg.in/yaml.v2 v2.3.0
 )
 
-replace github.com/rebuy-de/aws-nuke => github.com/Optum/aws-nuke v1.1.0
+replace github.com/rebuy-de/aws-nuke => github.com/Optum/aws-nuke v1.3.0
