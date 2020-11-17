@@ -149,6 +149,11 @@ type Accounts []Account
 // Status is an account status type
 type Status string
 
+type LastEvaluatedKey struct {
+	ID            dynamodb.AttributeValue
+	AccountStatus dynamodb.AttributeValue
+}
+
 const (
 	// StatusNone status
 	StatusNone Status = "None"

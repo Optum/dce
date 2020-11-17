@@ -2,12 +2,13 @@ package main
 
 import (
 	"fmt"
+	"log"
+
 	errors2 "github.com/Optum/dce/pkg/errors"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/pkg/errors"
-	"log"
 )
 
 /*
@@ -63,9 +64,11 @@ func migrate(input *migrateInput) error {
 
 		// Create records in the new table
 		var deferredErrors []error
+		t := dstTableName
+
 		for i, item := range scanRes.Items {
 			_, err = input.db.PutItem(&dynamodb.PutItemInput{
-				TableName: &dstTableName,
+				TableName: &t,
 				Item:      item,
 			})
 			if err != nil {
