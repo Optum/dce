@@ -10,7 +10,6 @@ import (
 	"github.com/Optum/dce/pkg/account"
 	"github.com/Optum/dce/pkg/account/accountiface/mocks"
 	"github.com/Optum/dce/pkg/config"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/gorilla/schema"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -23,13 +22,14 @@ func TestGetAccounts(t *testing.T) {
 		Body       string
 	}
 	tests := []struct {
-		name             string
-		expResp          response
-		expLink          string
-		query            *account.Account
-		retAccounts      *account.Accounts
-		retErr           error
-		lastEvaluatedKey *account.LastEvaluatedKey
+		name        string
+		expResp     response
+		expLink     string
+		query       *account.Account
+		retAccounts *account.Accounts
+		retErr      error
+		nextID      *string
+		status      *account.Status
 	}{
 		{
 			name:  "get all accounts",
@@ -53,15 +53,9 @@ func TestGetAccounts(t *testing.T) {
 					ID: ptrString("123456789012"),
 				},
 			},
-			lastEvaluatedKey: &account.LastEvaluatedKey{
-				ID: dynamodb.AttributeValue{
-					S: ptrString("234567890123"),
-				},
-				AccountStatus: dynamodb.AttributeValue{
-					S: ptrString("NotReady"),
-				},
-			},
-			expLink: "<https://example.com/unit/accounts?limit=1&nextAccountStatus=NotReady&nextId=234567890123>; rel=\"next\"",
+			nextID:  ptrString("234567890123"),
+			status:  account.StatusNotReady.StatusPtr(),
+			expLink: "<https://example.com/unit/accounts?limit=1&nextId=234567890123&status=NotReady>; rel=\"next\"",
 			retErr:  nil,
 		},
 		{
@@ -101,9 +95,9 @@ func TestGetAccounts(t *testing.T) {
 			accountSvc := mocks.Servicer{}
 			accountSvc.On("List", mock.MatchedBy(func(input *account.Account) bool {
 				if (input.ID != nil && tt.query.ID != nil && *input.ID == *tt.query.ID) || input.ID == tt.query.ID {
-					if tt.lastEvaluatedKey != nil {
-						input.NextID = tt.lastEvaluatedKey.ID.S
-						input.NextAccountStatus = tt.lastEvaluatedKey.AccountStatus.S
+					if tt.nextID != nil {
+						input.NextID = tt.nextID
+						input.Status = tt.status
 
 						input.Limit = ptr64(1)
 					}

@@ -25,13 +25,13 @@ func ptrString(s string) *string {
 // provided into the reset queue and transition the finance lock if necessary
 func TestPopulateResetQeue(t *testing.T) {
 	tests := []struct {
-		name              string
-		expErr            error
-		listAccounts      *account.Accounts
-		listErr           error
-		alertErr          error
-		nextId            *string
-		nextAccountStatus *string
+		name         string
+		expErr       error
+		listAccounts *account.Accounts
+		listErr      error
+		alertErr     error
+		nextId       *string
+		status       *account.Status
 	}{
 		{
 			name: "should send accounts to reset queue",
@@ -55,9 +55,9 @@ func TestPopulateResetQeue(t *testing.T) {
 					PrincipalRoleArn: arn.New("aws", "iam", "", "123456789012", "role/AdminRole"),
 				},
 			},
-			nextId:            ptrString("123456789013"),
-			nextAccountStatus: ptrString("NotReady"),
-			listErr:           nil,
+			nextId:  ptrString("123456789013"),
+			status:  account.StatusNotReady.StatusPtr(),
+			listErr: nil,
 		},
 		{
 			name: "should fail on list err",
@@ -100,7 +100,8 @@ func TestPopulateResetQeue(t *testing.T) {
 				if input.Status.String() == "NotReady" {
 					if input.NextID == nil {
 						input.NextID = tt.nextId
-						input.NextAccountStatus = tt.nextAccountStatus
+						input.Status = tt.status
+
 						return true
 					}
 				}
@@ -109,8 +110,7 @@ func TestPopulateResetQeue(t *testing.T) {
 
 			mocksRwd.On("List", mock.MatchedBy(func(input *account.Account) bool {
 				if input.Status.String() == "NotReady" {
-					if (input.NextID == tt.nextId) &&
-						(input.NextAccountStatus == tt.nextAccountStatus) {
+					if input.NextID == tt.nextId {
 						input.NextID = nil
 						return true
 					}

@@ -46,13 +46,14 @@ func (a *Account) queryAccounts(query *account.Account, keyName string, index st
 
 	queryInput.SetLimit(*query.Limit)
 
-	if query.NextID != nil {
+	if query.NextID != nil && query.Status != nil {
+		// Should be more dynamic
 		queryInput.SetExclusiveStartKey(map[string]*dynamodb.AttributeValue{
-			"Id": &dynamodb.AttributeValue{ // partition key
+			"Id": &dynamodb.AttributeValue{
 				S: query.NextID,
 			},
-			"AccountStatus": &dynamodb.AttributeValue{ // global secondary index
-				S: query.NextAccountStatus,
+			"AccountStatus": &dynamodb.AttributeValue{
+				S: query.Status.StringPtr(),
 			},
 		})
 	}
@@ -96,12 +97,10 @@ func (a *Account) scanAccounts(query *account.Account) (*queryScanOutput, error)
 	scanInput.SetLimit(*query.Limit)
 
 	if query.NextID != nil {
+		// Should be more dynamic
 		scanInput.SetExclusiveStartKey(map[string]*dynamodb.AttributeValue{
-			"Id": &dynamodb.AttributeValue{ // partition key
+			"Id": &dynamodb.AttributeValue{
 				S: query.NextID,
-			},
-			"AccountStatus": &dynamodb.AttributeValue{ // global secondary index
-				S: query.NextAccountStatus,
 			},
 		})
 	}
@@ -144,19 +143,17 @@ func (a *Account) List(query *account.Account) (*account.Accounts, error) {
 			return nil, errors.NewInternalServer("failed marshaling of last evaluated key", err)
 		}
 
-		nextID := account.LastEvaluatedKey{}
+		lastEvaluatedKey := account.LastEvaluatedKey{}
 
 		// set last evaluated key to next id for next query/scan
-		if err := json.Unmarshal(jsondata, &nextID); err != nil {
+		if err := json.Unmarshal(jsondata, &lastEvaluatedKey); err != nil {
 			return nil, errors.NewInternalServer("failed unmarshaling of last evaluated key to next ID", err)
 		}
 
-		query.NextID = nextID.ID.S
-		query.NextAccountStatus = nextID.AccountStatus.S
+		query.NextID = lastEvaluatedKey.ID.S
 	} else {
 		// clear next id and account status if there is no more page
 		query.NextID = nil
-		query.NextAccountStatus = nil
 	}
 
 	accounts := &account.Accounts{}

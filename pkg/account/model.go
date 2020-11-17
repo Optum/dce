@@ -46,7 +46,6 @@ type Account struct {
 	Metadata            map[string]interface{} `json:"metadata,omitempty"  dynamodbav:"Metadata,omitempty" schema:"-"`                                                  // Any org specific metadata pertaining to the account
 	Limit               *int64                 `json:"-" dynamodbav:"-" schema:"limit,omitempty"`
 	NextID              *string                `json:"-" dynamodbav:"-" schema:"nextId,omitempty"`
-	NextAccountStatus   *string                `json:"-" dynamodbav:"-" schema:"nextAccountStatus,omitempty"`
 	PrincipalPolicyArn  *arn.ARN               `json:"-" dynamodbav:"-" schema:"-"`
 }
 
