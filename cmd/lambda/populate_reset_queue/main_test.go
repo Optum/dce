@@ -30,7 +30,8 @@ func TestPopulateResetQeue(t *testing.T) {
 		listAccounts *account.Accounts
 		listErr      error
 		alertErr     error
-		nextID       *string
+		nextId       *string
+		status       *account.Status
 	}{
 		{
 			name: "should send accounts to reset queue",
@@ -54,7 +55,8 @@ func TestPopulateResetQeue(t *testing.T) {
 					PrincipalRoleArn: arn.New("aws", "iam", "", "123456789012", "role/AdminRole"),
 				},
 			},
-			nextID:  ptrString("123456789013"),
+			nextId:  ptrString("123456789013"),
+			status:  account.StatusNotReady.StatusPtr(),
 			listErr: nil,
 		},
 		{
@@ -93,18 +95,22 @@ func TestPopulateResetQeue(t *testing.T) {
 			svcBldr := &config.ServiceBuilder{Config: cfgBldr}
 
 			mocksRwd := &mocks.ReaderWriterDeleter{}
+
 			mocksRwd.On("List", mock.MatchedBy(func(input *account.Account) bool {
 				if input.Status.String() == "NotReady" {
 					if input.NextID == nil {
-						input.NextID = tt.nextID
+						input.NextID = tt.nextId
+						input.Status = tt.status
+
 						return true
 					}
 				}
 				return false
 			})).Return(tt.listAccounts, tt.listErr)
+
 			mocksRwd.On("List", mock.MatchedBy(func(input *account.Account) bool {
 				if input.Status.String() == "NotReady" {
-					if input.NextID == tt.nextID {
+					if input.NextID == tt.nextId {
 						input.NextID = nil
 						return true
 					}

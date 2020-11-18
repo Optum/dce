@@ -66,8 +66,9 @@ func Handler(cloudWatchEvent events.CloudWatchEvent) error {
 		func(accts *account.Accounts) bool {
 
 			for _, acct := range *accts {
+				a := acct
 				// Send Message
-				err := api.AccountReset(&acct)
+				err := api.AccountReset(&a)
 				if err != nil {
 					errs = append(errs, err)
 				}

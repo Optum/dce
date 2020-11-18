@@ -29,6 +29,7 @@ func TestGetAccounts(t *testing.T) {
 		retAccounts *account.Accounts
 		retErr      error
 		nextID      *string
+		status      *account.Status
 	}{
 		{
 			name:  "get all accounts",
@@ -53,7 +54,8 @@ func TestGetAccounts(t *testing.T) {
 				},
 			},
 			nextID:  ptrString("234567890123"),
-			expLink: "<https://example.com/unit/accounts?limit=1&nextId=234567890123>; rel=\"next\"",
+			status:  account.StatusNotReady.StatusPtr(),
+			expLink: "<https://example.com/unit/accounts?limit=1&nextId=234567890123&status=NotReady>; rel=\"next\"",
 			retErr:  nil,
 		},
 		{
@@ -81,6 +83,7 @@ func TestGetAccounts(t *testing.T) {
 
 			values := url.Values{}
 			err := schema.NewEncoder().Encode(tt.query, values)
+
 			assert.Nil(t, err)
 
 			r.URL.RawQuery = values.Encode()
@@ -94,6 +97,8 @@ func TestGetAccounts(t *testing.T) {
 				if (input.ID != nil && tt.query.ID != nil && *input.ID == *tt.query.ID) || input.ID == tt.query.ID {
 					if tt.nextID != nil {
 						input.NextID = tt.nextID
+						input.Status = tt.status
+
 						input.Limit = ptr64(1)
 					}
 					return true

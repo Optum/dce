@@ -1,6 +1,8 @@
 package data
 
 import (
+	"encoding/json"
+
 	"github.com/Optum/dce/pkg/account"
 	"github.com/Optum/dce/pkg/errors"
 	"github.com/aws/aws-sdk-go/aws"
@@ -43,11 +45,15 @@ func (a *Account) queryAccounts(query *account.Account, keyName string, index st
 	}
 
 	queryInput.SetLimit(*query.Limit)
-	if query.NextID != nil {
+
+	if query.NextID != nil && query.Status != nil {
 		// Should be more dynamic
 		queryInput.SetExclusiveStartKey(map[string]*dynamodb.AttributeValue{
 			"Id": &dynamodb.AttributeValue{
 				S: query.NextID,
+			},
+			"AccountStatus": &dynamodb.AttributeValue{
+				S: query.Status.StringPtr(),
 			},
 		})
 	}
@@ -89,6 +95,7 @@ func (a *Account) scanAccounts(query *account.Account) (*queryScanOutput, error)
 	}
 
 	scanInput.SetLimit(*query.Limit)
+
 	if query.NextID != nil {
 		// Should be more dynamic
 		scanInput.SetExclusiveStartKey(map[string]*dynamodb.AttributeValue{
@@ -129,9 +136,24 @@ func (a *Account) List(query *account.Account) (*account.Accounts, error) {
 		return nil, err
 	}
 
-	query.NextID = nil
-	for _, v := range outputs.lastEvaluatedKey {
-		query.NextID = v.S
+	if outputs.lastEvaluatedKey != nil {
+		jsondata, err := json.Marshal(outputs.lastEvaluatedKey)
+
+		if err != nil {
+			return nil, errors.NewInternalServer("failed marshaling of last evaluated key", err)
+		}
+
+		lastEvaluatedKey := account.LastEvaluatedKey{}
+
+		// set last evaluated key to next id for next query/scan
+		if err := json.Unmarshal(jsondata, &lastEvaluatedKey); err != nil {
+			return nil, errors.NewInternalServer("failed unmarshaling of last evaluated key to next ID", err)
+		}
+
+		query.NextID = lastEvaluatedKey.ID.S
+	} else {
+		// clear next id and account status if there is no more page
+		query.NextID = nil
 	}
 
 	accounts := &account.Accounts{}

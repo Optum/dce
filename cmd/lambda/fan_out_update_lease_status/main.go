@@ -68,7 +68,8 @@ func handler(cloudWatchEvent events.CloudWatchEvent) error {
 	err = services.LeaseService().ListPages(query,
 		func(leases *lease.Leases) bool {
 			for _, ls := range *leases {
-				leaseJSON, err := json.Marshal(&ls)
+				l := ls
+				leaseJSON, err := json.Marshal(&l)
 				// save any errors to handle later
 				if err != nil {
 					errs = append(errs, err)
