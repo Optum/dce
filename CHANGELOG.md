@@ -1,3 +1,13 @@
+## v0.33.2
+- Add to the principal IAM policy:
+  - apigatewayv2
+  - comprehend
+  - globalaccelerator
+  - imagebuilder
+  - lex
+  - transfer
+  - wafv2
+
 ## v0.33.1
 - Fix populate reset queue when dynamodb returns paginated result
 - Add account status to last evaluated key when querying account table using global secondary index
