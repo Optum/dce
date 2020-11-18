@@ -4,7 +4,6 @@ go 1.15
 
 require (
 	github.com/360EntSecGroup-Skylar/excelize v1.4.1
-	github.com/AlekSi/gocov-xml v0.0.0-20190121064608-3a14fb1c4737 // indirect
 	github.com/Bowery/prompt v0.0.0-20190419144237-972d0ceb96f5 // indirect
 	github.com/Joker/jade v1.0.0 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20200907205600-7a23bdc65eef // indirect
@@ -12,7 +11,6 @@ require (
 	github.com/aws/aws-lambda-go v1.19.1
 	github.com/aws/aws-sdk-go v1.34.20
 	github.com/awslabs/aws-lambda-go-api-proxy v0.8.0
-	github.com/axw/gocov v1.0.0 // indirect
 	github.com/caarlos0/env v3.5.0+incompatible
 	github.com/dchest/safefile v0.0.0-20151022103144-855e8d98f185 // indirect
 	github.com/flosch/pongo2 v0.0.0-20190707114632-bbf5a6c351f4 // indirect
