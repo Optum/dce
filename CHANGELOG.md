@@ -1,3 +1,7 @@
+## v0.33.3
+- Remove apigatewayv2 from the principal IAM policy. 
+- Update to the principal IAM policy name lex-models.
+
 ## v0.33.2
 - Add to the principal IAM policy:
   - apigatewayv2
