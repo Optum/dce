@@ -1,3 +1,7 @@
+## v0.33.4
+- Upgrade aws provider to v2.65.0 to fix SES configuration set. [terraform-provider-aws #12024](https://github.com/hashicorp/terraform-provider-aws/pull/12024)
+- Add firewall manager to principal IAM policy.
+
 ## v0.33.3
 - Remove apigatewayv2 from the principal IAM policy. 
 - Update to the principal IAM policy name lex-models.
