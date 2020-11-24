@@ -1,3 +1,6 @@
+## vNext
+- test keyrotation
+
 ## v0.33.4
 - Upgrade aws provider to v2.65.0 to fix SES configuration set. [terraform-provider-aws #12024](https://github.com/hashicorp/terraform-provider-aws/pull/12024)
 - Add firewall manager to principal IAM policy.
