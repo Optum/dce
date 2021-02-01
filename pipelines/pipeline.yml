@@ -152,7 +152,7 @@ stages:
                 - task: AWSShellScript@1
                   displayName: "Lease DCE Account"
                   inputs:
-                    awsCredentials: "AWS_DCE_API_NONPROD"
+                    awsCredentials: "AWS_DCE_API_ADMIN_NONPROD"
                     regionName: "us-east-1"
                     scriptType: "inline"
                     inlineScript: |
@@ -311,7 +311,7 @@ stages:
                 - task: AWSShellScript@1
                   displayName: "DCE Lease Login"
                   inputs:
-                    awsCredentials: "AWS_DCE_API_NONPROD"
+                    awsCredentials: "AWS_DCE_API_ADMIN_NONPROD"
                     regionName: "us-east-1"
                     scriptType: "inline"
                     inlineScript: |
@@ -344,7 +344,7 @@ stages:
                 - task: AWSShellScript@1
                   displayName: "DCE Lease End"
                   inputs:
-                    awsCredentials: "AWS_DCE_API_NONPROD"
+                    awsCredentials: "AWS_DCE_API_ADMIN_NONPROD"
                     regionName: "us-east-1"
                     scriptType: "inline"
                     inlineScript: |
