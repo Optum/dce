@@ -109,6 +109,7 @@ Implementing DCE in an AWS Organization provides the ability to use SCPs, which 
                 "kinesisanalytics:*",
                 "kinesisvideo:*",
                 "kms:*",
+                "lakeformation:*",
                 "lambda:*",
                 "lex:*",
                 "lightsail:*",
