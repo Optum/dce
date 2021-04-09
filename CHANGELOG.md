@@ -1,4 +1,5 @@
 ## vNext
+- Add LakeFormation support
 - rename pipeline credentials inputs
 
 ## v0.33.4
