@@ -31,7 +31,7 @@ stages:
             displayName: "Install Terraform"
 
           # Install GO
-          - task: GoTool@0
+          - task: Go@0
             inputs:
               version: "1.13.5"
             displayName: "Set up the Go workspace"
