@@ -1,5 +1,7 @@
-## vNext
-- Add LakeFormation support
+## v0.33.6
+- Add LakeFormation to the principal IAM policy.
+
+## v0.33.5
 - rename pipeline credentials inputs
 
 ## v0.33.4
