@@ -33,7 +33,7 @@ stages:
           # Install GO
           - task: GoTool@0
             inputs:
-              version: "1.13.4"
+              version: "1.13.5"
             displayName: "Set up the Go workspace"
 
           # Install tools needed for CI environment
