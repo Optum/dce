@@ -31,9 +31,9 @@ stages:
             displayName: "Install Terraform"
 
           # Install GO
-          - task: Go@0
+          - task: GoTool@0
             inputs:
-              version: "1.13.5"
+              version: "1.14"
             displayName: "Set up the Go workspace"
 
           # Install tools needed for CI environment
