@@ -3102,3 +3102,107 @@ func (_m *DynamoDBAPI) UpdateTableReplicaAutoScalingWithContext(aws.Context, *dy
 func (_m *DynamoDBAPI) UpdateTableReplicaAutoScalingRequest(*dynamodb.UpdateTableReplicaAutoScalingInput) (req *request.Request, output *dynamodb.UpdateTableReplicaAutoScalingOutput) {
 	panic("DynamoDBAPI::UpdateTableReplicaAutoScalingRequest - Not implemented")
 }
+
+func (_m *DynamoDBAPI) BatchExecuteStatement(*dynamodb.BatchExecuteStatementInput) (*dynamodb.BatchExecuteStatementOutput, error) {
+	panic("DynamoDBAPI::BatchExecuteStatement - Not implemented")
+}
+
+func (_m *DynamoDBAPI) BatchExecuteStatementWithContext(aws.Context, *dynamodb.BatchExecuteStatementInput, ...request.Option) (*dynamodb.BatchExecuteStatementOutput, error) {
+	panic("DynamoDBAPI::BatchExecuteStatementWithContext - Not implemented")
+}
+
+func (_m *DynamoDBAPI) BatchExecuteStatementRequest(*dynamodb.BatchExecuteStatementInput) (req *request.Request, output *dynamodb.BatchExecuteStatementOutput) {
+	panic("DynamoDBAPI::BatchExecuteStatementRequest - Not implemented")
+}
+
+func (_m *DynamoDBAPI) DescribeExport(*dynamodb.DescribeExportInput) (*dynamodb.DescribeExportOutput, error) {
+	panic("DynamoDBAPI::DescribeExport - Not implemented")
+}
+
+func (_m *DynamoDBAPI) DescribeExportWithContext(aws.Context, *dynamodb.DescribeExportInput, ...request.Option) (*dynamodb.DescribeExportOutput, error) {
+	panic("DynamoDBAPI::DescribeExportWithContext - Not implemented")
+}
+
+func (_m *DynamoDBAPI) DescribeExportRequest(*dynamodb.DescribeExportInput) (req *request.Request, output *dynamodb.DescribeExportOutput) {
+	panic("DynamoDBAPI::DescribeExportRequest - Not implemented")
+}
+
+func (_m *DynamoDBAPI) DescribeKinesisStreamingDestination(*dynamodb.DescribeKinesisStreamingDestinationInput) (*dynamodb.DescribeKinesisStreamingDestinationOutput, error) {
+	panic("DynamoDBAPI::DescribeKinesisStreamingDestination - Not implemented")
+}
+
+func (_m *DynamoDBAPI) DescribeKinesisStreamingDestinationWithContext(aws.Context, *dynamodb.DescribeKinesisStreamingDestinationInput, ...request.Option) (*dynamodb.DescribeKinesisStreamingDestinationOutput, error) {
+	panic("DynamoDBAPI::DescribeKinesisStreamingDestinationWithContext - Not implemented")
+}
+
+func (_m *DynamoDBAPI) DescribeKinesisStreamingDestinationRequest(*dynamodb.DescribeKinesisStreamingDestinationInput) (req *request.Request, output *dynamodb.DescribeKinesisStreamingDestinationOutput) {
+	panic("DynamoDBAPI::DescribeKinesisStreamingDestinationRequest - Not implemented")
+}
+
+func (_m *DynamoDBAPI) DisableKinesisStreamingDestination(*dynamodb.DisableKinesisStreamingDestinationInput) (*dynamodb.DisableKinesisStreamingDestinationOutput, error) {
+	panic("DynamoDBAPI::DisableKinesisStreamingDestination - Not implemented")
+}
+
+func (_m *DynamoDBAPI) DisableKinesisStreamingDestinationWithContext(aws.Context, *dynamodb.DisableKinesisStreamingDestinationInput, ...request.Option) (*dynamodb.DisableKinesisStreamingDestinationOutput, error) {
+	panic("DynamoDBAPI::DisableKinesisStreamingDestinationWithContext - Not implemented")
+}
+
+func (_m *DynamoDBAPI) DisableKinesisStreamingDestinationRequest(*dynamodb.DisableKinesisStreamingDestinationInput) (req *request.Request, output *dynamodb.DisableKinesisStreamingDestinationOutput) {
+	panic("DynamoDBAPI::DisableKinesisStreamingDestinationRequest - Not implemented")
+}
+
+func (_m *DynamoDBAPI) EnableKinesisStreamingDestination(*dynamodb.EnableKinesisStreamingDestinationInput) (*dynamodb.EnableKinesisStreamingDestinationOutput, error) {
+	panic("DynamoDBAPI::EnableKinesisStreamingDestination - Not implemented")
+}
+
+func (_m *DynamoDBAPI) EnableKinesisStreamingDestinationWithContext(aws.Context, *dynamodb.EnableKinesisStreamingDestinationInput, ...request.Option) (*dynamodb.EnableKinesisStreamingDestinationOutput, error) {
+	panic("DynamoDBAPI::EnableKinesisStreamingDestinationWithContext - Not implemented")
+}
+
+func (_m *DynamoDBAPI) EnableKinesisStreamingDestinationRequest(*dynamodb.EnableKinesisStreamingDestinationInput) (req *request.Request, output *dynamodb.EnableKinesisStreamingDestinationOutput) {
+	panic("DynamoDBAPI::EnableKinesisStreamingDestinationRequest - Not implemented")
+}
+
+func (_m *DynamoDBAPI) ExecuteStatement(*dynamodb.ExecuteStatementInput) (*dynamodb.ExecuteStatementOutput, error) {
+	panic("DynamoDBAPI::ExecuteStatement - Not implemented")
+}
+
+func (_m *DynamoDBAPI) ExecuteStatementWithContext(aws.Context, *dynamodb.ExecuteStatementInput, ...request.Option) (*dynamodb.ExecuteStatementOutput, error) {
+	panic("DynamoDBAPI::ExecuteStatementWithContext - Not implemented")
+}
+
+func (_m *DynamoDBAPI) ExecuteStatementRequest(*dynamodb.ExecuteStatementInput) (req *request.Request, output *dynamodb.ExecuteStatementOutput) {
+	panic("DynamoDBAPI::ExecuteStatementRequest - Not implemented")
+}
+
+func (_m *DynamoDBAPI) ExecuteTransaction(*dynamodb.ExecuteTransactionInput) (*dynamodb.ExecuteTransactionOutput, error) {
+	panic("DynamoDBAPI::ExecuteTransaction - Not implemented")
+}
+
+func (_m *DynamoDBAPI) ExecuteTransactionWithContext(aws.Context, *dynamodb.ExecuteTransactionInput, ...request.Option) (*dynamodb.ExecuteTransactionOutput, error) {
+	panic("DynamoDBAPI::ExecuteTransactionWithContext - Not implemented")
+}
+
+func (_m *DynamoDBAPI) ExecuteTransactionRequest(*dynamodb.ExecuteTransactionInput) (req *request.Request, output *dynamodb.ExecuteTransactionOutput) {
+	panic("DynamoDBAPI::ExecuteTransactionRequest - Not implemented")
+}
+
+func (_m *DynamoDBAPI) ExportTableToPointInTime(*dynamodb.ExportTableToPointInTimeInput) (*dynamodb.ExportTableToPointInTimeOutput, error) {
+	panic("DynamoDBAPI::ExportTableToPointInTime - Not implemented")
+}
+
+func (_m *DynamoDBAPI) ExportTableToPointInTimeWithContext(aws.Context, *dynamodb.ExportTableToPointInTimeInput, ...request.Option) (*dynamodb.ExportTableToPointInTimeOutput, error) {
+	panic("DynamoDBAPI::ExportTableToPointInTimeWithContext - Not implemented")
+}
+
+func (_m *DynamoDBAPI) ExportTableToPointInTimeRequest(*dynamodb.ExportTableToPointInTimeInput) (req *request.Request, output *dynamodb.ExportTableToPointInTimeOutput) {
+	panic("DynamoDBAPI::ExportTableToPointInTimeRequest - Not implemented")
+}
+
+func (_m *DynamoDBAPI) ListExports(*dynamodb.ListExportsInput) (*dynamodb.ListExportsOutput, error) {
+	panic("DynamoDBAPI::ListExports - Not implemented")
+}
+
+func (_m *DynamoDBAPI) ListExportsPages(interface{}) error {
+	panic("DynamoDBAPI::ListExportsPages - Not implemented")
+}
