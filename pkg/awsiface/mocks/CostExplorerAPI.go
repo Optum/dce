@@ -1245,3 +1245,113 @@ func (_m *CostExplorerAPI) UpdateCostCategoryDefinitionRequest(input *costexplor
 func (_m *CostExplorerAPI) UpdateCostCategoryDefinitionWithContext(ctx aws.Context, input *costexplorer.UpdateCostCategoryDefinitionInput, opts ...request.Option) (*costexplorer.UpdateCostCategoryDefinitionOutput, error) {
 	panic("CostExplorerAPI::UpdateCostCategoryDefinitionWithContext - Not implemented")
 }
+
+func (_m *CostExplorerAPI) CreateAnomalyMonitor(input *costexplorer.CreateAnomalyMonitorInput) (*costexplorer.CreateAnomalyMonitorOutput, error) {
+	panic("CostExplorerAPI::CreateAnomalyMonitor - Not implemented")
+}
+func (c *CostExplorerAPI) CreateAnomalyMonitorRequest(input *costexplorer.CreateAnomalyMonitorInput) (req *request.Request, output *costexplorer.CreateAnomalyMonitorOutput) {
+	panic("CostExplorerAPI::CreateAnomalyMonitorRequest - Not implemented")
+}
+func (c *CostExplorerAPI) CreateAnomalyMonitorWithContext(ctx aws.Context, input *costexplorer.CreateAnomalyMonitorInput, opts ...request.Option) (*costexplorer.CreateAnomalyMonitorOutput, error) {
+	panic("CostExplorerAPI::CreateAnomalyMonitorWithContext - Not implemented")
+}
+
+func (c *CostExplorerAPI) CreateAnomalySubscription(input *costexplorer.CreateAnomalySubscriptionInput) (*costexplorer.CreateAnomalySubscriptionOutput, error) {
+	panic("CostExplorerAPI::CreateAnomalySubscription - Not implemented")
+}
+func (c *CostExplorerAPI) CreateAnomalySubscriptionRequest(input *costexplorer.CreateAnomalySubscriptionInput) (req *request.Request, output *costexplorer.CreateAnomalySubscriptionOutput) {
+	panic("CostExplorerAPI::CreateAnomalySubscriptionRequest - Not implemented")
+}
+func (c *CostExplorerAPI) CreateAnomalySubscriptionWithContext(ctx aws.Context, input *costexplorer.CreateAnomalySubscriptionInput, opts ...request.Option) (*costexplorer.CreateAnomalySubscriptionOutput, error) {
+	panic("CostExplorerAPI::CreateAnomalySubscriptionWithContext - Not implemented")
+}
+
+func (c *CostExplorerAPI) DeleteAnomalyMonitor(input *costexplorer.DeleteAnomalyMonitorInput) (*costexplorer.DeleteAnomalyMonitorOutput, error) {
+	panic("CostExplorerAPI::DeleteAnomalyMonitor - Not implemented")
+}
+func (c *CostExplorerAPI) DeleteAnomalyMonitorRequest(input *costexplorer.DeleteAnomalyMonitorInput) (req *request.Request, output *costexplorer.DeleteAnomalyMonitorOutput) {
+	panic("CostExplorerAPI::DeleteAnomalyMonitorRequest - Not implemented")
+}
+func (c *CostExplorerAPI) DeleteAnomalyMonitorWithContext(ctx aws.Context, input *costexplorer.DeleteAnomalyMonitorInput, opts ...request.Option) (*costexplorer.DeleteAnomalyMonitorOutput, error) {
+	panic("CostExplorerAPI::DeleteAnomalyMonitorWithContext - Not implemented")
+}
+
+func (c *CostExplorerAPI) DeleteAnomalySubscription(input *costexplorer.DeleteAnomalySubscriptionInput) (*costexplorer.DeleteAnomalySubscriptionOutput, error) {
+	panic("CostExplorerAPI::DeleteAnomalySubscription - Not implemented")
+}
+func (c *CostExplorerAPI) DeleteAnomalySubscriptionRequest(input *costexplorer.DeleteAnomalySubscriptionInput) (req *request.Request, output *costexplorer.DeleteAnomalySubscriptionOutput) {
+	panic("CostExplorerAPI::DeleteAnomalySubscriptionRequest - Not implemented")
+}
+func (c *CostExplorerAPI) DeleteAnomalySubscriptionWithContext(ctx aws.Context, input *costexplorer.DeleteAnomalySubscriptionInput, opts ...request.Option) (*costexplorer.DeleteAnomalySubscriptionOutput, error) {
+	panic("CostExplorerAPI::DeleteAnomalySubscriptionWithContext - Not implemented")
+}
+
+func (c *CostExplorerAPI) GetAnomalies(input *costexplorer.GetAnomaliesInput) (*costexplorer.GetAnomaliesOutput, error) {
+	panic("CostExplorerAPI::GetAnomalies - Not implemented")
+}
+func (c *CostExplorerAPI) GetAnomaliesRequest(input *costexplorer.GetAnomaliesInput) (req *request.Request, output *costexplorer.GetAnomaliesOutput) {
+	panic("CostExplorerAPI::GetAnomaliesRequest - Not implemented")
+}
+func (c *CostExplorerAPI) GetAnomaliesWithContext(ctx aws.Context, input *costexplorer.GetAnomaliesInput, opts ...request.Option) (*costexplorer.GetAnomaliesOutput, error) {
+	panic("CostExplorerAPI::GetAnomaliesWithContext - Not implemented")
+}
+
+func (c *CostExplorerAPI) GetAnomalyMonitors(input *costexplorer.GetAnomalyMonitorsInput) (*costexplorer.GetAnomalyMonitorsOutput, error) {
+	panic("CostExplorerAPI::GetAnomalyMonitors - Not implemented")
+}
+func (c *CostExplorerAPI) GetAnomalyMonitorsRequest(input *costexplorer.GetAnomalyMonitorsInput) (req *request.Request, output *costexplorer.GetAnomalyMonitorsOutput) {
+	panic("CostExplorerAPI::GetAnomalyMonitorsRequest - Not implemented")
+}
+func (c *CostExplorerAPI) GetAnomalyMonitorsWithContext(ctx aws.Context, input *costexplorer.GetAnomalyMonitorsInput, opts ...request.Option) (*costexplorer.GetAnomalyMonitorsOutput, error) {
+	panic("CostExplorerAPI::GetAnomalyMonitorsWithContext - Not implemented")
+}
+
+func (c *CostExplorerAPI) GetAnomalySubscriptions(input *costexplorer.GetAnomalySubscriptionsInput) (*costexplorer.GetAnomalySubscriptionsOutput, error) {
+	panic("CostExplorerAPI::GetAnomalySubscriptions - Not implemented")
+}
+func (c *CostExplorerAPI) GetAnomalySubscriptionsRequest(input *costexplorer.GetAnomalySubscriptionsInput) (req *request.Request, output *costexplorer.GetAnomalySubscriptionsOutput) {
+	panic("CostExplorerAPI::GetAnomalySubscriptionsRequest - Not implemented")
+}
+func (c *CostExplorerAPI) GetAnomalySubscriptionsWithContext(ctx aws.Context, input *costexplorer.GetAnomalySubscriptionsInput, opts ...request.Option) (*costexplorer.GetAnomalySubscriptionsOutput, error) {
+	panic("CostExplorerAPI::GetAnomalySubscriptionsWithContext - Not implemented")
+}
+
+func (c *CostExplorerAPI) GetCostCategories(input *costexplorer.GetCostCategoriesInput) (*costexplorer.GetCostCategoriesOutput, error) {
+	panic("CostExplorerAPI::GetCostCategories - Not implemented")
+}
+func (c *CostExplorerAPI) GetCostCategoriesRequest(input *costexplorer.GetCostCategoriesInput) (req *request.Request, output *costexplorer.GetCostCategoriesOutput) {
+	panic("CostExplorerAPI::GetCostCategoriesRequest - Not implemented")
+}
+func (c *CostExplorerAPI) GetCostCategoriesWithContext(ctx aws.Context, input *costexplorer.GetCostCategoriesInput, opts ...request.Option) (*costexplorer.GetCostCategoriesOutput, error) {
+	panic("CostExplorerAPI::GetCostCategoriesWithContext - Not implemented")
+}
+
+func (c *CostExplorerAPI) ProvideAnomalyFeedback(input *costexplorer.ProvideAnomalyFeedbackInput) (*costexplorer.ProvideAnomalyFeedbackOutput, error) {
+	panic("CostExplorerAPI::ProvideAnomalyFeedback - Not implemented")
+}
+func (c *CostExplorerAPI) ProvideAnomalyFeedbackRequest(input *costexplorer.ProvideAnomalyFeedbackInput) (req *request.Request, output *costexplorer.ProvideAnomalyFeedbackOutput) {
+	panic("CostExplorerAPI::ProvideAnomalyFeedbackRequest - Not implemented")
+}
+func (c *CostExplorerAPI) ProvideAnomalyFeedbackWithContext(ctx aws.Context, input *costexplorer.ProvideAnomalyFeedbackInput, opts ...request.Option) (*costexplorer.ProvideAnomalyFeedbackOutput, error) {
+	panic("CostExplorerAPI::ProvideAnomalyFeedbackWithContext - Not implemented")
+}
+
+func (c *CostExplorerAPI) UpdateAnomalyMonitor(input *costexplorer.UpdateAnomalyMonitorInput) (*costexplorer.UpdateAnomalyMonitorOutput, error) {
+	panic("CostExplorerAPI::UpdateAnomalyMonitor - Not implemented")
+}
+func (c *CostExplorerAPI) UpdateAnomalyMonitorRequest(input *costexplorer.UpdateAnomalyMonitorInput) (req *request.Request, output *costexplorer.UpdateAnomalyMonitorOutput) {
+	panic("CostExplorerAPI::UpdateAnomalyMonitorRequest - Not implemented")
+}
+func (c *CostExplorerAPI) UpdateAnomalyMonitorWithContext(ctx aws.Context, input *costexplorer.UpdateAnomalyMonitorInput, opts ...request.Option) (*costexplorer.UpdateAnomalyMonitorOutput, error) {
+	panic("CostExplorerAPI::UpdateAnomalyMonitorWithContext - Not implemented")
+}
+
+func (c *CostExplorerAPI) UpdateAnomalySubscription(input *costexplorer.UpdateAnomalySubscriptionInput) (*costexplorer.UpdateAnomalySubscriptionOutput, error) {
+	panic("CostExplorerAPI::UpdateAnomalySubscription - Not implemented")
+}
+func (c *CostExplorerAPI) UpdateAnomalySubscriptionRequest(input *costexplorer.UpdateAnomalySubscriptionInput) (req *request.Request, output *costexplorer.UpdateAnomalySubscriptionOutput) {
+	panic("CostExplorerAPI::UpdateAnomalySubscriptionRequest - Not implemented")
+}
+func (c *CostExplorerAPI) UpdateAnomalySubscriptionWithContext(ctx aws.Context, input *costexplorer.UpdateAnomalySubscriptionInput, opts ...request.Option) (*costexplorer.UpdateAnomalySubscriptionOutput, error) {
+	panic("CostExplorerAPI::UpdateAnomalySubscriptionWithContext - Not implemented")
+}

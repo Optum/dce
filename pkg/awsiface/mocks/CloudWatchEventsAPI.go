@@ -2429,3 +2429,7 @@ func (_m *CloudWatchEventsAPI) UntagResourceWithContext(_a0 context.Context, _a1
 
 	return r0, r1
 }
+
+func (_m *CloudWatchEventsAPI) CancelReplay(interface{}) error {
+	panic("CloudWatchEventsAPI:: CancelReplay not implemented")
+}
