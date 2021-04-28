@@ -25,8 +25,13 @@ import (
 	"github.com/aws/aws-sdk-go/service/ses/sesiface"
 	"github.com/aws/aws-sdk-go/service/sns/snsiface"
 	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
+	"github.com/aws/aws-sdk-go/service/ssm/ssmiface"
 	"github.com/aws/aws-sdk-go/service/sts/stsiface"
 )
+
+type SSMAPI interface {
+	ssmiface.SSMAPI
+}
 
 type LambdaAPI interface {
 	lambdaiface.LambdaAPI
