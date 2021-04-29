@@ -7,6 +7,9 @@ trigger:
     include:
       - "v*"
 
+variables:
+  GOVERSION: 1.14
+
 # Run builds for PRs against `master`
 pr:
   - master
@@ -33,7 +36,7 @@ stages:
           # Install GO
           - task: GoTool@0
             inputs:
-              version: "1.14"
+              version: $(GOVERSION)
             displayName: "Set up the Go workspace"
 
           # Install tools needed for CI environment
@@ -128,7 +131,7 @@ stages:
                 # Install GO
                 - task: GoTool@0
                   inputs:
-                    version: "1.13.4"
+                    version: $(GOVERSION)
                     goPath: "$(System.DefaultWorkingDirectory)/gopath"
                     goBin: "$(System.DefaultWorkingDirectory)/gopath/bin"
                   displayName: "Set up the Go workspace"
