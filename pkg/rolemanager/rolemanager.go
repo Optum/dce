@@ -91,8 +91,7 @@ func (rm *IAMRoleManager) CreateRoleWithPolicy(input *CreateRoleWithPolicyInput)
 	// Create the policy
 	pm := IAMPolicyManager{}
 	pm.SetIAMClient(rm.IAM)
-	policyArn := arn.ARN{}
-	policyArn, err = arn.Parse(fmt.Sprintf("arn:aws:iam::%s:policy/%s", accountID, input.PolicyName))
+	policyArn, err := arn.Parse(fmt.Sprintf("arn:aws:iam::%s:policy/%s", accountID, input.PolicyName))
 	if err != nil {
 		return nil, err
 	}
