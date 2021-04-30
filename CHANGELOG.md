@@ -1,5 +1,7 @@
 ## v0.33.6
 - Add LakeFormation to the principal IAM policy.
+- Update mocks
+- updates requirements packages for docs
 
 ## v0.33.5
 - rename pipeline credentials inputs
