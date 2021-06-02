@@ -1,3 +1,7 @@
+## v0.33.7
+- Update requirements packages for docs.
+- Update gotool version for pipeline.
+
 ## v0.33.6
 - Add LakeFormation to the principal IAM policy.
 - Update mocks
