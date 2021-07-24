@@ -1,3 +1,6 @@
+## v0.33.8
+- Upgrade the Swagger UI dependency to remove a very dangerous vulnerability.
+
 ## v0.33.7
 - Update requirements packages for docs.
 - Update gotool version for pipeline.
