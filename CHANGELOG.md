@@ -1,5 +1,5 @@
 ## v0.33.8
-- Upgrade the Swagger UI dependency to remove a very dangerous vulnerability.
+- Upgrade the Swagger UI dependency to remove a very dangerous vulnerability (upgrade Swagger UI to v3.51.2).
 
 ## v0.33.7
 - Update requirements packages for docs.
