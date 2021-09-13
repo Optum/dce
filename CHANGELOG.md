@@ -18,7 +18,7 @@
 - Add firewall manager to principal IAM policy.
 
 ## v0.33.3
-- Remove apigatewayv2 from the principal IAM policy. 
+- Remove apigatewayv2 from the principal IAM policy.
 - Update to the principal IAM policy name lex-models.
 
 ## v0.33.2
@@ -37,14 +37,14 @@
 - Fix gosec issue related to G601 (CWE-118): Implicit memory aliasing in for loop
 
 ## v0.33.0
-- Upgrade aws-nuke to v1.3.0 
+- Upgrade aws-nuke to v1.3.0
 
 ## v0.32.0
 - Upgrade go to 1.15
 - Upgrade go mod dependencies version.
 - Improved test scenarios.
 - Add `iotanalytics:*` policy to the set of allowed services.
-- Increase timeout for functional test execution. 
+- Increase timeout for functional test execution.
 
 ## v0.31.3
 - Fix data and update visualization for codebuild reset widget and error scrappers.
@@ -116,7 +116,7 @@ DCE API clients will need to be updated accordingly, to handle this response.
 
 **Migration Notes**
 
-This release changes the list of allowed regions to only include `us-east-1` by default. This is in order to reduce the time it takes for account reset CodeBuilds to run. Previously, these codebuilds would take 1h+ to nuke the 18 default regions, even on an empty account. 
+This release changes the list of allowed regions to only include `us-east-1` by default. This is in order to reduce the time it takes for account reset CodeBuilds to run. Previously, these codebuilds would take 1h+ to nuke the 18 default regions, even on an empty account.
 
 The list of allowed regions is configurable as an `allowed_regions` Terraform variable, and may be set to any region names supported by AWS.
 
@@ -145,7 +145,7 @@ If you would like to maintain previous behavior and run aws-nuke in _Dry Run Mod
 reset_nuke_toggle = false
 ```
 
-See documentation on [_Configuring Terraform Variables_](https://dce.readthedocs.io/en/latest/terraform.html#configuring-terraform-variables).
+See documentation.
 
 ## v0.23.0
 
@@ -153,17 +153,17 @@ See documentation on [_Configuring Terraform Variables_](https://dce.readthedocs
 - Added Lease Validation for check against max budget amount, max budget period, principal budget amount and principal budget period
 - Increase the threshold for Reset CodeBuild alarms to 10 failures over 5 hours.
 - Support `metadata` field in `POST /leases` endpoint
-- Fix bug where lease expiredOn/budgets/etc. were not being updated, if the account was previously used by the lease principal. 
+- Fix bug where lease expiredOn/budgets/etc. were not being updated, if the account was previously used by the lease principal.
 
 ## v0.22.0
 
 **BREAKING CHANGES**
 
-This release includes changes to rename every reference of "Redbox" to "DCE". 
+This release includes changes to rename every reference of "Redbox" to "DCE".
 In many cases, we removed namespaces entirely: for example, we'll refer to an `account` rather
 than a `dceAccount` wherever possible.
 
-This release breaks a number of interfaces, which may require updates to DCE clients. 
+This release breaks a number of interfaces, which may require updates to DCE clients.
 
 For example:
 
@@ -193,7 +193,7 @@ DynamoDB does not support in-place table renaming, so we will need to migrate da
 
 To do this, you may run the migration script in [/scripts/migrations/v0.21.0_rename_db_tables_dce](https://github.com/Optum/dce/blob/master/scripts/migrations/v0.21.0_rename_db_tables_dce/main.go). This script will copy all data from the old tables to the new tables.
 
-Note that this release does ***not*** delete the old tables, to provide the opportunity to migrate data. Subsequent releases _will_ destroy the old tables. 
+Note that this release does ***not*** delete the old tables, to provide the opportunity to migrate data. Subsequent releases _will_ destroy the old tables.
 
 
 ## v0.20.0
@@ -201,7 +201,7 @@ Note that this release does ***not*** delete the old tables, to provide the oppo
 - Fixed a bug in a migration script
 - Fixed output from publish_lease_events that was generating confusing log entries.
 - Cleaned up naming for scheduling the update_lease_status lambda
-- Cleaned up naming for scheduling populate_reset_queue lambda to remove 
+- Cleaned up naming for scheduling populate_reset_queue lambda to remove
   "weekly" and scheduled the lambda for every six hours instead of weekly.
 - Add `POST /leases/:id/auth` script, to generate STS creds for a leased account
 
@@ -242,7 +242,7 @@ In order to upgrade your DCE deployment to v0.19.0, you will need to:
   - Sets a default expiration date for all existing `Lease` records
     - **IMPORTANT** you must override [the default expiration date](https://github.com/Optum/dce/blob/master/scripts/migrations/v0.19.0_db_expiring_leases/main.go#L65)
   - Marks all `*Locked` leases as `Inactive`
-- Update any DCE API clients to include the `expiresOn` property in their `Lease` record. 
+- Update any DCE API clients to include the `expiresOn` property in their `Lease` record.
 
 
 ### _Expiring Leases Model_
@@ -258,7 +258,7 @@ Changes for this new behavior include:
 - Changed SQS and SNS notifications for lease status change to be triggered by lease status change in DB.
 - Added https://readthedocs.org/ style documentation, `make documentation` target
 - Added generation for API documentation from Swagger YAML to https://readthedocs.org/ format.
-- Added defaults for leases; if ID isn't specified upon save in the DB a new one will be assigned, and if 
+- Added defaults for leases; if ID isn't specified upon save in the DB a new one will be assigned, and if
   the expiration date isn't defined the environment variable `DEFAULT_LEASE_LENGTH_IN_DAYS` will be used and
   if that is not defined, a default of seven (7) days will be used.
 - Added migration for the leases to all be set to Inactive if they're anything but Active.
@@ -313,7 +313,7 @@ This release removes a number of Optum-specific configurations from the default 
 
 To specify a override nuke config, upload your own YAML file to an S3 bucket, and specify the S3 location using the `reset_nuke_template_bucket` and `reset_nuke_template_key` Terraform variables.
 
-This release also disables `aws-nuke` by default, to prevent accidental destruction of critical AWS account resources. To re-enable `aws-nuke`, set the `reset_nuke_toggle` Terraform variable to `"true"`. 
+This release also disables `aws-nuke` by default, to prevent accidental destruction of critical AWS account resources. To re-enable `aws-nuke`, set the `reset_nuke_toggle` Terraform variable to `"true"`.
 
 ## v0.12.3
 

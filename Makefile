@@ -4,15 +4,15 @@ all: test build
 
 default: test build
 
-fmt: 
+fmt:
 	go fmt ./...
 
 format: fmt
 
-vendor: 
+vendor:
 	go mod vendor
 
-mod: 
+mod:
 	-go mod init github.com/Optum/dce
 
 vet:
@@ -56,7 +56,6 @@ deploy: clean build
 # - Install [Python v3+](https://www.python.org/downloads/)
 # - Run `pip install -r ./docs/requirements.txt` to install Sphinx
 #
-# Public-facing docs are served by readthedocs.io
 documentation:
 	./scripts/generate-awsnuke-docs.sh
 	cd docs && make html
@@ -73,7 +72,7 @@ serve_docs: documentation
 
 
 install:
-	go install 
+	go install
 
 clean:
 	rm -rf ./bin ./vendor ./html-doc ./site

@@ -24,10 +24,10 @@ You will need the following:
 
 ### Configuring AWS CLI 2
 
-The AWS CLI version 2 includes a breaking change that creates problems with the automation scripts. See 
+The AWS CLI version 2 includes a breaking change that creates problems with the automation scripts. See
 https://docs.aws.amazon.com/cli/latest/userguide/cliv2-migration.html for more information.
 
-For DCE, the recommeonded solution to this problem is to add the following line 
+For DCE, the recommeonded solution to this problem is to add the following line
 in your `~/aws/config` file:
 
 ```ini
@@ -78,7 +78,7 @@ Execute unit tests by running:
 
 ```bash
 make test
-``` 
+```
 
 ## Code Linting
 
@@ -89,7 +89,7 @@ the linting by itself by using the command:
 make lint
 ```
 
-During `make lint`, the `scripts/lint.sh` script executes [golangci-lint](https://github.com/golangci/golangci-lint). The configuration file is `.golangci.yml`. Enabled linters and 
+During `make lint`, the `scripts/lint.sh` script executes [golangci-lint](https://github.com/golangci/golangci-lint). The configuration file is `.golangci.yml`. Enabled linters and
 rule exceptions can be found in this file.
 
 The `make lint` target also executes [tflint](https://github.com/terraform-linters/tflint)
@@ -111,8 +111,8 @@ terraform apply
 
 # Deploy application code to AWS
 cd ..
-make deploy 
-``` 
+make deploy
+```
 
 See `Deploying DCE With Terraform <terraform.html#deploy-with-terraform>`_ for more details.
 
@@ -138,29 +138,4 @@ make test
 
 ## Building the documentation
 
-The documentation is located in `docs` and is based on the [Sphinx project](https://docs.readthedocs.io/en/stable/intro/getting-started-with-sphinx.html) and hosted on http://readthedocs.io.
-
-If you are making changes to documenation and would like to verify the build of the 
-documentation, you will need to make sure Python 3 is installed. It is _highly recommended_
-that you use `virtualenv` and configure your workspace with the commands shown here:
-
-```bash
-virtualenv -p python3 ENV
-source ENV/bin/activate
-pip install -r docs/requirements.txt
-```
-
-With the Python requirements installed and the virtualenv sourced, use the 
-following command from the base project directory:
-
-```bash
-make documentation
-```
-
-To serve the documentation locally, run the following command:
-
-```bash
-make serve_docs
-```
-
-By default, the documenation will be served at `http://127.0.0.1:8000`.
+Directions coming soon.
