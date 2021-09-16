@@ -151,51 +151,60 @@ EOF
   tags = var.global_tags
 }
 
-# Configure IAM Policy for CodeBuild
+# Configure IAM Role for CodeBuild
 resource "aws_iam_role_policy" "codebuild_reset" {
-  role = aws_iam_role.codebuild_reset.name
-  name = "account-reset-codebuild-${var.namespace}"
-
-  policy = <<POLICY
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Resource": [
-        "*"
-      ],
-      "Action": [
-        "logs:CreateLogGroup",
-        "logs:CreateLogStream",
-        "logs:PutLogEvents",
-        "sts:AssumeRole",
-        "ssm:GetParameter",
-        "dynamodb:GetItem",
-        "dynamodb:Scan",
-        "dynamodb:Query",
-        "dynamodb:UpdateItem",
-        "sns:Publish"
-      ]
-    },
-    {
-      "Effect": "Allow",
-      "Action": [
-          "s3:PutObject",
-          "s3:GetObject",
-          "s3:GetObjectVersion",
-          "s3:GetBucketAcl",
-          "s3:GetBucketLocation"
-      ],
-      "Resource": [
-        "${aws_s3_bucket.artifacts.arn}",
-        "${aws_s3_bucket.artifacts.arn}/*"
-      ]
-    }
-  ]
+  role   = aws_iam_role.codebuild_reset.name
+  name   = "account-reset-codebuild-${var.namespace}"
+  policy = data.aws_iam_policy_document.codebuild_reset_policy_document.json
 }
-POLICY
 
+# Configure IAM Policy for CodeBuild
+data "aws_iam_policy_document" "codebuild_reset_policy_document" {
+  override_json = var.reset_nuke_template_bucket == "STUB" ? null : data.aws_iam_policy_document.custom_nuke_config[0].json
+  statement {
+    actions = [
+      "logs:CreateLogGroup",
+      "logs:CreateLogStream",
+      "logs:PutLogEvents",
+      "sts:AssumeRole",
+      "ssm:GetParameter",
+      "dynamodb:GetItem",
+      "dynamodb:Scan",
+      "dynamodb:Query",
+      "dynamodb:UpdateItem",
+      "sns:Publish"
+    ]
+    resources = ["*"]
+  }
+  statement {
+    actions = [
+      "s3:PutObject",
+      "s3:GetObject",
+      "s3:GetObjectVersion",
+      "s3:GetBucketAcl",
+      "s3:GetBucketLocation"
+    ]
+    resources = [
+      "${aws_s3_bucket.artifacts.arn}",
+      "${aws_s3_bucket.artifacts.arn}/*"
+    ]
+  }
+}
+
+data "aws_iam_policy_document" "custom_nuke_config" {
+  count = var.reset_nuke_template_bucket == "STUB" ? 0 : 1
+  statement {
+    sid = "allowCustomNukeConfig"
+    # only put this statement if reset_nuke_template_bucket has been set by the user
+    actions = [
+      "s3:ListBucket",
+      "s3:GetObject"
+    ]
+    resources = [
+      "arn:aws:s3:::${var.reset_nuke_template_bucket}",
+      "arn:aws:s3:::${var.reset_nuke_template_bucket}/${var.reset_nuke_template_key}",
+    ]
+  }
 }
 
 # Cloudwatch alarm, for Reset CodeBuild failure
