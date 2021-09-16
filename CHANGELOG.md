@@ -1,3 +1,6 @@
+## v0.33.9
+- Allow account reset codebuild access to custom nuke config bucket
+
 ## v0.33.8
 - Upgrade the Swagger UI dependency to remove a very dangerous vulnerability (upgrade Swagger UI to v3.51.2).
 
