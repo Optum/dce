@@ -100,6 +100,7 @@ Implementing DCE in an AWS Organization provides the ability to use SCPs, which 
                 "fsx:*",
                 "globalaccelerator:*",
                 "glue:*",
+                "healthlake:*",
                 "iam:*",
                 "imagebuilder:*",
                 "iot:*",
