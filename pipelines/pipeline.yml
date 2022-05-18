@@ -8,7 +8,7 @@ trigger:
       - "v*"
 
 variables:
-  GOVERSION: 1.15
+  GOVERSION: 1.15.10
 
 # Run builds for PRs against `master`
 pr:
