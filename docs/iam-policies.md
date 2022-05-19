@@ -83,6 +83,7 @@ Implementing DCE in an AWS Organization provides the ability to use SCPs, which 
             "NotAction": [
                 "acm:*",
                 "acm-pca:*",
+                "airflow:*",
                 "apigateway:*",
                 "application-autoscaling:*",
                 "appstream:*",
