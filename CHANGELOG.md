@@ -1,3 +1,5 @@
+## next
+- Added support for AWS Managed Workflows for Apache Airflow to default policy
 ## v0.33.8
 - Upgrade the Swagger UI dependency to remove a very dangerous vulnerability (upgrade Swagger UI to v3.51.2).
 
