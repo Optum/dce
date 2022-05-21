@@ -1,3 +1,6 @@
+## v0.33.9  
+- update the main readme to include Getting Started documentaation  
+
 ## v0.33.8
 - Upgrade the Swagger UI dependency to remove a very dangerous vulnerability (upgrade Swagger UI to v3.51.2).
 
