@@ -17,7 +17,16 @@ At the end of the lease, or if the lease's budget is reached, the account is wip
 
 ## Getting Started & Documentation
 
-Documentation coming soon.
+In order to run this configuration setup, you will first need to activate an AWS account. Like the other cloud platoforms, you can set one up for free if you want to experiment, however, keep in mind all three will require a credit card on file and will charge a small fee for some of the resources.  
+
+## Creating a Cloud Account  
+   Create an AWS account by browsing to: [AWS Web Console](https://aws.amazon.com)  
+   Click on **Create a Free Account**  
+   [](insertfileimage)  
+   If you don't have a cuurent account, complete the signup form to create a free tier account  
+   [](insertfileimage)
+   ***You will need to have access to the root username and password***  
+   
 
 ## DCE CLI
 
