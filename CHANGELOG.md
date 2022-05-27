@@ -1,3 +1,8 @@
+## next
+- Upgrade to Go version 1.16
+- Upgrade Ubuntu version on Azure DevOps Agent
+- Fix Go dependency errors in pipeline
+
 ## v0.33.8
 - Upgrade the Swagger UI dependency to remove a very dangerous vulnerability (upgrade Swagger UI to v3.51.2).
 
