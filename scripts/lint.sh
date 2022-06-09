@@ -17,7 +17,7 @@ GOLANG_LINT_CMD=golangci-lint
 
 if [ ! "$(command -v ${GOLANG_LINT_CMD})" ]; then
   echo -n "installing ${GOLANG_LINT_CMD}... "
-  go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
+  go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 fi
 
 golangci-lint run

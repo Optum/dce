@@ -2,6 +2,7 @@
 set -euxo pipefail
 
 mkdir -p junit-report
+go clean -testcache
 
 # Run tests
 go test -v -coverprofile=coverage.txt -covermode count \
