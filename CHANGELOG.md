@@ -1,5 +1,5 @@
 ## next
-- Upgrade to Go version 1.16
+- Upgrade to Go version 1.17
 - Upgrade Ubuntu version on Azure DevOps Agent
 - Fix Go dependency errors in pipeline
 
