@@ -54,6 +54,7 @@ stages:
               inlineScript: |
                 set -euxo pipefail
                 make test
+                aws sts get-caller-identity
 
           # Publish code coverage results
           - task: PublishCodeCoverageResults@1
@@ -199,6 +200,7 @@ stages:
                       # Save the lease ID to a file, so we can reference it later
                       # (note that we can't assign variables across jobs in different stages)
                       echo "${lease_id}" > ./lease_id.txt
+                      aws sts get-caller-identity
                     env: NAMESPACE=$(namespace)
 
                 # Install Terraform
@@ -209,6 +211,7 @@ stages:
 
                 # Configure the Terraform backend
                 - bash: |
+                    aws sts get-caller-identity
                     lease_id=$(cat lease_id.txt)
                     ./scripts/create-tf-backend.sh ${lease_id}
                   displayName: "Configure Terraform Backend"
