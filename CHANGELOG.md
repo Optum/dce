@@ -1,3 +1,6 @@
+## v0.33.9
+- Upgrade Ubuntu version to 20.04 to be current. 
+
 ## v0.33.8
 - Upgrade the Swagger UI dependency to remove a very dangerous vulnerability (upgrade Swagger UI to v3.51.2).
 
