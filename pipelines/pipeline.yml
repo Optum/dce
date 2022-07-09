@@ -1,5 +1,5 @@
 pool:
-  vmImage: "Ubuntu 20.04"
+  vmImage: "Ubuntu 18.04"
 
 trigger:
   # Run build on tagged versions
@@ -214,7 +214,6 @@ stages:
                 - bash: |
                     set -euxo pipefail
                     lease_id=$(cat lease_id.txt)
-                    ./dce --config=dce.yml leases login ${lease_id}
                     aws sts get-caller-identity
                     ./scripts/create-tf-backend.sh ${lease_id}
                   displayName: "Configure Terraform Backend"
