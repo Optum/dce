@@ -1,5 +1,5 @@
 pool:
-  vmImage: "Ubuntu 18.04"
+  vmImage: "Ubuntu 20.04"
 
 trigger:
   # Run build on tagged versions
@@ -201,7 +201,6 @@ stages:
                       # Save the lease ID to a file, so we can reference it later
                       # (note that we can't assign variables across jobs in different stages)
                       echo "${lease_id}" > ./lease_id.txt
-                      aws sts get-caller-identity 
                     env: NAMESPACE=$(namespace)
 
                 # Install Terraform
