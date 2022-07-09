@@ -8,7 +8,8 @@ trigger:
       - "v*"
 
 variables:
-  GOVERSION: 1.17.11
+  GO_VERSION: 1.17.11
+  TERRAFORM_VERSION: 0.12.18
 
 # Run builds for PRs against `master`
 pr:
@@ -30,13 +31,13 @@ stages:
           # Install Terraform
           - task: TerraformInstaller@0
             inputs:
-              terraformVersion: "0.12.18"
+              terraformVersion: $(TERRAFORM_VERSION)
             displayName: "Install Terraform"
 
           # Install GO
           - task: GoTool@0
             inputs:
-              version: $(GOVERSION)
+              version: $(GO_VERSION)
             displayName: "Set up the Go workspace"
 
           # Install tools needed for CI environment
@@ -132,7 +133,7 @@ stages:
                 # Install GO
                 - task: GoTool@0
                   inputs:
-                    version: $(GOVERSION)
+                    version: $(GO_VERSION)
                     goPath: "$(System.DefaultWorkingDirectory)/gopath"
                     goBin: "$(System.DefaultWorkingDirectory)/gopath/bin"
                   displayName: "Set up the Go workspace"
@@ -200,19 +201,21 @@ stages:
                       # Save the lease ID to a file, so we can reference it later
                       # (note that we can't assign variables across jobs in different stages)
                       echo "${lease_id}" > ./lease_id.txt
-                      aws sts get-caller-identity
+                      aws sts get-caller-identity 
                     env: NAMESPACE=$(namespace)
 
                 # Install Terraform
                 - task: TerraformInstaller@0
                   inputs:
-                    terraformVersion: "0.12.18"
+                    terraformVersion: $(TERRAFORM_VERSION)
                   displayName: "Install Terraform"
 
                 # Configure the Terraform backend
                 - bash: |
-                    aws sts get-caller-identity
+                    set -euxo pipefail
                     lease_id=$(cat lease_id.txt)
+                    ./dce --config=dce.yml leases login ${lease_id}
+                    aws sts get-caller-identity
                     ./scripts/create-tf-backend.sh ${lease_id}
                   displayName: "Configure Terraform Backend"
 
@@ -332,7 +335,7 @@ stages:
                 # Install Terraform
                 - task: TerraformInstaller@0
                   inputs:
-                    terraformVersion: "0.12.18"
+                    terraformVersion: $(TERRAFORM_VERSION)
                   displayName: "Install Terraform"
 
                 - bash: |
