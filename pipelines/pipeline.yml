@@ -197,7 +197,7 @@ stages:
                       echo "Using lease for PrincipalId=${NAMESPACE}, Id=${lease_id}"
                       echo "Logging into the DCE account"
                       ./dce --config=dce.yml leases login ${lease_id}
-
+                      aws sts get-caller-identity
                       # Save the lease ID to a file, so we can reference it later
                       # (note that we can't assign variables across jobs in different stages)
                       echo "${lease_id}" > ./lease_id.txt
@@ -211,7 +211,6 @@ stages:
 
                 # Configure the Terraform backend
                 - bash: |
-                    set -euxo pipefail
                     lease_id=$(cat lease_id.txt)
                     aws sts get-caller-identity
                     ./scripts/create-tf-backend.sh ${lease_id}
