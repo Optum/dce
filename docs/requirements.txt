@@ -12,7 +12,7 @@ Jinja2==2.11.3
 livereload==2.6.1
 m2r==0.2.1
 MarkupSafe==1.1.1
-mistune==0.8.4
+mistune==2.0.3
 packaging==19.2
 pathtools==0.1.2
 port-for==0.3.1
