@@ -196,7 +196,22 @@ stages:
 
                       echo "Using lease for PrincipalId=${NAMESPACE}, Id=${lease_id}"
                       echo "Logging into the DCE account"
+
+                      echo "Before log in to lease account"
+                      env
+                      echo "$PATH"
+                      ls ~/.aws
+
                       ./dce --config=dce.yml leases login ${lease_id}
+
+
+                      echo "After log in to lease account"
+                      env
+                      echo "$PATH"
+                      ls ~/.aws
+
+
+                      # Still logged in as Management
                       aws sts get-caller-identity
                       # Save the lease ID to a file, so we can reference it later
                       # (note that we can't assign variables across jobs in different stages)
