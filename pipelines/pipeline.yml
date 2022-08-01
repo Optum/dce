@@ -198,6 +198,8 @@ stages:
                       echo "Logging into the DCE account"
 
                       echo "Before log in to lease account"
+                      aws --version
+                      which aws
                       env
                       echo "$PATH"
                       ls ~/.aws
