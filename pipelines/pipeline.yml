@@ -202,7 +202,6 @@ stages:
                       which aws
                       env
                       echo "$PATH"
-                      ls ~/.aws
 
                       ./dce --config=dce.yml leases login ${lease_id}
 
@@ -210,7 +209,6 @@ stages:
                       echo "After log in to lease account"
                       env
                       echo "$PATH"
-                      ls ~/.aws
 
 
                       # Still logged in as Management
