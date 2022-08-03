@@ -200,6 +200,7 @@ stages:
                       echo "Before log in to lease account"
                       aws --version
                       which aws
+                      whoami
                       env
                       echo "$PATH"
 
@@ -207,6 +208,7 @@ stages:
 
 
                       echo "After log in to lease account"
+                      whoami
                       env
                       echo "$PATH"
 
