@@ -257,6 +257,7 @@ stages:
                       $(Pipeline.Workspace)/bin/build_artifacts.zip \
                       ${NAMESPACE} \
                       ${ARTIFACTS_BUCKET_NAME}
+                      aws sts get-caller-identity 
                   displayName: "Deploy Application Code"
                   env:
                     AWS_DEFAULT_REGION: us-east-1
