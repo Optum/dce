@@ -328,7 +328,7 @@ stages:
                     cp $(Pipeline.Workspace)/namespace/namespace.txt ./
                     cp $(Pipeline.Workspace)/backend-tf/backend.tf ./modules/
 
-                    chmod +x ./dce
+                    chmod +x ./dce 
                   displayName: Copy Artifacts to Working Dir
 
                 # Login to our DCE lease
