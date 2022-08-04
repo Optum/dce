@@ -14,6 +14,7 @@ aws s3 ls s3://${bucket_name} > /dev/null 2>&1
 listBucketRes=$?
 if [[ listBucketRes -eq 0 ]]; then
   echo "Using s3://${bucket_name} as Terraform state backend"
+  aws sts get-caller-identity
 else
 
   set -e
