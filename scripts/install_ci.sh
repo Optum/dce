@@ -63,7 +63,8 @@ safeGoInstall github.com/jstemmer/go-junit-report@latest
 # by CI tools
 safeGoInstall github.com/axw/gocov/gocov@latest
 safeGoInstall github.com/AlekSi/gocov-xml@latest
-safeGoInstall github.com/matm/gocov-html@latest
+# safeGoInstall github.com/matm/gocov-html@latest
+github.com/matm/gocov-html/cmd/gocov-html@latest
 
 # golangci-lint is a lint aggregator used in the lint.sh script to lint the
 # go and terraform code.
