@@ -8,7 +8,7 @@ trigger:
       - "v*"
 
 variables:
-  GO_VERSION: 1.18.6
+  GO_VERSION: 1.18.5
   TERRAFORM_VERSION: 0.12.18
 
 # Run builds for PRs against `master`
@@ -24,7 +24,7 @@ stages:
           # Setup Python
           - task: UsePythonVersion@0
             inputs:
-              versionSpec: "3.x"
+              versionSpec: "3.9.5"
               addToPath: true
               architecture: "x64"
 
