@@ -24,7 +24,7 @@ stages:
           # Setup Python
           - task: UsePythonVersion@0
             inputs:
-              versionSpec: "3.9.5"
+              versionSpec: "3.x"
               addToPath: true
               architecture: "x64"
 
