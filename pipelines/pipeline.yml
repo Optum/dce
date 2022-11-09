@@ -46,16 +46,16 @@ stages:
             displayName: "Set up Golang CI Tools"
 
           # Unit Tests
-          - task: AWSShellScript@1
-            displayName: "Unit Tests"
-            inputs:
-              awsCredentials: "AWS_Login"
-              regionName: "us-east-1"
-              scriptType: "inline"
-              inlineScript: |
-                set -euxo pipefail
-                make test
-                aws sts get-caller-identity
+          # - task: AWSShellScript@1
+          #   displayName: "Unit Tests"
+          #   inputs:
+          #     awsCredentials: "AWS_Login"
+          #     regionName: "us-east-1"
+          #     scriptType: "inline"
+          #     inlineScript: |
+          #       set -euxo pipefail
+          #       make test
+          #       aws sts get-caller-identity
 
           # Publish code coverage results
           - task: PublishCodeCoverageResults@1
