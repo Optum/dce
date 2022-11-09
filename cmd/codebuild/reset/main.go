@@ -5,7 +5,6 @@ package main
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"text/template"
@@ -120,7 +119,7 @@ func nukeAccount(svc *service, isDryRun bool) error {
 	/*
 		#nosec CWE-22: This value is derived from env vars. I.e. it is not populated with data from external users.
 	*/
-	conf, err := ioutil.ReadFile(configFile)
+	conf, err := os.ReadFile(configFile)
 	if err != nil {
 		return err
 	}

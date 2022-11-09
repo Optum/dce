@@ -11,6 +11,7 @@ import (
 
 // Define a Service, so we can mock this service from other components
 // (eg, if I'm testing a Lambda controller that uses this Service)
+//
 //go:generate mockery -name Service
 type Service interface {
 	CalculateTotalSpend(startDate time.Time, endDate time.Time) (float64, error)

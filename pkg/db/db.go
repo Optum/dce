@@ -43,6 +43,7 @@ type DB struct {
 
 // The DBer interface includes all methods used by the DB struct to interact with
 // DynamoDB. This is useful if we want to mock the DB service.
+//
 //go:generate mockery -name DBer
 type DBer interface {
 	GetAccount(accountID string) (*Account, error)
@@ -419,10 +420,12 @@ func (db *DB) UpsertLease(lease Lease) (*Lease, error) {
 // Will fail if the Lease was not previously set to `prevStatus`
 //
 // For example, to set a ResetLock on an account, you could call:
-//		db.TransitionLeaseStatus(accountId, principalID, Active, ResetLock)
+//
+//	db.TransitionLeaseStatus(accountId, principalID, Active, ResetLock)
 //
 // And to unlock the account:
-//		db.TransitionLeaseStatus(accountId, principalID, ResetLock, Active)
+//
+//	db.TransitionLeaseStatus(accountId, principalID, ResetLock, Active)
 func (db *DB) TransitionLeaseStatus(accountID string, principalID string, prevStatus LeaseStatus, nextStatus LeaseStatus, leaseStatusReason LeaseStatusReason) (*Lease, error) {
 	result, err := db.Client.UpdateItem(
 		&dynamodb.UpdateItemInput{
@@ -754,7 +757,6 @@ func unmarshalLease(dbResult map[string]*dynamodb.AttributeValue) (*Lease, error
 // you fine-grained control over how the service is configured.
 //
 // Elsewhere, you should generally use `db.NewFromEnv()`
-//
 func New(client *dynamodb.DynamoDB, accountTableName string, leaseTableName string, defaultLeaseLengthInDays int) *DB {
 	return &DB{
 		Client:                   client,
