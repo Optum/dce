@@ -10,6 +10,7 @@ bucket_name="${BUCKET_PREFIX}-dce-tfstate"
 
 # Check if the bucket already exists
 set +e
+aws configure get region
 aws s3 ls s3://${bucket_name} --debug
 listBucketRes=$?
 aws sts get-caller-identity
