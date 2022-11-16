@@ -21,11 +21,12 @@ else
 
   set -e
 
+  aws --version
   # Create the S3 bucket
   echo "Creating S3 bucket s3://${bucket_name} to use as terraform state backend... "
   aws s3api create-bucket \
     --bucket ${bucket_name} \
-    # --acl log-delivery-write > /dev/null
+    --acl log-delivery-write > /dev/null
   echo "done."
 
   # Operations on the bucket seem to fail if immediately after creating
