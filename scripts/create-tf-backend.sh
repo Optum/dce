@@ -10,7 +10,7 @@ bucket_name="${BUCKET_PREFIX}-dce-tfstate"
 
 # Check if the bucket already exists
 set +e
-aws s3 ls s3://${bucket_name} > /dev/null 2>&1
+aws s3 ls s3://${bucket_name} --debug
 listBucketRes=$?
 aws sts get-caller-identity
 aws configure list-profiles
@@ -24,7 +24,7 @@ else
   aws --version
   # Create the S3 bucket
   echo "Creating S3 bucket s3://${bucket_name} to use as terraform state backend... "
-  aws s3api create-bucket \
+  aws s3api create-bucket --debug \
     --bucket ${bucket_name} \
     --acl log-delivery-write > /dev/null
   echo "done."
