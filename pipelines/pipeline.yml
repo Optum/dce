@@ -142,8 +142,7 @@ stages:
                     set -ex
                     echo '##vso[task.prependpath]$(GOBIN)'
                     echo '##vso[task.prependpath]$(GOROOT)/bin'
-                    export PATH=$PATH:$(go env GOPATH)/bin
-                    go get github.com/jstemmer/go-junit-report
+                    go install github.com/jstemmer/go-junit-report@latest
 
                     # Download dce-cli
                     wget -q https://github.com/Optum/dce-cli/releases/download/v0.5.0/dce_linux_amd64.zip
