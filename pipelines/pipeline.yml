@@ -142,6 +142,7 @@ stages:
                     set -ex
                     echo '##vso[task.prependpath]$(GOBIN)'
                     echo '##vso[task.prependpath]$(GOROOT)/bin'
+                    export PATH=$PATH:$(go env GOPATH)/bin
                     go get github.com/jstemmer/go-junit-report
 
                     # Download dce-cli
