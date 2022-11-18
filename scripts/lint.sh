@@ -29,10 +29,14 @@ echo -n "Formatting terraform code.... "
 terraform fmt -diff -check -recursive ./modules/
 echo "done."
 
-# Run tflint
-echo -n "Linting terraform code... "
-cd modules
-terraform init &> /dev/null
-# TODO: test to see if tflint is installed first.
-tflint --deep ./ | (grep -v "Awesome" || true)
-echo -e '\b done.'
+# # Run tflint
+# echo -n "Linting terraform code... "
+# cd modules
+# # terraform init &> /dev/null
+# # TODO: test to see if tflint is installed first.
+# if [ ! "$(command -v tflint)" ]; then
+#   echo -n "installing tflint... "
+#   go install github.com/terraform-linters/tflint/cmd/tflint@latest
+# fi
+# tflint --deep ./ | (grep -v "Awesome" || true)
+# echo -e '\b done.'

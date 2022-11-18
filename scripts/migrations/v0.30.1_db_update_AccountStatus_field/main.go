@@ -4,11 +4,12 @@ package main
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/360EntSecGroup-Skylar/excelize"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"os"
 )
 
 type UpdateStatusInput struct {

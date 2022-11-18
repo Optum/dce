@@ -1,4 +1,4 @@
-data aws_arn lambda_function {
+data "aws_arn" "lambda_function" {
   arn = var.lambda_function_arn
 }
 

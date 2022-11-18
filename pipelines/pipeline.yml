@@ -55,7 +55,6 @@ stages:
           #     inlineScript: |
           #       set -euxo pipefail
           #       make test
-          #       aws sts get-caller-identity
 
           # Publish code coverage results
           - task: PublishCodeCoverageResults@1
@@ -196,25 +195,8 @@ stages:
 
                       echo "Using lease for PrincipalId=${NAMESPACE}, Id=${lease_id}"
                       echo "Logging into the DCE account"
-
-                      echo "Before log in to lease account"
-                      aws --version
-                      which aws
-                      whoami
-                      env
-                      echo "$PATH"
-
                       ./dce --config=dce.yml leases login ${lease_id}
 
-
-                      echo "After log in to lease account"
-                      whoami
-                      env
-                      echo "$PATH"
-
-
-                      # Still logged in as Management
-                      aws sts get-caller-identity
                       # Save the lease ID to a file, so we can reference it later
                       # (note that we can't assign variables across jobs in different stages)
                       echo "${lease_id}" > ./lease_id.txt
@@ -229,7 +211,6 @@ stages:
                 # Configure the Terraform backend
                 - bash: |
                     lease_id=$(cat lease_id.txt)
-                    aws sts get-caller-identity
                     ./scripts/create-tf-backend.sh ${lease_id}
                   displayName: "Configure Terraform Backend"
 
@@ -257,7 +238,6 @@ stages:
                       $(Pipeline.Workspace)/bin/build_artifacts.zip \
                       ${NAMESPACE} \
                       ${ARTIFACTS_BUCKET_NAME}
-                      aws sts get-caller-identity 
                   displayName: "Deploy Application Code"
                   env:
                     AWS_DEFAULT_REGION: us-east-1
@@ -329,7 +309,7 @@ stages:
                     cp $(Pipeline.Workspace)/namespace/namespace.txt ./
                     cp $(Pipeline.Workspace)/backend-tf/backend.tf ./modules/
 
-                    chmod +x ./dce 
+                    chmod +x ./dce
                   displayName: Copy Artifacts to Working Dir
 
                 # Login to our DCE lease
