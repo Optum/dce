@@ -27,8 +27,7 @@ else
     --acl log-delivery-write > /dev/null
   echo "done."
 
-  # Operations on the bucket seem to fail if immediately after creating
-  # the bucket.
+  # Operations on the bucket seem to fail if immediately after creating the bucket.
   sleep 20
 
   # Set default encryption on the bucket
