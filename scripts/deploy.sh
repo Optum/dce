@@ -16,7 +16,7 @@ FILE=$1
 namespace=$2
 artifactBucket=$3
 
-# check if build_artifacts.zip exists (generated from 'scripts/build.sh')
+# Check if build_artifacts.zip exists (generated from 'scripts/build.sh')
 if [[ -f "$FILE" ]]; then
     # Unzip build_artifacts.zip into the '__artifacts__/' directory
     rm -rf __artifacts__
