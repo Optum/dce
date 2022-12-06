@@ -1,32 +1,41 @@
 ## next
+
 - Upgrade to Go version 1.17
 - Upgrade Ubuntu version on Azure DevOps Agent
 - Fix Go dependency errors in pipeline
+- Require at least `0.12.31` or later `0.12.x` versions of Terraform to recieve new provider updates
 
 ## v0.33.8
+
 - Upgrade the Swagger UI dependency to remove a very dangerous vulnerability (upgrade Swagger UI to v3.51.2).
 
 ## v0.33.7
+
 - Update requirements packages for docs.
 - Update gotool version for pipeline.
 
 ## v0.33.6
+
 - Add LakeFormation to the principal IAM policy.
 - Update mocks
 - updates requirements packages for docs
 
 ## v0.33.5
+
 - rename pipeline credentials inputs
 
 ## v0.33.4
+
 - Upgrade aws provider to v2.65.0 to fix SES configuration set. [terraform-provider-aws #12024](https://github.com/hashicorp/terraform-provider-aws/pull/12024)
 - Add firewall manager to principal IAM policy.
 
 ## v0.33.3
+
 - Remove apigatewayv2 from the principal IAM policy.
 - Update to the principal IAM policy name lex-models.
 
 ## v0.33.2
+
 - Add to the principal IAM policy:
   - apigatewayv2
   - comprehend
@@ -37,14 +46,17 @@
   - wafv2
 
 ## v0.33.1
+
 - Fix populate reset queue when dynamodb returns paginated result
 - Add account status to last evaluated key when querying account table using global secondary index
 - Fix gosec issue related to G601 (CWE-118): Implicit memory aliasing in for loop
 
 ## v0.33.0
+
 - Upgrade aws-nuke to v1.3.0
 
 ## v0.32.0
+
 - Upgrade go to 1.15
 - Upgrade go mod dependencies version.
 - Improved test scenarios.
@@ -52,13 +64,16 @@
 - Increase timeout for functional test execution.
 
 ## v0.31.3
+
 - Fix data and update visualization for codebuild reset widget and error scrappers.
 
 ## v0.31.2
-- Fix bug: Status change in account table fails for leased accounts that are expired. See https://github.com/Optum/dce/issues/344
+
+- Fix bug: Status change in account table fails for leased accounts that are expired. See <https://github.com/Optum/dce/issues/344>
 - Fix bug: When lease starts today, fixed usage start and end date that was printed in log message.
 
 ## v0.30.1
+
 - Added new tool in `tools` folder for generating Markdown and IAM example policy for AWS Nuke
   support. See README in `tools/awsnukedocgen`.
 - Added new services supported by DCE: Kinesis Analytics, Kinesis Video, Opsworks CM, Robomaker,
@@ -187,7 +202,6 @@ This release also removes the deprecated DynamoDB tables with "Redbox" prefixes.
   - RedboxLeaseProd --> Leases
   - UsageCache --> Usage
 
-
 **Migration Notes**
 
 _DynamoDB Migration_
@@ -199,7 +213,6 @@ DynamoDB does not support in-place table renaming, so we will need to migrate da
 To do this, you may run the migration script in [/scripts/migrations/v0.21.0_rename_db_tables_dce](https://github.com/Optum/dce/blob/master/scripts/migrations/v0.21.0_rename_db_tables_dce/main.go). This script will copy all data from the old tables to the new tables.
 
 Note that this release does ***not*** delete the old tables, to provide the opportunity to migrate data. Subsequent releases _will_ destroy the old tables.
-
 
 ## v0.20.0
 
@@ -215,11 +228,9 @@ Note that this release does ***not*** delete the old tables, to provide the oppo
 - Fixed issue with the lease check logic that was expiring non-expired leases.
 - Migration script to fix wrongly expired leases
 
-
 ## v0.19.1
 
 - Fixed issue with lease status reason not being set when the lease was newly created.
-
 
 ## v0.19.0
 
@@ -237,7 +248,6 @@ _Other Changes_
 - Refactored lease API controller and methods to organize methods into files.
 - Add functions to evaluate who is calling an API and what their role is
 
-
 ### Migration Notes for v0.19.0
 
 In order to upgrade your DCE deployment to v0.19.0, you will need to:
@@ -248,7 +258,6 @@ In order to upgrade your DCE deployment to v0.19.0, you will need to:
     - **IMPORTANT** you must override [the default expiration date](https://github.com/Optum/dce/blob/master/scripts/migrations/v0.19.0_db_expiring_leases/main.go#L65)
   - Marks all `*Locked` leases as `Inactive`
 - Update any DCE API clients to include the `expiresOn` property in their `Lease` record.
-
 
 ### _Expiring Leases Model_
 
@@ -261,8 +270,8 @@ Changes for this new behavior include:
 - Simplified lease status model to include only two statuses: Inactive and Active.
 - Changed check_budget to update_lease_status and added check for expiration date.
 - Changed SQS and SNS notifications for lease status change to be triggered by lease status change in DB.
-- Added https://readthedocs.org/ style documentation, `make documentation` target
-- Added generation for API documentation from Swagger YAML to https://readthedocs.org/ format.
+- Added <https://readthedocs.org/> style documentation, `make documentation` target
+- Added generation for API documentation from Swagger YAML to <https://readthedocs.org/> format.
 - Added defaults for leases; if ID isn't specified upon save in the DB a new one will be assigned, and if
   the expiration date isn't defined the environment variable `DEFAULT_LEASE_LENGTH_IN_DAYS` will be used and
   if that is not defined, a default of seven (7) days will be used.
@@ -328,7 +337,6 @@ This release also disables `aws-nuke` by default, to prevent accidental destruct
 - Added publish_locks lambda
 - Adds a metadata property to the account object
 
-
 ## v0.12.2
 
 - Tag issue, updating to 0.12.2
@@ -356,7 +364,6 @@ This release also disables `aws-nuke` by default, to prevent accidental destruct
 ## v0.11.0
 
 - **BREAKING** Add **required** budget fields to API `/leases` endpoint
-
 
 - Add local functional testing deployment method via Makefile
   - Target "make deploy_local" utilizes scripts/deploy_local terraform to build S3 backend
