@@ -4,7 +4,7 @@ terraform {
 
 provider "aws" {
   region  = var.aws_region
-  version = "2.65.0"
+  version = "3.41.0"
 }
 
 # Current AWS Account User
