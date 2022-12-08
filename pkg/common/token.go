@@ -12,6 +12,7 @@ import (
 
 // TokenService interface requires a method to receive credentials for an AWS
 // Role provided by the Role Input.
+//
 //go:generate mockery -name TokenService
 type TokenService interface {
 	AssumeRole(*sts.AssumeRoleInput) (*sts.AssumeRoleOutput, error)

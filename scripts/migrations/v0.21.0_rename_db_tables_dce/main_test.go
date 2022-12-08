@@ -1,14 +1,15 @@
 package main
 
 import (
+	"log"
+	"strconv"
+	"testing"
+
 	"github.com/Optum/dce/pkg/common"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/stretchr/testify/require"
-	"log"
-	"strconv"
-	"testing"
 )
 
 func TestMigrateV0210(t *testing.T) {

@@ -39,25 +39,25 @@ func init() {
 	usageRoutes := api.Routes{
 
 		api.Route{
-			"GetUsageByStartDateAndEndDate",
-			"GET",
-			"/usage",
-			[]string{StartDateParam, EndDateParam},
-			GetUsageByStartDateAndEndDate,
+			Name:        "GetUsageByStartDateAndEndDate",
+			Method:      "GET",
+			Pattern:     "/usage",
+			Queries:     []string{StartDateParam, EndDateParam},
+			HandlerFunc: GetUsageByStartDateAndEndDate,
 		},
 		api.Route{
-			"GetUsageByStartDateAndPrincipalID",
-			"GET",
-			"/usage",
-			[]string{StartDateParam, PrincipalIDParam},
-			GetUsageByStartDateAndPrincipalID,
+			Name:        "GetUsageByStartDateAndPrincipalID",
+			Method:      "GET",
+			Pattern:     "/usage",
+			Queries:     []string{StartDateParam, PrincipalIDParam},
+			HandlerFunc: GetUsageByStartDateAndPrincipalID,
 		},
 		api.Route{
-			"GetAllUsage",
-			"GET",
-			"/usage",
-			api.EmptyQueryString,
-			GetUsage,
+			Name:        "GetAllUsage",
+			Method:      "GET",
+			Pattern:     "/usage",
+			Queries:     api.EmptyQueryString,
+			HandlerFunc: GetUsage,
 		},
 	}
 	r := api.NewRouter(usageRoutes)

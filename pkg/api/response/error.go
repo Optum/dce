@@ -22,22 +22,24 @@ func CreateErrorResponse(code string, message string) ErrorResponse {
 
 // ErrorResponse is the structured JSON Response for an Error to be returned
 // for APIs
-// {
-// 	"error": {
-// 		"code": "ServerError",
-// 		"message": "Error Calculating"
-// 	}
-// }
+//
+//	{
+//		"error": {
+//			"code": "ServerError",
+//			"message": "Error Calculating"
+//		}
+//	}
 type ErrorResponse struct {
 	Error ErrorBase `json:"error"`
 }
 
 // ErrorBase is the base structure for the ErrorResponse containing the
 // Error Code and Message
-// {
-// 	"code": "ServerError",
-// 	"message": "Error Calculating"
-// }
+//
+//	{
+//		"code": "ServerError",
+//		"message": "Error Calculating"
+//	}
 type ErrorBase struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`

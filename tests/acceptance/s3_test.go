@@ -3,7 +3,6 @@ package tests
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -28,7 +27,7 @@ func TestS3(t *testing.T) {
 	artifactsBucket := tfOut["artifacts_bucket_name"].(string)
 	artifactsDir := "s3-test-dir"
 	artifactsKey := fmt.Sprintf("%s/test.txt", artifactsDir)
-	artifactsBody, err := ioutil.ReadFile(artifactsFilePath)
+	artifactsBody, err := os.ReadFile(artifactsFilePath)
 	require.Nil(t, err)
 
 	// Configure the S3 Service
@@ -82,7 +81,7 @@ func TestS3(t *testing.T) {
 			err = s3Svc.Download(artifactsBucket, artifactsKey, localFile)
 			require.Nil(t, err)
 			defer os.Remove(localFile)
-			localBody, err := ioutil.ReadFile("/tmp/local-s3-file.txt")
+			localBody, err := os.ReadFile("/tmp/local-s3-file.txt")
 			require.Nil(t, err)
 			require.Equal(t, artifactsBody, localBody)
 		})

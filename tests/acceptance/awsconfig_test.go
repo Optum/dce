@@ -3,8 +3,9 @@
 package tests
 
 import (
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/Optum/dce/pkg/config"
 	"github.com/stretchr/testify/assert"

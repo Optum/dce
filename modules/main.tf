@@ -1,10 +1,10 @@
 terraform {
-  required_version = "~>0.12.0"
+  required_version = "~>0.12.31"
 }
 
 provider "aws" {
   region  = var.aws_region
-  version = "2.65.0"
+  version = "3.41.0"
 }
 
 # Current AWS Account User

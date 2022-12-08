@@ -2,13 +2,14 @@ package tests
 
 import (
 	"bytes"
+	"net/http"
+	"testing"
+	"time"
+
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	sigv4 "github.com/aws/aws-sdk-go/aws/signer/v4"
 	"github.com/gruntwork-io/terratest/modules/terraform"
 	"github.com/stretchr/testify/assert"
-	"net/http"
-	"testing"
-	"time"
 )
 
 func TestCredentialsWebPageLoads(t *testing.T) {
