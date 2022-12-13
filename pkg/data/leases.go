@@ -23,9 +23,6 @@ func (a *Lease) queryLeases(query *lease.Lease, keyName string, index string) (*
 		bldr = bldr.WithFilter(*filters)
 	}
 
-	activeFilter := expression.Name("LeaseStatus").Equal(expression.Value("Active"))
-	bldr = bldr.WithFilter(activeFilter)
-
 	expr, err = bldr.Build()
 	if err != nil {
 		return nil, errors.NewInternalServer("unable to build query", err)
@@ -39,9 +36,11 @@ func (a *Lease) queryLeases(query *lease.Lease, keyName string, index string) (*
 		FilterExpression:          expr.Filter(),
 		ExpressionAttributeNames:  expr.Names(),
 		ExpressionAttributeValues: expr.Values(),
+		ScanIndexForward:          aws.Bool(false),
 	}
 
-	//queryInput.SetLimit(*query.Limit)
+	queryInput.SetLimit(*query.Limit)
+
 	if query.NextAccountID != nil && query.NextPrincipalID != nil {
 		// Should be more dynamic
 		queryInput.SetExclusiveStartKey(map[string]*dynamodb.AttributeValue{
@@ -128,7 +127,7 @@ func (a *Lease) List(query *lease.Lease) (*lease.Leases, error) {
 	if query.ID != nil {
 		outputs, err = a.queryLeases(query, "Id", "LeaseId")
 	} else if query.PrincipalID != nil {
-		outputs, err = a.queryLeases(query, "PrincipalId", "PrincipalId")
+		outputs, err = a.queryLeases(query, "PrincipalId", "LastModifiedOn-index")
 	} else if query.Status != nil {
 		outputs, err = a.queryLeases(query, "LeaseStatus", "LeaseStatus")
 	} else {
