@@ -6,7 +6,14 @@ locals {
 resource "aws_api_gateway_rest_api" "gateway_api" {
   name        = local.portal_gateway_name
   description = local.portal_gateway_name
-  body        = data.template_file.api_swagger.rendered
+  body = templatefile("${path.module}/swagger.yaml", {
+    leases_lambda               = module.leases_lambda.invoke_arn
+    lease_auth_lambda           = module.lease_auth_lambda.invoke_arn
+    accounts_lambda             = module.accounts_lambda.invoke_arn
+    usages_lambda               = module.usage_lambda.invoke_arn
+    credentials_web_page_lambda = module.credentials_web_page_lambda.invoke_arn
+    namespace                   = "${var.namespace_prefix}-${var.namespace}"
+  })
 }
 
 module "api_gateway_authorizer" {
@@ -52,19 +59,6 @@ resource "aws_ssm_parameter" "user_pool_endpoint" {
   name  = module.ssm_parameter_names.user_pool_endpoint
   type  = "String"
   value = module.api_gateway_authorizer.user_pool_endpoint
-}
-
-data "template_file" "api_swagger" {
-  template = file("${path.module}/swagger.yaml")
-
-  vars = {
-    leases_lambda               = module.leases_lambda.invoke_arn
-    lease_auth_lambda           = module.lease_auth_lambda.invoke_arn
-    accounts_lambda             = module.accounts_lambda.invoke_arn
-    usages_lambda               = module.usage_lambda.invoke_arn
-    credentials_web_page_lambda = module.credentials_web_page_lambda.invoke_arn
-    namespace                   = "${var.namespace_prefix}-${var.namespace}"
-  }
 }
 
 resource "aws_lambda_permission" "allow_api_gateway" {
@@ -122,7 +116,14 @@ resource "aws_api_gateway_deployment" "gateway_deployment" {
     // API Changes won't get deployed, without a trigger in TF
     // See https://medium.com/coryodaniel/til-forcing-terraform-to-deploy-a-aws-api-gateway-deployment-ed36a9f60c1a
     // and https://github.com/terraform-providers/terraform-provider-aws/issues/162#issuecomment-475323730
-    change_trigger = sha256(data.template_file.api_swagger.rendered)
+    change_trigger = sha256(templatefile("${path.module}/swagger.yaml", {
+      leases_lambda               = module.leases_lambda.invoke_arn
+      lease_auth_lambda           = module.lease_auth_lambda.invoke_arn
+      accounts_lambda             = module.accounts_lambda.invoke_arn
+      usages_lambda               = module.usage_lambda.invoke_arn
+      credentials_web_page_lambda = module.credentials_web_page_lambda.invoke_arn
+      namespace                   = "${var.namespace_prefix}-${var.namespace}"
+    }))
   }
 
   lifecycle {

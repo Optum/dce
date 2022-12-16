@@ -1,10 +1,5 @@
-terraform {
-  required_version = "~>0.12.31"
-}
-
 provider "aws" {
-  region  = var.aws_region
-  version = "3.41.0"
+  region = var.aws_region
 }
 
 # Current AWS Account User
