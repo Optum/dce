@@ -1,6 +1,6 @@
 locals {
   principal_policy     = var.principal_policy == "" ? "${path.module}/fixtures/policies/principal_policy.tmpl" : var.principal_policy
-  artifact_bucket_name = "${local.account_id}-dce-artifacts-${var.namespace}"
+  artifact_bucket_name = "dce-artifacts-${var.namespace}"
 }
 
 

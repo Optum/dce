@@ -38,8 +38,8 @@ generate:
 # Before running this command, you will need
 deploy: clean build
 	cd modules && \
-	ns=$$(terraform output namespace) && \
-	bucket=$$(terraform output artifacts_bucket_name) && \
+	ns=rebura-dce && \
+	bucket=dce-artifacts-rebura-dce && \
 	cd .. && \
 	./scripts/deploy.sh bin/build_artifacts.zip $${ns} $${bucket}
 
