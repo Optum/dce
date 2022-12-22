@@ -1,5 +1,10 @@
 ## next
 
+- Add new secondary index 'PrincipalIdLastModifiedOn' for Lease table with range   key as LastModifiedOn to get the records sort by last-modified 
+- Update pkg/data/leases.go queryLeases method  to use new IndexName PrincipalIdLastModifiedOn instead of existing IndexName PrincipalId in to get leases in order
+
+## v0.33.9
+
 - Upgrade to Go version 1.17
 - Upgrade Ubuntu version on Azure DevOps Agent
 - Fix Go dependency errors in pipeline
