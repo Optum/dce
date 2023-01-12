@@ -43,6 +43,7 @@ func (u *User) Authorize(principalID string) error {
 }
 
 // UserDetailer - used for mocking tests
+//
 //go:generate mockery -name UserDetailer
 type UserDetailer interface {
 	GetUser(reqCtx *events.APIGatewayProxyRequestContext) *User

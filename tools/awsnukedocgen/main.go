@@ -7,7 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"html/template"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 	"path"
@@ -132,7 +132,7 @@ func init() {
 	logger = log.New(os.Stderr, "", 0)
 	configuration = &ToolConfig{}
 
-	yamlStr, err := ioutil.ReadFile(configFile)
+	yamlStr, err := os.ReadFile(configFile)
 	if err != nil {
 		logger.Fatalln("error loading configuration", err)
 	}
@@ -163,7 +163,7 @@ func exitWithErr(err error) {
 	logger.Fatalf("error: %v", err)
 }
 
-// fileExists returns true if the file with the given name exists.``
+// fileExists returns true if the file with the given name exists.“
 func fileExists(filename string) bool {
 	info, err := os.Stat(filename)
 	if os.IsNotExist(err) {
@@ -214,7 +214,7 @@ func (np *NukeParser) scanForSupportedDeleteMethods(
 	results := make([]string, 0)
 
 	dir := path.Join(np.nukeSourceDir, "resources")
-	files, err := ioutil.ReadDir(dir)
+	files, err := os.ReadDir(dir)
 	if err != nil {
 		return results, fmt.Errorf("error while trying to get files: %v", err)
 	}
@@ -294,10 +294,12 @@ type PoliciesConfig struct {
 // PoliciesParser parses the policies file to get the name of the service
 // and the actions supported by the services
 // The JSON looks like this:
-//    "serviceMap": {
-//        "Amazon Comprehend": {
-//            "StringPrefix": "comprehend",
-//            "Actions": [
+//
+//	"serviceMap": {
+//	    "Amazon Comprehend": {
+//	        "StringPrefix": "comprehend",
+//	        "Actions": [
+//
 // ...
 type PoliciesParser struct {
 	policiesJSFile      string
@@ -342,7 +344,7 @@ func (pp *PoliciesParser) Parse() error {
 		log.Fatalf("error opening file: %s", err.Error())
 	}
 
-	bytes, _ := ioutil.ReadAll(file)
+	bytes, _ := io.ReadAll(file)
 	err = json.Unmarshal(bytes, policies)
 
 	if err != nil {

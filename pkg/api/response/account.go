@@ -6,15 +6,17 @@ import (
 
 // AccountResponse is the serialized JSON Response for an account
 // to be returned for APIs
-// {
-// 	"id": "123",
-// 	"status": "Active",
-// 	"lastModifiedOn": 56789,
-//	"createOn": 12345,
-//	"adminRoleArn": " arn:aws:iam::1234567890:role/adminRole
-// }
+//
+//	{
+//		"id": "123",
+//		"status": "Active",
+//		"lastModifiedOn": 56789,
+//		"createOn": 12345,
+//		"adminRoleArn": " arn:aws:iam::1234567890:role/adminRole
+//	}
 //
 // Converting from a db.Account can be done via type casting:
+//
 //	dbAccount := db.Account{...}
 //	accountRes := response.AccountResponse(dbAccount)
 type AccountResponse struct {

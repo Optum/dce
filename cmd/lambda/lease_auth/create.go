@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -169,7 +169,7 @@ func (controller CreateController) getSigninToken(creds sts.Credentials) (string
 		log.Printf("Error getting signing token: %s", err)
 		return "", err
 	}
-	bodySigninToken, err := ioutil.ReadAll(resSigninToken.Body)
+	bodySigninToken, err := io.ReadAll(resSigninToken.Body)
 	if err != nil {
 		log.Printf("Error getting signing token: %s", err)
 		return "", err

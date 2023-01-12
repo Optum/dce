@@ -1,13 +1,13 @@
 variable "lambda_function_arn" {
   type = string
 }
-variable schedule_expression {
+variable "schedule_expression" {
   type = string
 }
-variable name {
+variable "name" {
   type = string
 }
-variable description {
+variable "description" {
   type = string
 }
 
