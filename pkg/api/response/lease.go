@@ -13,16 +13,17 @@ func CreateLeaseResponse(lease *db.Lease) *LeaseResponse {
 
 // LeaseResponse is the structured JSON Response for an Lease
 // to be returned for APIs
-// {
-// 	"accountId": "123",
-// 	"principalId": "user",
-// 	"leaseStatus": "Active",
-// 	"createdOn": 56789,
-// 	"lastModifiedOn": 56789,
-// 	"budgetAmount": 300,
-// 	"BudgetCurrency": "USD",
-// 	"BudgetNotificationEmails": ["usermsid@test.com", "managersmsid@test.com"]
-// }
+//
+//	{
+//		"accountId": "123",
+//		"principalId": "user",
+//		"leaseStatus": "Active",
+//		"createdOn": 56789,
+//		"lastModifiedOn": 56789,
+//		"budgetAmount": 300,
+//		"BudgetCurrency": "USD",
+//		"BudgetNotificationEmails": ["usermsid@test.com", "managersmsid@test.com"]
+//	}
 type LeaseResponse struct {
 	AccountID                string                 `json:"accountId"`
 	PrincipalID              string                 `json:"principalId"`

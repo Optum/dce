@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -93,7 +93,6 @@ func readFile(path string) string {
 		log.Fatal(err)
 	}
 	defer file.Close()
-
-	b, _ := ioutil.ReadAll(file)
+	b, _ := io.ReadAll(file)
 	return string(b)
 }

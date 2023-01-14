@@ -9,12 +9,12 @@ set -euxo pipefail
 
 # safeGoGet will get the go tool, checking to see if it exists first and doing
 # a little additional messaging
-function safeGoGet() {
-  binname=$(basename $1)
+function safeGoInstall() {
+  binname=$(basename "$1")
   echo "Checking for ${binname} on the path..."
-  if [ ! -x "$(command -v ${binname})" ]; then 
+  if [ ! -x "$(command -v "${binname}")" ]; then 
     echo -n "Getting ${binname} from $1..."
-    go get $1
+    go install "$1"
     echo "Done."
   fi
 }
@@ -25,7 +25,7 @@ if [ ! -x "$(command -v go)" ]; then
 fi
 
 gopath=$(command -v go)
-export GOBIN=$(dirname ${gopath})
+export GOBIN=$(dirname "${gopath}")
 # Must be enabled to install certain tools
 # eg. https://github.com/golangci/golangci-lint/issues/1040#issuecomment-618269286
 export GO111MODULE=on
@@ -41,7 +41,7 @@ if [ -x "$(command -v wget)" ]; then
     fi
     (cd /tmp && unzip tflint.zip)
     chmod +x /tmp/tflint
-    mv /tmp/tflint $GOBIN
+    mv /tmp/tflint "$GOBIN"
   fi
 else
   echo "Cannot find wget, which is required for installing tools."
@@ -52,21 +52,25 @@ fi
 # Dependencies go here.
 #------------------------------------------------------------------------------
 
+# Download required and remove any unused dependencies
+go mod tidy -v
+
 # go-junit-report is used by the test scripts to generate report output readable
 # by CI tools that can read JUnit reports
-safeGoGet github.com/jstemmer/go-junit-report
+safeGoInstall github.com/jstemmer/go-junit-report@latest
 
 # gcov is used to generate coverage information in a report that can be read
 # by CI tools
-safeGoGet github.com/axw/gocov/gocov
-safeGoGet github.com/AlekSi/gocov-xml
-safeGoGet github.com/matm/gocov-html
+safeGoInstall github.com/axw/gocov/gocov@latest
+safeGoInstall github.com/AlekSi/gocov-xml@latest
+# safeGoInstall github.com/matm/gocov-html@latest
+safeGoInstall github.com/matm/gocov-html/cmd/gocov-html@latest
 
 # golangci-lint is a lint aggregator used in the lint.sh script to lint the
 # go and terraform code.
-safeGoGet github.com/golangci/golangci-lint/cmd/golangci-lint
+safeGoInstall github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 
 # gosec is used for checking the code for security problems
-safeGoGet github.com/securego/gosec/cmd/gosec
+safeGoInstall github.com/securego/gosec/cmd/gosec@latest
 
 echo "Setup complete."

@@ -5,7 +5,6 @@ import (
 	apiMocks "github.com/Optum/dce/pkg/api/mocks"
 	"github.com/Optum/dce/pkg/lease"
 	"github.com/stretchr/testify/mock"
-
 	"os"
 	"testing"
 
@@ -29,8 +28,8 @@ func MockAPIResponse(status int, body string) events.APIGatewayProxyResponse {
 	return events.APIGatewayProxyResponse{
 		StatusCode: status,
 		MultiValueHeaders: map[string][]string{
-			"Content-Type":                []string{"application/json"},
-			"Access-Control-Allow-Origin": []string{"*"},
+			"Content-Type":                {"application/json"},
+			"Access-Control-Allow-Origin": {"*"},
 		},
 		Headers: map[string]string{
 			"Access-Control-Allow-Origin": "*",
@@ -45,8 +44,8 @@ func MockAPIErrorResponse(status int, body string) events.APIGatewayProxyRespons
 	return events.APIGatewayProxyResponse{
 		StatusCode: status,
 		MultiValueHeaders: map[string][]string{
-			"Content-Type":                []string{"application/json"},
-			"Access-Control-Allow-Origin": []string{"*"},
+			"Content-Type":                {"application/json"},
+			"Access-Control-Allow-Origin": {"*"},
 		},
 		Headers: map[string]string{
 			"Access-Control-Allow-Origin": "*",

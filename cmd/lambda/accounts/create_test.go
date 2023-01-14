@@ -16,8 +16,8 @@ import (
 
 func TestWhenCreate(t *testing.T) {
 	standardMultiValueHeaders := map[string][]string{
-		"Access-Control-Allow-Origin": []string{"*"},
-		"Content-Type":                []string{"application/json"},
+		"Access-Control-Allow-Origin": {"*"},
+		"Content-Type":                {"application/json"},
 	}
 	standardHeaders := map[string]string{
 		"Access-Control-Allow-Origin": "*",

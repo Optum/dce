@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"math"
 	"math/rand"
@@ -2405,7 +2405,7 @@ func apiRequest(t *testing.T, input *apiRequestInput) *apiResponse {
 			defer resp.Body.Close()
 			var data interface{}
 
-			body, err := ioutil.ReadAll(resp.Body)
+			body, err := io.ReadAll(resp.Body)
 			assert.NoError(r, err)
 
 			err = json.Unmarshal([]byte(body), &data)

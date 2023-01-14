@@ -3,7 +3,7 @@ package api
 import (
 	gErrors "errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -57,7 +57,7 @@ func TestAPIWriting_Errors(t *testing.T) {
 			WriteAPIErrorResponse(w, tt.err)
 
 			resp := w.Result()
-			body, _ := ioutil.ReadAll(resp.Body)
+			body, _ := io.ReadAll(resp.Body)
 
 			assert.Equal(t, tt.expectedCode, resp.StatusCode)
 			assert.Equal(t, tt.expectedJSON, string(body))
