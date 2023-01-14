@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -148,7 +148,7 @@ func TestUpdateAccountByID(t *testing.T) {
 			UpdateAccountByID(w, r)
 
 			resp := w.Result()
-			body, err := ioutil.ReadAll(resp.Body)
+			body, err := io.ReadAll(resp.Body)
 
 			assert.Nil(t, err)
 			assert.Equal(t, tt.expResp.StatusCode, resp.StatusCode)

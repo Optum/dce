@@ -16,7 +16,7 @@ FILE=$1
 namespace=$2
 artifactBucket=$3
 
-# check if build_artifacts.zip exists (generated from 'scripts/build.sh')
+# Check if build_artifacts.zip exists (generated from 'scripts/build.sh')
 if [[ -f "$FILE" ]]; then
     # Unzip build_artifacts.zip into the '__artifacts__/' directory
     rm -rf __artifacts__
@@ -34,15 +34,12 @@ if [[ -f "$FILE" ]]; then
           s3://${artifactBucket}/lambda/${mod_name}.zip \
           --sse
         
-        # Point Lambda Fn at the new code on S3
+        # Point Lambda Fn at the new code on S3 and publish new version
         aws lambda update-function-code \
           --function-name ${fn_name} \
           --s3-bucket ${artifactBucket} \
-          --s3-key lambda/${mod_name}.zip
-        
-        # Publish new Function version
-        aws lambda publish-version \
-          --function-name ${fn_name}
+          --s3-key lambda/${mod_name}.zip \
+          --publish
     done
     
     # Upload the Reset CodeBuild Zip to the S3 artifact bucket. CodeBuild should pick this new file up on its next build.

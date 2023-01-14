@@ -3,17 +3,14 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
-	"net/url"
-
-	"github.com/aws/aws-sdk-go/service/iam"
-
 	"github.com/Optum/dce/pkg/api"
+	"github.com/Optum/dce/pkg/config"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
-
-	"github.com/Optum/dce/pkg/config"
+	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/awslabs/aws-lambda-go-api-proxy/gorillamux"
+	"log"
+	"net/url"
 )
 
 type accountControllerConfiguration struct {
@@ -53,39 +50,39 @@ func init() {
 		// Routes with query strings always go first,
 		// because the matcher will stop on the first match
 		api.Route{
-			"GetAccounts",
-			"GET",
-			"/accounts",
-			api.EmptyQueryString,
-			GetAccounts,
+			Name:        "GetAccounts",
+			Method:      "GET",
+			Pattern:     "/accounts",
+			Queries:     api.EmptyQueryString,
+			HandlerFunc: GetAccounts,
 		},
 		api.Route{
-			"GetAccountByID",
-			"GET",
-			"/accounts/{accountId}",
-			api.EmptyQueryString,
-			GetAccountByID,
+			Name:        "GetAccountByID",
+			Method:      "GET",
+			Pattern:     "/accounts/{accountId}",
+			Queries:     api.EmptyQueryString,
+			HandlerFunc: GetAccountByID,
 		},
 		api.Route{
-			"UpdateAccountByID",
-			"PUT",
-			"/accounts/{accountId}",
-			api.EmptyQueryString,
-			UpdateAccountByID,
+			Name:        "UpdateAccountByID",
+			Method:      "PUT",
+			Pattern:     "/accounts/{accountId}",
+			Queries:     api.EmptyQueryString,
+			HandlerFunc: UpdateAccountByID,
 		},
 		api.Route{
-			"DeleteAccount",
-			"DELETE",
-			"/accounts/{accountId}",
-			api.EmptyQueryString,
-			DeleteAccount,
+			Name:        "DeleteAccount",
+			Method:      "DELETE",
+			Pattern:     "/accounts/{accountId}",
+			Queries:     api.EmptyQueryString,
+			HandlerFunc: DeleteAccount,
 		},
 		api.Route{
-			"CreateAccount",
-			"POST",
-			"/accounts",
-			api.EmptyQueryString,
-			CreateAccount,
+			Name:        "CreateAccount",
+			Method:      "POST",
+			Pattern:     "/accounts",
+			Queries:     api.EmptyQueryString,
+			HandlerFunc: CreateAccount,
 		},
 	}
 	r := api.NewRouter(accountRoutes)

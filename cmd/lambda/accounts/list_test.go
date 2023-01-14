@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http/httptest"
 	"net/url"
 	"testing"
@@ -118,7 +118,7 @@ func TestGetAccounts(t *testing.T) {
 			GetAccounts(w, r)
 
 			resp := w.Result()
-			body, err := ioutil.ReadAll(resp.Body)
+			body, err := io.ReadAll(resp.Body)
 
 			assert.Nil(t, err)
 			assert.Equal(t, tt.expResp.StatusCode, resp.StatusCode)

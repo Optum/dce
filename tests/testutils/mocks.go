@@ -13,7 +13,7 @@ import "github.com/stretchr/testify/mock"
 // as `mock.Mock` does not expose any useful interfaces
 // eg.
 //
-//		ReplaceMock(&myMock.Mock, "DoAThing", mock.Anything).Return(nil)
+//	ReplaceMock(&myMock.Mock, "DoAThing", mock.Anything).Return(nil)
 func ReplaceMock(m *mock.Mock, methodName string, arguments ...interface{}) *mock.Call {
 	// Recreated the list of expected calls,
 	// excluding calls for this method

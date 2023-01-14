@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -339,8 +339,7 @@ func TestMarkdownGenerator_Generate(t *testing.T) {
 	parser := NewPoliciesParser("samples/policies-20200227.js", expectedSupportedMethods)
 	err := parser.Parse()
 	assert.Nil(t, err, "expected no errors")
-
-	expectedMarkdown, err := ioutil.ReadFile("samples/supported.md")
+	expectedMarkdown, err := os.ReadFile("samples/supported.md")
 	assert.Nil(t, err, "expected no error reading from file.")
 
 	iam := NewIAMPolicyGenerator(true, parser.SupportedDeleteMethods(), []string{})
