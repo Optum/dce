@@ -9,7 +9,7 @@ trigger:
 
 variables:
   GO_VERSION: 1.19
-  TERRAFORM_VERSION: 0.12.31
+  TERRAFORM_VERSION: 1.3.7
 
 # Run builds for PRs against `master`
 pr:
