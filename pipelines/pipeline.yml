@@ -232,8 +232,8 @@ stages:
 
                 # Deploy Application Code to AWS
                 - bash: |
-                    ARTIFACTS_BUCKET_NAME=$(cd modules && terraform output artifacts_bucket_name)
-                    NAMESPACE=$(cd modules && terraform output namespace)
+                    ARTIFACTS_BUCKET_NAME=$(cd modules && terraform output --raw artifacts_bucket_name)
+                    NAMESPACE=$(cd modules && terraform output --raw namespace)
                     ./scripts/deploy.sh \
                       $(Pipeline.Workspace)/bin/build_artifacts.zip \
                       ${NAMESPACE} \
