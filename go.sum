@@ -27,6 +27,8 @@ github.com/CloudyKit/jet/v3 v3.0.0/go.mod h1:HKQPgSJmdK8hdoAbKUUWajkHyHo4RaU5rMd
 github.com/Joker/hpp v1.0.0/go.mod h1:8x5n+M1Hp5hC0g8okX3sR3vFQwynaX/UgSOM9MeBKzY=
 github.com/Optum/aws-nuke/v2 v2.0.0 h1:kCF9BuHvaQI+OJu1CBAWMAL1YFgQSIu4Mhnv6wDk8vU=
 github.com/Optum/aws-nuke/v2 v2.0.0/go.mod h1:vHiOieYSFzuprJ0gAlc4sfYn27RnrpsN465Y9rlBr6c=
+github.com/Optum/aws-nuke/v2 v2.0.1 h1:9wjFuNLcjcfC94dNEa8/Xgxl9xciIFyUeB0CXN3vFbQ=
+github.com/Optum/aws-nuke/v2 v2.0.1/go.mod h1:vHiOieYSFzuprJ0gAlc4sfYn27RnrpsN465Y9rlBr6c=
 github.com/Shopify/goreferrer v0.0.0-20181106222321-ec9c9a553398/go.mod h1:a1uqRtAwp2Xwc6WNPJEufxJ7fx3npB4UV/JOLmbu5I0=
 github.com/agext/levenshtein v1.2.1/go.mod h1:JEDfjyjHDjOF/1e4FlBE/PkbqA9OfWu2ki2W0IB5558=
 github.com/agext/levenshtein v1.2.3 h1:YB2fHEn0UJagG8T1rrWknE3ZQzWM06O8AMAatNn7lmo=
