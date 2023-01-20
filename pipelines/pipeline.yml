@@ -232,8 +232,13 @@ stages:
 
                 # Deploy Application Code to AWS
                 - bash: |
-                    ARTIFACTS_BUCKET_NAME=$(cd modules && terraform output --raw artifacts_bucket_name)
-                    NAMESPACE=$(cd modules && terraform output --raw namespace)
+                    # Temporary workaround using jq to get formatted output from terraform output until we upgrade to >=0.14.3 and can use -raw flag
+                    # https://github.com/hashicorp/terraform/releases/tag/v0.14.3
+                    # ARTIFACTS_BUCKET_NAME=$(cd modules && terraform output --raw artifacts_bucket_name)
+                    # NAMESPACE=$(cd modules && terraform output --raw namespace)
+
+                    ARTIFACTS_BUCKET_NAME=$(cd modules && terraform output -json artifacts_bucket_name | jq -r | tr -d '\n')
+                    NAMESPACE=$(cd modules && terraform output -json namespace | jq -r | tr -d '\n')
                     ./scripts/deploy.sh \
                       $(Pipeline.Workspace)/bin/build_artifacts.zip \
                       ${NAMESPACE} \
