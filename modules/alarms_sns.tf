@@ -1,6 +1,7 @@
 # Make a topic
 resource "aws_sns_topic" "alarms_topic" {
-  name = "alarms-${var.namespace}"
+  name              = "alarms-${var.namespace}"
+  kms_master_key_id = local.sns_encryption_key_id
 }
 
 resource "aws_sns_topic_policy" "alarms_policy" {

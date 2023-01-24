@@ -222,6 +222,7 @@ resource "aws_cloudwatch_metric_alarm" "reset_failed_builds" {
 
 
 resource "aws_sns_topic" "reset_complete" {
-  name = "account-reset-complete-${var.namespace}"
-  tags = var.global_tags
+  name              = "account-reset-complete-${var.namespace}"
+  kms_master_key_id = local.sns_encryption_key_id
+  tags              = var.global_tags
 }
