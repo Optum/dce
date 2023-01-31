@@ -21,7 +21,9 @@ resource "aws_cloudwatch_event_target" "dbbackup" {
   rule      = aws_cloudwatch_event_rule.dbbackup[0].name
   target_id = var.name
 }
+
 resource "aws_lambda_permission" "dbbackup" {
+  count         = var.enabled ? 1 : 0
   statement_id  = "AllowExecutionFromCloudWatch"
   action        = "lambda:InvokeFunction"
   function_name = local.lambda_function_name
