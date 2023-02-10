@@ -3,6 +3,7 @@
 - Add new secondary index 'PrincipalIdLastModifiedOn' for Lease table with range key as LastModifiedOn to get the records sort by last-modified
 - Update pkg/data/leases.go queryLeases method to use new IndexName PrincipalIdLastModifiedOn instead of existing IndexName PrincipalId in to get leases in order
 - Fix extra characters being added on inputs passed to deployment script in pipeline #433
+- Encrypt SNS topics by default
 
 ## v0.33.9
 
