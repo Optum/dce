@@ -1,12 +1,10 @@
 ## next
 
+- Add AWS Backup MountCapsule permission [#426](https://github.com/Optum/dce/issues/426)
 - Add new secondary index 'PrincipalIdLastModifiedOn' for Lease table with range key as LastModifiedOn to get the records sort by last-modified
 - Update pkg/data/leases.go queryLeases method to use new IndexName PrincipalIdLastModifiedOn instead of existing IndexName PrincipalId in to get leases in order
-- Fix extra characters being added on inputs passed to deployment script in pipeline #433
+- Fix extra characters being added on inputs passed to deployment script in pipeline [#433](https://github.com/Optum/dce/issues/433)
 - Encrypt SNS topics by default
-
-## v0.33.9
-
 - Upgrade to Go version 1.17
 - Upgrade Ubuntu version on Azure DevOps Agent
 - Fix Go dependency errors in pipeline
