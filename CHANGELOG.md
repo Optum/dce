@@ -1,3 +1,7 @@
+
+## v0.33.9
+- Upgrade Ubuntu version to 20.04 to be current. 
+=======
 ## next
 
 - Add AWS Backup MountCapsule permission [#426](https://github.com/Optum/dce/issues/426)
@@ -9,6 +13,7 @@
 - Upgrade Ubuntu version on Azure DevOps Agent
 - Fix Go dependency errors in pipeline
 - Require at least `0.12.31` or later `0.12.x` versions of Terraform to recieve new provider updates
+
 
 ## v0.33.8
 
