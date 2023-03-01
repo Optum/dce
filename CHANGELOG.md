@@ -1,10 +1,10 @@
 ## next
 
-- Add new secondary index 'PrincipalIdLastModifiedOn' for Lease table with range   key as LastModifiedOn to get the records sort by last-modified 
-- Update pkg/data/leases.go queryLeases method  to use new IndexName PrincipalIdLastModifiedOn instead of existing IndexName PrincipalId in to get leases in order
-
-## v0.33.9
-
+- Add AWS Backup MountCapsule permission [#426](https://github.com/Optum/dce/issues/426)
+- Add new secondary index 'PrincipalIdLastModifiedOn' for Lease table with range key as LastModifiedOn to get the records sort by last-modified
+- Update pkg/data/leases.go queryLeases method to use new IndexName PrincipalIdLastModifiedOn instead of existing IndexName PrincipalId in to get leases in order
+- Fix extra characters being added on inputs passed to deployment script in pipeline [#433](https://github.com/Optum/dce/issues/433)
+- Encrypt SNS topics by default
 - Upgrade to Go version 1.17
 - Upgrade Ubuntu version on Azure DevOps Agent
 - Fix Go dependency errors in pipeline
@@ -128,7 +128,7 @@
 
 This release makes breaking changes to the `GET /leases` endpoint, so that requests will always return a HTTP 200 response, with a JSON array in the payload, even if the result set is empty. Previously, if a query had no results, the endpoint would return an HTTP 404 response, with an error object in the response body.
 
-DCE API clients will need to be updated accordingly, to handle this response.  
+DCE API clients will need to be updated accordingly, to handle this response.
 
 ## v0.25.0
 
@@ -217,7 +217,7 @@ DynamoDB does not support in-place table renaming, so we will need to migrate da
 
 To do this, you may run the migration script in [/scripts/migrations/v0.21.0_rename_db_tables_dce](https://github.com/Optum/dce/blob/master/scripts/migrations/v0.21.0_rename_db_tables_dce/main.go). This script will copy all data from the old tables to the new tables.
 
-Note that this release does ***not*** delete the old tables, to provide the opportunity to migrate data. Subsequent releases _will_ destroy the old tables.
+Note that this release does **_not_** delete the old tables, to provide the opportunity to migrate data. Subsequent releases _will_ destroy the old tables.
 
 ## v0.20.0
 
@@ -268,7 +268,7 @@ In order to upgrade your DCE deployment to v0.19.0, you will need to:
 
 Prior to v0.19.0, leases were held in perpetuity by principals, or until the principal removed their lease via the `DELETE /leases` endpoint. Leased accounts would be "reset" at the end of the week. During reset, the lease would be marked as _Locked_, and then marked as _Active_ again after the reset was complete.
 
-As of v0.19.0, leases are held for a defined time period (defined by the `expiresOn` property), and then destroyed (marked as `Inactive`). Accounts are reset after the leases expires. There is no longer any type of `*Locked` state, as leases are always either `Active` or `Inactive`.  
+As of v0.19.0, leases are held for a defined time period (defined by the `expiresOn` property), and then destroyed (marked as `Inactive`). Accounts are reset after the leases expires. There is no longer any type of `*Locked` state, as leases are always either `Active` or `Inactive`.
 
 Changes for this new behavior include:
 
@@ -323,7 +323,7 @@ Changes for this new behavior include:
 ## v0.13.0
 
 - **BREAKING** Remove Optum-specific rules from the default aws-nuke config.
-- **BREAKING** Disable `aws-nuke` by default.  
+- **BREAKING** Disable `aws-nuke` by default.
 - Add outputs for DynDB table ARNs
 
 **v0.13.0 Migration Notes**

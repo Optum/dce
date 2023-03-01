@@ -27,22 +27,26 @@ module "leases_lambda" {
 }
 
 resource "aws_sns_topic" "lease_added" {
-  name = "lease-added-${var.namespace}"
-  tags = var.global_tags
+  name              = "lease-added-${var.namespace}"
+  kms_master_key_id = local.sns_encryption_key_id
+  tags              = var.global_tags
 }
 
 resource "aws_sns_topic" "lease_removed" {
-  name = "lease-removed-${var.namespace}"
-  tags = var.global_tags
+  name              = "lease-removed-${var.namespace}"
+  kms_master_key_id = local.sns_encryption_key_id
+  tags              = var.global_tags
 }
 
 
 resource "aws_sns_topic" "lease_locked" {
-  name = "lease-locked-${var.namespace}"
-  tags = var.global_tags
+  name              = "lease-locked-${var.namespace}"
+  kms_master_key_id = local.sns_encryption_key_id
+  tags              = var.global_tags
 }
 
 resource "aws_sns_topic" "lease_unlocked" {
-  name = "lease-unlocked-${var.namespace}"
-  tags = var.global_tags
+  name              = "lease-unlocked-${var.namespace}"
+  kms_master_key_id = local.sns_encryption_key_id
+  tags              = var.global_tags
 }
