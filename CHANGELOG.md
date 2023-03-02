@@ -1,4 +1,4 @@
-## next
+## v0.33.9
 
 - Add AWS Backup MountCapsule permission [#426](https://github.com/Optum/dce/issues/426)
 - Add new secondary index 'PrincipalIdLastModifiedOn' for Lease table with range key as LastModifiedOn to get the records sort by last-modified
