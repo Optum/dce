@@ -65,6 +65,8 @@ override.tf.json
 # Other stuff
 *.zip
 .idea/
+.vscode/
+.DS_Store
 
 junit-report/
 test.output.txt
@@ -86,7 +88,5 @@ venv.bak/
 
 # mkdocs documentation
 /site
-
-.vscode/
 
 tests/integration/test.cfg
