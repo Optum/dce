@@ -6,8 +6,8 @@ import (
 
 	"github.com/Optum/dce/pkg/common"
 	"github.com/aws/aws-sdk-go/service/sts"
-	"github.com/rebuy-de/aws-nuke/cmd"
-	"github.com/rebuy-de/aws-nuke/pkg/awsutil"
+	"github.com/rebuy-de/aws-nuke/v2/cmd"
+	"github.com/rebuy-de/aws-nuke/v2/pkg/awsutil"
 )
 
 // NukeAccountInput is the container used for the TokenService and the
