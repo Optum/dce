@@ -1,3 +1,7 @@
+## v0.34.0
+
+- Fix: get latest aws-nuke release. (#432)
+
 ## v0.33.9
 
 - Add AWS Backup MountCapsule permission [#426](https://github.com/Optum/dce/issues/426)
