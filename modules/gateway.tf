@@ -116,14 +116,9 @@ resource "aws_api_gateway_deployment" "gateway_deployment" {
     // API Changes won't get deployed, without a trigger in TF
     // See https://medium.com/coryodaniel/til-forcing-terraform-to-deploy-a-aws-api-gateway-deployment-ed36a9f60c1a
     // and https://github.com/terraform-providers/terraform-provider-aws/issues/162#issuecomment-475323730
-    change_trigger = sha256(templatefile("${path.module}/swagger.yaml", {
-      leases_lambda               = module.leases_lambda.invoke_arn
-      lease_auth_lambda           = module.lease_auth_lambda.invoke_arn
-      accounts_lambda             = module.accounts_lambda.invoke_arn
-      usages_lambda               = module.usage_lambda.invoke_arn
-      credentials_web_page_lambda = module.credentials_web_page_lambda.invoke_arn
-      namespace                   = "${var.namespace_prefix}-${var.namespace}"
-    }))
+  triggers = {
+    redeployment = sha1(jsonencode(aws_api_gateway_rest_api.gateway_api.body))
+  }
   }
 
   lifecycle {
