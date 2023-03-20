@@ -1,9 +1,9 @@
 package reset
 
 import (
-	"github.com/rebuy-de/aws-nuke/cmd"
-	"github.com/rebuy-de/aws-nuke/pkg/awsutil"
-	"github.com/rebuy-de/aws-nuke/pkg/config"
+	"github.com/rebuy-de/aws-nuke/v2/cmd"
+	"github.com/rebuy-de/aws-nuke/v2/pkg/awsutil"
+	"github.com/rebuy-de/aws-nuke/v2/pkg/config"
 )
 
 // Nuker interface requires methods that are necessary to set up and

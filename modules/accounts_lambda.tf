@@ -35,11 +35,13 @@ module "accounts_lambda" {
 }
 
 resource "aws_sns_topic" "account_created" {
-  name = "account-created-${var.namespace}"
-  tags = var.global_tags
+  name              = "account-created-${var.namespace}"
+  kms_master_key_id = local.sns_encryption_key_id
+  tags              = var.global_tags
 }
 
 resource "aws_sns_topic" "account_deleted" {
-  name = "account-deleted-${var.namespace}"
-  tags = var.global_tags
+  name              = "account-deleted-${var.namespace}"
+  kms_master_key_id = local.sns_encryption_key_id
+  tags              = var.global_tags
 }

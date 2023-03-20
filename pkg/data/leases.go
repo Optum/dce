@@ -1,13 +1,14 @@
 package data
 
 import (
+	"strings"
+
 	"github.com/Optum/dce/pkg/errors"
 	"github.com/Optum/dce/pkg/lease"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/aws/aws-sdk-go/service/dynamodb/expression"
-	"strings"
 )
 
 // queryLeases for doing a query against dynamodb
@@ -36,6 +37,7 @@ func (a *Lease) queryLeases(query *lease.Lease, keyName string, index string) (*
 		FilterExpression:          expr.Filter(),
 		ExpressionAttributeNames:  expr.Names(),
 		ExpressionAttributeValues: expr.Values(),
+		ScanIndexForward:          aws.Bool(false),
 	}
 
 	queryInput.SetLimit(*query.Limit)
@@ -125,7 +127,7 @@ func (a *Lease) List(query *lease.Lease) (*lease.Leases, error) {
 	if query.ID != nil {
 		outputs, err = a.queryLeases(query, "Id", "LeaseId")
 	} else if query.PrincipalID != nil {
-		outputs, err = a.queryLeases(query, "PrincipalId", "PrincipalId")
+		outputs, err = a.queryLeases(query, "PrincipalId", "PrincipalIdLastModifiedOn")
 	} else if query.Status != nil {
 		outputs, err = a.queryLeases(query, "LeaseStatus", "LeaseStatus")
 	} else {

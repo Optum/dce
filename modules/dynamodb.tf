@@ -87,6 +87,15 @@ resource "aws_dynamodb_table" "leases" {
     write_capacity  = var.leases_table_wcu
   }
 
+  global_secondary_index {
+    name            = "PrincipalIdLastModifiedOn"
+    hash_key        = "PrincipalId"
+    range_key       = "LastModifiedOn"
+    projection_type = "ALL"
+    read_capacity   = var.leases_table_rcu
+    write_capacity  = var.leases_table_wcu
+  }
+
   # AWS Account ID
   attribute {
     name = "AccountId"
@@ -112,6 +121,12 @@ resource "aws_dynamodb_table" "leases" {
   attribute {
     name = "Id"
     type = "S"
+  }
+
+  # Last ModifiedOn
+  attribute {
+    name = "LastModifiedOn"
+    type = "N"
   }
 
   tags = var.global_tags

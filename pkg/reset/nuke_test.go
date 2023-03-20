@@ -9,9 +9,9 @@ import (
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/service/sts"
-	"github.com/rebuy-de/aws-nuke/cmd"
-	"github.com/rebuy-de/aws-nuke/pkg/awsutil"
-	"github.com/rebuy-de/aws-nuke/pkg/config"
+	"github.com/rebuy-de/aws-nuke/v2/cmd"
+	"github.com/rebuy-de/aws-nuke/v2/pkg/awsutil"
+	"github.com/rebuy-de/aws-nuke/v2/pkg/config"
 )
 
 // mockTokenService is a mocked implementation of TokenService
