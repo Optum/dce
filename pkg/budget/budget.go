@@ -43,10 +43,10 @@ func (budgetSvc *AWSBudgetService) CalculateTotalSpend(startDate time.Time, endD
 
 	metrics := []*string{aws.String("UnblendedCost")}
 	granularity := aws.String("DAILY")
-	filter :=  &costexplorer.Expression{
+	filter := &costexplorer.Expression{
 		Dimensions: &costexplorer.DimensionValues{
-			Key:    aws.String("USAGE_TYPE"),
-			Values: aws.StringSlice([]string{"Credit", "Refund"}),
+			Key:    aws.String("RECORD_TYPE"),
+			Values: aws.StringSlice([]string{"Credit"}),
 		},
 	}
 
@@ -54,7 +54,7 @@ func (budgetSvc *AWSBudgetService) CalculateTotalSpend(startDate time.Time, endD
 		Metrics:     metrics,
 		TimePeriod:  &timePeriod,
 		Granularity: granularity,
-		Filter: filter,
+		Filter:      filter,
 	}
 
 	output, err := budgetSvc.CostExplorer.GetCostAndUsage(&getCostAndUsageInput)
