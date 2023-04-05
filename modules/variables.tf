@@ -158,7 +158,7 @@ variable "principal_policy" {
 variable "fan_out_update_lease_status_schedule_expression" {
   type        = string
   description = "Update lease status schedule"
-  default     = "cron(0 5/30 * * ? *)"
+  default     = "rate(6 hours)"
 }
 
 variable "update_lease_status_enabled" {
