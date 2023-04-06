@@ -1,9 +1,10 @@
 package budget
 
 import (
-	"github.com/Optum/dce/pkg/awsiface"
 	"strconv"
 	"time"
+
+	"github.com/Optum/dce/pkg/awsiface"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/costexplorer"
@@ -11,6 +12,7 @@ import (
 
 // Define a Service, so we can mock this service from other components
 // (eg, if I'm testing a Lambda controller that uses this Service)
+//
 //go:generate mockery -name Service
 type Service interface {
 	CalculateTotalSpend(startDate time.Time, endDate time.Time) (float64, error)
@@ -41,11 +43,18 @@ func (budgetSvc *AWSBudgetService) CalculateTotalSpend(startDate time.Time, endD
 
 	metrics := []*string{aws.String("UnblendedCost")}
 	granularity := aws.String("DAILY")
+	filter := &costexplorer.Expression{
+		Dimensions: &costexplorer.DimensionValues{
+			Key:    aws.String("RECORD_TYPE"),
+			Values: aws.StringSlice([]string{"Credit"}),
+		},
+	}
 
 	getCostAndUsageInput := costexplorer.GetCostAndUsageInput{
 		Metrics:     metrics,
 		TimePeriod:  &timePeriod,
 		Granularity: granularity,
+		Filter:      filter,
 	}
 
 	output, err := budgetSvc.CostExplorer.GetCostAndUsage(&getCostAndUsageInput)
