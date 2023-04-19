@@ -188,7 +188,9 @@
       "ForAnyValue:StringNotLike": {
         "ec2:InstanceType": [
           "*.nano",
-          "*.micro"
+          "*.micro",
+          "*.small",
+          "*.medium"
           ]
         }
       }
@@ -233,6 +235,25 @@
             "ds1.xlarge",
             "dc2.large",
             "ds2.xlarge"
+          ]
+        }
+      }
+    },
+    {
+      "Sid": "AllowSpecificEMRInstances", 
+      "Effect": "Deny",
+      "Action": [
+        "elasticmapreduce:RunJobFlow",
+        "elasticmapreduce:AddInstanceGroups"
+      ],
+      "Resource": [
+        "*"
+      ],
+      "Condition": {
+        "ForAnyValue:StringNotLike": {
+          "aws:RequestedInstanceType": [
+            "*.xlarge",
+            "*.2xlarge"
           ]
         }
       }
