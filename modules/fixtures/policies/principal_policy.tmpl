@@ -218,6 +218,24 @@
           ]
         }
       }
+    },
+    {
+      "Sid": "AllowSpecificRedshiftInstances",
+      "Effect": "Deny",
+      "Action": [
+        "redshift:CreateCluster"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "ForAnyValue:StringNotLike": {
+          "redshift:ClusterNodeType": [
+            "dc1.large",
+            "ds1.xlarge",
+            "dc2.large",
+            "ds2.xlarge"
+          ]
+        }
+      }
     }
   ]
 }
