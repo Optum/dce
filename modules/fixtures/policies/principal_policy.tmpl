@@ -257,6 +257,23 @@
           ]
         }
       }
+    },
+    {
+      "Sid": "LimitMaxFileSize",
+      "Effect": "Deny",
+      "Principal": "*",
+      "Action": [
+        "s3:PutObject",
+        "s3:InitiateMultipartUpload"
+      ],
+      "Resource": [
+        "arn:aws:s3:::*"
+      ],
+      "Condition": {
+        "NumericGreaterThan": {
+            "s3:objectSize": "1073741824" # 1GB
+        }
+      }
     }
   ]
 }
