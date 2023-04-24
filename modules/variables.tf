@@ -1,6 +1,6 @@
 variable "aws_region" {
   description = "The AWS region for this Terraform run"
-  default     = "us-east-1"
+  default     = "eu-west-1"
 }
 
 variable "account_pool_metrics_toggle" {
@@ -219,7 +219,8 @@ variable "principal_budget_period" {
 variable "allowed_regions" {
   type = list(string)
   default = [
-    "us-east-1"
+    "us-east-1",
+    "us-east-2"
   ]
   description = "List of AWS regions which DCE Principals have access to. These regions will also be targeted for reset in nuke.yml."
 }
