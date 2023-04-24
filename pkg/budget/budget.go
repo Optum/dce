@@ -1,9 +1,10 @@
 package budget
 
 import (
-	"github.com/Optum/dce/pkg/awsiface"
 	"strconv"
 	"time"
+
+	"github.com/Optum/dce/pkg/awsiface"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/costexplorer"
@@ -42,11 +43,18 @@ func (budgetSvc *AWSBudgetService) CalculateTotalSpend(startDate time.Time, endD
 
 	metrics := []*string{aws.String("UnblendedCost")}
 	granularity := aws.String("DAILY")
+	filter := &costexplorer.Expression{
+		Dimensions: &costexplorer.DimensionValues{
+			Key:    aws.String("RECORD_TYPE"),
+			Values: aws.StringSlice([]string{"Credit"}),
+		},
+	}
 
 	getCostAndUsageInput := costexplorer.GetCostAndUsageInput{
 		Metrics:     metrics,
 		TimePeriod:  &timePeriod,
 		Granularity: granularity,
+		Filter:      filter,
 	}
 
 	output, err := budgetSvc.CostExplorer.GetCostAndUsage(&getCostAndUsageInput)
