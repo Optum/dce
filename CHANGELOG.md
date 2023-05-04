@@ -1,3 +1,6 @@
+## next
+
+- Fix: remove acl from atifact bucket to fix InvalidBucketAclWithObjectOwnership error
 ## v0.34.0
 
 - Fix: get latest aws-nuke release. (#432)
