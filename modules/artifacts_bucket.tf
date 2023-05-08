@@ -10,7 +10,7 @@ resource "aws_s3_bucket" "artifacts" {
   bucket = local.artifact_bucket_name
 
   # Allow S3 access logs to be written to this bucket
-  acl = "log-delivery-write"
+  # acl = "log-delivery-write"
 
   # Allow Terraform to destroy the bucket
   # (so ephemeral PR environments can be torn down)
