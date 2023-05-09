@@ -24,7 +24,7 @@ resource "aws_s3_bucket" "local_tfstate" {
   bucket = "${data.aws_caller_identity.current.account_id}-local-tfstate-${var.namespace}"
 
   # Allow S3 access logs to be written to this bucket
-  acl = "log-delivery-write"
+  #acl = "log-delivery-write"
 
   # Allow Terraform to destroy the bucket
   # (so ephemeral PR environments can be torn down)
