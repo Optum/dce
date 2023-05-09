@@ -1,3 +1,8 @@
+## v0.35.0
+
+- Add: Enable network-firewall:ListRuleGroups permission (#432)
+- Fix: Recent changes to AWS S3 default bucket policy have broken the install. Removing ACL from the bucket allows the installation to proceed.
+  
 ## v0.34.0
 
 - Fix: get latest aws-nuke release. (#432)
