@@ -147,6 +147,10 @@ output "role_admin_arn" {
   value = module.api_gateway_authorizer.admin_role_arn
 }
 
+output "role_lambda_execution_arn" {
+  value = module.accounts_lambda.execution_role_arn
+}
+
 output "role_user_policy" {
   value = module.api_gateway_authorizer.user_policy_arn
 }
