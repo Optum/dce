@@ -1,3 +1,4 @@
+- Add: Added `role_lambda_execution_arn` module output for use when setting up child account trust policy
 
 ## v0.34.2
 
