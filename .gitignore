@@ -19,6 +19,7 @@ docs/dce/
 
 ## Terraform
 # Local .terraform directories
+modules/.terraform.lock.hcl
 **/.terraform/*
 
 # .tfstate files
