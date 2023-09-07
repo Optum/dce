@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/Optum/dce/pkg/errors"
@@ -17,7 +18,7 @@ import (
 type Storager interface {
 	GetObject(bucket string, key string) (string, error)
 	GetTemplateObject(bucket string, key string, input interface{}) (string, string, error)
-	Download(bukcet string, key string, filepath string) error
+	Download(bukcet string, key string, fp string) error
 }
 
 // S3 implements the Storage interface using AWS S3 Client
@@ -103,9 +104,9 @@ func (stor S3) GetTemplateObject(bucket string, key string, input interface{}) (
 
 // Download downloads an S3 Bucket object to the file path provided and returns
 // any errors if any
-func (stor S3) Download(bucket string, key string, filepath string) error {
+func (stor S3) Download(bucket string, key string, fp string) error {
 	// Initialize the file, verify the path is valid
-	file, err := os.Create(filepath)
+	file, err := os.Create(filepath.Clean(fp))
 	if err != nil {
 		return err
 	}

@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"path/filepath"
 	"text/template"
 
 	"github.com/pkg/errors"
@@ -105,7 +106,7 @@ func nukeAccount(svc *service, isDryRun bool) error {
 
 	// Create the file
 	configFile := fmt.Sprintf("/tmp/nuke-config-%s.yml", config.childAccountID)
-	f, err := os.Create(configFile)
+	f, err := os.Create(filepath.Clean(configFile))
 	if err != nil {
 		log.Fatalf("Failed to create file %s: %s", configFile, err)
 		return err

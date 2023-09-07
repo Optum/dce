@@ -43,6 +43,16 @@ if [ -x "$(command -v wget)" ]; then
     chmod +x /tmp/tflint
     mv /tmp/tflint "$GOBIN"
   fi
+elif [ -x "$(command -v curl)" ] ; then
+  if [ ! -x "$(command -v tflint)" ]; then
+    if [[ $(uname -s) == "Darwin" ]]; then
+      curl -o /tmp/tflint -O https://github.com/wata727/tflint/releases/download/v0.15.4/tflint_darwin_amd64.zip
+    else
+      curl -o /tmp/tflint -O https://github.com/wata727/tflint/releases/download/v0.15.4/tflint_linux_amd64.zip
+    fi
+    chmod +x /tmp/tflint
+    mv /tmp/tflint "$GOBIN"
+  fi
 else
   echo "Cannot find wget, which is required for installing tools."
   exit 1
