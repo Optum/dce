@@ -37,5 +37,5 @@ locals {
     "process_reset_queue",
   ]
 
-  cloudwatch_log_groups_set = toset(formatlist(local.cloudwatch_log_prefixes_list, "${var.namespace}-%s!"))
+  cloudwatch_log_groups_set = toset(formatlist("%s-${var.namespace}!", local.cloudwatch_log_prefixes_list))
 }
