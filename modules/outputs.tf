@@ -158,3 +158,7 @@ output "role_admin_policy" {
 output "codebuild_reset_name" {
   value = aws_codebuild_project.reset_build.id
 }
+
+output "cloudwatch_log_groups_list" {
+  value = local.cloudwatch_log_groups_list
+}

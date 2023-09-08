@@ -28,25 +28,45 @@ if [[ -f "$FILE" ]]; then
         MOD_NAME=$(basename ${i} | cut -f 1 -d '.')
         FN_NAME="${MOD_NAME}-${NAMESPACE}"
         
-        # Upload zip file to S3
+        # # Upload zip file to S3
+        # aws s3 cp \
+        #   "__artifacts__/lambda/${MOD_NAME}.zip" \
+        #   "s3://${ARTIFACT_BUCKET}/lambda/${MOD_NAME}.zip" \
+        #   --sse
+
         aws s3 cp \
           "__artifacts__/lambda/${MOD_NAME}.zip" \
           "s3://${ARTIFACT_BUCKET}/lambda/${MOD_NAME}.zip" \
-          --sse
+          --sse \
+          --profile blunderdome
         
+
         # Point Lambda Fn at the new code on S3 and publish new version
+        # aws lambda update-function-code \
+        #   --function-name "${FN_NAME}" \
+        #   --s3-bucket "${ARTIFACT_BUCKET}" \
+        #   --s3-key "lambda/${MOD_NAME}.zip" \
+        #   --publish
+
         aws lambda update-function-code \
           --function-name "${FN_NAME}" \
           --s3-bucket "${ARTIFACT_BUCKET}" \
           --s3-key "lambda/${MOD_NAME}.zip" \
-          --publish
+          --publish \
+          --profile blunderdome
     done
     
     # Upload the Reset CodeBuild Zip to the S3 artifact bucket. CodeBuild should pick this new file up on its next build.
+    # aws s3 cp \
+    #   __artifacts__/codebuild/reset.zip \
+    #  "s3://${ARTIFACT_BUCKET}/codebuild/reset.zip" \
+    #   --sse
+
     aws s3 cp \
       __artifacts__/codebuild/reset.zip \
      "s3://${ARTIFACT_BUCKET}/codebuild/reset.zip" \
-      --sse
+      --sse \
+      --profile blunderdome
 
     # Delete the '__artifacts__/' directory after uploading to the s3 artifact bucket 
     rm -rf __artifacts__

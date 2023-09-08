@@ -36,13 +36,17 @@ generate:
 # deploy builds and deploys go code
 # to Lamdbas and CodeBuilds in AWS.
 # Before running this command, you will need
-deploy: clean build
-	cd modules && \
-	ns=$$(terraform output namespace) && \
-	bucket=$$(terraform output artifacts_bucket_name) && \
-	cd .. && \
-	./scripts/deploy.sh bin/build_artifacts.zip $${ns} $${bucket}
+#deploy: clean build
+#	cd modules && \
+#	ns=$$(terraform output namespace) && \
+#	bucket=$$(terraform output artifacts_bucket_name) && \
+#	cd .. && \
+#	./scripts/deploy.sh bin/build_artifacts.zip $${ns} $${bucket}
 
+deploy: clean build
+        ns=sandbox-20230905 && \
+        bucket=460044344528-dce-artifacts-sandbox-20230905 && \
+        ./scripts/deploy.sh bin/build_artifacts.zip $${ns} $${bucket}
 
 # `make documentation`
 #
