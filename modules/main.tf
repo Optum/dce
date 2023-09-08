@@ -49,11 +49,11 @@ locals {
   )
   cloudwatch_log_groups_list_lambda = formatlist(
     "/aws/lambda/%s-${var.namespace}",
-    local.cloudwatch_log_name_prefixes_list_lambda
+    local.cloudwatch_log_group_name_prefixes_list_lambda
   )
   cloudwatch_log_groups_list_codebuild = formatlist(
     "/aws/codebuild/%s-${var.namespace}",
-    local.cloudwatch_log_group_name_prefixes_list_codebuild
+    local.cloudwatch_log_name_prefixes_list_codebuild
   )
 
   cloudwatch_log_groups_set = toset(
