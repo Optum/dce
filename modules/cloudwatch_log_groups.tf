@@ -5,5 +5,5 @@ module "cloudwatch_log-group" {
 
   name              = each.value
   create            = false
-  retention_in_days = 7
+  retention_in_days = 5
 }
