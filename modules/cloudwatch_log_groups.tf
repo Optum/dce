@@ -4,6 +4,6 @@ module "cloudwatch_log-group" {
   for_each = local.cloudwatch_log_groups_set
 
   name              = each.value
-  create            = false
+  create            = true
   retention_in_days = 5
 }
