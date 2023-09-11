@@ -278,3 +278,9 @@ variable "usage_table_wcu" {
   default     = 5
   description = "DynamoDB Usage table provisioned Write Capacity Units (WCUs). See https://aws.amazon.com/dynamodb/pricing/provisioned/"
 }
+
+variable "cloudwatch_log_retention" {
+  type        = number
+  default     = 1
+  description = "CloudWatch Log retention in days"
+}
