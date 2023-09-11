@@ -8,52 +8,102 @@ import {
   id = "/aws/lambda/account_pool_metrics-sandbox-20230905"
 }
 
+resource "aws_cloudwatch_log_group" "lease_auth" {
+  name              = "/aws/lambda/lease_auth-${var.namespace}"
+  retention_in_days = var.cloudwatch_log_retention
+}
+
 import {
-  to = module.lease_auth_lambda.aws_lambda_function.fn
+  to = aws_cloudwatch_log_group.lease_auth
   id = "/aws/lambda/lease_auth-sandbox-20230905"
 }
 
+resource "aws_cloudwatch_log_group" "credentials_web_page" {
+  name              = "/aws/lambda/credentials_web_page-${var.namespace}"
+  retention_in_days = var.cloudwatch_log_retention
+}
+
 import {
-  to = module.credentials_web_page_lambda.aws_lambda_function.fn
+  to = aws_cloudwatch_log_group.credentials_web_page
   id = "/aws/lambda/credentials_web_page-sandbox-20230905"
 }
 
+resource "aws_cloudwatch_log_group" "accounts" {
+  name              = "/aws/lambda/accounts-${var.namespace}"
+  retention_in_days = var.cloudwatch_log_retention
+}
+
 import {
-  to = module.accounts_lambda.aws_lambda_function.fn
+  to = aws_cloudwatch_log_group.accounts
   id = "/aws/lambda/accounts-sandbox-20230905"
 }
 
+resource "aws_cloudwatch_log_group" "leases_lambda" {
+  name              = "/aws/lambda/leases_lambda-${var.namespace}"
+  retention_in_days = var.cloudwatch_log_retention
+}
+
 import {
-  to = module.leases_lambda.aws_lambda_function.fn
+  to = aws_cloudwatch_log_group.leases_lambda
   id = "/aws/lambda/leases_lambda-sandbox-20230905"
 }
 
+resource "aws_cloudwatch_log_group" "populate_reset_queue" {
+  name              = "/aws/lambda/populate_reset_queue-${var.namespace}"
+  retention_in_days = var.cloudwatch_log_retention
+}
+
 import {
-  to = module.populate_reset_queue.aws_lambda_function.fn
+  to = aws_cloudwatch_log_group.populate_reset_queue
   id = "/aws/lambda/populate_reset_queue-sandbox-20230905"
 }
 
+resource "aws_cloudwatch_log_group" "process_reset_queue" {
+  name              = "/aws/lambda/process_reset_queue-${var.namespace}"
+  retention_in_days = var.cloudwatch_log_retention
+}
+
 import {
-  to = module.process_reset_queue.aws_lambda_function.fn
+  to = aws_cloudwatch_log_group.process_reset_queue
   id = "/aws/lambda/process_reset_queue-sandbox-20230905"
 }
 
+resource "aws_cloudwatch_log_group" "fan_out_update_lease_status" {
+  name              = "/aws/lambda/fan_out_update_lease_status-${var.namespace}"
+  retention_in_days = var.cloudwatch_log_retention
+}
+
 import {
-  to = module.fan_out_update_lease_status_lambda.aws_lambda_function.fn
+  to = aws_cloudwatch_log_group.fan_out_update_lease_status
   id = "/aws/lambda/fan_out_update_lease_status-sandbox-20230905"
 }
 
+resource "aws_cloudwatch_log_group" "update_lease_status" {
+  name              = "/aws/lambda/update_lease_status-${var.namespace}"
+  retention_in_days = var.cloudwatch_log_retention
+}
+
 import {
-  to = module.update_lease_status_lambda.aws_lambda_function.fn
+  to = aws_cloudwatch_log_group.update_lease_status
   id = "/aws/lambda/update_lease_status-sandbox-20230905"
 }
 
-import {
-  to = module.update_principal_policy.aws_lambda_function.fn
-  id = "/aws/lambda/update_principal_policy-sandbox-20230905"
+resource "aws_cloudwatch_log_group" "update_principal_policy" {
+  name              = "/aws/lambda/update_principal_policy-${var.namespace}"
+  retention_in_days = var.cloudwatch_log_retention
 }
 
 import {
-  to = module.usage_lambda.aws_lambda_function.fn
+  to = aws_cloudwatch_log_group.update_principal_policy
+  id = "/aws/lambda/update_principal_policy-sandbox-20230905"
+}
+
+resource "aws_cloudwatch_log_group" "usage" {
+  name              = "/aws/lambda/usage-${var.namespace}"
+  retention_in_days = var.cloudwatch_log_retention
+}
+
+import {
+  to = aws_cloudwatch_log_group.usage
   id = "/aws/lambda/usage-sandbox-20230905"
 }
