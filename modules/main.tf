@@ -55,4 +55,6 @@ locals {
       local.cloudwatch_log_groups_list_codebuild
     )
   )
+
+  aws_nuke_config_bucket = aws_s3_bucket.aws_nuke_config.id
 }
