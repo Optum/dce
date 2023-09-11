@@ -27,11 +27,6 @@ module "update_principal_policy" {
   }
 }
 
-# import {
-#   to = module.update_principal_policy.aws_lambda_function.fn
-#   id = "/aws/lambda/update_principal_policy-sandbox-20230905"
-# }
-
 resource "aws_sns_topic_subscription" "update_principal_policy" {
   topic_arn = aws_sns_topic.lease_unlocked.arn
   protocol  = "lambda"

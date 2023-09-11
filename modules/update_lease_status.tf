@@ -20,11 +20,6 @@ module "fan_out_update_lease_status_lambda" {
   }
 }
 
-# import {
-#   to = module.fan_out_update_lease_status_lambda.aws_lambda_function.fn
-#   id = "/aws/lambda/fan_out_update_lease_status-sandbox-20230905"
-# }
-
 // Allow fan_out_update_lease_status to invoke the update_lease_status lambda
 resource "aws_iam_role_policy_attachment" "fan_out_update_lease_status_invoke_lambda" {
   role       = module.fan_out_update_lease_status_lambda.execution_role_name
@@ -60,11 +55,6 @@ module "update_lease_status_lambda" {
     USAGE_TTL                                 = var.usage_ttl
   }
 }
-
-# import {
-#   to = module.update_lease_status_lambda.aws_lambda_function.fn
-#   id = "/aws/lambda/update_lease_status-sandbox-20230905"
-# }
 
 // Upload budget notification email templates to S3
 // (templates may be too large to pass in as env vars)

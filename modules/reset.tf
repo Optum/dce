@@ -44,11 +44,6 @@ module "populate_reset_queue" {
   }
 }
 
-# import {
-#   to = module.populate_reset_queue.aws_lambda_function.fn
-#   id = "/aws/lambda/populate_reset_queue-sandbox-20230905"
-# }
-
 # Trigger Global Reset Lambda function on a periodic basis
 # https://stackoverflow.com/a/35895316
 resource "aws_cloudwatch_event_rule" "populate_reset_queue" {
@@ -96,11 +91,6 @@ module "process_reset_queue" {
     AWS_CURRENT_REGION = var.aws_region
   }
 }
-
-# import {
-#   to = module.process_reset_queue.aws_lambda_function.fn
-#   id = "/aws/lambda/process_reset_queue-sandbox-20230905"
-# }
 
 resource "aws_lambda_event_source_mapping" "process_reset_events_from_sqs" {
   event_source_arn = aws_sqs_queue.account_reset.arn
