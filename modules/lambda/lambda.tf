@@ -31,6 +31,11 @@ resource "aws_lambda_function" "fn" {
   tags = var.global_tags
 }
 
+resource "aws_cloudwatch_log_group" "fn" {
+  name              = "/aws/lambda/${var.namespace}"
+  retention_in_days = var.cloudwatch_log_retention
+}
+
 # Lambda code deployments are managed outside of Terraform,
 # by our Jenkins pipeline.
 # However, Lambda TF resource require a code file to initialize.
