@@ -27,6 +27,11 @@ module "leases_lambda" {
   }
 }
 
+import {
+  to = module.leases_lambda.aws_lambda_function
+  id = "/aws/lambda/leases_lambda-sandbox-20230905"
+}
+
 resource "aws_sns_topic" "lease_added" {
   name              = "lease-added-${var.namespace}"
   kms_master_key_id = local.sns_encryption_key_id

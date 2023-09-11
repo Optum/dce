@@ -14,3 +14,8 @@ module "usage_lambda" {
     USAGE_CACHE_DB     = aws_dynamodb_table.usage.id
   }
 }
+
+import {
+  to = module.usage_lambda.aws_lambda_function
+  id = "/aws/lambda/usage-sandbox-20230905"
+}

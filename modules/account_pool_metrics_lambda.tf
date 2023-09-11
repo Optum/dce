@@ -21,6 +21,11 @@ module "account_pool_metrics_lambda" {
   }
 }
 
+import {
+  to = module.account_pool_metrics_lambda.aws_lambda_function
+  id = "/aws/lambda/account_pool_metrics-sandbox-20230905"
+}
+
 resource "aws_cloudwatch_event_rule" "every_x_minutes" {
   count               = local.account_pool_metrics_count
   name                = "every-one-minutes"

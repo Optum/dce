@@ -18,3 +18,8 @@ module "lease_auth_lambda" {
     COGNITO_ROLES_ATTRIBUTE_ADMIN_NAME = var.cognito_roles_attribute_admin_name
   }
 }
+
+import {
+  to = module.lease_auth_lambda.aws_lambda_function
+  id = "/aws/lambda/lease_auth-sandbox-20230905"
+}
