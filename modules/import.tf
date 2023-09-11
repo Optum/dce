@@ -98,10 +98,10 @@ import {
   id = "/aws/lambda/update_principal_policy-sandbox-20230905"
 }
 
-# resource "aws_cloudwatch_log_group" "usage" {
-#   name              = "/aws/lambda/usage-${var.namespace}"
-#   retention_in_days = var.cloudwatch_log_retention
-# }
+resource "aws_cloudwatch_log_group" "usage" {
+  name              = "/aws/lambda/usage-${var.namespace}"
+  retention_in_days = var.cloudwatch_log_retention
+}
 
 # import {
 #   to = aws_cloudwatch_log_group.usage
