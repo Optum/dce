@@ -27,7 +27,7 @@ module "update_principal_policy" {
 }
 
 import {
-  to = module.update_principal_policy.aws_lambda_function
+  to = module.update_principal_policy.aws_lambda_function.fn
   id = "/aws/lambda/update_principal_policy-sandbox-20230905"
 }
 

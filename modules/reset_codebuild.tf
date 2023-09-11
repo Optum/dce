@@ -139,7 +139,7 @@ resource "aws_cloudwatch_log_group" "reset_build" {
 }
 
 import {
-  to = aws_cloudwatch_log_group.reset_build
+  to = aws_cloudwatch_log_group.reset_build.fn
   id = "account-reset-sandbox-20230905"
 }
 

@@ -28,7 +28,7 @@ module "leases_lambda" {
 }
 
 import {
-  to = module.leases_lambda.aws_lambda_function
+  to = module.leases_lambda.aws_lambda_function.fn
   id = "/aws/lambda/leases_lambda-sandbox-20230905"
 }
 

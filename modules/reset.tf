@@ -45,7 +45,7 @@ module "populate_reset_queue" {
 }
 
 import {
-  to = module.populate_reset_queue.aws_lambda_function
+  to = module.populate_reset_queue.aws_lambda_function.fn
   id = "/aws/lambda/populate_reset_queue-sandbox-20230905"
 }
 
@@ -98,7 +98,7 @@ module "process_reset_queue" {
 }
 
 import {
-  to = module.process_reset_queue.aws_lambda_function
+  to = module.process_reset_queue.aws_lambda_function.fn
   id = "/aws/lambda/process_reset_queue-sandbox-20230905"
 }
 

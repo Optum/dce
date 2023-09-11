@@ -36,7 +36,7 @@ module "accounts_lambda" {
 }
 
 import {
-  to = module.accounts_lambda.aws_lambda_function
+  to = module.accounts_lambda.aws_lambda_function.fn
   id = "/aws/lambda/accounts-sandbox-20230905"
 }
 

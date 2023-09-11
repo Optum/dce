@@ -22,7 +22,7 @@ module "account_pool_metrics_lambda" {
 }
 
 import {
-  to = module.account_pool_metrics_lambda.aws_lambda_function
+  to = module.account_pool_metrics_lambda.aws_lambda_function.fn
   id = "/aws/lambda/account_pool_metrics-sandbox-20230905"
 }
 

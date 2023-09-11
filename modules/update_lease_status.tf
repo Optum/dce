@@ -21,7 +21,7 @@ module "fan_out_update_lease_status_lambda" {
 }
 
 import {
-  to = module.fan_out_update_lease_status_lambda.aws_lambda_function
+  to = module.fan_out_update_lease_status_lambda.aws_lambda_function.fn
   id = "/aws/lambda/fan_out_update_lease_status-sandbox-20230905"
 }
 
@@ -62,7 +62,7 @@ module "update_lease_status_lambda" {
 }
 
 import {
-  to = module.update_lease_status_lambda.aws_lambda_function
+  to = module.update_lease_status_lambda.aws_lambda_function.fn
   id = "/aws/lambda/update_lease_status-sandbox-20230905"
 }
 
