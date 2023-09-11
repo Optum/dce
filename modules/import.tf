@@ -24,11 +24,6 @@ import {
 }
 
 import {
-  to = aws_cloudwatch_log_group.reset_build
-  id = "/aws/codebuild/account-reset-sandbox-20230905"
-}
-
-import {
   to = module.populate_reset_queue.aws_lambda_function.fn
   id = "/aws/lambda/populate_reset_queue-sandbox-20230905"
 }
