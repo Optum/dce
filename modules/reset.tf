@@ -24,13 +24,14 @@ resource "aws_sqs_queue" "account_reset_dlq" {
 
 # Lambda function to add all NotReady accounts to the reset queue
 module "populate_reset_queue" {
-  source          = "./lambda"
-  name            = "populate_reset_queue-${var.namespace}"
-  namespace       = var.namespace
-  description     = "Enqueue all NotReady accounts to be reset."
-  global_tags     = var.global_tags
-  handler         = "populate_reset_queue"
-  alarm_topic_arn = aws_sns_topic.alarms_topic.arn
+  source                   = "./lambda"
+  name                     = "populate_reset_queue-${var.namespace}"
+  namespace                = var.namespace
+  description              = "Enqueue all NotReady accounts to be reset."
+  global_tags              = var.global_tags
+  handler                  = "populate_reset_queue"
+  alarm_topic_arn          = aws_sns_topic.alarms_topic.arn
+  cloudwatch_log_retention = var.cloudwatch_log_retention
 
   environment = {
     DEBUG              = "false"
@@ -69,13 +70,15 @@ resource "aws_lambda_permission" "allow_populate_reset_queue" {
 # Will poll SQS on a schedule, and execute a CodePipline
 # for each account that needs to be reset
 module "process_reset_queue" {
-  source          = "./lambda"
-  name            = "process_reset_queue-${var.namespace}"
-  namespace       = var.namespace
-  description     = "Process events in the reset queue."
-  global_tags     = var.global_tags
-  handler         = "process_reset_queue"
-  alarm_topic_arn = aws_sns_topic.alarms_topic.arn
+  source                   = "./lambda"
+  name                     = "process_reset_queue-${var.namespace}"
+  namespace                = var.namespace
+  description              = "Process events in the reset queue."
+  global_tags              = var.global_tags
+  handler                  = "process_reset_queue"
+  alarm_topic_arn          = aws_sns_topic.alarms_topic.arn
+  cloudwatch_log_retention = var.cloudwatch_log_retention
+
   # Should be a 1/6 of the SQS queue visibility timeout
   timeout = 30
 

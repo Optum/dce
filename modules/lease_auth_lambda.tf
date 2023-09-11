@@ -1,11 +1,12 @@
 module "lease_auth_lambda" {
-  source          = "./lambda"
-  name            = "lease_auth-${var.namespace}"
-  namespace       = var.namespace
-  description     = "API /leases/id/auth endpoints"
-  global_tags     = var.global_tags
-  handler         = "lease_auth"
-  alarm_topic_arn = aws_sns_topic.alarms_topic.arn
+  source                   = "./lambda"
+  name                     = "lease_auth-${var.namespace}"
+  namespace                = var.namespace
+  description              = "API /leases/id/auth endpoints"
+  global_tags              = var.global_tags
+  handler                  = "lease_auth"
+  alarm_topic_arn          = aws_sns_topic.alarms_topic.arn
+  cloudwatch_log_retention = var.cloudwatch_log_retention
 
   environment = {
     DEBUG                              = "false"

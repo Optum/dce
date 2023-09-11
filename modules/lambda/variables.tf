@@ -31,3 +31,8 @@ variable "dlq_enabled" {
   description = "Enable Dead Letter Queues (DLQs) for AWS Lambda functions. If enabled, Cloudwatch alarms are also created to monitor DLQs"
   default     = false
 }
+
+variable "cloudwatch_log_retention" {
+  type        = number
+  description = "CloudWatch Log retention in days"
+}

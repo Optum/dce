@@ -1,11 +1,12 @@
 module "credentials_web_page_lambda" {
-  source          = "./lambda"
-  name            = "credentials_web_page-${var.namespace}"
-  namespace       = var.namespace
-  description     = "Handles API requests to the /credentials_web_page endpoint"
-  global_tags     = var.global_tags
-  handler         = "credentials_web_page"
-  alarm_topic_arn = aws_sns_topic.alarms_topic.arn
+  source                   = "./lambda"
+  name                     = "credentials_web_page-${var.namespace}"
+  namespace                = var.namespace
+  description              = "Handles API requests to the /credentials_web_page endpoint"
+  global_tags              = var.global_tags
+  handler                  = "credentials_web_page"
+  alarm_topic_arn          = aws_sns_topic.alarms_topic.arn
+  cloudwatch_log_retention = var.cloudwatch_log_retention
 
   environment = {
     APIGW_DEPLOYMENT_NAME       = "api"

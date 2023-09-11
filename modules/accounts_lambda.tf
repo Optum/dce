@@ -4,13 +4,14 @@ locals {
 }
 
 module "accounts_lambda" {
-  source          = "./lambda"
-  name            = "accounts-${var.namespace}"
-  namespace       = var.namespace
-  description     = "Handles API requests to the /accounts endpoint"
-  global_tags     = var.global_tags
-  handler         = "accounts"
-  alarm_topic_arn = aws_sns_topic.alarms_topic.arn
+  source                   = "./lambda"
+  name                     = "accounts-${var.namespace}"
+  namespace                = var.namespace
+  description              = "Handles API requests to the /accounts endpoint"
+  global_tags              = var.global_tags
+  handler                  = "accounts"
+  alarm_topic_arn          = aws_sns_topic.alarms_topic.arn
+  cloudwatch_log_retention = var.cloudwatch_log_retention
 
   environment = {
     DEBUG                          = "false"

@@ -122,7 +122,7 @@ resource "aws_codebuild_project" "reset_build" {
 
   logs_config {
     cloudwatch_logs {
-      group_name  = "/aws/codebuild/account-reset"
+      group_name = "/aws/codebuild/account-reset"
     }
   }
 
@@ -136,11 +136,11 @@ resource "aws_codebuild_project" "reset_build" {
 resource "aws_cloudwatch_log_group" "reset_build" {
   name              = "/aws/codebuild/account-reset-${var.namespace}"
   retention_in_days = var.cloudwatch_log_retention
+}
 
-  import {
-    to = aws_cloudwatch_log_group.reset_build
-    id = "account-reset-${var.namespace}"
-  }
+import {
+  to = aws_cloudwatch_log_group.reset_build
+  id = "account-reset-${var.namespace}"
 }
 
 /**
