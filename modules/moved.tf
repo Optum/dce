@@ -4,7 +4,7 @@ moved {
 }
 
 moved {
-  from = aws_cloudwatch_log_group.account_pool_metrics_lambda
+  from = aws_cloudwatch_log_group.lease_auth_lambda
   to    = module.lease_auth_lambda.aws_cloudwatch_log_group.fn
 }
 
