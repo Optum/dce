@@ -27,17 +27,22 @@ locals {
   sns_encryption_key_id = "alias/aws/sns"
 
   cloudwatch_log_name_prefixes_list_codebuild = [
+    "account-reset",
     "accounts",
   ]
 
   cloudwatch_log_group_name_prefixes_list_lambda = [
     "account-reset",
     "account_pool_metrics",
+    "accounts",
     "credentials_web_page",
     "fan_out_update_lease_status",
+    "lease_auth",
     "leases",
     "populate_reset_queue",
     "process_reset_queue",
+    "update_lease_status",
+    "update_principal_policy",
   ]
 
   cloudwatch_log_groups_list_lambda = formatlist(
