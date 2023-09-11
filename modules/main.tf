@@ -56,5 +56,6 @@ locals {
     )
   )
 
-  aws_nuke_config_bucket = aws_s3_bucket.aws_nuke_config.id
+  aws_nuke_config_bucket     = aws_s3_bucket.aws_nuke_config.id
+  aws_nuke_config_bucket_arn = aws_s3_bucket.aws_nuke_config.arn
 }

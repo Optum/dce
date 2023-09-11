@@ -189,7 +189,9 @@ resource "aws_iam_role_policy" "codebuild_reset" {
       ],
       "Resource": [
         "${aws_s3_bucket.artifacts.arn}",
-        "${aws_s3_bucket.artifacts.arn}/*"
+        "${aws_s3_bucket.artifacts.arn}/*",
+        "${local.aws_nuke_config_bucket_arn}",
+        "${local.aws_nuke_config_bucket_arn}/*"
       ]
     }
   ]
