@@ -25,7 +25,7 @@ import {
 
 import {
   to = aws_cloudwatch_log_group.reset_build
-  id = "account-reset-sandbox-20230905"
+  id = "/aws/codebuild/account-reset-sandbox-20230905"
 }
 
 import {
