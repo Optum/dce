@@ -43,12 +43,7 @@ generate:
 #	cd .. && \
 #	./scripts/deploy.sh bin/build_artifacts.zip $${ns} $${bucket}
 
-deploy-20230905: clean build
-	ns=sandbox-20230905 && \
-    bucket=460044344528-dce-artifacts-sandbox-20230905 && \
-    ./scripts/deploy.sh bin/build_artifacts.zip $${ns} $${bucket}
-
-deploy-20230910: clean build
+deploy: clean build
 	ns=sandbox-20230910 && \
     bucket=460044344528-dce-artifacts-sandbox-20230910 && \
     ./scripts/deploy.sh bin/build_artifacts.zip $${ns} $${bucket}
