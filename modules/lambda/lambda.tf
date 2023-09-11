@@ -36,7 +36,7 @@ resource "aws_lambda_function" "fn" {
 }
 
 resource "aws_cloudwatch_log_group" "fn" {
-  name              = "/aws/lambda/${var.namespace}"
+  name              = "/aws/lambda/${var.name}"
   retention_in_days = var.cloudwatch_log_retention
 }
 
