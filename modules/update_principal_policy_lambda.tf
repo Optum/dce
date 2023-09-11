@@ -7,6 +7,7 @@ module "update_principal_policy" {
   handler         = "update_principal_policy"
   alarm_topic_arn = aws_sns_topic.alarms_topic.arn
   dlq_enabled     = true
+  cloudwatch_log_retention = var.cloudwatch_log_retention
 
   environment = {
     DEBUG                          = "false"
