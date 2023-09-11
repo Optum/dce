@@ -28,11 +28,9 @@ locals {
 
   cloudwatch_log_name_prefixes_list_codebuild = [
     "account-reset",
-    "accounts",
   ]
 
   cloudwatch_log_group_name_prefixes_list_lambda = [
-    "account-reset",
     "account_pool_metrics",
     "accounts",
     "credentials_web_page",
