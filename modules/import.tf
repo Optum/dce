@@ -38,14 +38,14 @@ import {
   id = "/aws/lambda/accounts-sandbox-20230905"
 }
 
-resource "aws_cloudwatch_log_group" "leases_lambda" {
-  name              = "/aws/lambda/leases_lambda-${var.namespace}"
+resource "aws_cloudwatch_log_group" "leases" {
+  name              = "/aws/lambda/leases-${var.namespace}"
   retention_in_days = var.cloudwatch_log_retention
 }
 
 import {
-  to = aws_cloudwatch_log_group.leases_lambda
-  id = "/aws/lambda/leases_lambda-sandbox-20230905"
+  to = aws_cloudwatch_log_group.leases
+  id = "/aws/lambda/leases-sandbox-20230905"
 }
 
 resource "aws_cloudwatch_log_group" "populate_reset_queue" {
