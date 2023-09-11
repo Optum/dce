@@ -1,5 +1,10 @@
+resource "aws_cloudwatch_log_group" "account_pool_metrics" {
+  name              = "/aws/lambda/account_pool_metrics-${var.namespace}"
+  retention_in_days = var.cloudwatch_log_retention
+}
+
 import {
-  to = module.account_pool_metrics_lambda.aws_lambda_function.fn
+  to = aws_cloudwatch_log_group.account_pool_metrics
   id = "/aws/lambda/account_pool_metrics-sandbox-20230905"
 }
 

@@ -29,16 +29,6 @@ resource "aws_lambda_function" "fn" {
   }
 
   tags = var.global_tags
-
-  depends_on = [
-    aws_cloudwatch_log_group.fn,
-  ]
-}
-
-resource "aws_cloudwatch_log_group" "fn" {
-  id                = "/aws/lambda/${var.name}"
-  name              = "/aws/lambda/${var.name}"
-  retention_in_days = var.cloudwatch_log_retention
 }
 
 # Lambda code deployments are managed outside of Terraform,
