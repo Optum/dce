@@ -35,10 +35,10 @@ module "accounts_lambda" {
   }
 }
 
-import {
-  to = module.accounts_lambda.aws_lambda_function.fn
-  id = "/aws/lambda/accounts-sandbox-20230905"
-}
+# import {
+#   to = module.accounts_lambda.aws_lambda_function.fn
+#   id = "/aws/lambda/accounts-sandbox-20230905"
+# }
 
 resource "aws_sns_topic" "account_created" {
   name              = "account-created-${var.namespace}"

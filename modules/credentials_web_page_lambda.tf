@@ -21,7 +21,7 @@ module "credentials_web_page_lambda" {
   }
 }
 
-import {
-  to = module.credentials_web_page_lambda.aws_lambda_function.fn
-  id = "/aws/lambda/credentials_web_page-sandbox-20230905"
-}
+# import {
+#   to = module.credentials_web_page_lambda.aws_lambda_function.fn
+#   id = "/aws/lambda/credentials_web_page-sandbox-20230905"
+# }

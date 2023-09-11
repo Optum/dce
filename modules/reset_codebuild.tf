@@ -138,10 +138,10 @@ resource "aws_cloudwatch_log_group" "reset_build" {
   retention_in_days = var.cloudwatch_log_retention
 }
 
-import {
-  to = aws_cloudwatch_log_group.reset_build
-  id = "account-reset-sandbox-20230905"
-}
+# import {
+#   to = aws_cloudwatch_log_group.reset_build
+#   id = "account-reset-sandbox-20230905"
+# }
 
 /**
  * Common Resources,

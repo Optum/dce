@@ -19,7 +19,7 @@ module "lease_auth_lambda" {
   }
 }
 
-import {
-  to = module.lease_auth_lambda.aws_lambda_function.fn
-  id = "/aws/lambda/lease_auth-sandbox-20230905"
-}
+# import {
+#   to = module.lease_auth_lambda.aws_lambda_function.fn
+#   id = "/aws/lambda/lease_auth-sandbox-20230905"
+# }

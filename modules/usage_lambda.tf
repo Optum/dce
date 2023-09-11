@@ -16,7 +16,7 @@ module "usage_lambda" {
   }
 }
 
-import {
-  to = module.usage_lambda.aws_lambda_function.fn
-  id = "/aws/lambda/usage-sandbox-20230905"
-}
+# import {
+#   to = module.usage_lambda.aws_lambda_function.fn
+#   id = "/aws/lambda/usage-sandbox-20230905"
+# }
