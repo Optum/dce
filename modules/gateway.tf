@@ -7,6 +7,10 @@ resource "aws_api_gateway_rest_api" "gateway_api" {
   name        = local.portal_gateway_name
   description = local.portal_gateway_name
   body        = data.template_file.api_swagger.rendered
+
+  endpoint_configuration {
+    types = [var.endpoint_configuration]
+  }
 }
 
 module "api_gateway_authorizer" {

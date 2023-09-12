@@ -284,3 +284,9 @@ variable "cloudwatch_log_retention" {
   default     = 1
   description = "CloudWatch Log retention in days"
 }
+
+variable "endpoint_configuration" {
+  type = string
+  default = "REGIONAL"
+  description = "List of endpoint types (EDGE, REGIONAL, or PRIVATE)"
+}
