@@ -6,14 +6,6 @@ resource "aws_route53_zone" "dce" {
   name = "dce.observe-blunderdome.com"
 }
 
-resource "aws_route53_record" "dce_ns" {
-  zone_id = aws_route53_zone.main.zone_id
-  name    = "dce.observe-blunderdome.com"
-  type    = "NS"
-  ttl     = "30"
-  records = aws_route53_zone.dce.name_servers
-}
-
 resource "aws_route53_record" "dce" {
   zone_id = aws_route53_zone.main.zone_id
   name    = "dce.observe-blunderdome.com"
