@@ -144,13 +144,12 @@ resource "aws_api_gateway_stage" "api" {
 resource "aws_cloudwatch_log_group" "api_gateway_stage" {
   name              = "API-Gateway-Access-Logs_${aws_api_gateway_stage.api.stage_name}/api"
   retention_in_days = var.cloudwatch_log_retention
-
-  import {
-    to = aws_cloudwatch_log_group.api_gateway_stage
-    id = "API-Gateway-Access-Logs_xz8hay7362/api"
-  }
 }
 
+import {
+  to = aws_cloudwatch_log_group.api_gateway_stage
+  id = "API-Gateway-Access-Logs_xz8hay7362/api"
+}
 resource "aws_api_gateway_deployment" "gateway_deployment" {
   rest_api_id = aws_api_gateway_rest_api.gateway_api.id
 
