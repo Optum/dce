@@ -121,6 +121,8 @@ resource "aws_api_gateway_stage" "api" {
   xray_tracing_enabled = true
 
   access_log_settings {
+    destination_arn = aws_cloudwatch_log_group.api_gateway_stage.arn
+
     format = jsonencode(
       {
         "caller" : "$context.identity.caller"
@@ -136,6 +138,16 @@ resource "aws_api_gateway_stage" "api" {
         "user" : "$context.identity.user"
       }
     )
+  }
+}
+
+resource "aws_cloudwatch_log_group" "api_gateway_stage" {
+  name              = "API-Gateway-Access-Logs_${aws_api_gateway_stage.api.stage_name}/api"
+  retention_in_days = var.cloudwatch_log_retention
+
+  import {
+    to = aws_cloudwatch_log_group.api_gateway_stage
+    id = "API-Gateway-Access-Logs_xz8hay7362/api"
   }
 }
 
