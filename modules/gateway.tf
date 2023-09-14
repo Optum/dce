@@ -103,8 +103,6 @@ resource "aws_lambda_permission" "allow_api_gateway_usages_lambda" {
   source_arn    = "${aws_api_gateway_rest_api.gateway_api.execution_arn}/*/*"
 }
 
-
-
 resource "aws_lambda_permission" "allow_api_gateway_credentials_web_page_lambda" {
   function_name = module.credentials_web_page_lambda.arn
   statement_id  = "AllowExecutionFromApiGateway"
@@ -142,14 +140,10 @@ resource "aws_api_gateway_stage" "api" {
 }
 
 resource "aws_cloudwatch_log_group" "api_gateway_stage" {
-  name              = "API-Gateway-Access-Logs_${aws_api_gateway_stage.api.stage_name}/api"
+  name              = "API-Gateway-Access-Logs_${local.portal_gateway_name}/${local.stage_name}"
   retention_in_days = var.cloudwatch_log_retention
 }
 
-import {
-  to = aws_cloudwatch_log_group.api_gateway_stage
-  id = "API-Gateway-Access-Logs_xz8hay7362/api"
-}
 resource "aws_api_gateway_deployment" "gateway_deployment" {
   rest_api_id = aws_api_gateway_rest_api.gateway_api.id
 
