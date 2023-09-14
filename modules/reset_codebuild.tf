@@ -122,7 +122,7 @@ resource "aws_codebuild_project" "reset_build" {
 
   logs_config {
     cloudwatch_logs {
-      group_name = "/aws/codebuild/account-reset"
+      group_name = "/aws/codebuild/account-reset-${var.namespace}"
     }
   }
 
