@@ -286,7 +286,7 @@ variable "cloudwatch_log_retention" {
 }
 
 variable "endpoint_configuration" {
-  type = string
-  default = "REGIONAL"
+  type        = string
+  default     = "REGIONAL"
   description = "List of endpoint types (EDGE, REGIONAL, or PRIVATE)"
 }

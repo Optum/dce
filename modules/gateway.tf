@@ -117,6 +117,26 @@ resource "aws_api_gateway_stage" "api" {
   stage_name    = local.stage_name
   rest_api_id   = aws_api_gateway_rest_api.gateway_api.id
   deployment_id = aws_api_gateway_deployment.gateway_deployment.id
+
+  xray_tracing_enabled = true
+
+  access_log_settings {
+    format = jsonencode(
+      {
+        "caller" : "$context.identity.caller"
+        "extendedRequestId" : "$context.extendedRequestId"
+        "httpMethod" : "$context.httpMethod"
+        "ip" : "$context.identity.sourceIp"
+        "protocol" : "$context.protocol"
+        "requestId" : "$context.requestId"
+        "requestTime" : "$context.requestTime"
+        "resourcePath" : "$context.resourcePath"
+        "responseLength" : "$context.responseLength"
+        "status" : "$context.status"
+        "user" : "$context.identity.user"
+      }
+    )
+  }
 }
 
 resource "aws_api_gateway_deployment" "gateway_deployment" {
