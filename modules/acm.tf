@@ -16,6 +16,6 @@ resource "aws_route53_record" "custom" {
 }
 
 data "aws_acm_certificate" "custom" {
-  domain   = "${var.custom_record_name}.${var.custom_zone_name}"
+  domain   = "${var.custom_zone_name}"
   statuses = ["ISSUED"]
 }
