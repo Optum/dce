@@ -224,7 +224,7 @@ data "aws_iam_policy_document" "api_gateway_assume_role" {
 }
 
 resource "aws_iam_role" "api_gateway_cloudwatch_logs" {
-  name_prefix         = "dce-api-gateway-cloudwatch-logs-${var.namespace}"
+  name_prefix         = "dce-api-gateway-cloudwatch-logs"
   assume_role_policy  = data.aws_iam_policy_document.api_gateway_assume_role.json
   managed_policy_arns = [
     "arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs"
