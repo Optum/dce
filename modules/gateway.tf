@@ -15,7 +15,7 @@ resource "aws_api_gateway_rest_api" "gateway_api" {
 
 resource "aws_api_gateway_domain_name" "gateway_api" {
   regional_certificate_arn = data.aws_acm_certificate.custom.arn
-  domain_name              = "${var.custom_record_name}.${var.custom_zone_name}"
+  domain_name              = aws_route53_record.custom.name
 
   endpoint_configuration {
     types = [var.endpoint_configuration]
@@ -40,11 +40,17 @@ module "api_gateway_authorizer" {
   name      = var.namespace_prefix
   namespace = var.namespace
   callback_urls = concat(
-    ["${aws_api_gateway_stage.api.invoke_url}/auth"],
+    [
+      "${aws_api_gateway_stage.api.invoke_url}/auth",
+      "${aws_route53_record.custom.name}/auth",
+    ],
     var.cognito_callback_urls
   )
   logout_urls = concat(
-    ["${aws_api_gateway_stage.api.invoke_url}/auth"],
+    [
+      "${aws_api_gateway_stage.api.invoke_url}/auth",
+      "${aws_route53_record.custom.name}/auth",
+    ],
     var.cognito_logout_urls
   )
   identity_providers = var.cognito_identity_providers
@@ -221,8 +227,8 @@ data "aws_iam_policy_document" "api_gateway_assume_role" {
 }
 
 resource "aws_iam_role" "api_gateway_cloudwatch_logs" {
-  name                = "dce-api-gateway-cloudwatch-logs"
-  assume_role_policy  = data.aws_iam_policy_document.api_gateway_assume_role.json
+  name               = "dce-api-gateway-cloudwatch-logs"
+  assume_role_policy = data.aws_iam_policy_document.api_gateway_assume_role.json
   managed_policy_arns = [
     "arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs"
   ]
