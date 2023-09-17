@@ -30,7 +30,7 @@ resource "aws_api_gateway_base_path_mapping" "gateway_api_none" {
 
 resource "aws_api_gateway_base_path_mapping" "gateway_api_api_auth" {
   api_id      = aws_api_gateway_rest_api.gateway_api.id
-  stage_name  = aws_api_gateway_stage.gateway_api.stage_name
+  stage_name  = local.stage_name
   domain_name = aws_api_gateway_domain_name.gateway_api.domain_name
   path        = "api/auth"
 }
