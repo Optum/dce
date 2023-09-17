@@ -8,7 +8,7 @@ data "aws_api_gateway_domain_name" "custom" {
 }
 
 resource "aws_route53_record" "custom" {
-  zone_id = aws_route53_zone.observe_blunderdome.zone_id
+  zone_id = data.aws_route53_zone.observe_blunderdome.zone_id
   name    = "${var.custom_record_name}.${var.custom_zone_name}"
   type    = "A"
 
