@@ -42,14 +42,14 @@ module "api_gateway_authorizer" {
   callback_urls = concat(
     [
       "${aws_api_gateway_stage.api.invoke_url}/auth",
-      "${aws_route53_record.custom.name}/auth",
+      "${var.custom_record_name}.${var.custom_zone_name}/auth",
     ],
     var.cognito_callback_urls
   )
   logout_urls = concat(
     [
       "${aws_api_gateway_stage.api.invoke_url}/auth",
-      "${aws_route53_record.custom.name}/auth",
+      "${var.custom_record_name}.${var.custom_zone_name}/auth",
     ],
     var.cognito_logout_urls
   )
