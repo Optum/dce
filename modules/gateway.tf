@@ -147,7 +147,7 @@ resource "aws_api_gateway_stage" "api" {
   xray_tracing_enabled = true
 
   access_log_settings {
-    destination_arn = aws_cloudwatch_log_group.api_gateway_stage.arn
+    destination_arn = aws_cloudwatch_log_group.gateway_api_access.arn
 
     format = jsonencode(
       {
@@ -237,7 +237,12 @@ resource "aws_api_gateway_account" "cloudwatch_logs" {
   cloudwatch_role_arn = aws_iam_role.api_gateway_cloudwatch_logs.arn
 }
 
-resource "aws_cloudwatch_log_group" "example" {
-  name              = "API-Gateway-Execution-Logs_${aws_api_gateway_rest_api.gateway_api.id}/${local.stage_name}"
+resource "aws_cloudwatch_log_group" "gateway_api_execution" {
+  name              = "API-Gateway-Execution-Logs_${var.namespace}/${local.stage_name}"
+  retention_in_days = 1
+}
+
+resource "aws_cloudwatch_log_group" "gateway_api_access" {
+  name              = "API-Gateway-Access-Logs_${var.namespace}/${local.stage_name}"
   retention_in_days = 1
 }
