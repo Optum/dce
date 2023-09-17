@@ -22,6 +22,11 @@ resource "aws_api_gateway_domain_name" "gateway_api" {
   }
 }
 
+import {
+  to = aws_api_gateway_domain_name.gateway_api
+  id = "${var.custom_record_name}.${var.custom_zone_name}"
+}
+
 resource "aws_api_gateway_base_path_mapping" "gateway_api_none" {
   api_id      = aws_api_gateway_rest_api.gateway_api.id
   stage_name  = local.stage_name
