@@ -28,7 +28,7 @@ resource "aws_api_gateway_base_path_mapping" "gateway_api_none" {
   domain_name = aws_api_gateway_domain_name.gateway_api.domain_name
 }
 
-resource "aws_api_gateway_base_path_mapping" "gateway_api_api_auth" {
+resource "aws_api_gateway_base_path_mapping" "gateway_api_auth" {
   api_id      = aws_api_gateway_rest_api.gateway_api.id
   stage_name  = local.stage_name
   domain_name = aws_api_gateway_domain_name.gateway_api.domain_name
@@ -36,11 +36,17 @@ resource "aws_api_gateway_base_path_mapping" "gateway_api_api_auth" {
 }
 
 module "api_gateway_authorizer" {
-  source             = "./authentication"
-  name               = var.namespace_prefix
-  namespace          = var.namespace
-  callback_urls      = ["${aws_api_gateway_stage.api.invoke_url}/auth"]
-  logout_urls        = ["${aws_api_gateway_stage.api.invoke_url}/auth"]
+  source    = "./authentication"
+  name      = var.namespace_prefix
+  namespace = var.namespace
+  callback_urls = [
+    "${aws_api_gateway_stage.api.invoke_url}/auth",
+    var.callback_urls,
+  ]
+  logout_urls = [
+    "${aws_api_gateway_stage.api.invoke_url}/auth",
+    var.logout_urls,
+  ]
   identity_providers = var.cognito_identity_providers
   api_gateway_arn    = aws_api_gateway_stage.api.execution_arn
 }
