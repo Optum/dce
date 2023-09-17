@@ -15,6 +15,7 @@ set -euxo pipefail
 FILE="$1"
 NAMESPACE="$2"
 ARTIFACT_BUCKET="$3"
+AWS_PROFILE="$4"
 
 # Check if build_artifacts.zip exists (generated from 'scripts/build.sh')
 if [[ -f "$FILE" ]]; then
@@ -38,7 +39,7 @@ if [[ -f "$FILE" ]]; then
           "__artifacts__/lambda/${MOD_NAME}.zip" \
           "s3://${ARTIFACT_BUCKET}/lambda/${MOD_NAME}.zip" \
           --sse \
-          --profile blunderdome
+          --profile $AWS_PROFILE
         
 
         # Point Lambda Fn at the new code on S3 and publish new version
@@ -53,7 +54,7 @@ if [[ -f "$FILE" ]]; then
           --s3-bucket "${ARTIFACT_BUCKET}" \
           --s3-key "lambda/${MOD_NAME}.zip" \
           --publish \
-          --profile blunderdome
+          --profile $AWS_PROFILE
     done
     
     # Upload the Reset CodeBuild Zip to the S3 artifact bucket. CodeBuild should pick this new file up on its next build.
@@ -66,7 +67,7 @@ if [[ -f "$FILE" ]]; then
       __artifacts__/codebuild/reset.zip \
      "s3://${ARTIFACT_BUCKET}/codebuild/reset.zip" \
       --sse \
-      --profile blunderdome
+      --profile $AWS_PROFILE
 
     # Delete the '__artifacts__/' directory after uploading to the s3 artifact bucket 
     rm -rf __artifacts__

@@ -44,9 +44,9 @@ generate:
 #	./scripts/deploy.sh bin/build_artifacts.zip $${ns} $${bucket}
 
 deploy: clean build
-	ns=sandbox-20230910 && \
-    bucket=460044344528-dce-artifacts-sandbox-20230910 && \
-    ./scripts/deploy.sh bin/build_artifacts.zip $${ns} $${bucket}
+	ns=playground-20230917 && \
+    bucket=460044344528-dce-artifacts-playground-20230917 && \
+    ./scripts/deploy.sh bin/build_artifacts.zip $${ns} $${bucket} blunderdome
 
 # `make documentation`
 #
