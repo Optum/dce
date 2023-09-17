@@ -22,11 +22,6 @@ resource "aws_api_gateway_domain_name" "gateway_api" {
   }
 }
 
-import {
-  to = aws_api_gateway_domain_name.gateway_api
-  id = "sandbox.observe-blunderdome.com"
-}
-
 resource "aws_api_gateway_base_path_mapping" "gateway_api_none" {
   api_id      = aws_api_gateway_rest_api.gateway_api.id
   stage_name  = local.stage_name
@@ -37,7 +32,7 @@ resource "aws_api_gateway_base_path_mapping" "gateway_api_api_auth" {
   api_id      = aws_api_gateway_rest_api.gateway_api.id
   stage_name  = local.stage_name
   domain_name = aws_api_gateway_domain_name.gateway_api.domain_name
-  base_path   = "api/auth"
+  base_path   = "auth"
 }
 
 module "api_gateway_authorizer" {
