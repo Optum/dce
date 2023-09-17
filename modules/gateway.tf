@@ -166,7 +166,7 @@ resource "aws_api_gateway_stage" "api" {
     )
   }
 
-  depends_on = [aws_cloudwatch_log_group.example]
+  depends_on = [aws_cloudwatch_log_group.gateway_api_execution]
 }
 
 resource "aws_cloudwatch_log_group" "api_gateway_stage" {
