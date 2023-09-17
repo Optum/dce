@@ -165,6 +165,8 @@ resource "aws_api_gateway_stage" "api" {
       }
     )
   }
+
+  depends_on = [aws_cloudwatch_log_group.example]
 }
 
 resource "aws_cloudwatch_log_group" "api_gateway_stage" {
@@ -233,4 +235,9 @@ resource "aws_iam_role" "api_gateway_cloudwatch_logs" {
 
 resource "aws_api_gateway_account" "cloudwatch_logs" {
   cloudwatch_role_arn = aws_iam_role.api_gateway_cloudwatch_logs.arn
+}
+
+resource "aws_cloudwatch_log_group" "example" {
+  name              = "API-Gateway-Execution-Logs_${aws_api_gateway_rest_api.gateway_api.id}/${local.stage_name}"
+  retention_in_days = 1
 }
