@@ -169,11 +169,6 @@ resource "aws_api_gateway_stage" "api" {
   depends_on = [aws_cloudwatch_log_group.gateway_api_execution]
 }
 
-resource "aws_cloudwatch_log_group" "api_gateway_stage" {
-  name              = "API-Gateway-Access-Logs_${local.portal_gateway_name}/${local.stage_name}"
-  retention_in_days = var.cloudwatch_log_retention
-}
-
 resource "aws_api_gateway_deployment" "gateway_deployment" {
   rest_api_id = aws_api_gateway_rest_api.gateway_api.id
 
@@ -238,11 +233,11 @@ resource "aws_api_gateway_account" "cloudwatch_logs" {
 }
 
 resource "aws_cloudwatch_log_group" "gateway_api_execution" {
-  name              = "API-Gateway-Execution-Logs_dce-${aws_api_gateway_rest_api.gateway_api.id}/${local.stage_name}"
-  retention_in_days = 1
+  name              = "API-Gateway-Execution-Logs_${aws_api_gateway_rest_api.gateway_api.id}/${local.stage_name}"
+  retention_in_days = var.cloudwatch_log_retention
 }
 
 resource "aws_cloudwatch_log_group" "gateway_api_access" {
-  name              = "API-Gateway-Access-Logs_dce-${aws_api_gateway_rest_api.gateway_api.id}/${local.stage_name}"
-  retention_in_days = 1
+  name              = "API-Gateway-Access-Logs_${aws_api_gateway_rest_api.gateway_api.id}/${local.stage_name}"
+  retention_in_days = var.cloudwatch_log_retention
 }
