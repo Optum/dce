@@ -39,14 +39,14 @@ module "api_gateway_authorizer" {
   source    = "./authentication"
   name      = var.namespace_prefix
   namespace = var.namespace
-  callback_urls = [
-    "${aws_api_gateway_stage.api.invoke_url}/auth",
-    var.callback_urls,
-  ]
-  logout_urls = [
-    "${aws_api_gateway_stage.api.invoke_url}/auth",
-    var.logout_urls,
-  ]
+  callback_urls = concat(
+    ["${aws_api_gateway_stage.api.invoke_url}/auth"],
+    var.cognito_callback_urls
+  )
+  logout_urls = concat(
+    ["${aws_api_gateway_stage.api.invoke_url}/auth"],
+    var.cognito_logout_urls
+  )
   identity_providers = var.cognito_identity_providers
   api_gateway_arn    = aws_api_gateway_stage.api.execution_arn
 }
