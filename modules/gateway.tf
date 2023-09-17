@@ -14,7 +14,7 @@ resource "aws_api_gateway_rest_api" "gateway_api" {
 }
 
 resource "aws_api_gateway_domain_name" "gateway_api" {
-  regional_certificate_arn = data.aws_acm_certificate.custom.certificate_arn
+  regional_certificate_arn = data.aws_acm_certificate.custom.arn
   domain_name              = "${var.custom_record_name}.${var.custom_zone_name}"
 
   endpoint_configuration {
