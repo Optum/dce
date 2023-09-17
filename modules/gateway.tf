@@ -24,7 +24,7 @@ resource "aws_api_gateway_domain_name" "gateway_api" {
 
 import {
   to = aws_api_gateway_domain_name.gateway_api
-  id = "${var.custom_record_name}.${var.custom_zone_name}"
+  id = "sandbox.observe-blunderdome.com"
 }
 
 resource "aws_api_gateway_base_path_mapping" "gateway_api_none" {
