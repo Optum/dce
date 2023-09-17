@@ -2,7 +2,8 @@
 <html>
     <head> 
     <meta charset="utf-8">
-    <link rel="stylesheet" type="text/css" href="/api/auth/public/main.css" />
+    <!--link rel="stylesheet" type="text/css" href="/api/auth/public/main.css" /-->
+    <link rel="stylesheet" type="text/css" href="/auth/public/main.css" />
     <script>
         var SITE_PATH_PREFIX = "{{.SitePathPrefix}}"
         var APIGW_DEPLOYMENT_NAME = "{{.ApigwDeploymentName}}"
@@ -16,9 +17,11 @@
     </head>
 
     <body>
-        <script src="/api/auth/public/amazon-cognito-auth.min.js"></script>
+        <!--script src="/api/auth/public/amazon-cognito-auth.min.js"></script-->
+        <script src="/auth/public/amazon-cognito-auth.min.js"></script>
         <script src="https://sdk.amazonaws.com/js/aws-sdk-2.536.0.min.js"></script>
-        <script src="/api/auth/public/vue.min.js"></script>
+        <!--script src="/api/auth/public/vue.min.js"></script-->
+        <script src="/auth/public/vue.min.js"></script>
 
         <div id="app" v-cloak>
             <h1 class="center-text">DCE CLI Credentials</h1>
@@ -26,6 +29,7 @@
             <textarea rows="10" cols="50" class="js-copytextarea center-block" id="credentialscontainer"></textarea>
             <button @click="signOut()" class="center-block">Sign Out</button>
         </div>
-        <script src="/api/auth/public/main.js"></script>
+        <!--script src="/api/auth/public/main.js"></script-->
+        <script src="/auth/public/main.js"></script>
     </body>
 </html>

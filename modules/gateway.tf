@@ -13,6 +13,28 @@ resource "aws_api_gateway_rest_api" "gateway_api" {
   }
 }
 
+resource "aws_api_gateway_domain_name" "gateway_api" {
+  regional_certificate_arn = data.aws_acm_certificate.custom.certificate_arn
+  domain_name              = "${var.custom_record_name}.${var.custom_zone_name}"
+
+  endpoint_configuration {
+    types = [var.endpoint_configuration]
+  }
+}
+
+resource "aws_api_gateway_base_path_mapping" "gateway_api_none" {
+  api_id      = aws_api_gateway_rest_api.gateway_api.id
+  stage_name  = aws_api_gateway_stage.gateway_api.stage_name
+  domain_name = aws_api_gateway_domain_name.gateway_api.domain_name
+}
+
+resource "aws_api_gateway_base_path_mapping" "gateway_api_api_auth" {
+  api_id      = aws_api_gateway_rest_api.gateway_api.id
+  stage_name  = aws_api_gateway_stage.gateway_api.stage_name
+  domain_name = aws_api_gateway_domain_name.gateway_api.domain_name
+  path        = "api/auth"
+}
+
 module "api_gateway_authorizer" {
   source             = "./authentication"
   name               = var.namespace_prefix

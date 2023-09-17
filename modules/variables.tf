@@ -290,3 +290,11 @@ variable "endpoint_configuration" {
   default     = "REGIONAL"
   description = "List of endpoint types (EDGE, REGIONAL, or PRIVATE)"
 }
+
+variable "custom_zone_name" {
+  type = string
+}
+
+variable "custom_record_name" {
+  type = string
+}
