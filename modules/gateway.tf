@@ -212,8 +212,20 @@ resource "aws_iam_policy" "api_execute_admin" {
 JSON
 }
 
+data "aws_iam_policy_document" "api_gateway_assume_role" {
+  statement {
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["apigateway.amazonaws.com"]
+    }
+  }
+}
+
 resource "aws_iam_role" "api_gateway_cloudwatch_logs" {
-  name_prefix = "dce-api-gateway-cloudwatch-logs-${var.namespace}"
+  name_prefix         = "dce-api-gateway-cloudwatch-logs-${var.namespace}"
+  assume_role_policy  = data.aws_iam_policy_document.api_gateway_assume_role.json
   managed_policy_arns = [
     "arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs"
   ]
