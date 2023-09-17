@@ -15,7 +15,7 @@ resource "aws_api_gateway_rest_api" "gateway_api" {
 
 resource "aws_api_gateway_domain_name" "gateway_api" {
   regional_certificate_arn = data.aws_acm_certificate.custom.arn
-  domain_name              = aws_route53_record.custom.name
+  domain_name              = "${var.custom_record_name}.${var.custom_zone_name}"
 
   endpoint_configuration {
     types = [var.endpoint_configuration]
