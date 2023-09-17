@@ -211,3 +211,14 @@ resource "aws_iam_policy" "api_execute_admin" {
 }
 JSON
 }
+
+resource "aws_iam_role" "api_gateway_cloudwatch_logs" {
+  name_prefix = "dce-api-gateway-cloudwatch-logs-${var.namespace}"
+  managed_policy_arns = [
+    "arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs"
+  ]
+}
+
+resource "aws_api_gateway_account" "cloudwatch_logs" {
+  cloudwatch_role_arn = aws_iam_role.api_gateway_cloudwatch_logs.arn
+}
