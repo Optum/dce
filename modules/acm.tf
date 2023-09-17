@@ -3,17 +3,13 @@ data "aws_route53_zone" "observe_blunderdome" {
   private_zone = false
 }
 
-data "aws_api_gateway_domain_name" "custom" {
-  domain_name = "${var.custom_record_name}.${var.custom_zone_name}"
-}
-
 resource "aws_route53_record" "custom" {
   zone_id = data.aws_route53_zone.observe_blunderdome.zone_id
   name    = "${var.custom_record_name}.${var.custom_zone_name}"
   type    = "A"
 
   alias {
-    zone_id                = data.aws_api_gateway_domain_name.regional_zone_id
+    zone_id                = aws_api_gateway_domain_name.gateway_api.regional_zone_id
     evaluate_target_health = true
   }
 }
