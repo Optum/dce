@@ -238,11 +238,11 @@ resource "aws_api_gateway_account" "cloudwatch_logs" {
 }
 
 resource "aws_cloudwatch_log_group" "gateway_api_execution" {
-  name              = "API-Gateway-Execution-Logs_dce-${aws_api_gateway_stage.api.id}/${local.stage_name}"
+  name              = "API-Gateway-Execution-Logs_dce-${aws_api_gateway_rest_api.gateway_api.id}/${local.stage_name}"
   retention_in_days = 1
 }
 
 resource "aws_cloudwatch_log_group" "gateway_api_access" {
-  name              = "API-Gateway-Access-Logs_dce-${aws_api_gateway_stage.api.id}/${local.stage_name}"
+  name              = "API-Gateway-Access-Logs_dce-${aws_api_gateway_rest_api.gateway_api.id}/${local.stage_name}"
   retention_in_days = 1
 }
