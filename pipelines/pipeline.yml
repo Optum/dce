@@ -91,7 +91,7 @@ stages:
     jobs:
       - deployment: Deploy
         displayName: Deploy
-        environment: "Create"
+        environment: "infrastructure-test"
         strategy:
           runOnce:
             deploy:
