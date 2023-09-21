@@ -91,7 +91,7 @@ stages:
     jobs:
       - deployment: Deploy
         displayName: Deploy
-        environment: "Create"
+        environment: "Deployment"
         strategy:
           runOnce:
             deploy:
