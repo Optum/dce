@@ -2,6 +2,58 @@
   "Version": "2012-10-17",
   "Statement": [
     {
+      "Sid": "DoNotModifySelf",
+      "Effect": "Deny",
+      "NotAction": [
+        "iam:GetPolicy",
+        "iam:GetPolicyVersion",
+        "iam:GetRole",
+        "iam:GetRolePolicy",
+        "iam:ListRoles",
+        "iam:ListRolePolicies",
+        "iam:ListAttachedRolePolicies",
+        "iam:ListRoleTags",
+        "iam:ListPoliciesGrantingServiceAccess",
+        "iam:ListEntitiesForPolicy",
+        "iam:ListPolicyVersions",
+        "iam:GenerateServiceLastAccessedDetails"
+      ],
+      "Resource": [
+        "{{.PrincipalPolicyArn}}",
+        "{{.PrincipalRoleArn}}",
+        "{{.AdminRoleArn}}"
+      ]
+    },
+    {
+      "Sid": "DenyTaggedResourcesAWS",
+      "Effect": "Deny",
+      "Action": "*",
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:ResourceTag/AppName": [
+            "{{ StringsJoin .PrincipalIAMDenyTags "\", \""}}"
+          ]
+        }
+      }
+    },
+    {
+      "Sid": "DenyIAM",
+      "Effect": "Deny",
+      "Action": [
+        "iam:DeactivateMFADevice",
+        "iam:CreateSAMLProvider",
+        "iam:UpdateAccountPasswordPolicy",
+        "iam:DeleteVirtualMFADevice",
+        "iam:EnableMFADevice",
+        "iam:CreateAccountAlias",
+        "iam:DeleteAccountAlias",
+        "iam:UpdateSAMLProvider",
+        "iam:DeleteSAMLProvider"
+      ],
+      "Resource": "*"
+    },
+    {
       "Sid": "ViewBillingBudgetsQuotas",
       "Effect": "Allow",
       "Action": [
@@ -90,7 +142,7 @@
         "mobilehub:*",
         "mq:*",
         "neptune-db:*",
-        "network-firewall:*",
+       "network-firewall:*",
         "opsworks:*",
         "opsworks-cm:*",
         "rds:*",
