@@ -1,6 +1,6 @@
 locals {
-  principal_role_name   = "Guest${var.namespace == "prod" ? "" : "-${var.namespace}"}"
-  principal_policy_name = "GuestDefaultPolicy${var.namespace == "prod" ? "" : "-${var.namespace}"}"
+  principal_role_name   = "DCEPrincipal${var.namespace == "prod" ? "" : "-${var.namespace}"}"
+  principal_policy_name = "DCEPrincipalDefaultPolicy${var.namespace == "prod" ? "" : "-${var.namespace}"}"
 }
 
 module "accounts_lambda" {
