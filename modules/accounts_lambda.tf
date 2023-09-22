@@ -1,6 +1,8 @@
 locals {
-  principal_role_name   = "DCEPrincipal${var.namespace == "prod" ? "" : "-${var.namespace}"}"
-  principal_policy_name = "DCEPrincipalDefaultPolicy${var.namespace == "prod" ? "" : "-${var.namespace}"}"
+  # principal_role_name   = "DCEPrincipal${var.namespace == "prod" ? "" : "-${var.namespace}"}"
+  # principal_policy_name = "DCEPrincipalDefaultPolicy${var.namespace == "prod" ? "" : "-${var.namespace}"}"
+  principal_role_name   = "PlaygroundVisitor"
+  principal_policy_name = "PlaygroundVisitorPolicy"
 }
 
 module "accounts_lambda" {
