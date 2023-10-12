@@ -1,6 +1,7 @@
 module github.com/Optum/dce
 
-go 1.19
+//Upgraded go version to 1.20 from 1.19
+go 1.20
 
 require (
 	github.com/360EntSecGroup-Skylar/excelize v1.4.1
