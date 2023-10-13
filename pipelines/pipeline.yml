@@ -161,7 +161,6 @@ stages:
                     scriptType: "inline"
                     inlineScript: |
                       set -ex
-                      rm ~/.dce/config.yaml
                       
                       echo "Principal ID is ${NAMESPACE}"
 
