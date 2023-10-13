@@ -161,6 +161,7 @@ stages:
                     scriptType: "inline"
                     inlineScript: |
                       set -ex
+                      rm -r ~/.aws/cli/cache
                       aws sts get-caller-identity
                       echo "Principal ID is ${NAMESPACE}"
 
