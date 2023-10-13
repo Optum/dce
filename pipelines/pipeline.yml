@@ -161,7 +161,7 @@ stages:
                     scriptType: "inline"
                     inlineScript: |
                       set -ex
-                    
+                     export BROWSER=google-chrome
                       echo "Principal ID is ${NAMESPACE}"
 
                       echo "Configuring the dce-cli"
