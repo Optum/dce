@@ -158,7 +158,8 @@ stages:
                   inputs:
                     awsCredentials: "AWS_DCE_API_ADMIN_NONPROD"
                     regionName: "us-east-1"
-                    scriptSource: "inline"
+                    scriptType: inline
+                    script: echo $(aws sts get-caller-identity)
                     inlineScript: |
                       set -ex
                       
