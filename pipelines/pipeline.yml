@@ -158,7 +158,7 @@ stages:
                   inputs:
                     awsCredentials: "AWS_DCE_API_ADMIN_NONPROD"
                     regionName: "us-east-1"
-                    scriptType: "inline"
+                    scriptSource: "inline"
                     inlineScript: |
                       set -ex
                       
