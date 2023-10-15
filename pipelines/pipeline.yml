@@ -143,6 +143,7 @@ stages:
                     echo '##vso[task.prependpath]$(GOROOT)/bin'
                     go install github.com/jstemmer/go-junit-report@latest
 
+                    echo $(aws sts get-caller-identity)
                     # Download dce-cli
                     wget -q https://github.com/Optum/dce-cli/releases/download/v0.5.0/dce_linux_amd64.zip
                     # Validate checksum
