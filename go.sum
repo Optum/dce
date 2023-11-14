@@ -25,8 +25,6 @@ github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym
 github.com/CloudyKit/fastprinter v0.0.0-20200109182630-33d98a066a53/go.mod h1:+3IMCy2vIlbG1XG/0ggNQv0SvxCAIpPM5b1nCz56Xno=
 github.com/CloudyKit/jet/v3 v3.0.0/go.mod h1:HKQPgSJmdK8hdoAbKUUWajkHyHo4RaU5rMdUywE7VMo=
 github.com/Joker/hpp v1.0.0/go.mod h1:8x5n+M1Hp5hC0g8okX3sR3vFQwynaX/UgSOM9MeBKzY=
-github.com/Optum/aws-nuke/v2 v2.0.0 h1:kCF9BuHvaQI+OJu1CBAWMAL1YFgQSIu4Mhnv6wDk8vU=
-github.com/Optum/aws-nuke/v2 v2.0.0/go.mod h1:vHiOieYSFzuprJ0gAlc4sfYn27RnrpsN465Y9rlBr6c=
 github.com/Optum/aws-nuke/v2 v2.0.1 h1:9wjFuNLcjcfC94dNEa8/Xgxl9xciIFyUeB0CXN3vFbQ=
 github.com/Optum/aws-nuke/v2 v2.0.1/go.mod h1:vHiOieYSFzuprJ0gAlc4sfYn27RnrpsN465Y9rlBr6c=
 github.com/Shopify/goreferrer v0.0.0-20181106222321-ec9c9a553398/go.mod h1:a1uqRtAwp2Xwc6WNPJEufxJ7fx3npB4UV/JOLmbu5I0=
