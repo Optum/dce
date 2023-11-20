@@ -16,20 +16,24 @@ resource "aws_s3_bucket" "artifacts" {
   # (so ephemeral PR environments can be torn down)
   force_destroy = true
 
-  # Encrypt objects by default
-  server_side_encryption_configuration {
-    rule {
-      apply_server_side_encryption_by_default {
-        sse_algorithm = "AES256"
-      }
+  tags = var.global_tags
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "artifacts" {
+  bucket = aws_s3_bucket.artifacts.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
     }
   }
+}
 
-  versioning {
-    enabled = true
+resource "aws_s3_bucket_versioning" "artifacts" {
+  bucket = aws_s3_bucket.artifacts.id
+  versioning_configuration {
+    status = "Enabled"
   }
-
-  tags = var.global_tags
 }
 
 # Enforce SSL only access to the bucket
@@ -58,7 +62,7 @@ POLICY
 
 }
 
-resource "aws_s3_bucket_object" "principal_policy" {
+resource "aws_s3_object" "principal_policy" {
   bucket = aws_s3_bucket.artifacts.id
   key    = "fixtures/policies/principal_policy.tmpl"
   source = local.principal_policy

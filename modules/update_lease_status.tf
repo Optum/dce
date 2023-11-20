@@ -44,8 +44,8 @@ module "update_lease_status_lambda" {
     BUDGET_NOTIFICATION_FROM_EMAIL            = var.budget_notification_from_email
     BUDGET_NOTIFICATION_BCC_EMAILS            = join(",", var.budget_notification_bcc_emails)
     BUDGET_NOTIFICATION_TEMPLATES_BUCKET      = local.budget_notification_templates_bucket
-    BUDGET_NOTIFICATION_TEMPLATE_HTML_KEY     = aws_s3_bucket_object.budget_notification_template_html.key
-    BUDGET_NOTIFICATION_TEMPLATE_TEXT_KEY     = aws_s3_bucket_object.budget_notification_template_text.key
+    BUDGET_NOTIFICATION_TEMPLATE_HTML_KEY     = aws_s3_object.budget_notification_template_html.key
+    BUDGET_NOTIFICATION_TEMPLATE_TEXT_KEY     = aws_s3_object.budget_notification_template_text.key
     BUDGET_NOTIFICATION_TEMPLATE_SUBJECT      = var.budget_notification_template_subject
     BUDGET_NOTIFICATION_THRESHOLD_PERCENTILES = join(",", var.budget_notification_threshold_percentiles)
     PRINCIPAL_BUDGET_AMOUNT                   = var.principal_budget_amount
@@ -56,12 +56,12 @@ module "update_lease_status_lambda" {
 
 // Upload budget notification email templates to S3
 // (templates may be too large to pass in as env vars)
-resource "aws_s3_bucket_object" "budget_notification_template_html" {
+resource "aws_s3_object" "budget_notification_template_html" {
   bucket  = local.budget_notification_templates_bucket
   key     = "budget_notification_templates/html.tmpl"
   content = var.budget_notification_template_html
 }
-resource "aws_s3_bucket_object" "budget_notification_template_text" {
+resource "aws_s3_object" "budget_notification_template_text" {
   bucket  = local.budget_notification_templates_bucket
   key     = "budget_notification_templates/text.tmpl"
   content = var.budget_notification_template_text

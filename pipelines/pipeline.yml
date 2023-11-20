@@ -8,8 +8,8 @@ trigger:
       - "v*"
 
 variables:
-  GO_VERSION: 1.19
-  TERRAFORM_VERSION: 0.12.31
+  GO_VERSION: 1.20
+  TERRAFORM_VERSION: 0.13.7
 
 # Run builds for PRs against `master`
 pr:
@@ -219,6 +219,12 @@ stages:
                     cd modules
                     cat ./backend.tf
                     terraform init -input=false
+
+                    terraform plan \
+                      -var="namespace=${NAMESPACE}" \
+                      -var="budget_notification_from_email=${NOTIFY_EMAIL}" \
+                      -var="reset_nuke_toggle=false"
+
                     terraform apply \
                       -auto-approve \
                       -input=false \
