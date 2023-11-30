@@ -1,3 +1,7 @@
+## v0.35.1
+
+- Fix: Terraform formatting
+
 ## v0.35.0
 
 - Add: Added blanket * allow permission in place of specific allow permissions for easier integration with future AWS products github.com/Optum/dce (#467)
