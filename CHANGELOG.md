@@ -1,3 +1,7 @@
+## v0.35.2
+
+- upgrade the aws nuke version from  v2.0. 1 to v2.0.2
+
 ## v0.35.1
 
 - Fix: Terraform formatting

@@ -104,4 +104,4 @@ require (
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 )
 
-replace github.com/rebuy-de/aws-nuke/v2 => github.com/Optum/aws-nuke/v2 v2.0.1
+replace github.com/rebuy-de/aws-nuke/v2 => github.com/Optum/aws-nuke/v2 v2.0.2
