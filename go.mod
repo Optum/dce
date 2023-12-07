@@ -1,8 +1,7 @@
 module github.com/Optum/dce
 
-go 1.21
+go 1.20
 
-toolchain go1.21.3
 
 require (
 	github.com/360EntSecGroup-Skylar/excelize v1.4.1
