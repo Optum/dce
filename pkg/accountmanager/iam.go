@@ -48,6 +48,7 @@ func (p *principalService) DeleteRole() error {
 		RoleName: p.account.PrincipalRoleArn.IAMResourceName(),
 	})
 	if err != nil {
+		log.Printf("Error deleting role: %s\n", err.Error())
 		if isAWSNoSuchEntityError(err) {
 			log.Printf("%s: for account %q; ignoring", err.Error(), *p.account.ID)
 		} else {
@@ -84,6 +85,7 @@ func (p *principalService) MergePolicy() error {
 	})
 
 	if err != nil {
+		log.Printf("Error merging role: %s\n", err.Error())
 		if isAWSAlreadyExistsError(err) {
 			log.Printf("%s: for account %q; ignoring", err.Error(), *p.account.ID)
 		} else {
@@ -138,6 +140,7 @@ func (p *principalService) DeletePolicy() error {
 	})
 
 	if err != nil {
+		log.Printf("Error deleting policy: %s\n", err.Error())
 		if isAWSNoSuchEntityError(err) {
 			log.Printf("%s: for account %q; ignoring", err.Error(), *p.account.ID)
 		} else {
@@ -156,6 +159,7 @@ func (p *principalService) AttachRoleWithPolicy() error {
 		RoleName:  p.account.PrincipalRoleArn.IAMResourceName(),
 	})
 	if err != nil {
+		log.Printf("Error attaching policy: %s\n", err.Error())
 		if isAWSAlreadyExistsError(err) {
 			log.Printf("%s: for account %q; ignoring", err.Error(), *p.account.ID)
 		} else {
@@ -176,6 +180,7 @@ func (p *principalService) DetachRoleWithPolicy() error {
 		RoleName:  p.account.PrincipalRoleArn.IAMResourceName(),
 	})
 	if err != nil {
+		log.Printf("Error detaching role policy: %s\n", err.Error())
 		if isAWSNoSuchEntityError(err) {
 			log.Printf("%s: for account %q; ignoring", err.Error(), *p.account.ID)
 		} else {
