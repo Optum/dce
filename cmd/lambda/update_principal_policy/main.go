@@ -69,6 +69,7 @@ func handler(ctx context.Context, snsEvent events.SNSEvent) error {
 
 		err = services.AccountService().UpsertPrincipalAccess(acct)
 		if err != nil {
+			log.Printf("Failed to update principal access for account %s: %s\n", *acct.ID, err.Error())
 			return err
 		}
 

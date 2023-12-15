@@ -38,6 +38,7 @@ module "populate_reset_queue" {
     ICP_REGION         = var.aws_region
     RESET_SQS_URL      = aws_sqs_queue.account_reset.id
     ACCOUNT_DB         = aws_dynamodb_table.accounts.id
+    ACCOUNT_ID         = local.account_id
     LEASE_DB           = aws_dynamodb_table.leases.id
     AWS_CURRENT_REGION = var.aws_region
   }
@@ -84,6 +85,7 @@ module "process_reset_queue" {
     RESET_BUILD_NAME   = aws_codebuild_project.reset_build.id
     RESET_SQS_URL      = aws_sqs_queue.account_reset.id
     ACCOUNT_DB         = aws_dynamodb_table.accounts.id
+    ACCOUNT_ID         = local.account_id
     LEASE_DB           = aws_dynamodb_table.leases.id
     AWS_CURRENT_REGION = var.aws_region
   }

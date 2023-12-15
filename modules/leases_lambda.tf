@@ -10,6 +10,7 @@ module "leases_lambda" {
   environment = {
     DEBUG                              = "false"
     NAMESPACE                          = var.namespace
+    ACCOUNT_ID                         = local.account_id
     AWS_CURRENT_REGION                 = var.aws_region
     RESET_SQS_URL                      = aws_sqs_queue.account_reset.id
     ACCOUNT_DB                         = aws_dynamodb_table.accounts.id

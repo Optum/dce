@@ -10,6 +10,7 @@ module "usage_lambda" {
   environment = {
     DEBUG              = "false"
     NAMESPACE          = var.namespace
+    ACCOUNT_ID         = local.account_id
     AWS_CURRENT_REGION = var.aws_region
     USAGE_CACHE_DB     = aws_dynamodb_table.usage.id
   }

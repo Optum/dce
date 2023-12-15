@@ -31,8 +31,9 @@ func (p *principalService) MergeRole() error {
 		),
 	})
 	if err != nil {
+		log.Printf("Error creating role: %s\n", err.Error())
 		if isAWSAlreadyExistsError(err) {
-			log.Printf("%s: for account %q; ignoring", err.Error(), *p.account.ID)
+			log.Printf("%s: for account %q; ignoring\n", err.Error(), *p.account.ID)
 		} else {
 			return errors.NewInternalServer(fmt.Sprintf("unexpected error creating role %q", p.account.PrincipalRoleArn.String()), err)
 		}

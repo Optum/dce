@@ -13,6 +13,7 @@ module "update_principal_policy" {
     NAMESPACE                      = var.namespace
     AWS_CURRENT_REGION             = var.aws_region
     ACCOUNT_DB                     = aws_dynamodb_table.accounts.id
+    ACCOUNT_ID                     = local.account_id
     LEASE_DB                       = aws_dynamodb_table.leases.id
     ARTIFACTS_BUCKET               = aws_s3_bucket.artifacts.id
     PRINCIPAL_ROLE_NAME            = local.principal_role_name
