@@ -1,6 +1,6 @@
 ## v0.35.4
 
-- Fix: Add account id as environment variable to lambdas
+- Fix: Add account id as environment variable to lambdas (#476)
 
 ## v0.35.3
 
