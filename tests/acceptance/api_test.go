@@ -187,6 +187,7 @@ func TestApi(t *testing.T) {
 
 			// Create a Role we can assume, to test out our policy
 			accountID := aws2.GetAccountId(t)
+			fmt.Printf("Brd, Got account id: %s\n", accountID)
 			assumeRolePolicy := fmt.Sprintf(`{
 	"Version": "2012-10-17",
 	"Statement": [
@@ -270,6 +271,8 @@ func TestApi(t *testing.T) {
 
 		// Create a Role we can assume, to test out our policy
 		accountID := aws2.GetAccountId(t)
+		fmt.Printf("Brd, Got account2 id: %s\n", accountID)
+
 		assumeRolePolicy := fmt.Sprintf(`{
 	"Version": "2012-10-17",
 	"Statement": [
@@ -380,6 +383,9 @@ func TestApi(t *testing.T) {
 		t.Run("Should be able to create and destroy a lease", func(t *testing.T) {
 			givenEmptySystem(t)
 			defer givenEmptySystem(t)
+
+			fmt.Printf("Brd, lease creation account id: %s\n", accountID)
+
 
 			// Add the current account to the account pool
 			apiRequest(t, &apiRequestInput{
@@ -1183,6 +1189,8 @@ func TestApi(t *testing.T) {
 					waitForAccountStatus(t, apiURL, accountID, "NotReady")
 
 					t.Run("STEP: Delete Account", func(t *testing.T) {
+						fmt.Printf("Brd, Deleting account: %s\n", accountID)
+
 						// Delete the account
 						apiRequest(t, &apiRequestInput{
 							method: "DELETE",
