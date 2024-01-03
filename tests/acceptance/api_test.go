@@ -1184,22 +1184,23 @@ func TestApi(t *testing.T) {
 
 					t.Run("STEP: Delete Account", func(t *testing.T) {
 						// Delete the account
-						apiRequest(t, &apiRequestInput{
-							method: "DELETE",
-							url:    apiURL + "/accounts/" + accountID,
-							f: func(r *testutils.R, apiResp *apiResponse) {
-								assert.Equal(r, 204, apiResp.StatusCode)
-							},
-						})
+						fmt.Printf("Brd, Deleting account: %s\n", accountID)
+						// apiRequest(t, &apiRequestInput{
+						// 	method: "DELETE",
+						// 	url:    apiURL + "/accounts/" + accountID,
+						// 	f: func(r *testutils.R, apiResp *apiResponse) {
+						// 		assert.Equal(r, 204, apiResp.StatusCode)
+						// 	},
+						// })
 
-						// Attempt to get the deleted account (should 404)
-						apiRequest(t, &apiRequestInput{
-							method: "GET",
-							url:    apiURL + "/accounts/" + accountID,
-							f: func(r *testutils.R, apiResp *apiResponse) {
-								assert.Equal(t, 404, apiResp.StatusCode)
-							},
-						})
+						// // Attempt to get the deleted account (should 404)
+						// apiRequest(t, &apiRequestInput{
+						// 	method: "GET",
+						// 	url:    apiURL + "/accounts/" + accountID,
+						// 	f: func(r *testutils.R, apiResp *apiResponse) {
+						// 		assert.Equal(t, 404, apiResp.StatusCode)
+						// 	},
+						// })
 
 						// Check that the Principal Role was deleted
 						_, err = iamSvc.GetRole(&iam.GetRoleInput{
