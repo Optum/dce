@@ -22,6 +22,7 @@ require (
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 	gopkg.in/oleiade/reflections.v1 v1.0.0
 	gopkg.in/yaml.v2 v2.4.0
+    github.com/rebuy-de/aws-nuke/v2 v2.25.0
 )
 
 require (
@@ -100,8 +101,5 @@ require (
 	github.com/asaskevich/govalidator v0.0.0-20200907205600-7a23bdc65eef // indirect
 	github.com/go-sql-driver/mysql v1.5.0 // indirect
 	github.com/oleiade/reflections v1.0.0 // indirect
-	github.com/rebuy-de/aws-nuke/v2 v2.25.0
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 )
-
-replace github.com/rebuy-de/aws-nuke/v2 => github.com/Optum/aws-nuke/v2 v2.0.3
