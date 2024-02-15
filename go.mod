@@ -6,11 +6,11 @@ require (
 	github.com/360EntSecGroup-Skylar/excelize v1.4.1
 	github.com/avast/retry-go v2.6.0+incompatible
 	github.com/aws/aws-lambda-go v1.19.1
-	github.com/aws/aws-sdk-go v1.47.4
+	github.com/aws/aws-sdk-go v1.50.6
 	github.com/awslabs/aws-lambda-go-api-proxy v0.8.0
 	github.com/caarlos0/env v3.5.0+incompatible
 	github.com/go-ozzo/ozzo-validation v3.6.0+incompatible
-	github.com/google/uuid v1.4.0
+	github.com/google/uuid v1.6.0
 	github.com/gorilla/handlers v1.5.0
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/schema v1.2.0
@@ -22,7 +22,6 @@ require (
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 	gopkg.in/oleiade/reflections.v1 v1.0.0
 	gopkg.in/yaml.v2 v2.4.0
-    github.com/rebuy-de/aws-nuke/v2 v2.25.0
 )
 
 require (
@@ -84,7 +83,7 @@ require (
 	golang.org/x/crypto v0.14.0 // indirect
 	golang.org/x/net v0.17.0 // indirect
 	golang.org/x/oauth2 v0.4.0 // indirect
-	golang.org/x/sync v0.5.0 // indirect
+	golang.org/x/sync v0.6.0 // indirect
 	golang.org/x/sys v0.14.0 // indirect
 	golang.org/x/text v0.13.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
@@ -101,5 +100,8 @@ require (
 	github.com/asaskevich/govalidator v0.0.0-20200907205600-7a23bdc65eef // indirect
 	github.com/go-sql-driver/mysql v1.5.0 // indirect
 	github.com/oleiade/reflections v1.0.0 // indirect
+	github.com/rebuy-de/aws-nuke/v2 v2.25.0
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 )
+
+replace github.com/rebuy-de/aws-nuke/v2 => github.com/Optum/aws-nuke/v2 v2.25.1
