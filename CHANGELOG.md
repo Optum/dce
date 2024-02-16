@@ -1,3 +1,7 @@
+## v0.36.0
+
+- change aws-nuke to directly use opensource version
+
 ## v0.35.3
 
 - upgrade the aws nuke version from  v2.0.2 to v2.0.3
