@@ -1,3 +1,7 @@
+## v0.36.1
+
+- Fix: Remove default 25 scan limit when querying for leases
+
 ## v0.36.0
 
 - change aws-nuke to directly use opensource version
