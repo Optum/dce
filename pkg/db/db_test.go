@@ -199,7 +199,6 @@ func TestDb(t *testing.T) {
 					},
 				},
 				FilterExpression: aws.String("LeaseStatus = :status and AccountId = :accountId"),
-				Limit:            aws.Int64(25),
 				TableName:        aws.String("lease"),
 			}).Return(
 				test.ScanLeasesOutput, test.ScanLeasesError,
