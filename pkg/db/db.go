@@ -634,7 +634,7 @@ func (db *DB) GetLeases(input GetLeasesInput) (GetLeasesOutput, error) {
 	}
 
 	if input.Limit > 0 {
-		scanInput.Limit = &input.limit
+		scanInput.Limit = &input.Limit
 	}
 
 	// Build the filter clauses.
