@@ -25,6 +25,9 @@ docs/dce/
 *.tfstate
 *.tfstate.*
 
+# lock file
+*.lock.hcl
+
 # Crash log files
 crash.log
 
