@@ -1,3 +1,8 @@
+## v0.37.0
+
+- Update pipelines to use latest terraform
+- Update terraform required version to be 0.13.7 as minimum viable to run module
+
 ## v0.36.1
 
 - Fix: Remove default 25 scan limit when querying for leases
