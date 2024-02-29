@@ -158,3 +158,7 @@ output "role_admin_policy" {
 output "codebuild_reset_name" {
   value = aws_codebuild_project.reset_build.id
 }
+
+output "codebuild_reset_role_name" {
+  value = aws_iam_role.codebuild_reset.name
+}

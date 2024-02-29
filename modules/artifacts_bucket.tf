@@ -19,6 +19,7 @@ resource "aws_s3_bucket" "artifacts" {
   tags = var.global_tags
 }
 
+# Encrypt objects by default
 resource "aws_s3_bucket_server_side_encryption_configuration" "artifacts" {
   bucket = aws_s3_bucket.artifacts.id
 
@@ -34,6 +35,12 @@ resource "aws_s3_bucket_versioning" "artifacts" {
   versioning_configuration {
     status = "Enabled"
   }
+}
+
+# Allow S3 access logs to be written to this bucket
+resource "aws_s3_bucket_acl" "artifacts" {
+  bucket = aws_s3_bucket.artifacts.id
+  acl    = "log-delivery-write"
 }
 
 # Enforce SSL only access to the bucket

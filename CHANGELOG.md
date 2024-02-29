@@ -45,7 +45,8 @@
 - Upgrade to Go version 1.17
 - Upgrade Ubuntu version on Azure DevOps Agent
 - Fix Go dependency errors in pipeline
-- Require at least `0.12.31` or later `0.12.x` versions of Terraform to recieve new provider updates
+- Require at least `1.3.x` or later versions of Terraform to recieve new provider updates
+- Output `codebuild_reset_role_name` so you can add a policy to it to grant access to `reset_nuke_template_bucket`.
 
 ## v0.33.8
 

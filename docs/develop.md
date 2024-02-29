@@ -12,7 +12,7 @@ You may find development easiest on a Mac OS or Linux-based machine. Development
 You will need the following:
 
 1. [Go](https://golang.org/doc/install) (version 1.13.x)
-1. [Terraform](https://learn.hashicorp.com/terraform/getting-started/install.html) (version v0.12.x)
+1. [Terraform](https://learn.hashicorp.com/terraform/getting-started/install.html) (version v1.3.x)
 1. [GNU make]() (version 3.x)
 1. [GNU bash](https://www.gnu.org/software/bash/), which is used for shell scripts
 1. An [AWS account](https://aws.amazon.com/premiumsupport/knowledge-center/create-and-activate-aws-account/) for deploying resources

@@ -140,7 +140,7 @@ region: us-east-1
 terraform:
   # The full path to the locally-cached terraform binary used
   # by DCE to provision resources. Default value is 
-  # $HOME/.dce/.cache/terraform/0.12.18/terraform
+  # $HOME/.dce/.cache/terraform/1.3.7/terraform
   bin: /path/to/terraform
   # The source from which terraform was downloaded. This
   # is reserved for future use.
@@ -357,7 +357,7 @@ This section will cover deployment from source. Please ensure you have the follo
 
 1. [GNU Make](https://www.gnu.org/software/make/) 3.81+
 1. [Go](https://golang.org/) 1.12.x+
-1. Hashicorp [Terraform](https://www.terraform.io/) 0.12+
+1. Hashicorp [Terraform](https://www.terraform.io/) 1.3.7+
 1. The [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html) 1.16+
 
 Once you have the requirements installed, you can deploy DCE into your account 

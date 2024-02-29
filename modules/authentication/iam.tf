@@ -18,13 +18,11 @@ locals {
 
 resource "aws_iam_role" "user" {
   name = "${var.name}-user-${var.namespace}"
-
   assume_role_policy = local.user_assume_role_policy
 }
 
 resource "aws_iam_policy" "user" {
   name = "${var.name}-user-${var.namespace}"
-
   policy = local.user_policy
 }
 resource "aws_iam_policy_attachment" "user" {
@@ -36,15 +34,14 @@ resource "aws_iam_policy_attachment" "user" {
 
 resource "aws_iam_role" "admin" {
   name = "${var.name}-admin-${var.namespace}"
-
   assume_role_policy = local.admin_assume_role_policy
 }
 
 resource "aws_iam_policy" "admin" {
   name = "${var.name}-admin-${var.namespace}"
-
   policy = local.admin_policy
 }
+
 resource "aws_iam_policy_attachment" "admin" {
   name = "${var.name}-admin-${var.namespace}"
 
