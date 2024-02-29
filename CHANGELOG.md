@@ -1,3 +1,26 @@
+## v0.36.1
+
+- Fix: Remove default 25 scan limit when querying for leases
+
+## v0.36.0
+
+- change aws-nuke to directly use opensource version
+
+## v0.35.3
+
+- upgrade the aws nuke version from  v2.0.2 to v2.0.3
+
+## v0.35.2
+
+- upgrade the aws nuke version from  v2.0. 1 to v2.0.2
+
+## v0.35.1
+
+- Fix: Terraform formatting
+
+## v0.35.0
+
+- Add: Added blanket * allow permission in place of specific allow permissions for easier integration with future AWS products github.com/Optum/dce (#467)
 
 ## v0.34.2
 
@@ -7,7 +30,7 @@
 
 - Add: Enable network-firewall:ListRuleGroups permission (#449)
 - Fix: Recent changes to AWS S3 default bucket policy have broken the install. Removing ACL from the bucket allows the installation to proceed.
-  
+
 ## v0.34.0
 
 - Fix: get latest aws-nuke release. (#432)

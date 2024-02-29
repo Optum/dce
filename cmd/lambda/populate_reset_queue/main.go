@@ -67,6 +67,7 @@ func Handler(cloudWatchEvent events.CloudWatchEvent) error {
 
 			for _, acct := range *accts {
 				a := acct
+				log.Printf("Resetting account: %s\n", *a.ID)
 				// Send Message
 				err := api.AccountReset(&a)
 				if err != nil {
@@ -77,6 +78,8 @@ func Handler(cloudWatchEvent events.CloudWatchEvent) error {
 		},
 	)
 	if err != nil {
+		log.Printf("Account Reset Error: %v\n", err)
+
 		return err
 	}
 

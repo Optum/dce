@@ -625,18 +625,16 @@ type GetLeasesOutput struct {
 
 // GetLeases takes a set of filtering criteria and scans the Leases table for the matching records.
 func (db *DB) GetLeases(input GetLeasesInput) (GetLeasesOutput, error) {
-	limit := int64(25)
 	filters := make([]string, 0)
 	filterValues := make(map[string]*dynamodb.AttributeValue)
 
-	if input.Limit > 0 {
-		limit = input.Limit
-	}
-
 	scanInput := &dynamodb.ScanInput{
 		TableName:      aws.String(db.LeaseTableName),
-		Limit:          &limit,
 		ConsistentRead: aws.Bool(db.ConsistentRead),
+	}
+
+	if input.Limit > 0 {
+		scanInput.Limit = &input.Limit
 	}
 
 	// Build the filter clauses.
