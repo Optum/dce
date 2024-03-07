@@ -23,11 +23,11 @@ do
 if [ -e $i/main.go ];then
     mod_name=`basename $i`
     cd cmd/lambda/$mod_name
-    GOARCH=amd64 GOOS=linux go build -v -o ../../../bin/lambda/$mod_name
+    GOARCH=amd64 GOOS=linux go build -v -o ../../../bin/lambda/$mod_name/bootstrap
     cd ../../..
     zip -j --must-match \
       bin/lambda/$mod_name.zip \
-      bin/lambda/$mod_name
+      bin/lambda/$mod_name/bootstrap
     # Include static web assets if they exist
     if [ -d "./cmd/lambda/$mod_name/public" ] && [ -d "./cmd/lambda/$mod_name/views" ];then
       cd ./cmd/lambda/$mod_name
@@ -72,5 +72,5 @@ zip -r --must-match \
     modules/ \
     -x modules/.terraform/\* modules/*.tfstate* modules/*.tfvars modules/*.zip
 
-# Cleanup 
+# Cleanup
 rm -rf bin/codebuild bin/lambda

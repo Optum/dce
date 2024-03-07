@@ -2,6 +2,7 @@
 
 - Update pip packages
 - Update golang packages
+- Update Golang runtime
 
 ## v0.37.0
 

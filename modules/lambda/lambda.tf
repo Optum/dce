@@ -1,7 +1,7 @@
 resource "aws_lambda_function" "fn" {
   function_name = var.name
   description   = var.description
-  runtime       = "go1.x"
+  runtime       = "provided.al2023"
   handler       = var.handler
   role          = aws_iam_role.lambda_execution.arn
   timeout       = var.timeout
