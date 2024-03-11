@@ -1,3 +1,9 @@
+## v0.37.1
+
+- Update pip packages
+- Update golang packages
+- Update Golang runtime
+
 ## v0.37.0
 
 - Update pipelines to use latest terraform

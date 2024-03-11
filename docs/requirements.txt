@@ -1,11 +1,11 @@
-  
+
 alabaster==0.7.12
 argh==0.26.2
-Babel==2.7.0
+Babel==2.14.0
 certifi==2022.12.7
 chardet==3.0.4
 docutils==0.15.2
-future==0.18.2
+future==1.0.0
 idna==2.8
 imagesize==1.1.0
 Jinja2==2.11.3
@@ -19,8 +19,8 @@ port-for==0.3.1
 Pygments==2.7.4
 pyparsing==2.4.5
 pytz==2019.3
-PyYAML==5.4
-requests==2.22.0
+PyYAML==5.4.1
+requests==2.31.0
 requests-file==1.4.3
 six==1.13.0
 snowballstemmer==2.0.0
@@ -29,6 +29,6 @@ sphinx-autobuild==0.7.1
 sphinx-rtd-theme==0.4.3
 sphinxcontrib-swaggerdoc==0.1.7
 sphinxcontrib-websupport==1.1.2
-tornado==6.0.3
+tornado==6.4.0
 urllib3==1.26.5
-watchdog==0.9.0
+watchdog==4.0.0
