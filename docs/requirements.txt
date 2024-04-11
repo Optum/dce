@@ -6,7 +6,7 @@ certifi==2022.12.7
 chardet==3.0.4
 docutils==0.15.2
 future==1.0.0
-idna==2.8
+idna==3.7
 imagesize==1.1.0
 Jinja2==2.11.3
 livereload==2.6.1
