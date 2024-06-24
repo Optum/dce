@@ -196,8 +196,8 @@ github.com/CloudyKit/fastprinter v0.0.0-20200109182630-33d98a066a53/go.mod h1:+3
 github.com/CloudyKit/jet/v3 v3.0.0/go.mod h1:HKQPgSJmdK8hdoAbKUUWajkHyHo4RaU5rMdUywE7VMo=
 github.com/Joker/hpp v1.0.0/go.mod h1:8x5n+M1Hp5hC0g8okX3sR3vFQwynaX/UgSOM9MeBKzY=
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
-github.com/Optum/aws-nuke/v2 v2.25.3 h1:ut9XyYdxKwwWKEh2pmqLGxXz88WruwtPekl3De3zSgs=
-github.com/Optum/aws-nuke/v2 v2.25.3/go.mod h1:LaslSBqqWIa+EdDrxj1Pltr04cMAyxcL+bYy+7ZT/jg=
+github.com/Optum/aws-nuke/v2 v2.25.4 h1:8SKXZburVzu/kJg2dead6iHSadFTsoDffIUqvm1c8UI=
+github.com/Optum/aws-nuke/v2 v2.25.4/go.mod h1:LaslSBqqWIa+EdDrxj1Pltr04cMAyxcL+bYy+7ZT/jg=
 github.com/Shopify/goreferrer v0.0.0-20181106222321-ec9c9a553398/go.mod h1:a1uqRtAwp2Xwc6WNPJEufxJ7fx3npB4UV/JOLmbu5I0=
 github.com/agext/levenshtein v1.2.1/go.mod h1:JEDfjyjHDjOF/1e4FlBE/PkbqA9OfWu2ki2W0IB5558=
 github.com/agext/levenshtein v1.2.3 h1:YB2fHEn0UJagG8T1rrWknE3ZQzWM06O8AMAatNn7lmo=
