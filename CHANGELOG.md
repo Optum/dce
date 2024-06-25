@@ -1,3 +1,8 @@
+## v0.37.2
+
+- Update pip packages
+- Update golang packages
+
 ## v0.37.1
 
 - Update pip packages
