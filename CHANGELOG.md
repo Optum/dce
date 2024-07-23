@@ -1,3 +1,16 @@
+## v0.37.5
+
+- Update aws-nuke to fix NetworkFirewall issues
+
+## v0.37.4
+
+- Update pip packages
+- Update golang packages
+
+## v0.37.3
+
+- Deny DCE user from creating support tickets
+
 ## v0.37.2
 
 - Update pip packages
