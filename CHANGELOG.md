@@ -1,3 +1,7 @@
+## v0.37.6
+
+- Update aws-nuke to fix AppStreamImage, MSKCluster, and WAFRegionalRule
+
 ## v0.37.5
 
 - Update aws-nuke to fix NetworkFirewall issues
