@@ -1,3 +1,8 @@
+## v0.38.0
+
+- Update aws-nuke to fix AppStreamImage, MSKCluster, WAFRegionalRule, and CloudformationStacks
+- Disable kms:PutKeyPolicy from users
+
 ## v0.37.5
 
 - Update aws-nuke to fix NetworkFirewall issues

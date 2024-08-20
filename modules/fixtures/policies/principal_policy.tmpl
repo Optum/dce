@@ -62,6 +62,14 @@
       "Resource": "*"
     },
     {
+      "Sid": "DenySpecificKMSActions",
+      "Effect": "Deny",
+      "Action": [
+        "kms:PutKeyPolicy"
+      ],
+      "Resource": "*"
+    },
+    {
       "Sid": "ViewBillingBudgetsQuotas",
       "Effect": "Allow",
       "Action": [
