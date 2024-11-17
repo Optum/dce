@@ -628,13 +628,13 @@ func (db *DB) GetLeases(input GetLeasesInput) (GetLeasesOutput, error) {
 	filters := make([]string, 0)
 	filterValues := make(map[string]*dynamodb.AttributeValue)
 
-	scanInput := &dynamodb.ScanInput{
+	queryInput := &dynamodb.QueryInput{
 		TableName:      aws.String(db.LeaseTableName),
 		ConsistentRead: aws.Bool(db.ConsistentRead),
 	}
 
 	if input.Limit > 0 {
-		scanInput.Limit = &input.Limit
+		queryInput.Limit = &input.Limit
 	}
 
 	// Build the filter clauses.
@@ -655,18 +655,18 @@ func (db *DB) GetLeases(input GetLeasesInput) (GetLeasesOutput, error) {
 
 	if len(filters) > 0 {
 		filterStatement := strings.Join(filters, " and ")
-		scanInput.FilterExpression = &filterStatement
-		scanInput.ExpressionAttributeValues = filterValues
+		queryInput.FilterExpression = &filterStatement
+		queryInput.ExpressionAttributeValues = filterValues
 	}
 
 	if input.StartKeys != nil && len(input.StartKeys) > 0 {
-		scanInput.ExclusiveStartKey = make(map[string]*dynamodb.AttributeValue)
+		queryInput.ExclusiveStartKey = make(map[string]*dynamodb.AttributeValue)
 		for k, v := range input.StartKeys {
-			scanInput.ExclusiveStartKey[k] = &dynamodb.AttributeValue{S: aws.String(v)}
+			queryInput.ExclusiveStartKey[k] = &dynamodb.AttributeValue{S: aws.String(v)}
 		}
 	}
 
-	output, err := db.Client.Scan(scanInput)
+	output, err := db.Client.Query(queryInput)
 
 	// Parse the results and build the next keys if necessary.
 	if err != nil {
