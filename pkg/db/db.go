@@ -628,9 +628,14 @@ func (db *DB) GetLeases(input GetLeasesInput) (GetLeasesOutput, error) {
 	filters := make([]string, 0)
 	filterValues := make(map[string]*dynamodb.AttributeValue)
 
+	builder := expression.NewBuilder()
+	expr, err := builder.Build()
+
 	queryInput := &dynamodb.QueryInput{
-		TableName:      aws.String(db.LeaseTableName),
-		ConsistentRead: aws.Bool(db.ConsistentRead),
+		TableName:                aws.String(db.LeaseTableName),
+		ConsistentRead:           aws.Bool(db.ConsistentRead),
+		IndexName:                aws.String("PrincipalId"),
+		ExpressionAttributeNames: expr.Names(),
 	}
 
 	if input.Limit > 0 {
