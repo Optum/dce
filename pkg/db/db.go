@@ -628,16 +628,14 @@ func (db *DB) GetLeases(input GetLeasesInput) (GetLeasesOutput, error) {
 	filters := make([]string, 0)
 	filterValues := make(map[string]*dynamodb.AttributeValue)
 
-	builder := expression.NewBuilder()
-	expr, err := builder.Build()
-
 	queryInput := &dynamodb.QueryInput{
-		TableName:                aws.String(db.LeaseTableName),
-		ConsistentRead:           aws.Bool(db.ConsistentRead),
-		IndexName:                aws.String("PrincipalId"),
-		ExpressionAttributeNames: expr.Names(),
+		TableName:      aws.String(db.LeaseTableName),
+		ConsistentRead: aws.Bool(db.ConsistentRead),
 	}
-
+	scanInput := &dynamodb.ScanInput{
+		TableName:      aws.String(db.LeaseTableName),
+		ConsistentRead: aws.Bool(db.ConsistentRead),
+	}
 	if input.Limit > 0 {
 		queryInput.Limit = &input.Limit
 	}
@@ -671,33 +669,63 @@ func (db *DB) GetLeases(input GetLeasesInput) (GetLeasesOutput, error) {
 		}
 	}
 
-	output, err := db.Client.Query(queryInput)
+	if input.AccountID != "" || input.PrincipalID != "" || input.Status != "" {
+		output, err := db.Client.Query(queryInput)
 
-	// Parse the results and build the next keys if necessary.
-	if err != nil {
-		return GetLeasesOutput{}, err
-	}
-
-	results := make([]*Lease, 0)
-
-	for _, o := range output.Items {
-		lease, err := unmarshalLease(o)
+		// Parse the results and build the next keys if necessary.
 		if err != nil {
 			return GetLeasesOutput{}, err
 		}
-		results = append(results, lease)
+
+		results := make([]*Lease, 0)
+
+		for _, o := range output.Items {
+			lease, err := unmarshalLease(o)
+			if err != nil {
+				return GetLeasesOutput{}, err
+			}
+			results = append(results, lease)
+		}
+
+		nextKey := make(map[string]string)
+
+		for k, v := range output.LastEvaluatedKey {
+			nextKey[k] = *v.S
+		}
+
+		return GetLeasesOutput{
+			Results:  results,
+			NextKeys: nextKey,
+		}, nil
+	} else {
+		output, err := db.Client.Scan(scanInput)
+
+		// Parse the results and build the next keys if necessary.
+		if err != nil {
+			return GetLeasesOutput{}, err
+		}
+
+		results := make([]*Lease, 0)
+
+		for _, o := range output.Items {
+			lease, err := unmarshalLease(o)
+			if err != nil {
+				return GetLeasesOutput{}, err
+			}
+			results = append(results, lease)
+		}
+
+		nextKey := make(map[string]string)
+
+		for k, v := range output.LastEvaluatedKey {
+			nextKey[k] = *v.S
+		}
+
+		return GetLeasesOutput{
+			Results:  results,
+			NextKeys: nextKey,
+		}, nil
 	}
-
-	nextKey := make(map[string]string)
-
-	for k, v := range output.LastEvaluatedKey {
-		nextKey[k] = *v.S
-	}
-
-	return GetLeasesOutput{
-		Results:  results,
-		NextKeys: nextKey,
-	}, nil
 }
 
 // OrphanAccount puts account in Oprhaned status and inactivates any active leases
