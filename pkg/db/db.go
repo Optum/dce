@@ -629,8 +629,14 @@ func (db *DB) GetLeases(input GetLeasesInput) (GetLeasesOutput, error) {
 	filterValues := make(map[string]*dynamodb.AttributeValue)
 
 	queryInput := &dynamodb.QueryInput{
-		TableName:      aws.String(db.LeaseTableName),
-		ConsistentRead: aws.Bool(db.ConsistentRead),
+		TableName:              aws.String(db.LeaseTableName),
+		ConsistentRead:         aws.Bool(db.ConsistentRead),
+		KeyConditionExpression: aws.String("PrincipalId = :u1"),
+		// ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+		// 	":u1": {
+		// 		S: aws.String(principalID),
+		// 	},
+		// },
 	}
 	scanInput := &dynamodb.ScanInput{
 		TableName:      aws.String(db.LeaseTableName),
