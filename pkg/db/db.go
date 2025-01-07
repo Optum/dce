@@ -632,11 +632,11 @@ func (db *DB) GetLeases(input GetLeasesInput) (GetLeasesOutput, error) {
 		TableName:              aws.String(db.LeaseTableName),
 		ConsistentRead:         aws.Bool(db.ConsistentRead),
 		KeyConditionExpression: aws.String("PrincipalId = :u1"),
-		// ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-		// 	":u1": {
-		// 		S: aws.String(principalID),
-		// 	},
-		// },
+		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+			":u1": {
+				S: aws.String(input.PrincipalID),
+			},
+		},
 	}
 	scanInput := &dynamodb.ScanInput{
 		TableName:      aws.String(db.LeaseTableName),
