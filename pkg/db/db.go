@@ -625,85 +625,97 @@ type GetLeasesOutput struct {
 
 // GetLeases takes a set of filtering criteria and scans the Leases table for the matching records.
 func (db *DB) GetLeases(input GetLeasesInput) (GetLeasesOutput, error) {
-	filters := make([]string, 0)
-	filterValues := make(map[string]*dynamodb.AttributeValue)
-
-	queryInput := &dynamodb.QueryInput{
-		IndexName: aws.String("PrincipalId"),
-		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-			"PrincipalId": {
-				S: aws.String(input.PrincipalID),
-			},
-		},
-		KeyConditionExpression: aws.String("PrincipalID = :PrincipalId"),
-		TableName:              aws.String(db.LeaseTableName),
-	}
-	scanInput := &dynamodb.ScanInput{
-		TableName:      aws.String(db.LeaseTableName),
-		ConsistentRead: aws.Bool(db.ConsistentRead),
-	}
-	if input.Limit > 0 {
-		queryInput.Limit = &input.Limit
+	resp := &dynamodb.DescribeTableInput{
+		TableName: aws.String(db.LeaseTableName),
 	}
 
-	// Build the filter clauses.
-	if input.Status != "" {
-		filters = append(filters, "LeaseStatus = :status")
-		filterValues[":status"] = &dynamodb.AttributeValue{S: aws.String(string(input.Status))}
+	// Retrieve the table description
+	tableDesc, err := db.Client.DescribeTable(resp)
+	if err != nil {
+		return GetLeasesOutput{}, err
 	}
 
-	if input.PrincipalID != "" {
-		filters = append(filters, "PrincipalId = :principalId")
-		filterValues[":principalId"] = &dynamodb.AttributeValue{S: aws.String(input.PrincipalID)}
-	}
-
-	if input.AccountID != "" {
-		filters = append(filters, "AccountId = :accountId")
-		filterValues[":accountId"] = &dynamodb.AttributeValue{S: aws.String(input.AccountID)}
-	}
-
-	if len(filters) > 0 {
-		filterStatement := strings.Join(filters, " and ")
-		queryInput.FilterExpression = &filterStatement
-		queryInput.ExpressionAttributeValues = filterValues
-	}
-
-	if input.StartKeys != nil && len(input.StartKeys) > 0 {
-		queryInput.ExclusiveStartKey = make(map[string]*dynamodb.AttributeValue)
-		for k, v := range input.StartKeys {
-			queryInput.ExclusiveStartKey[k] = &dynamodb.AttributeValue{S: aws.String(v)}
+	// Check if the PrincipalId index exists
+	var queryIndex bool
+	for _, index := range tableDesc.Table.GlobalSecondaryIndexes {
+		if *index.IndexName == "PrincipalId" {
+			queryIndex = true
+			break
 		}
 	}
+	if queryIndex {
+		queryInput, err := db.Client.Query(&dynamodb.QueryInput{
+			IndexName: aws.String("PrincipalId"),
+			ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+				":PrincipalId": {
+					S: aws.String(string(input.PrincipalID)),
+				},
+			},
+			KeyConditionExpression: aws.String("PrincipalId = :PrincipalId"),
+			TableName:              aws.String(db.LeaseTableName),
+		})
+		results := make([]*Lease, 0)
 
-	if input.AccountID != "" || input.PrincipalID != "" || input.Status != "" {
-		output, err := db.Client.Query(queryInput)
+		nextKey := make(map[string]string)
 
-		// Parse the results and build the next keys if necessary.
 		if err != nil {
 			return GetLeasesOutput{}, err
 		}
-
-		results := make([]*Lease, 0)
-
-		for _, o := range output.Items {
-			lease, err := unmarshalLease(o)
+		for _, item := range queryInput.Items {
+			lease, err := unmarshalLease(item)
 			if err != nil {
 				return GetLeasesOutput{}, err
 			}
 			results = append(results, lease)
 		}
-
-		nextKey := make(map[string]string)
-
-		for k, v := range output.LastEvaluatedKey {
-			nextKey[k] = *v.S
-		}
-
+		fmt.Println("queryInput:")
 		return GetLeasesOutput{
 			Results:  results,
 			NextKeys: nextKey,
 		}, nil
+
 	} else {
+		filters := make([]string, 0)
+		filterValues := make(map[string]*dynamodb.AttributeValue)
+
+		scanInput := &dynamodb.ScanInput{
+			TableName:      aws.String(db.LeaseTableName),
+			ConsistentRead: aws.Bool(db.ConsistentRead),
+		}
+
+		if input.Limit > 0 {
+			scanInput.Limit = &input.Limit
+		}
+
+		// Build the filter clauses.
+		if input.Status != "" {
+			filters = append(filters, "LeaseStatus = :status")
+			filterValues[":status"] = &dynamodb.AttributeValue{S: aws.String(string(input.Status))}
+		}
+
+		if input.PrincipalID != "" {
+			filters = append(filters, "PrincipalId = :principalId")
+			filterValues[":principalId"] = &dynamodb.AttributeValue{S: aws.String(input.PrincipalID)}
+		}
+
+		if input.AccountID != "" {
+			filters = append(filters, "AccountId = :accountId")
+			filterValues[":accountId"] = &dynamodb.AttributeValue{S: aws.String(input.AccountID)}
+		}
+
+		if len(filters) > 0 {
+			filterStatement := strings.Join(filters, " and ")
+			scanInput.FilterExpression = &filterStatement
+			scanInput.ExpressionAttributeValues = filterValues
+		}
+
+		if input.StartKeys != nil && len(input.StartKeys) > 0 {
+			scanInput.ExclusiveStartKey = make(map[string]*dynamodb.AttributeValue)
+			for k, v := range input.StartKeys {
+				scanInput.ExclusiveStartKey[k] = &dynamodb.AttributeValue{S: aws.String(v)}
+			}
+		}
+
 		output, err := db.Client.Scan(scanInput)
 
 		// Parse the results and build the next keys if necessary.
@@ -726,12 +738,13 @@ func (db *DB) GetLeases(input GetLeasesInput) (GetLeasesOutput, error) {
 		for k, v := range output.LastEvaluatedKey {
 			nextKey[k] = *v.S
 		}
-
+		fmt.Println("Scanoutput")
 		return GetLeasesOutput{
 			Results:  results,
 			NextKeys: nextKey,
 		}, nil
 	}
+
 }
 
 // OrphanAccount puts account in Oprhaned status and inactivates any active leases
