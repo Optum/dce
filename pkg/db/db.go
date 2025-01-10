@@ -668,7 +668,6 @@ func (db *DB) GetLeases(input GetLeasesInput) (GetLeasesOutput, error) {
 			}
 			results = append(results, lease)
 		}
-		fmt.Println("queryInput:")
 		return GetLeasesOutput{
 			Results:  results,
 			NextKeys: nextKey,
@@ -738,7 +737,6 @@ func (db *DB) GetLeases(input GetLeasesInput) (GetLeasesOutput, error) {
 		for k, v := range output.LastEvaluatedKey {
 			nextKey[k] = *v.S
 		}
-		fmt.Println("Scanoutput")
 		return GetLeasesOutput{
 			Results:  results,
 			NextKeys: nextKey,
