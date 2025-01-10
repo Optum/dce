@@ -1,40 +1,190 @@
 package reset
 
 import (
-	"github.com/rebuy-de/aws-nuke/v2/cmd"
-	"github.com/rebuy-de/aws-nuke/v2/pkg/awsutil"
-	"github.com/rebuy-de/aws-nuke/v2/pkg/config"
+	"context"
+
+	"github.com/Optum/dce/pkg/common"
+	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/gotidy/ptr"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+
+	"github.com/ekristen/aws-nuke/v3/pkg/awsutil"
+	nukecommon "github.com/ekristen/aws-nuke/v3/pkg/common"
+	"github.com/ekristen/aws-nuke/v3/pkg/config"
+	"github.com/ekristen/aws-nuke/v3/pkg/nuke"
+
+	libnuke "github.com/ekristen/libnuke/pkg/nuke"
+	"github.com/ekristen/libnuke/pkg/registry"
+	"github.com/ekristen/libnuke/pkg/scanner"
+	"github.com/ekristen/libnuke/pkg/types"
 )
 
-// Nuker interface requires methods that are necessary to set up and
-// execute a Nuke in an AWS Account.
-type Nuker interface {
-	NewAccount(awsutil.Credentials) (*awsutil.Account, error)
-	Load(string) (*config.Nuke, error)
-	Run(*cmd.Nuke) error
+type Nuker struct {
+	Nuke   *libnuke.Nuke
+	Config *config.Config
+
+	AccountID     string
+	Account       *awsutil.Account
+	RoleName      string
+	Creds         *awsutil.Credentials
+	ResourceTypes types.Collection
+	TokenService  common.TokenService
+
+	Logger *logrus.Logger
+	ctx    *context.Context
 }
 
-// Nuke implements the NukeService interface using rebuy-de/aws-nuke
-// https://github.com/rebuy-de/aws-nuke
-type Nuke struct {
+func NewNuker(parsedConfig *config.Config, accountID string, roleName string) (*Nuker, error) {
+	logger := logrus.StandardLogger()
+	params := &libnuke.Parameters{
+		Force:          true,
+		ForceSleep:     5,
+		NoDryRun:       false,
+		MaxWaitRetries: 100,
+	}
+
+	filters, err := parsedConfig.Filters(accountID)
+	if err != nil {
+		return nil, err
+	}
+
+	n := libnuke.New(params, filters, parsedConfig.Settings)
+	n.SetLogger(logger.WithField("component", "libnuke"))
+	n.RegisterVersion(nukecommon.AppVersion.String())
+	ctx := context.Background()
+
+	nuker := &Nuker{
+		Nuke:   n,
+		Config: parsedConfig,
+
+		AccountID: accountID,
+		RoleName:  roleName,
+
+		Logger: logger,
+		ctx:    &ctx,
+	}
+
+	err = nuker.ConfigureCreds()
+	if err != nil {
+		return nil, err
+	}
+
+	account, err := awsutil.NewAccount(nuker.Creds, parsedConfig.CustomEndpoints)
+	if err != nil {
+		return nil, err
+	}
+	nuker.Account = account
+
+	nuker.Nuke.RegisterValidateHandler(func() error {
+		return parsedConfig.ValidateAccount(nuker.AccountID, nuker.Account.Aliases(), false)
+	})
+
+	p := &nuke.Prompt{Parameters: params, Account: account, Logger: logger}
+	nuker.Nuke.RegisterPrompt(p.Prompt)
+	nuker.RegisterResourceTypes()
+
+	err = nuker.RegisterScanners()
+	if err != nil {
+		return nil, err
+	}
+
+	return nuker, nil
 }
 
-// NewAccount returns an aws-nuke Account that is created from the provided
-// aws-nuke Credentials. This will provide the account information needed for
-// aws-nuke to access an account to nuke.
-func (nuke Nuke) NewAccount(creds awsutil.Credentials) (*awsutil.Account,
-	error) {
-	return awsutil.NewAccount(creds, config.CustomEndpoints{})
+func (nuker *Nuker) ConfigureCreds() error {
+	// Get the Credentials of the Role to be assumed into for the Nuke
+	roleArn := "arn:aws:iam::" + nuker.AccountID + ":role/" + nuker.RoleName
+	roleSessionName := "DCENuke" + nuker.AccountID
+	assumeRoleInputs := sts.AssumeRoleInput{
+		RoleArn:         &roleArn,
+		RoleSessionName: &roleSessionName,
+	}
+	assumeRoleOutput, err := nuker.TokenService.AssumeRole(
+		&assumeRoleInputs,
+	)
+	if err != nil {
+		return errors.Wrapf(err, "Failed to assume role for nuking account %s as %s",
+			nuker.AccountID, roleArn)
+	}
+
+	// Create a Credentials based on the aws credentials stored
+	// under the "default" profile.
+	creds := awsutil.Credentials{
+		AccessKeyID:     *assumeRoleOutput.Credentials.AccessKeyId,
+		SecretAccessKey: *assumeRoleOutput.Credentials.SecretAccessKey,
+		SessionToken:    *assumeRoleOutput.Credentials.SessionToken,
+	}
+
+	nuker.Creds = &creds
+
+	return nil
 }
 
-// Load returns an aws-nuke Nuke configuration with the provided configuration
-// file. This will provide the information needed to know what can be nuked by
-// aws-nuke.
-func (nuke Nuke) Load(configPath string) (*config.Nuke, error) {
-	return config.Load(configPath)
+func (nuker *Nuker) RegisterResourceTypes() {
+	// Get any specific account level configuration
+	accountConfig := nuker.Config.Accounts[nuker.AccountID]
+
+	// Resolve the resource types to be used for the nuke process based on the parameters, global configuration, and
+	// account level configuration.
+	resourceTypes := types.ResolveResourceTypes(
+		registry.GetNames(),
+		[]types.Collection{
+			registry.ExpandNames(nuker.Nuke.Parameters.Includes),
+			nuker.Config.ResourceTypes.GetIncludes(),
+			accountConfig.ResourceTypes.GetIncludes(),
+		},
+		[]types.Collection{
+			registry.ExpandNames(nuker.Nuke.Parameters.Excludes),
+			nuker.Config.ResourceTypes.Excludes,
+			accountConfig.ResourceTypes.Excludes,
+		},
+		[]types.Collection{
+			registry.ExpandNames(nuker.Nuke.Parameters.Alternatives),
+			nuker.Config.ResourceTypes.GetAlternatives(),
+			accountConfig.ResourceTypes.GetAlternatives(),
+		},
+		registry.GetAlternativeResourceTypeMapping(),
+	)
+	nuker.Nuke.RegisterResourceTypes(nuke.Account, resourceTypes...)
+	nuker.ResourceTypes = resourceTypes
 }
 
-// Run executes and returns the result of the aws-nuke nuke.
-func (nuke Nuke) Run(cmd *cmd.Nuke) error {
-	return cmd.Run()
+func (nuker *Nuker) RegisterScanners() error {
+	// Register the scanners for each region that is defined in the configuration.
+	for _, regionName := range nuker.Config.Regions {
+		// Step 1 - Create the region object
+		region := nuke.NewRegion(regionName, nuker.Account.ResourceTypeToServiceType, nuker.Account.NewSession, nuker.Account.NewConfig)
+
+		// Step 2 - Create the scannerActual object
+		scannerActual := scanner.New(regionName, nuker.ResourceTypes, &nuke.ListerOpts{
+			Region:    region,
+			AccountID: ptr.String(nuker.AccountID),
+			Logger: nuker.Logger.WithFields(logrus.Fields{
+				"component": "scanner",
+				"region":    regionName,
+			}),
+		})
+		scannerActual.SetLogger(nuker.Logger)
+
+		// Step 3 - Register a mutate function that will be called to modify the lister options for each resource type
+		// see pkg/nuke/resource.go for the MutateOpts function. Its purpose is to create the proper session for the
+		// proper region.
+		err := scannerActual.RegisterMutateOptsFunc(nuke.MutateOpts)
+		if err != nil {
+			return err
+		}
+
+		// Step 4 - Register the scannerActual with the nuke object
+		err = nuker.Nuke.RegisterScanner(nuke.Account, scannerActual)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (nuker *Nuker) Run() error {
+	err := nuker.Nuke.Run(*nuker.ctx)
+	return err
 }
