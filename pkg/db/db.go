@@ -638,7 +638,7 @@ func (db *DB) GetLeases(input GetLeasesInput) (GetLeasesOutput, error) {
 	// Check if the PrincipalId index exists
 	var queryIndex bool
 	for _, index := range tableDesc.Table.GlobalSecondaryIndexes {
-		if *index.IndexName == "PrincipalId" {
+		if *index.IndexName == "PrincipalId" && input.PrincipalID != "" {
 			queryIndex = true
 			break
 		}
