@@ -3,7 +3,6 @@ package reset
 import (
 	"context"
 
-	"github.com/Optum/dce/pkg/common"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/gotidy/ptr"
 	"github.com/pkg/errors"
@@ -21,21 +20,19 @@ import (
 )
 
 type Nuker struct {
-	Nuke   *libnuke.Nuke
-	Config *config.Config
+	Nuke      *libnuke.Nuke
+	Config    *config.Config
+	NukeInput *NukeAccountInput
 
-	AccountID     string
 	Account       *awsutil.Account
-	RoleName      string
 	Creds         *awsutil.Credentials
 	ResourceTypes types.Collection
-	TokenService  common.TokenService
 
 	Logger *logrus.Logger
 	ctx    *context.Context
 }
 
-func NewNuker(parsedConfig *config.Config, accountID string, roleName string) (*Nuker, error) {
+func NewNuker(parsedConfig *config.Config, nukeInput *NukeAccountInput) (*Nuker, error) {
 	logger := logrus.StandardLogger()
 	params := &libnuke.Parameters{
 		Force:          true,
@@ -44,7 +41,7 @@ func NewNuker(parsedConfig *config.Config, accountID string, roleName string) (*
 		MaxWaitRetries: 100,
 	}
 
-	filters, err := parsedConfig.Filters(accountID)
+	filters, err := parsedConfig.Filters(nukeInput.ChildAccountID)
 	if err != nil {
 		return nil, err
 	}
@@ -55,11 +52,9 @@ func NewNuker(parsedConfig *config.Config, accountID string, roleName string) (*
 	ctx := context.Background()
 
 	nuker := &Nuker{
-		Nuke:   n,
-		Config: parsedConfig,
-
-		AccountID: accountID,
-		RoleName:  roleName,
+		Nuke:      n,
+		Config:    parsedConfig,
+		NukeInput: nukeInput,
 
 		Logger: logger,
 		ctx:    &ctx,
@@ -77,7 +72,7 @@ func NewNuker(parsedConfig *config.Config, accountID string, roleName string) (*
 	nuker.Account = account
 
 	nuker.Nuke.RegisterValidateHandler(func() error {
-		return parsedConfig.ValidateAccount(nuker.AccountID, nuker.Account.Aliases(), false)
+		return parsedConfig.ValidateAccount(nuker.NukeInput.ChildAccountID, nuker.Account.Aliases(), false)
 	})
 
 	p := &nuke.Prompt{Parameters: params, Account: account, Logger: logger}
@@ -94,18 +89,18 @@ func NewNuker(parsedConfig *config.Config, accountID string, roleName string) (*
 
 func (nuker *Nuker) ConfigureCreds() error {
 	// Get the Credentials of the Role to be assumed into for the Nuke
-	roleArn := "arn:aws:iam::" + nuker.AccountID + ":role/" + nuker.RoleName
-	roleSessionName := "DCENuke" + nuker.AccountID
+	roleArn := "arn:aws:iam::" + nuker.NukeInput.ChildAccountID + ":role/" + nuker.NukeInput.RoleName
+	roleSessionName := "DCENuke" + nuker.NukeInput.ChildAccountID
 	assumeRoleInputs := sts.AssumeRoleInput{
 		RoleArn:         &roleArn,
 		RoleSessionName: &roleSessionName,
 	}
-	assumeRoleOutput, err := nuker.TokenService.AssumeRole(
+	assumeRoleOutput, err := nuker.NukeInput.Token.AssumeRole(
 		&assumeRoleInputs,
 	)
 	if err != nil {
 		return errors.Wrapf(err, "Failed to assume role for nuking account %s as %s",
-			nuker.AccountID, roleArn)
+			nuker.NukeInput.ChildAccountID, roleArn)
 	}
 
 	// Create a Credentials based on the aws credentials stored
@@ -123,7 +118,7 @@ func (nuker *Nuker) ConfigureCreds() error {
 
 func (nuker *Nuker) RegisterResourceTypes() {
 	// Get any specific account level configuration
-	accountConfig := nuker.Config.Accounts[nuker.AccountID]
+	accountConfig := nuker.Config.Accounts[nuker.NukeInput.ChildAccountID]
 
 	// Resolve the resource types to be used for the nuke process based on the parameters, global configuration, and
 	// account level configuration.
@@ -159,7 +154,7 @@ func (nuker *Nuker) RegisterScanners() error {
 		// Step 2 - Create the scannerActual object
 		scannerActual := scanner.New(regionName, nuker.ResourceTypes, &nuke.ListerOpts{
 			Region:    region,
-			AccountID: ptr.String(nuker.AccountID),
+			AccountID: ptr.String(nuker.NukeInput.ChildAccountID),
 			Logger: nuker.Logger.WithFields(logrus.Fields{
 				"component": "scanner",
 				"region":    regionName,

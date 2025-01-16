@@ -21,7 +21,6 @@ type NukeAccountInput struct {
 	RoleName       string
 	ConfigPath     string
 	Token          common.TokenService
-	Nuke           Nuker
 }
 
 // NukeAccount directly triggers aws-nuke to be called on the
@@ -42,7 +41,7 @@ func NukeAccount(input *NukeAccountInput) error {
 			input.ChildAccountID, input.ConfigPath)
 	}
 
-	nuker, err := NewNuker(parsedConfig, input.ChildAccountID, "OrganizationAccountAccessRole")
+	nuker, err := NewNuker(parsedConfig, input)
 	if err != nil {
 		return errors.Wrapf(err, "Failed to configure nuke for account %s for aws-nuke as %s",
 			input.ChildAccountID, input.RoleName)
