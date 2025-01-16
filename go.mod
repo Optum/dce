@@ -37,18 +37,33 @@ require (
 	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/apparentlymart/go-textseg/v13 v13.0.0 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.32.7 // indirect
+	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.7 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.28.7 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.48 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.22 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.26 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.6.26 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.1 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/v4a v1.3.26 // indirect
+	github.com/aws/aws-sdk-go-v2/service/appstream v1.42.0 // indirect
+	github.com/aws/aws-sdk-go-v2/service/iam v1.38.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.12.1 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.4.7 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.12.7 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.18.7 // indirect
+	github.com/aws/aws-sdk-go-v2/service/kafka v1.38.9 // indirect
+	github.com/aws/aws-sdk-go-v2/service/networkfirewall v1.44.7 // indirect
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.71.1 // indirect
+	github.com/aws/aws-sdk-go-v2/service/s3control v1.52.1 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sagemaker v1.171.0 // indirect
+	github.com/aws/aws-sdk-go-v2/service/ssmquicksetup v1.3.2 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.24.8 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.28.7 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.33.3 // indirect
+	github.com/aws/aws-sdk-go-v2/service/transfer v1.55.1 // indirect
+	github.com/aws/aws-sdk-go-v2/service/wafregional v1.25.8 // indirect
 	github.com/aws/smithy-go v1.22.1 // indirect
+	github.com/benbjohnson/clock v1.3.0 // indirect
 	github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d // indirect
 	github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.5 // indirect
@@ -86,6 +101,7 @@ require (
 	github.com/onsi/gomega v1.18.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/pquerna/otp v1.2.0 // indirect
+	github.com/rebuy-de/aws-nuke/v2 v2.25.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/stevenle/topsort v0.2.0 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
@@ -96,6 +112,7 @@ require (
 	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
 	github.com/zclconf/go-cty v1.13.2 // indirect
 	go.opencensus.io v0.24.0 // indirect
+	go.uber.org/ratelimit v0.3.1 // indirect
 	golang.org/x/crypto v0.21.0 // indirect
 	golang.org/x/net v0.23.0 // indirect
 	golang.org/x/oauth2 v0.8.0 // indirect

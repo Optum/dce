@@ -12,6 +12,7 @@ import (
 	nukecommon "github.com/ekristen/aws-nuke/v3/pkg/common"
 	"github.com/ekristen/aws-nuke/v3/pkg/config"
 	"github.com/ekristen/aws-nuke/v3/pkg/nuke"
+	_ "github.com/ekristen/aws-nuke/v3/resources"
 
 	libnuke "github.com/ekristen/libnuke/pkg/nuke"
 	"github.com/ekristen/libnuke/pkg/registry"
