@@ -11,7 +11,7 @@ require (
 	github.com/aws/aws-sdk-go v1.55.5
 	github.com/awslabs/aws-lambda-go-api-proxy v0.8.0
 	github.com/caarlos0/env v3.5.0+incompatible
-	github.com/ekristen/libnuke v0.24.0
+	github.com/ekristen/libnuke v0.24.1
 	github.com/go-ozzo/ozzo-validation v3.6.0+incompatible
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/handlers v1.5.2
@@ -137,4 +137,4 @@ require (
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 )
 
-replace github.com/ekristen/aws-nuke/v3 => github.com/Optum/aws-nuke-new/v3 v3.35.2-0.20250107173557-e7fb07ab857e
+replace github.com/ekristen/aws-nuke/v3 => github.com/Optum/aws-nuke-new/v3 v3.44.1

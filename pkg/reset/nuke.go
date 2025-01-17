@@ -20,6 +20,7 @@ type NukeAccountInput struct {
 	ChildAccountID string
 	RoleName       string
 	ConfigPath     string
+	NoDryRun       bool
 	Token          common.TokenService
 }
 

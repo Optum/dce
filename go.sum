@@ -196,8 +196,8 @@ github.com/CloudyKit/fastprinter v0.0.0-20200109182630-33d98a066a53/go.mod h1:+3
 github.com/CloudyKit/jet/v3 v3.0.0/go.mod h1:HKQPgSJmdK8hdoAbKUUWajkHyHo4RaU5rMdUywE7VMo=
 github.com/Joker/hpp v1.0.0/go.mod h1:8x5n+M1Hp5hC0g8okX3sR3vFQwynaX/UgSOM9MeBKzY=
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
-github.com/Optum/aws-nuke-new/v3 v3.35.2-0.20250107173557-e7fb07ab857e h1:CNfXwr3lFIK7MkoJ5jFnqXA/kpZyoQGScLDr//MF6JA=
-github.com/Optum/aws-nuke-new/v3 v3.35.2-0.20250107173557-e7fb07ab857e/go.mod h1:WfGJAVxJmNVfRW6AhNeeEBF0NskRAQ7bpq7elt4+5ek=
+github.com/Optum/aws-nuke-new/v3 v3.44.1 h1:56UGksoUhcI+cD0upXSQXTL/ozfH+vCEbkYvBRVnGI4=
+github.com/Optum/aws-nuke-new/v3 v3.44.1/go.mod h1:0JyNx/YCEhGNs56hOxMH3QeBZsLtwlDLME4NJiGqY5Q=
 github.com/Shopify/goreferrer v0.0.0-20181106222321-ec9c9a553398/go.mod h1:a1uqRtAwp2Xwc6WNPJEufxJ7fx3npB4UV/JOLmbu5I0=
 github.com/agext/levenshtein v1.2.1/go.mod h1:JEDfjyjHDjOF/1e4FlBE/PkbqA9OfWu2ki2W0IB5558=
 github.com/agext/levenshtein v1.2.3 h1:YB2fHEn0UJagG8T1rrWknE3ZQzWM06O8AMAatNn7lmo=
@@ -318,8 +318,8 @@ github.com/dgrijalva/jwt-go v3.2.0+incompatible/go.mod h1:E3ru+11k8xSBh+hMPgOLZm
 github.com/dgryski/go-farm v0.0.0-20190423205320-6a90982ecee2/go.mod h1:SqUrOPUnsFjfmXRMNPybcSiG0BgUW2AuFH8PAnS2iTw=
 github.com/dustin/go-humanize v1.0.0/go.mod h1:HtrtbFcZ19U5GC7JDqmcUSB87Iq5E25KnS6fMYU6eOk=
 github.com/eknkc/amber v0.0.0-20171010120322-cdade1c07385/go.mod h1:0vRUJqYpeSZifjYj7uP3BG/gKcuzL9xWVV/Y+cK33KM=
-github.com/ekristen/libnuke v0.24.0 h1:DCzkOwT+n/2G37KoNSlTOU1DoAVcBgtdaJSNpQl6NJw=
-github.com/ekristen/libnuke v0.24.0/go.mod h1:+hh3UCSxmkfBweQJv9pa5twY82n7MhO4DK+AA+oUoTM=
+github.com/ekristen/libnuke v0.24.1 h1:vm4+KA8d+VJ7MTrAlQhW6XxnG9yrPW1f5MNMlui9tT0=
+github.com/ekristen/libnuke v0.24.1/go.mod h1:+hh3UCSxmkfBweQJv9pa5twY82n7MhO4DK+AA+oUoTM=
 github.com/envoyproxy/go-control-plane v0.9.0/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
 github.com/envoyproxy/go-control-plane v0.9.1-0.20191026205805-5f8ba28d4473/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
 github.com/envoyproxy/go-control-plane v0.9.4/go.mod h1:6rpuAdCZL397s3pYoYcLgu1mIlRU8Am5FuJP05cCM98=

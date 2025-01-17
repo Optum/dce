@@ -131,6 +131,7 @@ func nukeAccount(svc *service, isDryRun bool) error {
 		ChildAccountID: config.childAccountID,
 		RoleName:       config.accountAdminRoleName,
 		ConfigPath:     configFile,
+		NoDryRun:       !isDryRun,
 		Token:          svc.tokenService(),
 	}
 

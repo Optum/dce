@@ -38,7 +38,7 @@ func NewNuker(parsedConfig *config.Config, nukeInput *NukeAccountInput) (*Nuker,
 	params := &libnuke.Parameters{
 		Force:          true,
 		ForceSleep:     5,
-		NoDryRun:       false,
+		NoDryRun:       nukeInput.NoDryRun,
 		MaxWaitRetries: 100,
 	}
 
