@@ -2,8 +2,6 @@ module github.com/Optum/dce
 
 go 1.21.6
 
-toolchain go1.22.1
-
 require (
 	github.com/360EntSecGroup-Skylar/excelize v1.4.1
 	github.com/avast/retry-go v2.6.0+incompatible
