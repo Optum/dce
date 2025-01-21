@@ -126,9 +126,6 @@ func nukeAccount(svc *service, isDryRun bool) error {
 	log.Println("Rendered nuke file:")
 	log.Print(string(conf))
 
-	// Construct Nuke
-	nuke := reset.Nuke{}
-
 	// Configure the NukeAccountInput
 	nukeAccountInput := reset.NukeAccountInput{
 		ChildAccountID: config.childAccountID,
@@ -136,7 +133,6 @@ func nukeAccount(svc *service, isDryRun bool) error {
 		ConfigPath:     configFile,
 		NoDryRun:       !isDryRun,
 		Token:          svc.tokenService(),
-		Nuke:           nuke,
 	}
 
 	// Nukes based on the configuration file that is generated
