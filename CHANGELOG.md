@@ -1,3 +1,11 @@
+## v0.40.0
+
+- Update aws-nuke to a version based on ekristen/aws-nuke
+
+## v0.39.0
+
+- Update to querying for a dynamodb call in GetLeases
+
 ## v0.38.0
 
 - Update aws-nuke to fix AppStreamImage, MSKCluster, WAFRegionalRule, and CloudformationStacks
