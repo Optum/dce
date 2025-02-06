@@ -62,6 +62,14 @@
       "Resource": "*"
     },
     {
+      "Sid": "DenyBedrock",
+      "Effect": "Deny",
+      "Action": [
+        "bedrock:*"
+      ],
+      "Resource": "*"
+    },
+    {
       "Sid": "DenySpecificKMSActions",
       "Effect": "Deny",
       "Action": [
