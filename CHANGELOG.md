@@ -1,3 +1,7 @@
+## v0.41.0
+
+- Block Amazon Bedrock KnowledgeBase service for AWS DCE accounts
+
 ## v0.40.0
 
 - Update aws-nuke to a version based on ekristen/aws-nuke
