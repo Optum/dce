@@ -1,6 +1,6 @@
 ## v0.41.0
 
-- Block Amazon Bedrock service for AWS DCE accounts
+- Block Amazon Bedrock KnowledgeBase service for AWS DCE accounts
 
 ## v0.40.0
 
