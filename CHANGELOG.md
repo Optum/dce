@@ -1,3 +1,7 @@
+## v0.41.1
+
+- Update aws-nuke to updated version
+
 ## v0.41.0
 
 - Block Amazon Bedrock KnowledgeBase service for AWS DCE accounts

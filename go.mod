@@ -1,15 +1,17 @@
 module github.com/Optum/dce
 
-go 1.21.6
+go 1.22
+
+toolchain go1.22.1
 
 require (
 	github.com/360EntSecGroup-Skylar/excelize v1.4.1
 	github.com/avast/retry-go v2.6.0+incompatible
 	github.com/aws/aws-lambda-go v1.19.1
-	github.com/aws/aws-sdk-go v1.55.5
+	github.com/aws/aws-sdk-go v1.55.6
 	github.com/awslabs/aws-lambda-go-api-proxy v0.8.0
 	github.com/caarlos0/env v3.5.0+incompatible
-	github.com/ekristen/libnuke v0.24.1
+	github.com/ekristen/libnuke v0.24.3
 	github.com/go-ozzo/ozzo-validation v3.6.0+incompatible
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/handlers v1.5.2
@@ -34,33 +36,37 @@ require (
 	cloud.google.com/go/storage v1.28.1 // indirect
 	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/apparentlymart/go-textseg/v13 v13.0.0 // indirect
-	github.com/aws/aws-sdk-go-v2 v1.32.7 // indirect
+	github.com/aws/aws-sdk-go-v2 v1.36.2 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.7 // indirect
-	github.com/aws/aws-sdk-go-v2/config v1.28.7 // indirect
-	github.com/aws/aws-sdk-go-v2/credentials v1.17.48 // indirect
-	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.22 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.26 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.6.26 // indirect
+	github.com/aws/aws-sdk-go-v2/config v1.28.11 // indirect
+	github.com/aws/aws-sdk-go-v2/credentials v1.17.60 // indirect
+	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.29 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.33 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.6.33 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.1 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/v4a v1.3.26 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/v4a v1.3.27 // indirect
+	github.com/aws/aws-sdk-go-v2/service/apigateway v1.28.12 // indirect
 	github.com/aws/aws-sdk-go-v2/service/appstream v1.42.0 // indirect
-	github.com/aws/aws-sdk-go-v2/service/iam v1.38.3 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.12.1 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.4.7 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.12.7 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.18.7 // indirect
+	github.com/aws/aws-sdk-go-v2/service/appsync v1.43.1 // indirect
+	github.com/aws/aws-sdk-go-v2/service/cloudfront v1.44.11 // indirect
+	github.com/aws/aws-sdk-go-v2/service/iam v1.38.10 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.12.3 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.4.8 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.12.14 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.18.10 // indirect
 	github.com/aws/aws-sdk-go-v2/service/kafka v1.38.9 // indirect
 	github.com/aws/aws-sdk-go-v2/service/networkfirewall v1.44.7 // indirect
-	github.com/aws/aws-sdk-go-v2/service/s3 v1.71.1 // indirect
-	github.com/aws/aws-sdk-go-v2/service/s3control v1.52.1 // indirect
+	github.com/aws/aws-sdk-go-v2/service/route53profiles v1.4.16 // indirect
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.72.3 // indirect
+	github.com/aws/aws-sdk-go-v2/service/s3control v1.52.7 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sagemaker v1.171.0 // indirect
-	github.com/aws/aws-sdk-go-v2/service/ssmquicksetup v1.3.2 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sso v1.24.8 // indirect
-	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.28.7 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sts v1.33.3 // indirect
-	github.com/aws/aws-sdk-go-v2/service/transfer v1.55.1 // indirect
+	github.com/aws/aws-sdk-go-v2/service/ssmquicksetup v1.3.10 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sso v1.24.16 // indirect
+	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.28.15 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sts v1.33.15 // indirect
+	github.com/aws/aws-sdk-go-v2/service/transfer v1.55.5 // indirect
 	github.com/aws/aws-sdk-go-v2/service/wafregional v1.25.8 // indirect
-	github.com/aws/smithy-go v1.22.1 // indirect
+	github.com/aws/smithy-go v1.22.3 // indirect
 	github.com/benbjohnson/clock v1.3.0 // indirect
 	github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d // indirect
 	github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc // indirect
@@ -114,9 +120,9 @@ require (
 	golang.org/x/crypto v0.21.0 // indirect
 	golang.org/x/net v0.23.0 // indirect
 	golang.org/x/oauth2 v0.8.0 // indirect
-	golang.org/x/sync v0.10.0 // indirect
+	golang.org/x/sync v0.11.0 // indirect
 	golang.org/x/sys v0.25.0 // indirect
-	golang.org/x/text v0.21.0 // indirect
+	golang.org/x/text v0.22.0 // indirect
 	golang.org/x/xerrors v0.0.0-20231012003039-104605ab7028 // indirect
 	google.golang.org/api v0.114.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
@@ -135,4 +141,4 @@ require (
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 )
 
-replace github.com/ekristen/aws-nuke/v3 => github.com/Optum/aws-nuke-new/v3 v3.44.1
+replace github.com/ekristen/aws-nuke/v3 => github.com/Optum/aws-nuke-new/v3 v3.44.2-0.20250306192252-e954d1ba93f4 // v3.48.2.1
