@@ -58,12 +58,6 @@ jobs:
           name: coverage-report
           path: coverage.xml
 
-      - name: Download code coverage result
-        uses: actions/download-artifact@v3
-        with:
-          name: coverage-report
-          path: bin
-
       - name: Publish JUnit test results
         uses: actions/upload-artifact@v3
         with:
@@ -117,10 +111,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Download build artifacts
+      - name: Download code coverage result
         uses: actions/download-artifact@v3
         with:
-          name: build-artifacts
+          name: coverage-report
           path: bin
 
       - name: Configure namespace
