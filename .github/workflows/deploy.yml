@@ -58,11 +58,23 @@ jobs:
           name: coverage-report
           path: coverage.xml
 
+      - name: Download build artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: build-artifacts
+          path: bin
+
       - name: Publish JUnit test results
         uses: actions/upload-artifact@v2
         with:
           name: junit-report
           path: junit-report/*.xml
+          
+      - name: Download build artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: build-artifacts
+          path: bin
 
   Build:
     needs: TestAndBuild
