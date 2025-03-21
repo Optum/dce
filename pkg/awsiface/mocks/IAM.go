@@ -13439,6 +13439,7 @@ func NewIAM(t mockConstructorTestingTNewIAM) *IAM {
 
 	return mock
 }
+
 func (m *IAM) GetMFADevice(input *iam.GetMFADeviceInput) (*iam.GetMFADeviceOutput, error) {
     args := m.Called(input)
     return args.Get(0).(*iam.GetMFADeviceOutput), args.Error(1)
