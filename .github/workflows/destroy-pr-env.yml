@@ -1,78 +1,78 @@
-name: Destroy PR Environment
+# name: Destroy PR Environment
 
-on:
-  workflow_dispatch:
-  pull_request:
-    types: [opened, synchronize, reopened, closed]
+# on:
+#   workflow_dispatch:
+#   pull_request:
+#     types: [opened, synchronize, reopened, closed]
 
-jobs:
-  destroy:
-    runs-on: ubuntu-20.04
+# jobs:
+#   destroy:
+#     runs-on: ubuntu-20.04
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
+#     steps:
+#       - name: Checkout repository
+#         uses: actions/checkout@v2
 
-      - name: Configure AWS Namespace
-        env:
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          NS_BRANCH_OR_TAG: ${{ github.ref_name }}
-        run: |
-          # TODO tag name can't be namespace, AWS doesn't like
-          # it as a resource name.
-          # If it's a tagged version, just call it `release` or something
-          if [[ -z $PR_NUMBER ]]; then
-            NS="release"
-          else
-            NS="github-pr-$PR_NUMBER"
-          fi
+#       - name: Configure AWS Namespace
+#         env:
+#           PR_NUMBER: ${{ github.event.pull_request.number }}
+#           NS_BRANCH_OR_TAG: ${{ github.ref_name }}
+#         run: |
+#           # TODO tag name can't be namespace, AWS doesn't like
+#           # it as a resource name.
+#           # If it's a tagged version, just call it `release` or something
+#           if [[ -z $PR_NUMBER ]]; then
+#             NS="release"
+#           else
+#             NS="github-pr-$PR_NUMBER"
+#           fi
 
-          echo "Namespace is ${NS}"
+#           echo "Namespace is ${NS}"
 
-          # Set the namespace as a GitHub Actions environment variable
-          echo "namespace=${NS}" >> $GITHUB_ENV
+#           # Set the namespace as a GitHub Actions environment variable
+#           echo "namespace=${NS}" >> $GITHUB_ENV
 
-  # Generate backend.tf file
-  # Note that we don't commit this file to the repo
-  # to make local TF deployments easier (using local TF state)
-      - name: Generate backend.tf
-        run: |
-          echo '
-          terraform {
-            backend "s3" {
-              region = "us-east-1"
-            }
-          }
-          ' > ./modules/backend.tf
+#   # Generate backend.tf file
+#   # Note that we don't commit this file to the repo
+#   # to make local TF deployments easier (using local TF state)
+#       - name: Generate backend.tf
+#         run: |
+#           echo '
+#           terraform {
+#             backend "s3" {
+#               region = "us-east-1"
+#             }
+#           }
+#           ' > ./modules/backend.tf
 
-  # Install Terraform
-      - name: Install Terraform
-        uses: hashicorp/setup-terraform@v1
-        with:
-          terraform_version: 1.7.4
+#   # Install Terraform
+#       - name: Install Terraform
+#         uses: hashicorp/setup-terraform@v1
+#         with:
+#           terraform_version: 1.7.4
 
-  # terraform init
-      - name: terraform init
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_DCE_API_ADMIN_NONPROD_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_DCE_API_ADMIN_NONPROD_SECRET_ACCESS_KEY }}
-        run: |
-          terraform init \
-            -backend-config="bucket=${{ env.BACKEND_AWS_BUCKET_NAME }}" \
-            -backend-config="key=${{ env.namespace }}/terraform.tfstate" \
-            -backend-config="region=us-east-1" \
-            -backend-config="profile=default"
-        working-directory: ./modules
-  # terraform destroy
-      - name: terraform destroy
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_DCE_API_ADMIN_NONPROD_ACCESS_KEY_ID}}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_DCE_API_ADMIN_NONPROD_SECRET_ACCESS_KEY }}
-          namespace: ${{ env.namespace }}
-          NOTIFY_EMAIL: ${{ secrets.NOTIFY_EMAIL }}
-        run: |
-          terraform destroy \
-            -var="namespace=${namespace}" \
-            -var="budget_notification_from_email=${NOTIFY_EMAIL}" \
-            -auto-approve
-        working-directory: ./modules
+#   # terraform init
+#       - name: terraform init
+#         env:
+#           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_DCE_API_ADMIN_NONPROD_ACCESS_KEY_ID }}
+#           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_DCE_API_ADMIN_NONPROD_SECRET_ACCESS_KEY }}
+#         run: |
+#           terraform init \
+#             -backend-config="bucket=${{ env.BACKEND_AWS_BUCKET_NAME }}" \
+#             -backend-config="key=${{ env.namespace }}/terraform.tfstate" \
+#             -backend-config="region=us-east-1" \
+#             -backend-config="profile=default"
+#         working-directory: ./modules
+#   # terraform destroy
+#       - name: terraform destroy
+#         env:
+#           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_DCE_API_ADMIN_NONPROD_ACCESS_KEY_ID}}
+#           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_DCE_API_ADMIN_NONPROD_SECRET_ACCESS_KEY }}
+#           namespace: ${{ env.namespace }}
+#           NOTIFY_EMAIL: ${{ secrets.NOTIFY_EMAIL }}
+#         run: |
+#           terraform destroy \
+#             -var="namespace=${namespace}" \
+#             -var="budget_notification_from_email=${NOTIFY_EMAIL}" \
+#             -auto-approve
+#         working-directory: ./modules

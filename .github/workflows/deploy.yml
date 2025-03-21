@@ -69,7 +69,7 @@ jobs:
         with:
           name: junit-report
           path: junit-report/*.xml
-          
+
       - name: Download build artifacts
         uses: actions/download-artifact@v2
         with:
@@ -104,6 +104,12 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: build-artifacts
+          path: bin
 
       - name: Configure namespace
         run: |
