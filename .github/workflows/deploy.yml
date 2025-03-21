@@ -75,10 +75,7 @@ jobs:
       - name: Log failure
         if: ${{ failure() }}
         run: |
-          echo "A step has failed in the workflow:"
-          for step in ${{ steps.* }}; do
-            echo "- ${{ steps[step].name }}"
-          done
+          echo "A step has failed in the workflow: ${{ steps.*.name}}"
 
 
   Build:
@@ -110,10 +107,7 @@ jobs:
       - name: Log failure
         if: ${{ failure() }}
         run: |
-          echo "A step has failed in the workflow:"
-          for step in ${{ steps.* }}; do
-            echo "- ${{ steps[step].name }}"
-          done
+          echo "A step has failed in the workflow: ${{ steps.*.name}}"
 
 
   Deploy:
