@@ -1645,3 +1645,7 @@ func (_m *SQSAPI) UntagQueueWithContext(_a0 context.Context, _a1 *sqs.UntagQueue
 
 	return r0, r1
 }
+func (m *SQSAPI) CancelMessageMoveTask(input *sqs.CancelMessageMoveTaskInput) (*sqs.CancelMessageMoveTaskOutput, error) {
+    args := m.Called(input)
+    return args.Get(0).(*sqs.CancelMessageMoveTaskOutput), args.Error(1)
+}
