@@ -58,10 +58,10 @@ jobs:
           name: coverage-report
           path: coverage.xml
 
-      - name: Download build artifacts
+      - name: Download code coverage result
         uses: actions/download-artifact@v2
         with:
-          name: build-artifacts
+          name: coverage-report
           path: bin
 
       - name: Publish JUnit test results
@@ -70,10 +70,10 @@ jobs:
           name: junit-report
           path: junit-report/*.xml
 
-      - name: Download build artifacts
+      - name: Download JUnit test results
         uses: actions/download-artifact@v2
         with:
-          name: build-artifacts
+          name: junit-report
           path: bin
 
   Build:
@@ -91,9 +91,21 @@ jobs:
         with:
           name: bin
           path: bin
+      
+      - name: Download  build artifacts (bin)
+        uses: actions/download-artifact@v2
+        with:
+          name: bin
+          path: bin
 
       - name: Publish build artifacts (deploy_scripts)
         uses: actions/upload-artifact@v2
+        with:
+          name: deploy_scripts
+          path: scripts
+          
+      - name: Download build artifacts (deploy_scripts)
+        uses: actions/download-artifact@v2
         with:
           name: deploy_scripts
           path: scripts
