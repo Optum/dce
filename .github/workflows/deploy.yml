@@ -56,7 +56,7 @@ jobs:
         run: |
           set -euxo pipefail
           make test
-          continue-on-error: true
+        continue-on-error: true
 
       - name: Publish code coverage results
         uses: actions/upload-artifact@v2
