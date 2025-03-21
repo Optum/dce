@@ -11,7 +11,7 @@ on:
     #     - release/*
 
     branches:
-      - migrate-cicd-gitactions
+      - azdevops-cicd-migration
   workflow_dispatch:
     inputs:
       branch:
