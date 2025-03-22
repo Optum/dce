@@ -1671,6 +1671,7 @@ func (m *SQSAPI) ListMessageMoveTasksWithContext(ctx context.Context, input *sqs
     return args.Get(0).(*sqs.ListMessageMoveTasksOutput), args.Error(1)
 }
 
+
 func (m *SQSAPI) ListMessageMoveTasksRequest(input *sqs.ListMessageMoveTasksInput) (*request.Request, *sqs.ListMessageMoveTasksOutput) {
     args := m.Called(input)
     return args.Get(0).(*request.Request), args.Get(1).(*sqs.ListMessageMoveTasksOutput)
