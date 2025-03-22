@@ -13441,6 +13441,36 @@ func NewIAM(t mockConstructorTestingTNewIAM) *IAM {
 }
 
 func (m *IAM) GetMFADevice(input *iam.GetMFADeviceInput) (*iam.GetMFADeviceOutput, error) {
-	args := m.Called(input)
-	return args.Get(0).(*iam.GetMFADeviceOutput), args.Error(1)
+    args := m.Called(input)
+    return args.Get(0).(*iam.GetMFADeviceOutput), args.Error(1)
+}
+
+func (m *IAM) GetMFADeviceRequest(input *iam.GetMFADeviceInput) (*request.Request, *iam.GetMFADeviceOutput) {
+    args := m.Called(input)
+    return args.Get(0).(*request.Request), args.Get(1).(*iam.GetMFADeviceOutput)
+}
+
+func (m *IAM) GetMFADeviceWithContext(ctx context.Context, input *iam.GetMFADeviceInput, opts ...request.Option) (*iam.GetMFADeviceOutput, error) {
+    args := m.Called(ctx, input, opts)
+    return args.Get(0).(*iam.GetMFADeviceOutput), args.Error(1)
+}
+
+func (m *IAM) ListInstanceProfileTagsPages(input *iam.ListInstanceProfileTagsInput, fn func(*iam.ListInstanceProfileTagsOutput, bool) bool) error {
+    args := m.Called(input, fn)
+    return args.Error(0)
+}
+
+func (m *IAM) ListInstanceProfileTagsPagesWithContext(ctx context.Context, input *iam.ListInstanceProfileTagsInput, fn func(*iam.ListInstanceProfileTagsOutput, bool) bool, opts ...request.Option) error {
+    args := m.Called(ctx, input, fn, opts)
+    return args.Error(0)
+}
+
+func (m *IAM) ListMFADeviceTagsPages(input *iam.ListMFADeviceTagsInput, fn func(*iam.ListMFADeviceTagsOutput, bool) bool) error {
+    args := m.Called(input, fn)
+    return args.Error(0)
+}
+
+func (m *IAM) ListMFADeviceTagsPagesWithContext(ctx context.Context, input *iam.ListMFADeviceTagsInput, fn func(*iam.ListMFADeviceTagsOutput, bool) bool, opts ...request.Option) error {
+    args := m.Called(ctx, input, fn, opts)
+    return args.Error(0)
 }

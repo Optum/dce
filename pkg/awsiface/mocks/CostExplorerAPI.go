@@ -3056,3 +3056,18 @@ func NewCostExplorerAPI(t mockConstructorTestingTNewCostExplorerAPI) *CostExplor
 
 	return mock
 }
+
+func (m *CostExplorerAPI) GetApproximateUsageRecords(input *costexplorer.GetApproximateUsageRecordsInput) (*costexplorer.GetApproximateUsageRecordsOutput, error) {
+    args := m.Called(input)
+    return args.Get(0).(*costexplorer.GetApproximateUsageRecordsOutput), args.Error(1)
+}
+
+func (m *CostExplorerAPI) GetApproximateUsageRecordsRequest(input *costexplorer.GetApproximateUsageRecordsInput) (*request.Request, *costexplorer.GetApproximateUsageRecordsOutput) {
+    args := m.Called(input)
+    return args.Get(0).(*request.Request), args.Get(1).(*costexplorer.GetApproximateUsageRecordsOutput)
+}
+
+func (m *CostExplorerAPI) GetApproximateUsageRecordsWithContext(ctx context.Context, input *costexplorer.GetApproximateUsageRecordsInput, opts ...request.Option) (*costexplorer.GetApproximateUsageRecordsOutput, error) {
+    args := m.Called(ctx, input, opts)
+    return args.Get(0).(*costexplorer.GetApproximateUsageRecordsOutput), args.Error(1)
+}

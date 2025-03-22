@@ -4479,3 +4479,28 @@ func NewDynamoDBAPI(t mockConstructorTestingTNewDynamoDBAPI) *DynamoDBAPI {
 
 	return mock
 }
+
+func (m *DynamoDBAPI) DeleteResourcePolicy(input *dynamodb.DeleteResourcePolicyInput) (*dynamodb.DeleteResourcePolicyOutput, error) {
+    args := m.Called(input)
+    return args.Get(0).(*dynamodb.DeleteResourcePolicyOutput), args.Error(1)
+}
+
+func (m *DynamoDBAPI) DeleteResourcePolicyRequest(input *dynamodb.DeleteResourcePolicyInput) (*request.Request, *dynamodb.DeleteResourcePolicyOutput) {
+    args := m.Called(input)
+    return args.Get(0).(*request.Request), args.Get(1).(*dynamodb.DeleteResourcePolicyOutput)
+}
+
+func (m *DynamoDBAPI) DeleteResourcePolicyWithContext(ctx context.Context, input *dynamodb.DeleteResourcePolicyInput, opts ...request.Option) (*dynamodb.DeleteResourcePolicyOutput, error) {
+    args := m.Called(ctx, input, opts)
+    return args.Get(0).(*dynamodb.DeleteResourcePolicyOutput), args.Error(1)
+}
+
+func (m *DynamoDBAPI) GetResourcePolicy(input *dynamodb.GetResourcePolicyInput) (*dynamodb.GetResourcePolicyOutput, error) {
+    args := m.Called(input)
+    return args.Get(0).(*dynamodb.GetResourcePolicyOutput), args.Error(1)
+}
+
+func (m *DynamoDBAPI) GetResourcePolicyWithContext(ctx context.Context, input *dynamodb.GetResourcePolicyInput, opts ...request.Option) (*dynamodb.GetResourcePolicyOutput, error) {
+    args := m.Called(ctx, input, opts)
+    return args.Get(0).(*dynamodb.GetResourcePolicyOutput), args.Error(1)
+}
