@@ -1645,34 +1645,3 @@ func (_m *SQSAPI) UntagQueueWithContext(_a0 context.Context, _a1 *sqs.UntagQueue
 
 	return r0, r1
 }
-
-func (m *SQSAPI) CancelMessageMoveTask(input *sqs.CancelMessageMoveTaskInput) (*sqs.CancelMessageMoveTaskOutput, error) {
-    args := m.Called(input)
-    return args.Get(0).(*sqs.CancelMessageMoveTaskOutput), args.Error(1)
-}
-
-func (m *SQSAPI) CancelMessageMoveTaskRequest(input *sqs.CancelMessageMoveTaskInput) (*request.Request, *sqs.CancelMessageMoveTaskOutput) {
-    args := m.Called(input)
-    return args.Get(0).(*request.Request), args.Get(1).(*sqs.CancelMessageMoveTaskOutput)
-}
-
-func (m *SQSAPI) CancelMessageMoveTaskWithContext(ctx context.Context, input *sqs.CancelMessageMoveTaskInput, opts ...request.Option) (*sqs.CancelMessageMoveTaskOutput, error) {
-    args := m.Called(ctx, input, opts)
-    return args.Get(0).(*sqs.CancelMessageMoveTaskOutput), args.Error(1)
-}
-
-func (m *SQSAPI) ListMessageMoveTasks(input *sqs.ListMessageMoveTasksInput) (*sqs.ListMessageMoveTasksOutput, error) {
-    args := m.Called(input)
-    return args.Get(0).(*sqs.ListMessageMoveTasksOutput), args.Error(1)
-}
-
-func (m *SQSAPI) ListMessageMoveTasksWithContext(ctx context.Context, input *sqs.ListMessageMoveTasksInput, opts ...request.Option) (*sqs.ListMessageMoveTasksOutput, error) {
-    args := m.Called(ctx, input, opts)
-    return args.Get(0).(*sqs.ListMessageMoveTasksOutput), args.Error(1)
-}
-
-
-func (m *SQSAPI) ListMessageMoveTasksRequest(input *sqs.ListMessageMoveTasksInput) (*request.Request, *sqs.ListMessageMoveTasksOutput) {
-    args := m.Called(input)
-    return args.Get(0).(*request.Request), args.Get(1).(*sqs.ListMessageMoveTasksOutput)
-}

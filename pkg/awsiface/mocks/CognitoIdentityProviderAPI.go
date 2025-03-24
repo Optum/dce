@@ -8224,28 +8224,3 @@ func NewCognitoIdentityProviderAPI(t mockConstructorTestingTNewCognitoIdentityPr
 
 	return mock
 }
-
-func (m *CognitoIdentityProviderAPI) GetLogDeliveryConfiguration(input *cognitoidentityprovider.GetLogDeliveryConfigurationInput) (*cognitoidentityprovider.GetLogDeliveryConfigurationOutput, error) {
-    args := m.Called(input)
-    return args.Get(0).(*cognitoidentityprovider.GetLogDeliveryConfigurationOutput), args.Error(1)
-}
-
-func (m *CognitoIdentityProviderAPI) GetLogDeliveryConfigurationRequest(input *cognitoidentityprovider.GetLogDeliveryConfigurationInput) (*request.Request, *cognitoidentityprovider.GetLogDeliveryConfigurationOutput) {
-    args := m.Called(input)
-    return args.Get(0).(*request.Request), args.Get(1).(*cognitoidentityprovider.GetLogDeliveryConfigurationOutput)
-}
-
-func (m *CognitoIdentityProviderAPI) GetLogDeliveryConfigurationWithContext(ctx context.Context, input *cognitoidentityprovider.GetLogDeliveryConfigurationInput, opts ...request.Option) (*cognitoidentityprovider.GetLogDeliveryConfigurationOutput, error) {
-    args := m.Called(ctx, input, opts)
-    return args.Get(0).(*cognitoidentityprovider.GetLogDeliveryConfigurationOutput), args.Error(1)
-}
-
-func (m *CognitoIdentityProviderAPI) SetLogDeliveryConfiguration(input *cognitoidentityprovider.SetLogDeliveryConfigurationInput) (*cognitoidentityprovider.SetLogDeliveryConfigurationOutput, error) {
-    args := m.Called(input)
-    return args.Get(0).(*cognitoidentityprovider.SetLogDeliveryConfigurationOutput), args.Error(1)
-}
-
-func (m *CognitoIdentityProviderAPI) SetLogDeliveryConfigurationWithContext(ctx context.Context, input *cognitoidentityprovider.SetLogDeliveryConfigurationInput, opts ...request.Option) (*cognitoidentityprovider.SetLogDeliveryConfigurationOutput, error) {
-    args := m.Called(ctx, input, opts)
-    return args.Get(0).(*cognitoidentityprovider.SetLogDeliveryConfigurationOutput), args.Error(1)
-}

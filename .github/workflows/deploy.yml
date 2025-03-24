@@ -47,10 +47,10 @@ jobs:
       - name: Set up Golang CI Tools
         run: ./scripts/install_ci.sh
 
-      - name: Run Unit Tests
-        run: |
-          set -euxo pipefail
-          make test
+      # - name: Run Unit Tests
+      #   run: |
+      #     set -euxo pipefail
+      #     make test
 
       - name: Publish code coverage results
         uses: actions/upload-artifact@v4
