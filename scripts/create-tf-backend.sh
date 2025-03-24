@@ -4,7 +4,11 @@ set -exuo pipefail
 # Create an S3 bucket, to use as a Terraform state backend.
 # See https://www.terraform.io/docs/backends/types/s3.html
 
+# Assign the first positional parameter to BUCKET_PREFIX
 BUCKET_PREFIX="${1}"
+
+# Ensure BUCKET_PREFIX is set
+: "${BUCKET_PREFIX:?BUCKET_PREFIX is not set}"
 
 bucket_name="${BUCKET_PREFIX}-dce-tfstate"
 
