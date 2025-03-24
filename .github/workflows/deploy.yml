@@ -201,7 +201,7 @@ jobs:
       - name: Configure Terraform Backend
         run: |
           lease_id=$(cat lease_id.txt)
-          ./scripts/create-tf-backend.sh
+          ./scripts/create-tf-backend.sh ${lease_id}
 
       # terraform init
       - name: Terraform Init/Apply
