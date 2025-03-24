@@ -207,7 +207,7 @@ jobs:
       - name: Terraform Init/Apply
         env:
           NAMESPACE: ${{ env.namespace }}
-          NOTIFY_EMAIL: ${{ env.NOTIFY_EMAIL }}
+          NOTIFY_EMAIL: ${{secrets.NOTIFY_EMAIL }}
         run: |
           set -ex
           cd modules
