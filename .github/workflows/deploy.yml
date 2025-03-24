@@ -25,6 +25,7 @@ env:
 jobs:
   TestAndBuild:
     runs-on: ubuntu-latest
+    environment: nonprod
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
