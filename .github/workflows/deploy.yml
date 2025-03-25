@@ -233,10 +233,11 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_DCE_API_ADMIN_NONPROD_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: us-east-1
         run: |
-          ARTIFACTS_BUCKET_NAME=$(cd modules && terraform output -json artifacts_bucket_name)
-          NAMESPACE=$(cd modules && terraform output -json namespace)
-          echo "ARTIFACTS_BUCKET_NAME=${ARTIFACTS_BUCKET_NAME}"
-          echo "NAMESPACE=${NAMESPACE}"
+          ARTIFACTS=$(cd modules && terraform output -json artifacts_bucket_name)
+          ARTIFACTS_BUCKET_NAME=$(echo "$ARTIFACTS" | jq -r '.' | tr -d '\n')
+
+          NAMESPACE_ARTIFACTS=$(cd modules && terraform output -json namespace)
+          NAMESPACE=$(echo "$NAMESPACE_ARTIFACTS" | jq -r '.' | tr -d '\n')
           ./scripts/deploy.sh \
             ${{ github.workspace }}/bin/build_artifacts.zip \
             ${NAMESPACE} \
