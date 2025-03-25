@@ -225,12 +225,23 @@ jobs:
             -var="namespace=${NAMESPACE}" \
             -var="budget_notification_from_email=${NOTIFY_EMAIL}" \
             -var="reset_nuke_toggle=false"
+    
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_DCE_API_ADMIN_NONPROD_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_DCE_API_ADMIN_NONPROD_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: bin
+          path: bin
 
       # Deploy Application Code to AWS
       - name: Deploy Application Code
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_DCE_API_ADMIN_NONPROD_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_DCE_API_ADMIN_NONPROD_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: us-east-1
         run: |
           # Temporary workaround using jq to get formatted output from terraform output until we upgrade to >=0.14.3 and can use -raw flag
@@ -248,6 +259,9 @@ jobs:
               ${{ github.workspace }}/bin/build_artifacts.zip \
               ${NAMESPACE} \
               ${ARTIFACTS_BUCKET_NAME}
+      - name: Upload to S3
+        run: |
+          aws s3 cp __artifacts__/lambda/account_pool_metrics.zip s3://output/lambda/account_pool_metrics.zip --sse
 
       # Functional Tests
       - name: Functional Tests
