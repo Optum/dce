@@ -236,10 +236,10 @@ jobs:
           # ARTIFACTS_BUCKET_NAME=$(cd modules && terraform output --raw artifacts_bucket_name)
           # NAMESPACE=$(cd modules && terraform output --raw namespace)
 
-            ARTIFACTS_BUCKET_NAME=$(terraform -chdir=modules output -json artifacts_bucket_name | jq -r '.')
-            NAMESPACE=$(terraform -chdir=modules output -json namespace | jq -r '.')
+           ARTIFACTS_BUCKET_NAME=$(cd modules && terraform output -json artifacts_bucket_name | jq -r | tr -d '\n')
+           NAMESPACE=$(cd modules && terraform output -json namespace | jq -r '.namespace'| tr -d '\n')
             ./scripts/deploy.sh \
-              ${{ github.workspace }}/bin/build_artifacts.zip \
+              $(github.workspace)/bin/build_artifacts.zip \
               ${NAMESPACE} \
               ${ARTIFACTS_BUCKET_NAME}
 
