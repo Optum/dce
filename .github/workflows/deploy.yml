@@ -236,8 +236,8 @@ jobs:
           # ARTIFACTS_BUCKET_NAME=$(cd modules && terraform output --raw artifacts_bucket_name)
           # NAMESPACE=$(cd modules && terraform output --raw namespace)
 
-          #  ARTIFACTS_BUCKET_NAME=$(cd modules && terraform output -json artifacts_bucket_name | jq -r | tr -d '\n')
-          #  NAMESPACE=$(cd modules && terraform output -json namespace | jq -r '.namespace'| tr -d '\n')
+          #  ARTIFACTS_BUCKET_NAME=$(cd modules && terraform output -json artifacts_bucket_name | jq -r '.')
+          #  NAMESPACE=$(cd modules && terraform output -json namespace | jq -r '.')
 
             ARTIFACTS_BUCKET_NAME=$(cd modules && terraform output artifacts_bucket_name)
             NAMESPACE=$(cd modules && terraform output namespace)
