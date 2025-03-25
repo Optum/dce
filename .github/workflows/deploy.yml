@@ -225,19 +225,6 @@ jobs:
             -var="namespace=${NAMESPACE}" \
             -var="budget_notification_from_email=${NOTIFY_EMAIL}" \
             -var="reset_nuke_toggle=false"
-    
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_DCE_API_ADMIN_NONPROD_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_DCE_API_ADMIN_NONPROD_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
-
-      - name: Download build artifacts
-        uses: actions/download-artifact@v2
-        with:
-          name: bin
-          path: bin
 
       # Deploy Application Code to AWS
       - name: Deploy Application Code
