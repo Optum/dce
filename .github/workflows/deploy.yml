@@ -229,6 +229,8 @@ jobs:
       # Deploy Application Code to AWS
       - name: Deploy Application Code
         env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_DCE_API_ADMIN_NONPROD_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_DCE_API_ADMIN_NONPROD_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: us-east-1
         run: |
           # Temporary workaround using jq to get formatted output from terraform output until we upgrade to >=0.14.3 and can use -raw flag
