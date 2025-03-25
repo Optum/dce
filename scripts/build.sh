@@ -73,16 +73,4 @@ zip -r --must-match \
     -x modules/.terraform/\* modules/*.tfstate* modules/*.tfvars modules/*.zip
 
 # Cleanup
-# Remove the directories if they exist
-# rm -rf bin/codebuild bin/lambda
-
-# # Check if the directories exist before running the ls command
-# if [ -d "__artifacts__/lambda" ]; then
-#   if ls __artifacts__/lambda/*.zip 1> /dev/null 2>&1; then
-#     echo "ZIP files found in __artifacts__/lambda"
-#   else
-#     echo "No ZIP files found in __artifacts__/lambda"
-#   fi
-# else
-#   echo "__artifacts__/lambda directory does not exist"
-# fi
+rm -rf bin/codebuild bin/lambda

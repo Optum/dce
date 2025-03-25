@@ -10,38 +10,43 @@
 # Example:
 #   ./scripts/deploy.sh ./bin/build_artifacts.zip prod 1234567890-dce-artifacts-prod
 
+set -euxo pipefail
 
-# Ensure the script exits on any error
-set -e
+FILE="$1"
+NAMESPACE="$2"
+ARTIFACT_BUCKET="$3"
 
-# Define the artifact bucket
-ARTIFACT_BUCKET=$3
+# Check if build_artifacts.zip exists (generated from 'scripts/build.sh')
+if [[ -f "$FILE" ]]; then
+    # Unzip build_artifacts.zip into the '__artifacts__/' directory
+    rm -rf __artifacts__
+    unzip "$FILE" -d __artifacts__ 
 
-# Find all Lambda artifacts and upload them to the S3 artifact bucket
-for i in $(ls -d __artifacts__/lambda/*.zip)
-do
-    MOD_NAME=$(basename ${i} | cut -f 1 -d '.')
-    FN_NAME="${MOD_NAME}-${2}"
+    # Find all Lambda artifacts and upload them to the S3 artifact bucket
+    for i in $(ls -d __artifacts__/lambda/*.zip)
+    do
+        MOD_NAME=$(basename ${i} | cut -f 1 -d '.')
+        FN_NAME="${MOD_NAME}-${NAMESPACE}"
+        
+        # Upload zip file to S3
+        aws s3 cp \
+          "__artifacts__/lambda/${MOD_NAME}.zip" \
+          "s3://${ARTIFACT_BUCKET}/lambda/${MOD_NAME}.zip" \
+          --sse
+        
+        # Point Lambda Fn at the new code on S3 and publish new version
+        aws lambda update-function-code \
+          --function-name "${FN_NAME}" \
+          --s3-bucket "${ARTIFACT_BUCKET}" \
+          --s3-key "lambda/${MOD_NAME}.zip" \
+          --publish
+    done
     
-    # Upload zip file to S3
+    # Upload the Reset CodeBuild Zip to the S3 artifact bucket. CodeBuild should pick this new file up on its next build.
     aws s3 cp \
-      "__artifacts__/lambda/${MOD_NAME}.zip" \
-      "s3://${ARTIFACT_BUCKET}/lambda/${MOD_NAME}.zip" \
+      __artifacts__/codebuild/reset.zip \
+     "s3://${ARTIFACT_BUCKET}/codebuild/reset.zip" \
       --sse
-    
-    # Point Lambda Fn at the new code on S3 and publish new version
-    aws lambda update-function-code \
-      --function-name "${FN_NAME}" \
-      --s3-bucket "${ARTIFACT_BUCKET}" \
-      --s3-key "lambda/${MOD_NAME}.zip" \
-      --publish
-done
-
-# Upload the Reset CodeBuild Zip to the S3 artifact bucket. CodeBuild should pick this new file up on its next build.
-aws s3 cp \
-  __artifacts__/codebuild/reset.zip \
-  "s3://${ARTIFACT_BUCKET}/codebuild/reset.zip" \
-  --sse
 
     # Delete the '__artifacts__/' directory after uploading to the s3 artifact bucket 
     rm -rf __artifacts__
