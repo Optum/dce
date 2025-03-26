@@ -250,7 +250,7 @@ jobs:
           echo "Raw ARTIFACTS output: ${ARTIFACTS}"
 
           # Parse the ARTIFACTS output
-          ARTIFACTS_BUCKET_NAME=$(echo "$ARTIFACTS" | jq -r '.' | tr -d '\n')
+          ARTIFACTS_BUCKET_NAME=$(echo "$ARTIFACTS")
 
           # Check if the ARTIFACTS_BUCKET_NAME is empty
           if [ -z "${ARTIFACTS_BUCKET_NAME}" ]; then
@@ -273,7 +273,7 @@ jobs:
           echo "Raw NAMESPACE_ARTIFACTS output: ${NAMESPACE_ARTIFACTS}"
 
           # Parse the NAMESPACE_ARTIFACTS output
-          NAMESPACE=$(echo "$NAMESPACE_ARTIFACTS" | jq -r '.' | tr -d '\n')
+          NAMESPACE=$(echo "$NAMESPACE_ARTIFACTS")
 
           # Check if the NAMESPACE is empty
           if [ -z "${NAMESPACE}" ]; then
