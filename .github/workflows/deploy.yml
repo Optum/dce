@@ -196,7 +196,20 @@ jobs:
         uses: hashicorp/setup-terraform@v1
         with:
           terraform_version: ${{ env.TERRAFORM_VERSION }}
+          
+    # Build and Deploy Application Code to AWS
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
 
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build artifacts
+        run: |
+          echo "Running build script"
+          ./scripts/build.sh
       # Configure the Terraform backend
       - name: Configure Terraform Backend
         run: |
