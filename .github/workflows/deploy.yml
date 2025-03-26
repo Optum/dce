@@ -249,8 +249,6 @@ jobs:
 
       # Deploy Application Code to AWS
       - name: Deploy Application Code
-        env:
-        AWS_DEFAULT_REGION: us-east-1
         run: |
           # Temporary workaround using jq to get formatted output from terraform output until we upgrade to >=0.14.3 and can use -raw flag
           # https://github.com/hashicorp/terraform/releases/tag/v0.14.3
