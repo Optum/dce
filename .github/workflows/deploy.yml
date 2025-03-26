@@ -196,6 +196,7 @@ jobs:
         uses: hashicorp/setup-terraform@v1
         with:
           terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
 
       # Configure the Terraform backend
       - name: Configure Terraform Backend
@@ -243,16 +244,16 @@ jobs:
           # NAMESPACE=$(cd modules && terraform output --raw namespace)
           
           echo "Running terraform output for artifacts_bucket_name"
-          ARTIFACTS_BUCKET_NAME=$(cd modules && terraform output -json artifacts_bucket_name)
-          echo "output bucket: ARTIFACTS_BUCKET_NAME"
+          ARTIFACTS_BUCKET_NAME=$(terraform output artifacts_bucket_name)
+          echo "output bucket: ${ARTIFACTS_BUCKET_NAME}"
 
           echo "Running terraform output for namespace"
-          NAMESPACE=$(cd modules && terraform output -json namespace)
-          echo "output namespace: NAMESPACE"
-          # ./scripts/deploy.sh \
-          #   ${{ github.workspace }}/bin/build_artifacts.zip \
-          #   ${NAMESPACE} \
-          #   ${ARTIFACTS_BUCKET_NAME}
+          NAMESPACE=$(terraform output namespace)
+          echo "output namespace: ${NAMESPACE}"
+          ./scripts/deploy.sh \
+            ${{ github.workspace }}/bin/build_artifacts.zip \
+            ${NAMESPACE} \
+            ${ARTIFACTS_BUCKET_NAME}
 
 
       # Functional Tests
