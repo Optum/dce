@@ -238,6 +238,7 @@ jobs:
           echo "Changing directory to modules"
           cd modules
           echo "Initializing Terraform"
+          rm -rf .terraform/
           cat ./backend.tf
           terraform init -input=false
 
