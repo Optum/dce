@@ -1,4 +1,3 @@
-#!/bin/bash
 
 set -euxo pipefail
 
@@ -19,13 +18,10 @@ if [[ -f "$FILE" ]]; then
         FN_NAME="${MOD_NAME}-${NAMESPACE}"
         
         # Upload zip file to S3
-        aws s3 cp \
-          "__artifacts__/lambda/${MOD_NAME}.zip" \
-          "s3://${ARTIFACT_BUCKET}/lambda/${MOD_NAME}.zip" \
-          --sse || {
-            echo "[Error] Failed to upload __artifacts__/lambda/${MOD_NAME}.zip to s3://${ARTIFACT_BUCKET}/lambda/${MOD_NAME}.zip"
-            exit 1
-        }
+        if ! aws s3 cp "__artifacts__/lambda/${MOD_NAME}.zip" "s3://${ARTIFACT_BUCKET}/lambda/${MOD_NAME}.zip" --sse; then
+            echo "[Warning] Failed to upload __artifacts__/lambda/${MOD_NAME}.zip to s3://${ARTIFACT_BUCKET}/lambda/${MOD_NAME}.zip. Skipping to next step."
+            continue
+        fi
         
         # Point Lambda Fn at the new code on S3 and publish new version
         aws lambda update-function-code \
