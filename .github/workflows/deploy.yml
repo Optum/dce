@@ -254,9 +254,14 @@ jobs:
           # https://github.com/hashicorp/terraform/releases/tag/v0.14.3
           # ARTIFACTS_BUCKET_NAME=$(cd modules && terraform output --raw artifacts_bucket_name)
           # NAMESPACE=$(cd modules && terraform output --raw namespace)
-
+          
+          echo "Running terraform output for artifacts_bucket_name"
           ARTIFACTS_BUCKET_NAME=$(cd modules && terraform output -raw artifacts_bucket_name)
+          echo "ARTIFACTS_BUCKET_NAME=${ARTIFACTS_BUCKET_NAME}"
+
+          echo "Running terraform output for namespace"
           NAMESPACE=$(cd modules && terraform output -raw namespace)
+          echo "NAMESPACE=${NAMESPACE}"
           ./scripts/deploy.sh \
             ${{ github.workspace }}/bin/build_artifacts.zip \
             ${NAMESPACE} \
