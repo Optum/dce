@@ -226,19 +226,6 @@ jobs:
             -var="budget_notification_from_email=${NOTIFY_EMAIL}" \
             -var="reset_nuke_toggle=false"
      
-     # Build and Deploy Application Code to AWS
-      - name: Set up Node.js
-        uses: actions/setup-node@v2
-        with:
-          node-version: '14'
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Build artifacts
-        run: |
-          echo "Running build script"
-          ./scripts/build.sh
       # - name: Verify AWS Credentials
       #   env:
       #     AWS_DEFAULT_REGION: us-east-1
@@ -256,16 +243,16 @@ jobs:
           # NAMESPACE=$(cd modules && terraform output --raw namespace)
           
           echo "Running terraform output for artifacts_bucket_name"
-          ARTIFACTS_BUCKET_NAME=$(cd modules && terraform output -raw artifacts_bucket_name)
-          echo "ARTIFACTS_BUCKET_NAME=${ARTIFACTS_BUCKET_NAME}"
+          ARTIFACTS_BUCKET_NAME=$(cd modules && terraform output -json | jq -r '.artifacts_bucket_name')
+          echo "output bucket: $ARTIFACTS_BUCKET_NAME"
 
           echo "Running terraform output for namespace"
-          NAMESPACE=$(cd modules && terraform output -raw namespace)
-          echo "NAMESPACE=${NAMESPACE}"
+          NAMESPACE=$(cd modules && terraform output -json | jq -r  '.namespace')
+          echo "output namespace: $NAMESPACE"
           ./scripts/deploy.sh \
             ${{ github.workspace }}/bin/build_artifacts.zip \
-            ${NAMESPACE} \
-            ${ARTIFACTS_BUCKET_NAME}
+            $NAMESPACE \
+            $ARTIFACTS_BUCKET_NAME
 
 
       # Functional Tests
