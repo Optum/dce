@@ -238,6 +238,7 @@ jobs:
           cd modules
           
           echo "Initializing Terraform"
+          cat ./backend.tf
           terraform init -input=false
 
           echo "Running terraform output for artifacts_bucket_name"
