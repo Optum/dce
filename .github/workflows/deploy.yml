@@ -196,7 +196,6 @@ jobs:
         uses: hashicorp/setup-terraform@v1
         with:
           terraform_version: ${{ env.TERRAFORM_VERSION }}
-          terraform_wrapper: false
 
       # Configure the Terraform backend
       - name: Configure Terraform Backend
