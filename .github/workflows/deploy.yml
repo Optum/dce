@@ -247,48 +247,26 @@ jobs:
       #   run: |
       #     aws sts get-caller-identity
 
-    # Deploy Application Code to AWS
+      # Deploy Application Code to AWS
       - name: Deploy Application Code
-        # env:
-        #   AWS_DEFAULT_REGION: us-east-1
-        #   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_DCE_API_ADMIN_NONPROD_ACCESS_KEY_ID }}
-        #   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_DCE_API_ADMIN_NONPROD_SECRET_ACCESS_KEY }}
+        uses: hashicorp/setup-terraform@v1
+        with:
+        terraform_wrapper: false
+        env:
+        AWS_DEFAULT_REGION: us-east-1
         run: |
-          aws sts get-caller-identity
-          set -ex
-          echo "Changing directory to modules"
-          cd modules
-          
-          echo "Initializing Terraform"
-          terraform init -input=false
+          # Temporary workaround using jq to get formatted output from terraform output until we upgrade to >=0.14.3 and can use -raw flag
+          # https://github.com/hashicorp/terraform/releases/tag/v0.14.3
+          # ARTIFACTS_BUCKET_NAME=$(cd modules && terraform output --raw artifacts_bucket_name)
+          # NAMESPACE=$(cd modules && terraform output --raw namespace)
 
-          echo "Running terraform output for artifacts_bucket_name"
-          ARTIFACTS_BUCKET_NAME=$(terraform output -raw artifacts_bucket_name || echo "null")
-          echo "ARTIFACTS_BUCKET_NAME=${ARTIFACTS_BUCKET_NAME}"
-          if [ "${ARTIFACTS_BUCKET_NAME}" = "null" ]; then
-            echo "Failed to get artifacts_bucket_name"
-            exit 1
-          fi
-
-          echo "Running terraform output for namespace"
-          NAMESPACE=$(terraform output -raw namespace || echo "null")
-          echo "NAMESPACE=${NAMESPACE}"
-          if [ "${NAMESPACE}" = "null" ]; then
-            echo "Failed to get namespace"
-            exit 1
-          fi
-
-          echo "Running deploy script"
-          DEPLOY_SCRIPT_PATH="../scripts/deploy.sh"
-          if [ ! -f ${DEPLOY_SCRIPT_PATH} ]; then
-            echo "deploy.sh script not found at ${DEPLOY_SCRIPT_PATH}!"
-            exit 1
-          fi
-          ${DEPLOY_SCRIPT_PATH} \
+          ARTIFACTS_BUCKET_NAME=$(cd modules && terraform output artifacts_bucket_name)
+          NAMESPACE=$(cd modules && terraform output namespace)
+          ./scripts/deploy.sh \
             ${{ github.workspace }}/bin/build_artifacts.zip \
             ${NAMESPACE} \
             ${ARTIFACTS_BUCKET_NAME}
-            
+
 
       # Functional Tests
       - name: Functional Tests
