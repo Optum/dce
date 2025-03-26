@@ -245,24 +245,50 @@ jobs:
             echo "Failed to get artifacts_bucket_name"
             exit 1
           fi
+
+          # Debugging: Print the raw ARTIFACTS output
+          echo "Raw ARTIFACTS output: ${ARTIFACTS}"
+
+          # Parse the ARTIFACTS output
           ARTIFACTS_BUCKET_NAME=$(echo "$ARTIFACTS" | jq -r '.' | tr -d '\n')
+
+          # Check if the ARTIFACTS_BUCKET_NAME is empty
+          if [ -z "${ARTIFACTS_BUCKET_NAME}" ]; then
+            echo "Failed to parse artifacts_bucket_name"
+            exit 1
+          fi
+
           echo "ARTIFACTS_BUCKET_NAME=${ARTIFACTS_BUCKET_NAME}"
 
           echo "Running terraform output for namespace"
           NAMESPACE_ARTIFACTS=$(terraform output -json namespace || echo "null")
           echo "NAMESPACE_ARTIFACTS=${NAMESPACE_ARTIFACTS}"
+
           if [ "${NAMESPACE_ARTIFACTS}" = "null" ]; then
             echo "Failed to get namespace"
             exit 1
           fi
+
+          # Debugging: Print the raw NAMESPACE_ARTIFACTS output
+          echo "Raw NAMESPACE_ARTIFACTS output: ${NAMESPACE_ARTIFACTS}"
+
+          # Parse the NAMESPACE_ARTIFACTS output
           NAMESPACE=$(echo "$NAMESPACE_ARTIFACTS" | jq -r '.' | tr -d '\n')
+
+          # Check if the NAMESPACE is empty
+          if [ -z "${NAMESPACE}" ]; then
+            echo "Failed to parse namespace"
+            exit 1
+          fi
+
           echo "NAMESPACE=${NAMESPACE}"
 
           echo "Running deploy script"
           ./scripts/deploy.sh \
             ${{ github.workspace }}/bin/build_artifacts.zip \
             ${NAMESPACE} \
-            ${ARTIFACTS_BUCKET_NAME}      
+            ${ARTIFACTS_BUCKET_NAME}
+            
       # Functional Tests
       - name: Functional Tests
         run: |
