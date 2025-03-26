@@ -1,41 +1,51 @@
+#!/bin/bash
 
-set -euxo pipefail
+# Deploy DCE to AWS Master account
+# Requires build artifacts to exist in ./bin/
+# Run ./scripts/build.sh to generate artifacts
+#
+# Usage:
+#   ./scripts/deploy.sh <artifact_file> <namespace> <artifact_bucket_name>
+#
+# Example:
+#   ./scripts/deploy.sh ./bin/build_artifacts.zip prod 1234567890-dce-artifacts-prod
 
-FILE="$1"
-NAMESPACE="$2"
-ARTIFACT_BUCKET="$3"
 
-# Check if build_artifacts.zip exists (generated from 'scripts/build.sh')
-if [[ -f "$FILE" ]]; then
-    # Unzip build_artifacts.zip into the '__artifacts__/' directory
+# Ensure the script exits on any error
+set -e
+
+# Define the artifact bucket
+ARTIFACT_BUCKET=$3
+
+# Find all Lambda artifacts and upload them to the S3 artifact bucket
+for i in $(ls -d __artifacts__/lambda/*.zip)
+do
+    MOD_NAME=$(basename ${i} | cut -f 1 -d '.')
+    FN_NAME="${MOD_NAME}-${2}"
+    
+    # Upload zip file to S3
+    aws s3 cp \
+      "__artifacts__/lambda/${MOD_NAME}.zip" \
+      "s3://${ARTIFACT_BUCKET}/lambda/${MOD_NAME}.zip" \
+      --sse
+    
+    # Point Lambda Fn at the new code on S3 and publish new version
+    aws lambda update-function-code \
+      --function-name "${FN_NAME}" \
+      --s3-bucket "${ARTIFACT_BUCKET}" \
+      --s3-key "lambda/${MOD_NAME}.zip" \
+      --publish
+done
+
+# Upload the Reset CodeBuild Zip to the S3 artifact bucket. CodeBuild should pick this new file up on its next build.
+aws s3 cp \
+  __artifacts__/codebuild/reset.zip \
+  "s3://${ARTIFACT_BUCKET}/codebuild/reset.zip" \
+  --sse
+
+    # Delete the '__artifacts__/' directory after uploading to the s3 artifact bucket 
     rm -rf __artifacts__
-    unzip "$FILE" -d __artifacts__ 
-
-    # Find all Lambda artifacts and upload them to the S3 artifact bucket
-    for i in $(ls -d __artifacts__/lambda/*.zip)
-    do
-        MOD_NAME=$(basename ${i} | cut -f 1 -d '.')
-        FN_NAME="${MOD_NAME}-${NAMESPACE}"
-        
-        # Upload zip file to S3
-        if ! aws s3 cp "__artifacts__/lambda/${MOD_NAME}.zip" "s3://${ARTIFACT_BUCKET}/lambda/${MOD_NAME}.zip" --sse; then
-            echo "[Warning] Failed to upload __artifacts__/lambda/${MOD_NAME}.zip to s3://${ARTIFACT_BUCKET}/lambda/${MOD_NAME}.zip. Skipping to next step."
-            continue
-        fi
-        
-        # Point Lambda Fn at the new code on S3 and publish new version
-        aws lambda update-function-code \
-          --function-name "${FN_NAME}" \
-          --s3-bucket "${ARTIFACT_BUCKET}" \
-          --s3-key "lambda/${MOD_NAME}.zip" || {
-            echo "[Error] Failed to update Lambda function ${FN_NAME} with new code from s3://${ARTIFACT_BUCKET}/lambda/${MOD_NAME}.zip"
-            exit 1
-        }
-    done
-
-    # Clean up the '__artifacts__/' directory
-    rm -rf __artifacts__
-else
-    echo "[Error] $FILE does not exist yet. Run scripts/build.sh to generate it."
+else 
+    echo "[Error] ${FILE} does not exist yet. Run scripts/build.sh to generate it."
     exit 1
 fi

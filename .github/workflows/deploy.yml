@@ -263,7 +263,7 @@ jobs:
           terraform init -input=false
 
           echo "Running terraform output for artifacts_bucket_name"
-          ARTIFACTS_BUCKET_NAME=$(terraform output artifacts_bucket_name || echo "null")
+          ARTIFACTS_BUCKET_NAME=$(terraform output -raw artifacts_bucket_name || echo "null")
           echo "ARTIFACTS_BUCKET_NAME=${ARTIFACTS_BUCKET_NAME}"
           if [ "${ARTIFACTS_BUCKET_NAME}" = "null" ]; then
             echo "Failed to get artifacts_bucket_name"
@@ -271,7 +271,7 @@ jobs:
           fi
 
           echo "Running terraform output for namespace"
-          NAMESPACE=$(terraform output namespace || echo "null")
+          NAMESPACE=$(terraform output -raw namespace || echo "null")
           echo "NAMESPACE=${NAMESPACE}"
           if [ "${NAMESPACE}" = "null" ]; then
             echo "Failed to get namespace"
@@ -457,5 +457,3 @@ jobs:
             ${{ github.workspace }}/bin/terraform_artifacts.zip
             ${{ github.workspace }}/deploy_scripts/deploy.sh
             ${{ github.workspace }}/deploy_scripts/restore_db.sh
-
-  
