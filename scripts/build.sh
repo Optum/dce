@@ -73,4 +73,4 @@ zip -r --must-match \
     -x modules/.terraform/\* modules/*.tfstate* modules/*.tfvars modules/*.zip
 
 # Cleanup
-rm -rf bin/codebuild bin/lambda
+# rm -rf bin/codebuild bin/lambda
