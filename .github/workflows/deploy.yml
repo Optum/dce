@@ -191,6 +191,7 @@ jobs:
           # # (note that we can't assign variables across jobs in different stages)
           echo "${lease_id}" > ./lease_id.txt
 
+
       # Install Terraform
       - name: Install Terraform
         uses: hashicorp/setup-terraform@v1
