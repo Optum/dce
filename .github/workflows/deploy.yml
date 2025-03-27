@@ -412,7 +412,7 @@ jobs:
                 -p ${namespace} \
                 -a ${account_id}
       
-    Release:
+  Release:
       needs: Deploy
       runs-on: ubuntu-latest
       environment: "nonprod"
