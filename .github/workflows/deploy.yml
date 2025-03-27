@@ -64,7 +64,7 @@ jobs:
           name: junit-report
           path: junit-report/*.xml
 
-    Build:
+  Build:
       needs: TestAndBuild
       runs-on: ubuntu-latest
       steps:
