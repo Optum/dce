@@ -52,42 +52,42 @@ jobs:
       #     set -euxo pipefail
       #     make test
 
-      # - name: Publish code coverage results
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: coverage-report
-      #     path: coverage.xml
+      - name: Publish code coverage results
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.xml
 
-      # - name: Publish JUnit test results
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: junit-report
-      #     path: junit-report/*.xml
+      - name: Publish JUnit test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-report
+          path: junit-report/*.xml
 
-  # Build:
-  #   needs: TestAndBuild
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout repository
-  #       uses: actions/checkout@v2
+  Build:
+    needs: TestAndBuild
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
 
-  #     - name: Build Go executables
-  #       run: make build
+      - name: Build Go executables
+        run: make build
 
-  #     - name: Publish build artifacts (bin)
-  #       uses: actions/upload-artifact@v4
-  #       with:
-  #         name: bin
-  #         path: bin
+      - name: Publish build artifacts (bin)
+        uses: actions/upload-artifact@v4
+        with:
+          name: bin
+          path: bin
 
-  #     - name: Publish build artifacts (deploy_scripts)
-  #       uses: actions/upload-artifact@v4
-  #       with:
-  #         name: deploy_scripts
-  #         path: scripts
+      - name: Publish build artifacts (deploy_scripts)
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy_scripts
+          path: scripts
 
   Deploy:
-    # needs: Build
+    needs: Build
     runs-on: ubuntu-latest
     environment: "nonprod"
     steps:
@@ -187,55 +187,58 @@ jobs:
           echo "Logging into the DCE account"
           ./dce --config=dce.yml leases login ${lease_id}
 
-          # # Save the lease ID to a file, so we can reference it later
-          # # (note that we can't assign variables across jobs in different stages)
+          # Save the lease ID to a file, so we can reference it later
+          # (note that we can't assign variables across jobs in different stages)
           echo "${lease_id}" > ./lease_id.txt
-        
-      - name: Terraform destroy
-        run: |
-          set -ex
-          export TF_VAR_namespace=$(cat ./namespace.txt)
-          export TF_VAR_budget_notification_from_email=${{ env.NOTIFY_EMAIL }}
-
-          cd modules
-          terraform init -input=false
-          terraform destroy -auto-approve
 
       # Install Terraform
-      # - name: Install Terraform
-      #   uses: hashicorp/setup-terraform@v1
-      #   with:
-      #     terraform_version: ${{ env.TERRAFORM_VERSION }}
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@v1
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
 
-      # # Configure the Terraform backend
-      # - name: Configure Terraform Backend
-      #   run: |
-      #     lease_id=$(cat lease_id.txt)
-      #     ./scripts/create-tf-backend.sh ${lease_id}
+      # Configure the Terraform backend
+      - name: Configure Terraform Backend
+        run: |
+          lease_id=$(cat lease_id.txt)
+          ./scripts/create-tf-backend.sh ${lease_id}
 
       # terraform init
-      # - name: Terraform Init/Apply
-      #   env:
-      #     NAMESPACE: ${{ env.namespace }}
-      #     NOTIFY_EMAIL: ${{secrets.NOTIFY_EMAIL }}
-      #   run: |
-      #     set -ex
-      #     cd modules
-      #     cat ./backend.tf
-      #     terraform init -input=false
+      - name: Terraform Init/Apply
+        env:
+          NAMESPACE: ${{ env.namespace }}
+          NOTIFY_EMAIL: ${{secrets.NOTIFY_EMAIL }}
+        run: |
+          set -ex
+          cd modules
+          cat ./backend.tf
+          terraform init -input=false
 
-      #     terraform plan \
-      #       -var="namespace=${NAMESPACE}" \
-      #       -var="budget_notification_from_email=${NOTIFY_EMAIL}" \
-      #       -var="reset_nuke_toggle=false"
+          terraform plan \
+            -var="namespace=${NAMESPACE}" \
+            -var="budget_notification_from_email=${NOTIFY_EMAIL}" \
+            -var="reset_nuke_toggle=false"
 
-      #     terraform apply \
-      #       -auto-approve \
-      #       -input=false \
-      #       -var="namespace=${NAMESPACE}" \
-      #       -var="budget_notification_from_email=${NOTIFY_EMAIL}" \
-      #       -var="reset_nuke_toggle=false"
+          terraform apply \
+            -auto-approve \
+            -input=false \
+            -var="namespace=${NAMESPACE}" \
+            -var="budget_notification_from_email=${NOTIFY_EMAIL}" \
+            -var="reset_nuke_toggle=false"
      
+     # Build and Deploy Application Code to AWS
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build artifacts
+        run: |
+          echo "Running build script"
+          ./scripts/build.sh
       # - name: Verify AWS Credentials
       #   env:
       #     AWS_DEFAULT_REGION: us-east-1
@@ -244,27 +247,48 @@ jobs:
       #   run: |
       #     aws sts get-caller-identity
 
-      # Deploy Application Code to AWS
-
+    # Deploy Application Code to AWS
       - name: Deploy Application Code
+        # env:
+        #   AWS_DEFAULT_REGION: us-east-1
+        #   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_DCE_API_ADMIN_NONPROD_ACCESS_KEY_ID }}
+        #   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_DCE_API_ADMIN_NONPROD_SECRET_ACCESS_KEY }}
         run: |
-          # Temporary workaround using jq to get formatted output from terraform output until we upgrade to >=0.14.3 and can use -raw flag
-          # https://github.com/hashicorp/terraform/releases/tag/v0.14.3
-          # ARTIFACTS_BUCKET_NAME=$(cd modules && terraform output --raw artifacts_bucket_name)
-          # NAMESPACE=$(cd modules && terraform output --raw namespace)
+          aws sts get-caller-identity
+          set -ex
+          echo "Changing directory to modules"
+          cd modules
           
-          echo "Running terraform output for artifacts_bucket_name"
-          ARTIFACTS_BUCKET_NAME=$(terraform output artifacts_bucket_name)
-          echo "output bucket: ${ARTIFACTS_BUCKET_NAME}"
+          echo "Initializing Terraform"
+          terraform init -input=false
+
+          	
+          ARTIFACTS_BUCKET_NAME=$(terraform output artifacts_bucket_name || echo "null")
+          echo "ARTIFACTS_BUCKET_NAME=${ARTIFACTS_BUCKET_NAME}"
+          if [ "${ARTIFACTS_BUCKET_NAME}" = "null" ]; then
+            echo "Failed to get artifacts_bucket_name"
+            exit 1
+          fi
 
           echo "Running terraform output for namespace"
-          NAMESPACE=$(terraform output namespace)
-          echo "output namespace: ${NAMESPACE}"
-          ./scripts/deploy.sh \
+          NAMESPACE=$(terraform output namespace || echo "null")
+          echo "NAMESPACE=${NAMESPACE}"
+          if [ "${NAMESPACE}" = "null" ]; then
+            echo "Failed to get namespace"
+            exit 1
+          fi
+
+          echo "Running deploy script"
+          DEPLOY_SCRIPT_PATH="../scripts/deploy.sh"
+          if [ ! -f ${DEPLOY_SCRIPT_PATH} ]; then
+            echo "deploy.sh script not found at ${DEPLOY_SCRIPT_PATH}!"
+            exit 1
+          fi
+          ${DEPLOY_SCRIPT_PATH} \
             ${{ github.workspace }}/bin/build_artifacts.zip \
             ${NAMESPACE} \
             ${ARTIFACTS_BUCKET_NAME}
-
+            
 
       # Functional Tests
       - name: Functional Tests
@@ -433,3 +457,5 @@ jobs:
             ${{ github.workspace }}/bin/terraform_artifacts.zip
             ${{ github.workspace }}/deploy_scripts/deploy.sh
             ${{ github.workspace }}/deploy_scripts/restore_db.sh
+
+  
