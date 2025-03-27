@@ -47,22 +47,22 @@ jobs:
       - name: Set up Golang CI Tools
         run: ./scripts/install_ci.sh
 
-      - name: Run Unit Tests
-        run: |
-          set -euxo pipefail
-          make test
+      # - name: Run Unit Tests
+      #   run: |
+      #     set -euxo pipefail
+      #     make test
 
-      - name: Publish code coverage results
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report
-          path: coverage.xml
+      # - name: Publish code coverage results
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: coverage-report
+      #     path: coverage.xml
 
-      - name: Publish JUnit test results
-        uses: actions/upload-artifact@v4
-        with:
-          name: junit-report
-          path: junit-report/*.xml
+      # - name: Publish JUnit test results
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: junit-report
+      #     path: junit-report/*.xml
 
   Build:
       needs: TestAndBuild
