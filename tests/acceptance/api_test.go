@@ -111,7 +111,7 @@ func TestApi(t *testing.T) {
 		"StartDate",
 		"PrincipalId",
 	)
-
+	
 	sqsSvc = sqs.New(
 		awsSession,
 		aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
