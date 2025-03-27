@@ -9,11 +9,12 @@ on:
     branches:
       - master
 
-  workflow_dispatch:
-    inputs:
-      branch:
-        description: "branch to deploy"
-        required: true
+#   release:
+#     types:
+#       - "published"
+
+# # Set run-name to the Release - <RELEASE_TAG> if event is a release, otherwise use the default run-name
+# run-name: ${{ github.event_name == 'release' && format('Release - {0}', github.event.release.tag_name) || '' }}
 
 env:
   GO_VERSION: 1.21.6
@@ -45,26 +46,26 @@ jobs:
         run: ./scripts/install_ci.sh
 
   Build:
-      needs: TestAndBuild
-      runs-on: ubuntu-latest
-      steps:
-        - name: Checkout repository
-          uses: actions/checkout@v2
+    needs: TestAndBuild
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
 
-        - name: Build Go executables
-          run: make build
+      - name: Build Go executables
+        run: make build
 
-        - name: Publish build artifacts (bin)
-          uses: actions/upload-artifact@v4
-          with:
-            name: bin
-            path: bin
+      - name: Publish build artifacts (bin)
+        uses: actions/upload-artifact@v4
+        with:
+          name: bin
+          path: bin
 
-        - name: Publish build artifacts (deploy_scripts)
-          uses: actions/upload-artifact@v4
-          with:
-            name: deploy_scripts
-            path: scripts
+      - name: Publish build artifacts (deploy_scripts)
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy_scripts
+          path: scripts
 
   Deploy:
     needs: Build
@@ -208,7 +209,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v2
         with:
-          node-version: '14'
+          node-version: "14"
 
       - name: Install dependencies
         run: npm install
@@ -218,23 +219,22 @@ jobs:
           echo "Running build script"
           ./scripts/build.sh
 
-    # Deploy Application Code to AWS -- > TODO ARTIFACTS_BUCKET_NAME and NAMESPACE values are hardcoded as -raw flag or jq are throwing errors
+      # Deploy Application Code to AWS -- > TODO ARTIFACTS_BUCKET_NAME and NAMESPACE values are hardcoded as -raw flag or jq are throwing errors
       - name: Deploy Application Code
         run: |
-          
+
           echo "Running terraform output for artifacts_bucket_name"
           ARTIFACTS_BUCKET_NAME=$(cd modules && terraform output -raw artifacts_bucket_name)
           echo "output bucket: ${ARTIFACTS_BUCKET_NAME}"
-          
+
           echo "Running terraform output for namespace"
           NAMESPACE=$(cd modules && terraform output -raw namespace) 
           echo "Output namespace: ${NAMESPACE}"
           ./scripts/deploy.sh \
             /home/runner/work/dce/dce/bin/build_artifacts.zip \
             cd \
-            000879607493-dce-artifacts-cd
-            
-       
+            000879607493-dce-artifacts-github-pr-513
+
       # Functional Tests --> TODO need to fix the test failures
       # - name: Functional Tests
       #   run: |
@@ -334,7 +334,10 @@ jobs:
 
           chmod +x ./dce
 
-      # Login to our DCE lease
+  Cleanup:
+    needs: Deploy
+    runs-on: ubuntu-latest
+    steps:
       - name: DCE Lease Login
         env:
           AWS_DEFAULT_REGION: us-east-1
@@ -372,53 +375,53 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_DCE_API_ADMIN_NONPROD_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_DCE_API_ADMIN_NONPROD_SECRET_ACCESS_KEY }}
         run: |
-              set -ex
-              lease_id=$(cat ./lease_id.txt)
-              namespace=$(cat ./namespace.txt)
+          set -ex
+          lease_id=$(cat ./lease_id.txt)
+          namespace=$(cat ./namespace.txt)
 
-              leases=$(
-                ./dce --config=dce.yml leases list -s Active \
-              )
-              account_id=$(
-                echo $leases | \
-                  jq -r \
-                    --arg Id "${lease_id}" \
-                    '.[] | select( .id==$Id ) | .accountId'
-              )
+          leases=$(
+            ./dce --config=dce.yml leases list -s Active \
+          )
+          account_id=$(
+            echo $leases | \
+              jq -r \
+                --arg Id "${lease_id}" \
+                '.[] | select( .id==$Id ) | .accountId'
+          )
 
-              echo "Ending lease ${lease_id}"
+          echo "Ending lease ${lease_id}"
 
-              ./dce --config=./dce.yml leases end \
-                -p ${namespace} \
-                -a ${account_id}
-      
+          ./dce --config=./dce.yml leases end \
+            -p ${namespace} \
+            -a ${account_id}
+
   Release:
-      needs: Deploy
-      runs-on: ubuntu-latest
-      steps:
-        - name: Download bin artifact
-          uses: actions/download-artifact@v4
-          with:
-            name: bin
-            path: ${{ github.workspace }}/bin
+    needs: Cleanup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download bin artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: bin
+          path: ${{ github.workspace }}/bin
 
-        - name: Download deploy_scripts artifact
-          uses: actions/download-artifact@v4
-          with:
-            name: deploy_scripts
-            path: ${{ github.workspace }}/deploy_scripts
+      - name: Download deploy_scripts artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: deploy_scripts
+          path: ${{ github.workspace }}/deploy_scripts
 
-        - name: Create GitHub Release
-          uses: actions/create-release@v1
-          env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          with:
-            tag_name: ${{ github.ref_name }}
-            release_name: Release ${{ github.ref_name }}
-            draft: true
-            prerelease: true
-            files: |
-              ${{ github.workspace }}/bin/build_artifacts.zip
-              ${{ github.workspace }}/bin/terraform_artifacts.zip
-              ${{ github.workspace }}/deploy_scripts/deploy.sh
-              ${{ github.workspace }}/deploy_scripts/restore_db.sh
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: Release ${{ github.ref_name }}
+          draft: true
+          prerelease: true
+          files: |
+            ${{ github.workspace }}/bin/build_artifacts.zip
+            ${{ github.workspace }}/bin/terraform_artifacts.zip
+            ${{ github.workspace }}/deploy_scripts/deploy.sh
+            ${{ github.workspace }}/deploy_scripts/restore_db.sh
