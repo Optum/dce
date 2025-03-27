@@ -349,10 +349,6 @@ jobs:
 
           chmod +x ./dce
 
-        Cleanup:
-         needs: Deploy
-         runs-on: ubuntu-latest
-         environment: "nonprod"
       # Login to our DCE lease
       - name: DCE Lease Login
         # env:
@@ -396,10 +392,10 @@ jobs:
           echo "Ending lease ${lease_id}"
           ./dce --config=./dce.yml leases end ${lease_id}
       
-        Release:
-         needs: Cleanup
-         runs-on: ubuntu-latest
-         environment: "nonprod"
+        # Release:
+        #  needs: Cleanup
+        #  runs-on: ubuntu-latest
+        #  environment: "nonprod"
       - name: Download bin artifact
         uses: actions/download-artifact@v4
         with:
