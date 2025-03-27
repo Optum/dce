@@ -336,6 +336,7 @@ jobs:
 
   Cleanup:
     needs: Deploy
+    environment: "nonprod"
     runs-on: ubuntu-latest
     steps:
       - name: DCE Lease Login
