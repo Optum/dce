@@ -52,39 +52,39 @@ jobs:
       #     set -euxo pipefail
       #     make test
 
-      - name: Publish code coverage results
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report
-          path: coverage.xml
+      # - name: Publish code coverage results
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: coverage-report
+      #     path: coverage.xml
 
-      - name: Publish JUnit test results
-        uses: actions/upload-artifact@v4
-        with:
-          name: junit-report
-          path: junit-report/*.xml
+      # - name: Publish JUnit test results
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: junit-report
+      #     path: junit-report/*.xml
 
-  Build:
-    needs: TestAndBuild
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
+  # Build:
+  #   needs: TestAndBuild
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v2
 
-      - name: Build Go executables
-        run: make build
+  #     - name: Build Go executables
+  #       run: make build
 
-      - name: Publish build artifacts (bin)
-        uses: actions/upload-artifact@v4
-        with:
-          name: bin
-          path: bin
+  #     - name: Publish build artifacts (bin)
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: bin
+  #         path: bin
 
-      - name: Publish build artifacts (deploy_scripts)
-        uses: actions/upload-artifact@v4
-        with:
-          name: deploy_scripts
-          path: scripts
+  #     - name: Publish build artifacts (deploy_scripts)
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: deploy_scripts
+  #         path: scripts
 
   Deploy:
     needs: Build
@@ -183,13 +183,13 @@ jobs:
             lease_id=$(echo "${created_lease}" | jq -r .id)
           fi
 
-          echo "Using lease for PrincipalId=${NAMESPACE}, Id=${lease_id}"
-          echo "Logging into the DCE account"
-          ./dce --config=dce.yml leases login ${lease_id}
+          # echo "Using lease for PrincipalId=${NAMESPACE}, Id=${lease_id}"
+          # echo "Logging into the DCE account"
+          # ./dce --config=dce.yml leases login ${lease_id}
 
-          # Save the lease ID to a file, so we can reference it later
-          # (note that we can't assign variables across jobs in different stages)
-          echo "${lease_id}" > ./lease_id.txt
+          # # Save the lease ID to a file, so we can reference it later
+          # # (note that we can't assign variables across jobs in different stages)
+          # echo "${lease_id}" > ./lease_id.txt
 
       # Install Terraform
       - name: Install Terraform
@@ -200,8 +200,8 @@ jobs:
       # Configure the Terraform backend
       - name: Configure Terraform Backend
         run: |
-          lease_id=$(cat lease_id.txt)
-          ./scripts/create-tf-backend.sh ${lease_id}
+          # lease_id=$(cat lease_id.txt)
+          ./scripts/create-tf-backend.sh ${000879607493}
 
       # terraform init
       - name: Terraform Init/Apply
@@ -235,7 +235,7 @@ jobs:
       #     aws sts get-caller-identity
 
       # Deploy Application Code to AWS
-      
+
       - name: Deploy Application Code
         run: |
           # Temporary workaround using jq to get formatted output from terraform output until we upgrade to >=0.14.3 and can use -raw flag
