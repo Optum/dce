@@ -235,6 +235,7 @@ jobs:
       #     aws sts get-caller-identity
 
       # Deploy Application Code to AWS
+      
       - name: Deploy Application Code
         run: |
           # Temporary workaround using jq to get formatted output from terraform output until we upgrade to >=0.14.3 and can use -raw flag
