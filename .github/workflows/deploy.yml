@@ -243,12 +243,12 @@ jobs:
         run: |
           
           echo "Running terraform output for artifacts_bucket_name"
-          ARTIFACTS_BUCKET_NAME=$(cd modules && terraform output -json | jq -r '.artifacts_bucket_name.value')
-          echo "ARTIFACTS_BUCKET_NAME=${ARTIFACTS_BUCKET_NAME}"
+          ARTIFACTS_BUCKET_NAME=$(cd modules && terraform output -raw artifacts_bucket_name)
+          echo "output bucket: ${ARTIFACTS_BUCKET_NAME}"
           
           echo "Running terraform output for namespace"
-          NAMESPACE=$(cd modules && terraform output -json | jq -r '.namespace.value')
-          echo "NAMESPACE=${NAMESPACE}"
+          NAMESPACE=$(cd modules && terraform output -raw namespace)
+          echo "Output namespace: ${NAMESPACE}"
           ./scripts/deploy.sh \
             /home/runner/work/dce/dce/bin/build_artifacts.zip \
             ${NAMESPACE} \
