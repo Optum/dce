@@ -204,36 +204,27 @@ jobs:
           ./scripts/create-tf-backend.sh ${lease_id}
 
       # terraform init
-      # - name: Terraform Init/Apply
-      #   env:
-      #     NAMESPACE: ${{ env.namespace }}
-      #     NOTIFY_EMAIL: ${{secrets.NOTIFY_EMAIL }}
-      #   run: |
-      #     set -ex
-      #     cd modules
-      #     cat ./backend.tf
-      #     terraform init -input=false
-
-      #     terraform plan \
-      #       -var="namespace=${NAMESPACE}" \
-      #       -var="budget_notification_from_email=${NOTIFY_EMAIL}" \
-      #       -var="reset_nuke_toggle=false"
-
-      #     terraform apply \
-      #       -auto-approve \
-      #       -input=false \
-      #       -var="namespace=${NAMESPACE}" \
-      #       -var="budget_notification_from_email=${NOTIFY_EMAIL}" \
-      #       -var="reset_nuke_toggle=false"
-      - name: Terraform destroy
+      - name: Terraform Init/Apply
+        env:
+          NAMESPACE: ${{ env.namespace }}
+          NOTIFY_EMAIL: ${{secrets.NOTIFY_EMAIL }}
         run: |
           set -ex
-          export TF_VAR_namespace=$(cat ./namespace.txt)
-          export TF_VAR_budget_notification_from_email=${{ env.NOTIFY_EMAIL }}
-
           cd modules
+          cat ./backend.tf
           terraform init -input=false
-          terraform destroy -auto-approve
+
+          terraform plan \
+            -var="namespace=${NAMESPACE}" \
+            -var="budget_notification_from_email=${NOTIFY_EMAIL}" \
+            -var="reset_nuke_toggle=false"
+
+          terraform apply \
+            -auto-approve \
+            -input=false \
+            -var="namespace=${NAMESPACE}" \
+            -var="budget_notification_from_email=${NOTIFY_EMAIL}" \
+            -var="reset_nuke_toggle=false"
      
       # - name: Verify AWS Credentials
       #   env:
