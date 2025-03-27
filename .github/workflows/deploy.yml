@@ -202,7 +202,12 @@ jobs:
         run: |
           lease_id=$(cat lease_id.txt)
           ./scripts/create-tf-backend.sh ${lease_id}
-
+      - name: terraform Destroy
+        run: |
+         terraform destroy -auto-approve
+      - name: Remove Terraform State (Local)
+        run: rm -rf dce.tfstate terraform
+        
       # terraform init
       - name: Terraform Init/Apply
         env:
