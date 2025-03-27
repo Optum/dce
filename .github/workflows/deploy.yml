@@ -2,16 +2,14 @@ name: Deploy
 
 on:
   push:
-    #   branches:
-    #     - master
-    #     - release/*
-    # pull_request:
-    #   branches:
-    #     - master
-    #     - release/*
+      branches:
+        - master
+        - release/*
+      pull_request:
+       branches:
+        - master
+        - release/*
 
-    branches:
-      - azdevops-cicd-migration
   workflow_dispatch:
     inputs:
       branch:
@@ -46,23 +44,6 @@ jobs:
 
       - name: Set up Golang CI Tools
         run: ./scripts/install_ci.sh
-
-      # - name: Run Unit Tests
-      #   run: |
-      #     set -euxo pipefail
-      #     make test
-
-      # - name: Publish code coverage results
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: coverage-report
-      #     path: coverage.xml
-
-      # - name: Publish JUnit test results
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: junit-report
-      #     path: junit-report/*.xml
 
   Build:
       needs: TestAndBuild
@@ -415,7 +396,6 @@ jobs:
   Release:
       needs: Deploy
       runs-on: ubuntu-latest
-      environment: "nonprod"
       steps:
         - name: Download bin artifact
           uses: actions/download-artifact@v4
@@ -436,8 +416,8 @@ jobs:
           with:
             tag_name: ${{ github.ref_name }}
             release_name: Release ${{ github.ref_name }}
-            draft: false
-            prerelease: false
+            draft: true
+            prerelease: true
             files: |
               ${{ github.workspace }}/bin/build_artifacts.zip
               ${{ github.workspace }}/bin/terraform_artifacts.zip
