@@ -412,33 +412,34 @@ jobs:
                 -p ${namespace} \
                 -a ${account_id}
       
-        # Release:
-        #  needs: Cleanup
-        #  runs-on: ubuntu-latest
-        #  environment: "nonprod"
-      - name: Download bin artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: bin
-          path: ${{ github.workspace }}/bin
+    Release:
+      needs: Deploy
+      runs-on: ubuntu-latest
+      environment: "nonprod"
+      steps:
+        - name: Download bin artifact
+          uses: actions/download-artifact@v4
+          with:
+            name: bin
+            path: ${{ github.workspace }}/bin
 
-      - name: Download deploy_scripts artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: deploy_scripts
-          path: ${{ github.workspace }}/deploy_scripts
+        - name: Download deploy_scripts artifact
+          uses: actions/download-artifact@v4
+          with:
+            name: deploy_scripts
+            path: ${{ github.workspace }}/deploy_scripts
 
-      - name: Create GitHub Release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref_name }}
-          release_name: Release ${{ github.ref_name }}
-          draft: false
-          prerelease: false
-          files: |
-            ${{ github.workspace }}/bin/build_artifacts.zip
-            ${{ github.workspace }}/bin/terraform_artifacts.zip
-            ${{ github.workspace }}/deploy_scripts/deploy.sh
-            ${{ github.workspace }}/deploy_scripts/restore_db.sh
+        - name: Create GitHub Release
+          uses: actions/create-release@v1
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          with:
+            tag_name: ${{ github.ref_name }}
+            release_name: Release ${{ github.ref_name }}
+            draft: false
+            prerelease: false
+            files: |
+              ${{ github.workspace }}/bin/build_artifacts.zip
+              ${{ github.workspace }}/bin/terraform_artifacts.zip
+              ${{ github.workspace }}/deploy_scripts/deploy.sh
+              ${{ github.workspace }}/deploy_scripts/restore_db.sh
