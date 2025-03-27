@@ -251,8 +251,8 @@ jobs:
           echo "Output namespace: ${NAMESPACE}"
           ./scripts/deploy.sh \
             /home/runner/work/dce/dce/bin/build_artifacts.zip \
-            ${NAMESPACE} \
-            ${ARTIFACTS_BUCKET_NAME}
+            cd \
+            000879607493-dce-artifacts-cd
             
        
       # Functional Tests
