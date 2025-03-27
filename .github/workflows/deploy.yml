@@ -1,14 +1,13 @@
 name: Deploy
 
 on:
-  push:
-      branches:
-        - master
-        - release/*
-      pull_request:
-       branches:
-        - master
-        - release/*
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+    branches:
+      - master
 
   workflow_dispatch:
     inputs:
