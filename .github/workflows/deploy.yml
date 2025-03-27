@@ -457,5 +457,3 @@ jobs:
             ${{ github.workspace }}/bin/terraform_artifacts.zip
             ${{ github.workspace }}/deploy_scripts/deploy.sh
             ${{ github.workspace }}/deploy_scripts/restore_db.sh
-
-  
