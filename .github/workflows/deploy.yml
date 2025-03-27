@@ -152,6 +152,7 @@ jobs:
           NAMESPACE: ${{ env.namespace }}
         run: |
           set -ex
+          aws sts get-caller-identity
 
           echo "Principal ID is ${NAMESPACE}"
 
