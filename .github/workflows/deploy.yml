@@ -294,11 +294,11 @@ jobs:
           name: lease_id
           path: ${{ github.workspace }}/lease_id.txt
 
-      - name: Upload namespace Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: namespace
-          path: ${{ github.workspace }}/namespace.txt
+      # - name: Upload namespace Artifact
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: namespace
+      #     path: ${{ github.workspace }}/namespace.txt
 
       - name: Upload backend-tf Artifact
         uses: actions/upload-artifact@v4
