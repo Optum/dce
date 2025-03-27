@@ -87,7 +87,7 @@ jobs:
   #         path: scripts
 
   Deploy:
-    needs: Build
+    # needs: Build
     runs-on: ubuntu-latest
     environment: "nonprod"
     steps:
