@@ -183,13 +183,13 @@ jobs:
             lease_id=$(echo "${created_lease}" | jq -r .id)
           fi
 
-          # echo "Using lease for PrincipalId=${NAMESPACE}, Id=${lease_id}"
-          # echo "Logging into the DCE account"
-          # ./dce --config=dce.yml leases login ${lease_id}
+          echo "Using lease for PrincipalId=${NAMESPACE}, Id=${lease_id}"
+          echo "Logging into the DCE account"
+          ./dce --config=dce.yml leases login ${lease_id}
 
           # # Save the lease ID to a file, so we can reference it later
           # # (note that we can't assign variables across jobs in different stages)
-          # echo "${lease_id}" > ./lease_id.txt
+          echo "${lease_id}" > ./lease_id.txt
 
       # Install Terraform
       - name: Install Terraform
@@ -200,7 +200,7 @@ jobs:
       # Configure the Terraform backend
       - name: Configure Terraform Backend
         run: |
-          lease_id=000879607493
+          lease_id=$(cat lease_id.txt)
           ./scripts/create-tf-backend.sh ${lease_id}
 
       # terraform init
@@ -208,9 +208,6 @@ jobs:
         env:
           NAMESPACE: ${{ env.namespace }}
           NOTIFY_EMAIL: ${{secrets.NOTIFY_EMAIL }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_DCE_API_ADMIN_NONPROD_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_DCE_API_ADMIN_NONPROD_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: us-east-1
         run: |
           set -ex
           cd modules
