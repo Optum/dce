@@ -399,6 +399,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
+      - name: Fetch all tags
+        run: git fetch --tags
+
       - name: Download bin artifact
         uses: actions/download-artifact@v4
         with:
