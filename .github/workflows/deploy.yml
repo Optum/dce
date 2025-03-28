@@ -347,7 +347,8 @@ jobs:
           cat ./dce.yml
 
           ./dce --config=./dce.yml leases login ${lease_id}
-
+          
+      # Cleanup the PR environment
       # Install Terraform
       - name: Install Terraform
         uses: hashicorp/setup-terraform@v1
