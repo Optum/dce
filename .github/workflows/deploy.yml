@@ -334,11 +334,6 @@ jobs:
 
           chmod +x ./dce
 
-  Cleanup:
-    needs: Deploy
-    environment: "nonprod"
-    runs-on: ubuntu-latest
-    steps:
       - name: DCE Lease Login
         env:
           AWS_DEFAULT_REGION: us-east-1
@@ -397,7 +392,7 @@ jobs:
             -a ${account_id}
 
   Release:
-    needs: Cleanup
+    needs: Deploy
     runs-on: ubuntu-latest
     steps:
       - name: Download bin artifact
