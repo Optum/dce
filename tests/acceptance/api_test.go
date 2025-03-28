@@ -66,8 +66,26 @@ func TestApi(t *testing.T) {
 		TerraformDir: "../../modules",
 	}
 	tfOut := terraform.OutputAll(t, tfOpts)
-	apiURL := tfOut["api_url"].(string)
-	require.NotNil(t, apiURL)
+
+	// Print the output for debugging
+	t.Logf("Terraform output: %v", tfOut)
+
+	// Ensure the output contains the expected keys
+	apiURL, ok := tfOut["api_url"].(string)
+	require.True(t, ok, "api_url not found in Terraform output")
+	require.NotEmpty(t, apiURL, "api_url is empty")
+
+	awsRegion, ok := tfOut["aws_region"].(string)
+	require.True(t, ok, "aws_region not found in Terraform output")
+	require.NotEmpty(t, awsRegion, "aws_region is empty")
+
+	accountsTableName, ok := tfOut["accounts_table_name"].(string)
+	require.True(t, ok, "accounts_table_name not found in Terraform output")
+	require.NotEmpty(t, accountsTableName, "accounts_table_name is empty")
+
+	leasesTableName, ok := tfOut["leases_table_name"].(string)
+	require.True(t, ok, "leases_table_name not found in Terraform output")
+	require.NotEmpty(t, leasesTableName, "leases_table_name is empty")
 
 	// Configure the DB service
 	awsSession, err := session.NewSession()
@@ -75,10 +93,10 @@ func TestApi(t *testing.T) {
 	dbSvc = db.New(
 		dynamodb.New(
 			awsSession,
-			aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
+			aws.NewConfig().WithRegion(awsRegion),
 		),
-		tfOut["accounts_table_name"].(string),
-		tfOut["leases_table_name"].(string),
+		accountsTableName,
+		leasesTableName,
 		7,
 	)
 	dbSvc.ConsistentRead = true
@@ -87,13 +105,13 @@ func TestApi(t *testing.T) {
 	usageSvc = usage.New(
 		dynamodb.New(
 			awsSession,
-			aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
+			aws.NewConfig().WithRegion(awsRegion),
 		),
 		tfOut["usage_table_name"].(string),
 		"StartDate",
 		"PrincipalId",
 	)
-
+	
 	sqsSvc = sqs.New(
 		awsSession,
 		aws.NewConfig().WithRegion(tfOut["aws_region"].(string)),
