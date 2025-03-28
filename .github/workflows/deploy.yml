@@ -395,7 +395,10 @@ jobs:
   Release:
     needs: Deploy
     runs-on: ubuntu-latest
-    steps:
+    steps: 
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
       - name: Download bin artifact
         uses: actions/download-artifact@v4
         with:
