@@ -347,7 +347,7 @@ jobs:
           cat ./dce.yml
 
           ./dce --config=./dce.yml leases login ${lease_id}
-          
+
       # Cleanup the PR environment
       # Install Terraform
       - name: Install Terraform
@@ -408,15 +408,30 @@ jobs:
           name: deploy_scripts
           path: ${{ github.workspace }}/deploy_scripts
 
+      - name: Get latest version tag
+        id: get_latest_tag
+        run: |
+          latest_tag=$(git describe --tags `git rev-list --tags --max-count=1`)
+          echo "::set-output name=latest_tag::$latest_tag"
+
+      - name: Determine if prerelease
+        id: prerelease_check
+        run: |
+          if [ "${{ github.ref }}" == "refs/heads/master" ]; then
+            echo "::set-output name=prerelease::false"
+          else
+            echo "::set-output name=prerelease::true"
+          fi
+
       - name: Create GitHub Release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.ref_name }}
-          release_name: Release ${{ github.ref_name }}
-          draft: true
-          prerelease: true
+          tag_name: ${{ steps.get_latest_tag.outputs.latest_tag }}
+          release_name: Release ${{ steps.get_latest_tag.outputs.latest_tag }}
+          draft: false
+          prerelease: ${{ steps.prerelease_check.outputs.prerelease }}
           files: |
             ${{ github.workspace }}/bin/build_artifacts.zip
             ${{ github.workspace }}/bin/terraform_artifacts.zip
