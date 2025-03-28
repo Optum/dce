@@ -8,13 +8,9 @@ on:
       - reopened
     branches:
       - master
-
-#   release:
-#     types:
-#       - "published"
-
-# # Set run-name to the Release - <RELEASE_TAG> if event is a release, otherwise use the default run-name
-# run-name: ${{ github.event_name == 'release' && format('Release - {0}', github.event.release.tag_name) || '' }}
+  push:
+    branches:
+      - master
 
 env:
   GO_VERSION: 1.21.6
@@ -224,11 +220,11 @@ jobs:
         run: |
 
           echo "Running terraform output for artifacts_bucket_name"
-          ARTIFACTS_BUCKET_NAME=$(cd modules && terraform output -raw artifacts_bucket_name)
+          ARTIFACTS_BUCKET_NAME=$(cd modules && terraform output artifacts_bucket_name)
           echo "output bucket: ${ARTIFACTS_BUCKET_NAME}"
 
           echo "Running terraform output for namespace"
-          NAMESPACE=$(cd modules && terraform output -raw namespace) 
+          NAMESPACE=$(cd modules && terraform output namespace) 
           echo "Output namespace: ${NAMESPACE}"
           ./scripts/deploy.sh \
             /home/runner/work/dce/dce/bin/build_artifacts.zip \
@@ -236,22 +232,22 @@ jobs:
             000879607493-dce-artifacts-github-pr-513
 
       # Functional Tests --> TODO need to fix the test failures
-      # - name: Functional Tests
-      #   run: |
-      #     set -euxo pipefail
-      #     mkdir -p junit-report
-      #     # Run functional tests
-      #     go get github.com/jstemmer/go-junit-report
-      #     go test -v ./tests/... -test.timeout 50m 2>&1 | tee >(go-junit-report > junit-report/functional.xml)
+      - name: Functional Tests
+        run: |
+          set -euxo pipefail
+          mkdir -p junit-report
+          # Run functional tests
+          go get github.com/jstemmer/go-junit-report
+          go test -v ./tests/... -test.timeout 50m 2>&1 | tee >(go-junit-report > junit-report/functional.xml)
 
       # Publish junit test results (for unit and functional tests) -- > TODO need to fix the test failures
 
-      # - name: Publish Test Results
-      #   if: always()
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: Functional Tests
-      #     path: ${{ github.workspace }}/junit-report/*.xml
+      - name: Publish Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Functional Tests
+          path: ${{ github.workspace }}/junit-report/*.xml
 
       # Publish the dce-cli executable, so we can use
       # it in our Cleanup stage
@@ -273,12 +269,6 @@ jobs:
         with:
           name: lease_id
           path: ${{ github.workspace }}/lease_id.txt
-
-      # - name: Upload namespace Artifact
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: namespace
-      #     path: ${{ github.workspace }}/namespace.txt
 
       - name: Upload backend-tf Artifact
         uses: actions/upload-artifact@v4
