@@ -10,18 +10,9 @@ on:
       - opened
       - synchronize
       - reopened
+      - closed
 
 jobs:
-  Deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
-
-      # Add your deploy steps here
-      - name: Deploy step
-        run: echo "Deploying application..."
-
   PreRelease:
     runs-on: ubuntu-latest
     needs: Deploy

@@ -2,7 +2,7 @@ name: Manual Approval
 
 on:
   workflow_run:
-    workflows: ["Deploy"]
+    workflows: ["Pre-release"]
     types:
       - completed
 
