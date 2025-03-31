@@ -1,0 +1,54 @@
+name: Release
+
+on:
+  workflow_run:
+  workflows: [Pre-release]
+  types:
+    - completed
+
+jobs:
+  Release:
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.ref == 'refs/heads/master' && github.event.pull_request.merged == true }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Manual Approval
+        uses: hmarr/auto-approve-action@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Fetch all tags
+        run: git fetch --tags
+
+      - name: Get latest pre-release tag
+        id: get_latest_prerelease_tag
+        run: |
+          latest_prerelease_tag=$(git describe --tags `git rev-list --tags --max-count=1 --grep "-prerelease"`)
+          echo "::set-output name=latest_prerelease_tag::$latest_prerelease_tag"
+
+      - name: Create release tag from pre-release tag
+        id: create_release_tag
+        run: |
+          latest_prerelease_tag=${{ steps.get_latest_prerelease_tag.outputs.latest_prerelease_tag }}
+          if [[ $latest_prerelease_tag =~ ^(v[0-9]+\.[0-9]+\.[0-9]+)-prerelease ]]; then
+            new_tag=${BASH_REMATCH[1]}
+          else
+            new_tag="v0.0.1"
+          fi
+          echo "::set-output name=new_tag::$new_tag"
+
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.create_release_tag.outputs.new_tag }}
+          release_name: Release ${{ steps.create_release_tag.outputs.new_tag }}
+          draft: false
+          prerelease: false
+          files: |
+            ${{ github.workspace }}/bin/build_artifacts.zip
+            ${{ github.workspace }}/bin/terraform_artifacts.zip
+            ${{ github.workspace }}/deploy_scripts/deploy.sh
+            ${{ github.workspace }}/deploy_scripts/restore_db.sh
