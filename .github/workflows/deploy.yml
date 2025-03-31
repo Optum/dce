@@ -1,7 +1,7 @@
 name: Deploy
 on:
   workflow_run:
-    workflows: ["Test and Build"]
+    workflows: ["Test And Build"]
     types:
       - completed
 jobs:

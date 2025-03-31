@@ -1,4 +1,4 @@
-name: Test and Build
+name: Test And Build
 
 on:
   pull_request:
@@ -16,34 +16,46 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
         with:
-          node-version: '14'
+          python-version: "3.x"
 
-      - name: Install dependencies
-        run: npm install
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@v1
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
 
-      - name: Run tests
-        run: npm test
+      - name: Setup Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Set up Golang CI Tools
+        run: ./scripts/install_ci.sh
 
   Build:
-    if: github.event.pull_request.merged == true
+    needs: Test
+    if: github.event.pull_request.merged == false
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v2
+      - name: Build Go executables
+        run: make build
+
+      - name: Publish build artifacts (bin)
+        uses: actions/upload-artifact@v4
         with:
-          node-version: '14'
+          name: bin
+          path: bin
 
-      - name: Install dependencies
-        run: npm install
-
-      - name: Build project
-        run: npm run build
+      - name: Publish build artifacts (deploy_scripts)
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy_scripts
+          path: scripts
 
       - name: Fetch all tags
         run: git fetch --tags
