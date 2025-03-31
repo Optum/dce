@@ -1,0 +1,18 @@
+name: Manual Approval
+
+on:
+  workflow_run:
+    workflows: ["Pre-release"]
+    types:
+      - completed
+
+jobs:
+  approval:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    steps:
+      - name: Request approval
+        uses: hmarr/auto-approve-action@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          comment: "Please approve this release."
