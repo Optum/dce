@@ -1,0 +1,61 @@
+name: Pre-release
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+jobs:
+  Deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      # Add your deploy steps here
+      - name: Deploy step
+        run: echo "Deploying application..."
+
+  PreRelease:
+    runs-on: ubuntu-latest
+    needs: Deploy
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Fetch all tags
+        run: git fetch --tags
+
+      - name: Get latest deployment tag
+        id: get_latest_tag
+        run: |
+          latest_tag=$(git describe --tags `git rev-list --tags --max-count=1`)
+          echo "::set-output name=latest_tag::$latest_tag"
+
+      - name: Create pre-release tag
+        id: create_prerelease_tag
+        run: |
+          latest_tag=${{ steps.get_latest_tag.outputs.latest_tag }}
+          if [[ $latest_tag =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+            new_tag="${latest_tag}-prerelease-${GITHUB_RUN_ID}"
+          else
+            new_tag="v0.0.1-prerelease-${GITHUB_RUN_ID}"
+          fi
+          echo "::set-output name=new_tag::$new_tag"
+
+      - name: Create GitHub Pre-release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.create_prerelease_tag.outputs.new_tag }}
+          release_name: Pre-release ${{ steps.create_prerelease_tag.outputs.new_tag }}
+          draft: false
+          prerelease: true
+          files: |
+            ${{ github.workspace }}/bin/build_artifacts.zip
+            ${{ github.workspace }}/bin/terraform_artifacts.zip
+            ${{ github.workspace }}/deploy_scripts/deploy.sh
+            ${{ github.workspace }}/deploy_scripts/restore_db.sh
