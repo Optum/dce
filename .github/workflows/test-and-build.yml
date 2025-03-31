@@ -7,7 +7,10 @@ on:
       - synchronize
       - reopened
       - closed
-
+env:
+  GO_VERSION: 1.21.6
+  TERRAFORM_VERSION: 1.7.4
+  
 jobs:
   Test:
     if: github.event.pull_request.merged == false

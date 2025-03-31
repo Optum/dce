@@ -1,6 +1,10 @@
 name: Pre-release
 
 on:
+  workflow_run:
+    workflows: [Deploy]
+    types:
+      - completed
   pull_request:
     types:
       - opened
