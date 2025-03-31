@@ -4,6 +4,7 @@ on:
     workflows: ["Test And Build"]
     types:
       - completed
+      
 jobs:
   Deploy:
     needs: TestAndBuild
