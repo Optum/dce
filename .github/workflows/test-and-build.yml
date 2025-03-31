@@ -1,0 +1,90 @@
+name: Test And Build
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - closed
+
+jobs:
+  Test:
+    if: github.event.pull_request.merged == false
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.x"
+
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@v1
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+
+      - name: Setup Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Set up Golang CI Tools
+        run: ./scripts/install_ci.sh
+
+  Build:
+    needs: Test
+    if: github.event.pull_request.merged == false
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Build Go executables
+        run: make build
+
+      - name: Publish build artifacts (bin)
+        uses: actions/upload-artifact@v4
+        with:
+          name: bin
+          path: bin
+
+      - name: Publish build artifacts (deploy_scripts)
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy_scripts
+          path: scripts
+
+      - name: Fetch all tags
+        run: git fetch --tags
+
+      - name: Get latest tag
+        id: get_latest_tag
+        run: |
+          latest_tag=$(git describe --tags `git rev-list --tags --max-count=1`)
+          echo "::set-output name=latest_tag::$latest_tag"
+
+      - name: Determine new tag
+        id: determine_new_tag
+        run: |
+          latest_tag=${{ steps.get_latest_tag.outputs.latest_tag }}
+          if [[ $latest_tag =~ ^(v[0-9]+\.[0-9]+\.[0-9]+)-prerelease ]]; then
+            new_tag="${BASH_REMATCH[1]}"
+          elif [[ $latest_tag =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+            major=${BASH_REMATCH[1]}
+            minor=${BASH_REMATCH[2]}
+            patch=${BASH_REMATCH[3]}
+            new_tag="v$major.$minor.$((patch + 1))-prerelease"
+          else
+            new_tag="v0.0.1-prerelease"
+          fi
+          echo "::set-output name=new_tag::$new_tag"
+
+      - name: Push new tag
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git tag ${{ steps.determine_new_tag.outputs.new_tag }}
+          git push origin ${{ steps.determine_new_tag.outputs.new_tag }}
