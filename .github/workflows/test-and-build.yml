@@ -8,7 +8,7 @@ on:
       - reopened
       - closed
     branches:
-      - master
+      - azdevops-cicd-migration
 env:
   GO_VERSION: 1.21.6
   TERRAFORM_VERSION: 1.7.4
