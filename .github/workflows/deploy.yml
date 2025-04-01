@@ -1,7 +1,8 @@
 name: Deploy
+
 on:
   workflow_run:
-    workflows: [Test And Build] # This is the name of the workflow that triggers this workflow
+    workflows: ["Test And Build"]
     types: [completed]
 
 jobs:
