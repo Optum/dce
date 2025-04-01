@@ -1,17 +1,19 @@
 name: DCE deploy to environment
 
 on:
-  workflow_call:
-    inputs:
-      environment:
-        required: true
-        type: string
-        description: 'The environment to deploy to'
-        default: 'nonprod'
-      env:
-      GO_VERSION: 1.21.6
-      TERRAFORM_VERSION: 1.7.4
-
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+    branches:
+      - master
+    push:
+      branches:
+        - master
+    env:
+    GO_VERSION: 1.21.6
+    TERRAFORM_VERSION: 1.7.4
 
 jobs:
   TestAndBuild:
@@ -441,4 +443,3 @@ jobs:
             ${{ github.workspace }}/bin/terraform_artifacts.zip
             ${{ github.workspace }}/deploy_scripts/deploy.sh
             ${{ github.workspace }}/deploy_scripts/restore_db.sh
-
