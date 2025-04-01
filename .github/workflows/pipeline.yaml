@@ -1,15 +1,63 @@
-name: Deploy
+name: DCE deploy to environment
 
 on:
-  workflow_dispatch:
-  workflow_run:
-    workflows: [TestAndBuild]
-    types: 
-      - completed
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+        description: 'The environment to deploy to'
+        default: 'nonprod'
+      env:
+      GO_VERSION: 1.21.6
+      TERRAFORM_VERSION: 1.7.4
+
 
 jobs:
+  TestAndBuild:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.x"
+
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@v1
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+
+      - name: Setup Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Set up Golang CI Tools
+        run: ./scripts/install_ci.sh
+
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Build Go executables
+        run: make build
+
+      - name: Publish build artifacts (bin)
+        uses: actions/upload-artifact@v4
+        with:
+          name: bin
+          path: bin
+
+      - name: Publish build artifacts (deploy_scripts)
+        uses: actions/upload-artifact@v4
+        with:
+          name: deploy_scripts
+          path: scripts
+
   Deploy:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    needs: [TestAndBuild]
     runs-on: ubuntu-latest
     environment: "nonprod"
     steps:
@@ -160,7 +208,7 @@ jobs:
           echo "Running build script"
           ./scripts/build.sh
 
-      # Deploy Application Code to AWS -- > TODO: ARTIFACTS_BUCKET_NAME and NAMESPACE values are hardcoded as -raw flag or jq are throwing errors
+      # Deploy Application Code to AWS -- > TODO ARTIFACTS_BUCKET_NAME and NAMESPACE values are hardcoded as -raw flag or jq are throwing errors
       - name: Deploy Application Code
         run: |
 
@@ -176,7 +224,7 @@ jobs:
             github-pr-513 \
             000879607493-dce-artifacts-github-pr-513
 
-      # Functional Tests --> TODO: need to fix the Functional Tests failures
+      # Functional Tests --> TODO need to fix the test failures
       # - name: Functional Tests
       #   run: |
       #     set -euxo pipefail
@@ -185,7 +233,7 @@ jobs:
       #     go get github.com/jstemmer/go-junit-report
       #     go test -v ./tests/... -test.timeout 50m 2>&1 | tee >(go-junit-report > junit-report/functional.xml)
 
-      # Publish junit test results (for unit and functional tests) -- > TODO need to fix the Functional Tests failures
+      # Publish junit test results (for unit and functional tests) -- > TODO need to fix the test failures
 
       # - name: Publish Test Results
       #   if: always()
@@ -326,3 +374,71 @@ jobs:
           ./dce --config=./dce.yml leases end \
             -p ${namespace} \
             -a ${account_id}
+
+  Release:
+    needs: [Deploy]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Fetch all tags
+        run: git fetch --tags
+
+      - name: Download bin artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: bin
+          path: ${{ github.workspace }}/bin
+
+      - name: Download deploy_scripts artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: deploy_scripts
+          path: ${{ github.workspace }}/deploy_scripts
+
+      - name: Get latest version tag
+        id: get_latest_tag
+        run: |
+          latest_tag=$(git describe --tags `git rev-list --tags --max-count=1`)
+          echo "::set-output name=latest_tag::$latest_tag"
+
+      - name: Increment version tag
+        id: increment_tag
+        run: |
+          latest_tag=${{ steps.get_latest_tag.outputs.latest_tag }}
+          if [[ $latest_tag =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+            major=${BASH_REMATCH[1]}
+            minor=${BASH_REMATCH[2]}
+            patch=${BASH_REMATCH[3]}
+            new_tag="v$major.$minor.$((patch + 1))"
+          else
+            new_tag="v0.0.1"
+          fi
+          echo "::set-output name=new_tag::$new_tag"
+
+      - name: Determine if prerelease
+        id: prerelease_check
+        run: |
+          if [ "${{ github.ref }}" == "refs/heads/master" ]; then
+            echo "::set-output name=prerelease::false"
+          else
+            echo "::set-output name=prerelease::true"
+          fi
+
+      - name: Create GitHub Release
+        if: github.event_name != 'pull_request'
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.increment_tag.outputs.new_tag }}
+          release_name: Release ${{ steps.increment_tag.outputs.new_tag }}
+          draft: false
+          prerelease: ${{ steps.prerelease_check.outputs.prerelease }}
+          files: |
+            ${{ github.workspace }}/bin/build_artifacts.zip
+            ${{ github.workspace }}/bin/terraform_artifacts.zip
+            ${{ github.workspace }}/deploy_scripts/deploy.sh
+            ${{ github.workspace }}/deploy_scripts/restore_db.sh
+
