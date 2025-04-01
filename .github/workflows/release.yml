@@ -2,9 +2,9 @@ name: Release
 
 on:
   workflow_run:
-  workflows: [Pre-release]
-  types:
-    - completed
+    workflows: [Pre-release]
+    types:
+      - completed
 
 jobs:
   Release:
