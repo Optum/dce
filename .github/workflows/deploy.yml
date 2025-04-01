@@ -1,9 +1,11 @@
 name: Deploy
 
 on:
+  workflow_dispatch:
   workflow_run:
-    workflows: ["Test And Build"]
-    types: [completed]
+    workflows: [TestAndBuild]
+    types: 
+      - completed
 
 jobs:
   Deploy:
