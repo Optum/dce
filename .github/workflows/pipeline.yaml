@@ -33,6 +33,8 @@ on:
         required: true
       DCE_NONPROD_HOSTNAME:
         required: true
+      NOTIFY_EMAIL:
+       required: true
 
 jobs:
   TestAndBuild:
