@@ -24,6 +24,14 @@ on:
         required: false
         type: string
         default: "1.7.4"
+      version_tag:
+        required: false
+        type: string
+        default: master # pr-#, nonprod, or vX.Y.Z
+      namespace:
+        required: false
+        type: string
+        default: nonprod # pr-#, nonprod, or prod
     secrets:
       AWS_DEFAULT_REGION:
         required: true
