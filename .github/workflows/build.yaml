@@ -7,11 +7,11 @@ on:
         required: true
         type: string
         description: "The environment to deploy to (e.g. nonprod, prod)"
-        default: "nonprod"
+        default: pr
       branch:
         required: false
         type: string
-        default: azdevops-cicd-migration
+        default: master
       release:
         required: false
         type: string
