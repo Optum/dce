@@ -12,13 +12,13 @@ on:
         required: false
         type: string
         default: master
-      release: # Is default when compared to branch, will override if both present
+      release:
         required: false
         type: string
         default: none
     env:
-    GO_VERSION: 1.21.6
-    TERRAFORM_VERSION: 1.7.4
+      GO_VERSION: 1.21.6
+      TERRAFORM_VERSION: 1.7.4
 
 jobs:
   TestAndBuild:
