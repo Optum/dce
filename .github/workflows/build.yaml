@@ -7,7 +7,7 @@ on:
         required: true
         type: string
         description: "The environment to deploy to (e.g. nonprod, prod)"
-        default: pr
+        default: nonprod
       branch:
         required: false
         type: string
@@ -86,7 +86,7 @@ jobs:
   Deploy:
     needs: [TestAndBuild]
     runs-on: ubuntu-latest
-    environment: pr
+    environment: nonprod
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2

@@ -10,7 +10,7 @@ jobs:
   build:
     uses: ./.github/workflows/build.yaml
     with:
-      environment: pr
+      environment: nonprod
       version_tag: pr-${{ github.event.number }}
       namespace: pr-${{ github.event.number }}
     secrets:
