@@ -367,8 +367,8 @@ jobs:
 
           ./dce --config=./dce.yml leases login ${lease_id}
 
-    # Cleanup the PR environment
-    # Install Terraform
+      # Cleanup the PR environment
+      # Install Terraform
       - name: Install Terraform
         uses: hashicorp/setup-terraform@v1
         with:
@@ -411,33 +411,40 @@ jobs:
             -p ${namespace} \
             -a ${account_id}
   Release:
-      needs: [Deploy]
-      runs-on: ubuntu-latest
-      steps:
-        - name: Checkout repository
-          uses: actions/checkout@v2
+    needs: [Deploy]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
 
-        - name: Download bin artifact
-          uses: actions/download-artifact@v4
-          with:
-            name: bin
-            path: ${{ github.workspace }}/bin
+      - name: Download bin artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: bin
+          path: ${{ github.workspace }}/bin
 
-        - name: Download deploy_scripts artifact
-          uses: actions/download-artifact@v4
-          with:
-            name: deploy_scripts
-            path: ${{ github.workspace }}/deploy_scripts
+      - name: Download deploy_scripts artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: deploy_scripts
+          path: ${{ github.workspace }}/deploy_scripts
 
-        - name: Create GitHub Release
-          if: github.event_name != 'pull_request'
-          uses: actions/create-release@v1
-          env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          with:
-            draft: false
-            files: |
-              ${{ github.workspace }}/bin/build_artifacts.zip
-              ${{ github.workspace }}/bin/terraform_artifacts.zip
-              ${{ github.workspace }}/deploy_scripts/deploy.sh
-              ${{ github.workspace }}/deploy_scripts/restore_db.sh
+      - name: Create Tag
+        if: github.event_name != 'pull_request'
+        run: |
+          git tag v${{ github.run_number }}
+          git push origin v${{ github.run_number }}
+
+      - name: Create GitHub Release
+        if: github.event_name != 'pull_request'
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ github.run_number }}
+          draft: false
+          files: |
+            ${{ github.workspace }}/bin/build_artifacts.zip
+            ${{ github.workspace }}/bin/terraform_artifacts.zip
+            ${{ github.workspace }}/deploy_scripts/deploy.sh
+            ${{ github.workspace }}/deploy_scripts/restore_db.sh
