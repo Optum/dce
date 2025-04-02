@@ -402,7 +402,7 @@ jobs:
           ./dce --config=./dce.yml leases end \
             -p ${namespace} \
             -a ${account_id}
-    Release:
+  Release:
       needs: [Deploy]
       runs-on: ubuntu-latest
       steps:
