@@ -421,25 +421,11 @@ jobs:
           name: deploy_scripts
           path: ${{ github.workspace }}/deploy_scripts
 
-      - name: Get latest version tag
+      - name: Get latest tag
         id: get_latest_tag
         run: |
           latest_tag=$(git describe --tags `git rev-list --tags --max-count=1`)
           echo "::set-output name=latest_tag::$latest_tag"
-
-      - name: Increment version tag
-        id: increment_tag
-        run: |
-          latest_tag=${{ steps.get_latest_tag.outputs.latest_tag }}
-          if [[ $latest_tag =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
-            major=${BASH_REMATCH[1]}
-            minor=${BASH_REMATCH[2]}
-            patch=${BASH_REMATCH[3]}
-            new_tag="v$major.$minor.$((patch + 1))"
-          else
-            new_tag="v0.0.1"
-          fi
-          echo "::set-output name=new_tag::$new_tag"
 
       - name: Determine if prerelease
         id: prerelease_check
@@ -456,8 +442,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ steps.increment_tag.outputs.new_tag }}
-          release_name: Release ${{ steps.increment_tag.outputs.new_tag }}
+          tag_name: "prerelease-${{ github.sha }}"
+          release_name: "Prerelease for ${{ github.sha }}"
           draft: false
           prerelease: ${{ steps.prerelease_check.outputs.prerelease }}
           files: |
