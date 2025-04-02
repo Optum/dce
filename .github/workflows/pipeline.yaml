@@ -361,10 +361,6 @@ jobs:
 
     # Cleanup the PR environment
     # Install Terraform
-  Cleanup:
-    needs: [Deploy]
-    runs-on: ubuntu-latest
-    steps:
       - name: Install Terraform
         uses: hashicorp/setup-terraform@v1
         with:
@@ -409,7 +405,7 @@ jobs:
 
   #Release Workflow
   Release:
-    needs: [Cleanup]
+    needs: [Deploy]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
