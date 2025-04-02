@@ -71,7 +71,7 @@ jobs:
   Deploy:
     needs: [TestAndBuild]
     runs-on: ubuntu-latest
-    environment: "nonprod"
+    environment: nonprod
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2

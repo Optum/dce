@@ -10,3 +10,9 @@ jobs:
     uses: ./.github/workflows/pipeline.yaml
     with:
       environment: nonprod
+    
+    secrets:
+      AWS_DEFAULT_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_DCE_API_ADMIN_NONPROD_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_DCE_API_ADMIN_NONPROD_SECRET_ACCESS_KEY }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
