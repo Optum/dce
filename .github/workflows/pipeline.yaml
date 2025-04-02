@@ -5,6 +5,9 @@ on:
     types: [ opened, synchronize, reopened, closed ]
     branches:
       - azdevops-cicd-migration
+  push:
+    branches:
+      - azdevops-cicd-migration
 
 jobs:
   build:
