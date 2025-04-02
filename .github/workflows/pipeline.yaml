@@ -24,13 +24,13 @@ on:
         required: false
         type: string
         default: "1.7.4"
-    secrets:
-      AWS_DEFAULT_REGION:
-        required: true
-      AWS_ACCESS_KEY_ID:
-        required: true
-      AWS_SECRET_ACCESS_KEY:
-        required: true
+    # secrets:
+    #   AWS_DEFAULT_REGION:
+    #     required: true
+    #   AWS_ACCESS_KEY_ID:
+    #     required: true
+    #   AWS_SECRET_ACCESS_KEY:
+    #     required: true
 
 jobs:
   TestAndBuild:
