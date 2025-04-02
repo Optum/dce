@@ -24,19 +24,24 @@ on:
         required: false
         type: string
         default: "1.7.4"
-      secrets:
-        AWS_DEFAULT_REGION:
-          required: true
-        AWS_ACCESS_KEY_ID:
-          required: true
-        AWS_SECRET_ACCESS_KEY:
-          required: true
-        GITHUB_TOKEN:
-          required: true
+    secrets:
+      GITHUB_TOKEN:
+        required: true
+      AWS_DEFAULT_REGION:
+        required: true
+      AWS_ACCESS_KEY_ID:
+        required: true
+      AWS_SECRET_ACCESS_KEY:
+        required: true
 
 jobs:
   TestAndBuild:
     runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      AWS_DEFAULT_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
@@ -80,6 +85,11 @@ jobs:
   Deploy:
     needs: [TestAndBuild]
     runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      AWS_DEFAULT_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     environment: nonprod
     steps:
       - name: Checkout repository
