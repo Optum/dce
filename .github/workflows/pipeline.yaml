@@ -1,16 +1,21 @@
 name: DCE deploy to environment
 
 on:
-  pull_request:
-    types:
-      - opened
-      - synchronize
-      - reopened
-    branches:
-      - master
-    push:
-      branches:
-        - master
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+        description: 'The environment to deploy to (e.g. nonprod, prod)'
+        default: 'nonprod'
+      branch:
+        required: false
+        type: string
+        default: master
+      release: # Is default when compared to branch, will override if both present
+        required: false
+        type: string
+        default: none
     env:
     GO_VERSION: 1.21.6
     TERRAFORM_VERSION: 1.7.4
