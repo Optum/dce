@@ -6,7 +6,7 @@ on:
       - patch-test-workflows
 
 jobs:
-  CallTestAndBuild:
+  pipeline:
     uses: ./.github/workflows/pipeline.yaml
     with:
       environment: nonprod
