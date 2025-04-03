@@ -247,7 +247,7 @@ jobs:
       - name: Set ARTIFACTS_BUCKET environment variable
         run: |
           echo "Running terraform output for artifacts_bucket_name"
-          ARTIFACTS_BUCKET=$(cd modules && terraform output -json artifacts_bucket_name | jq -r '.')
+          ARTIFACTS_BUCKET=$(cd modules && terraform output -json artifacts_bucket_name | tr -d '"')
           echo "ARTIFACTS_BUCKET=${ARTIFACTS_BUCKET}" >> $GITHUB_ENV
 
       - name: Print ARTIFACTS_BUCKET
