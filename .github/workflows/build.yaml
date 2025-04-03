@@ -249,8 +249,8 @@ jobs:
         run: |
 
           echo "Running terraform output for artifacts_bucket_name"
-          ARTIFACTS_BUCKET_NAME=$(cd modules && terraform output artifacts_bucket_name)
-          echo "output bucket: ${ARTIFACTS_BUCKET_NAME}"
+          ARTIFACTS_BUCKET_NAME=$(cd modules && terraform output artifacts_bucket_name | tr -d '"')
+          echo "ARTIFACTS_BUCKET_NAME=${ARTIFACTS_BUCKET_NAME}" >> $GITHUB_ENV
 
           echo "Running terraform output for namespace"
           NAMESPACE=$(cd modules && terraform output namespace) 
@@ -258,7 +258,7 @@ jobs:
           ./scripts/deploy.sh \
             /home/runner/work/dce/dce/bin/build_artifacts.zip \
             cd\
-            000879607493-dce-artifacts-cd
+            $ARTIFACTS_BUCKET_NAME
 
       # Functional Tests --> TODO need to fix the test failures
       # - name: Functional Tests
@@ -429,6 +429,11 @@ jobs:
           name: deploy_scripts
           path: ${{ github.workspace }}/deploy_scripts
 
+      - name: Verify artifacts
+        run: |
+          ls -l ${{ github.workspace }}/bin
+          ls -l ${{ github.workspace }}/deploy_scripts
+
       - name: Create Tag
         if: github.event_name != 'pull_request'
         run: |
@@ -442,7 +447,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: v${{ github.run_number }}
-          draft: false
+          draft: true
+          prerelease: true
           files: |
             ${{ github.workspace }}/bin/build_artifacts.zip
             ${{ github.workspace }}/bin/terraform_artifacts.zip
