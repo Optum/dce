@@ -255,7 +255,7 @@ jobs:
           echo "ARTIFACTS_BUCKET=$ARTIFACTS_BUCKET"
           echo "Starting to print the artifacts bucket name 2"
           echo "ARTIFACTS_BUCKET=${ARTIFACTS_BUCKET}"
-          echo "ARTIFACTS_BUCKET=${ARTIFACTS_BUCKET}" >> >> $GITHUB_ENV
+          echo "ARTIFACTS_BUCKET=${ARTIFACTS_BUCKET}" >> $GITHUB_ENV
 
           echo "Running terraform output for namespace"
           NAMESPACE=$(cd modules && terraform output namespace) 
