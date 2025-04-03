@@ -250,7 +250,10 @@ jobs:
 
           echo "Running terraform output for artifacts_bucket_name"
           ARTIFACTS_BUCKET_NAME=$(cd modules && terraform output artifacts_bucket_name)
-          echo ARTIFACTS_BUCKET_NAME=${ARTIFACTS_BUCKET_NAME}
+          ARTIFACTS_BUCKET=$(echo "${ARTIFACTS_BUCKET_NAME}" | tr -d '"') # Remove quotes if any
+          echo "ARTIFACTS_BUCKET=$ARTIFACTS_BUCKET"
+          echo "ARTIFACTS_BUCKET=${ARTIFACTS_BUCKET}"
+          echo "ARTIFACTS_BUCKET=$ARTIFACTS_BUCKET" >> GITHUB_ENV
 
           echo "Running terraform output for namespace"
           NAMESPACE=$(cd modules && terraform output namespace) 
@@ -258,7 +261,7 @@ jobs:
           ./scripts/deploy.sh \
             /home/runner/work/dce/dce/bin/build_artifacts.zip \
             cd\
-            echo ARTIFACTS_BUCKET_NAME=${ARTIFACTS_BUCKET_NAME}
+            "${{ env.ARTIFACTS_BUCKET }}"
 
       # Functional Tests --> TODO need to fix the test failures
       # - name: Functional Tests
