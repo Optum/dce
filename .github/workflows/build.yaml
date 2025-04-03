@@ -249,7 +249,7 @@ jobs:
         run: |
 
           echo "Running terraform output for artifacts_bucket_name"
-          ARTIFACTS_BUCKET_NAME=$(cd modules && terraform output artifacts_bucket_name)
+          ARTIFACTS_BUCKET_NAME=$(cd modules && terraform output -raw artifacts_bucket_name)
           echo "ARTIFACTS_BUCKET_NAME=${ARTIFACTS_BUCKET_NAME}" >> $GITHUB_ENV
 
           echo "Running terraform output for namespace"
