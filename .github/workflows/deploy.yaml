@@ -35,6 +35,10 @@ on:
         required: true
       NOTIFY_EMAIL:
         required: true
+  workflow_run:
+    workflows: ["DCE deploy to PR environment"]
+    types:
+      - completed
 
 # Build and Test Workflow
 
