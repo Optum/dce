@@ -243,7 +243,7 @@ jobs:
         run: |
           echo "Running build script"
           ./scripts/build.sh
-          
+
       - name: Deploy Application Code
         run: |
 
@@ -261,7 +261,7 @@ jobs:
             ./scripts/deploy.sh \
             /home/runner/work/dce/dce/bin/build_artifacts.zip \
             cd\
-            "${ARTIFACTS_BUCKET}"
+            000879607493-dce-artifacts-cd
 
       # Functional Tests --> TODO need to fix the test failures
       # - name: Functional Tests
@@ -443,17 +443,17 @@ jobs:
           git tag v${{ github.run_number }}
           git push origin v${{ github.run_number }}
 
-      - name: Create GitHub Release
-        if: github.event_name != 'pull_request'
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: v${{ github.run_number }}
-          draft: true
-          prerelease: true
-          files: |
-            ${{ github.workspace }}/bin/build_artifacts.zip
-            ${{ github.workspace }}/bin/terraform_artifacts.zip
-            ${{ github.workspace }}/deploy_scripts/deploy.sh
-            ${{ github.workspace }}/deploy_scripts/restore_db.sh
+      # - name: Create GitHub Release
+      #   if: github.event_name != 'pull_request'
+      #   uses: actions/create-release@v1
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   with:
+      #     tag_name: v${{ github.run_number }}
+      #     draft: true
+      #     prerelease: true
+      #     files: |
+      #       ${{ github.workspace }}/bin/build_artifacts.zip
+      #       ${{ github.workspace }}/bin/terraform_artifacts.zip
+      #       ${{ github.workspace }}/deploy_scripts/deploy.sh
+      #       ${{ github.workspace }}/deploy_scripts/restore_db.sh
