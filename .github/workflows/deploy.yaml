@@ -2,10 +2,6 @@ name: DCE deploy to environment
 
 on:
   workflow_call:
-  workflow_run:
-    workflows: ["DCE deploy to PR environment"]
-    types:
-      - completed
     inputs:
       environment:
         required: true

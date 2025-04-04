@@ -35,7 +35,7 @@ on:
   # pull_request_review:
   #   types: [submitted]
    workflow_run:
-    workflows: ["Nonprod PR Pipeline"]
+    workflows: ["DCE deploy to PR environment"]
     types:
       - completed
 
