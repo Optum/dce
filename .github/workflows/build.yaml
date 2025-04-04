@@ -243,29 +243,16 @@ jobs:
         run: |
           echo "Running build script"
           ./scripts/build.sh
-
-      # - name: Set ARTIFACTS_BUCKET environment variable
-      #   run: |
-      #     echo "Running terraform output for artifacts_bucket_name"
-      #     ARTIFACTS_BUCKET=$(cd modules && terraform output -json artifacts_bucket_name | tr -d "'\"") # Remove quotes and newlines
-      #     echo "ARTIFACTS_BUCKET=${ARTIFACTS_BUCKET}" >> $GITHUB_ENV
-
-      # - name: Print ARTIFACTS_BUCKET
-      #   run: |
-      #     echo "Starting to print the artifacts bucket name"
-      #     echo "ARTIFACTS_BUCKET=${ARTIFACTS_BUCKET}"
-      # Deploy Application Code to AWS -- > TODO ARTIFACTS_BUCKET_NAME and NAMESPACE values are hardcoded as -raw flag or jq are throwing errors
+          
       - name: Deploy Application Code
         run: |
 
           echo "Running terraform output for artifacts_bucket_name"
-          ARTIFACTS_BUCKET=$(cd modules && terraform output artifacts_bucket_name | tr -d '"') # Remove quotes and newlines
-          ARTIFACTS_BUCKET_OUTPUT=$(echo "ARTIFACTS_BUCKET=${ARTIFACTS_BUCKET}")
-          echo "ARTIFACTS_BUCKET_OUTPUT=${ARTIFACTS_BUCKET_OUTPUT}" >> $GITHUB_ENV
-          # echo "ARTIFACTS_BUCKET_OUTPUT=${ARTIFACTS_BUCKET_OUTPUT}" >> $GITHUB_ENV
+          ARTIFACTS_BUCKET=$(cd modules && terraform output -raw artifacts_bucket_name | tr -d '"') # Remove quotes and newlines
+          echo "ARTIFACTS_BUCKET=${ARTIFACTS_BUCKET}" >> $GITHUB_ENV
 
-          echo "Starting to print the artifacts bucket name 3"
-          echo "${ARTIFACTS_BUCKET_OUTPUT}"
+          echo "Starting to print the artifacts bucket name"
+          echo "ARTIFACTS_BUCKET=${ARTIFACTS_BUCKET}"
 
           echo "Running terraform output for namespace"
           NAMESPACE=$(cd modules && terraform output namespace) 
