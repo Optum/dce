@@ -248,8 +248,8 @@ jobs:
         run: |
 
           echo "Running terraform output for artifacts_bucket_name"
-          ARTIFACTS_BUCKET=$(cd modules && terraform output -raw artifacts_bucket_name | tr -d '"') # Remove quotes and newlines
-          echo "ARTIFACTS_BUCKET=${ARTIFACTS_BUCKET}" >> $GITHUB_ENV
+          ARTIFACTS_BUCKET=$(cd modules && terraform output artifacts_bucket_name | tr -d '"') # Remove quotes and newlines
+          echo "ARTIFACTS_BUCKET=${ARTIFACTS_BUCKET}"
 
           echo "Starting to print the artifacts bucket name"
           echo "ARTIFACTS_BUCKET=${ARTIFACTS_BUCKET}"
