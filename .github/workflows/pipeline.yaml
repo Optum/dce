@@ -28,16 +28,20 @@ jobs:
 name: Nonprod Deployment Pipeline
 
 on:
-  release:
-    types:
-      - "published"
+  # release:
+  #   types:
+  #     - "published"
 
-  pull_request_review:
-    types: [submitted]
+  # pull_request_review:
+  #   types: [submitted]
+   workflow_run:
+    workflows: ["Nonprod PR Pipeline"]
+    types:
+      - completed
 
 jobs:
   deploy:
-    if: github.event.review.state == 'approved'
+    # if: github.event.review.state == 'approved'
     uses: ./.github/workflows/deploy.yaml
     with:
       environment: nonprod
