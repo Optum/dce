@@ -267,17 +267,14 @@ jobs:
           echo "Starting to print the artifacts bucket name 3"
           echo "${ARTIFACTS_BUCKET_OUTPUT}"
 
-          echo "Starting to print the artifacts bucket name 4"
-          echo "ARTIFACTS_BUCKET_OUTPUT"
-
-
           echo "Running terraform output for namespace"
           NAMESPACE=$(cd modules && terraform output namespace) 
           echo "Output namespace: ${NAMESPACE}"
-          ./scripts/deploy.sh \
+
+            ./scripts/deploy.sh \
             /home/runner/work/dce/dce/bin/build_artifacts.zip \
             cd\
-           "${ARTIFACTS_BUCKET_OUTPUT}"
+            "${ARTIFACTS_BUCKET}"
 
       # Functional Tests --> TODO need to fix the test failures
       # - name: Functional Tests
