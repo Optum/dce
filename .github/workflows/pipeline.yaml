@@ -34,10 +34,9 @@ on:
 
   # pull_request_review:
   #   types: [submitted]
-   workflow_run:
-    workflows: ["DCE deploy to PR environment"]
-    types:
-      - completed
+  push:
+    branches:
+      - azdevops-cicd-migration
 
 jobs:
   deploy:
