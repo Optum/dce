@@ -1,13 +1,10 @@
 name: Nonprod PR Pipeline
 
-on:
-  pull_request:
-    types: [ opened, synchronize, reopened, closed ]
-    branches:
-      - azdevops-cicd-migration
-  push:
-    branches:
-      - azdevops-cicd-migration
+# on:
+#   pull_request:
+#     types: [ opened, synchronize, reopened, closed ]
+#     branches:
+#      - master
 
 jobs:
   build:
