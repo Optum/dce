@@ -40,7 +40,8 @@ jobs:
     uses: ./.github/workflows/deploy.yaml
     with:
       environment: nonprod
-      version_tag: ${{ github.event.release.tag_name }}
+      version_tag: pr-${{ github.event.number }}
+      # version_tag: ${{ github.event.release.tag_name }}
       namespace: nonprod
     secrets:
       AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
