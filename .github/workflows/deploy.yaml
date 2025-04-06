@@ -438,7 +438,7 @@ jobs:
           ls -l ${{ github.workspace }}/deploy_scripts
 
       - name: Create GitHub Release
-        if: github.event_name = 'pull_request'
+        # if: github.event_name = 'pull_request'
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
