@@ -1,48 +1,42 @@
-# name: Nonprod PR Pipeline
+name: Nonprod PR Pipeline
 
-# # on:
-# #   pull_request:
-# #     types: [ opened, synchronize, reopened, closed ]
-# #     branches:
-# #      - master
+on:
+  pull_request:
+    types: [ opened, synchronize, reopened, closed ]
+    branches:
+     - master
 
-# jobs:
-#   build:
-#     uses: ./.github/workflows/build.yaml
-#     with:
-#       environment: nonprod
-#       version_tag: pr-${{ github.event.number }}
-#       namespace: pr-${{ github.event.number }}
-#     secrets:
-#       AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
-#       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-#       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-#       DCE_NONPROD_HOSTNAME: ${{ secrets.DCE_NONPROD_HOSTNAME }}
-#       NOTIFY_EMAIL: ${{ secrets.NOTIFY_EMAIL }}
+jobs:
+  build:
+    uses: ./.github/workflows/build.yaml
+    with:
+      environment: nonprod
+      version_tag: pr-${{ github.event.number }}
+      namespace: pr-${{ github.event.number }}
+    secrets:
+      AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      DCE_NONPROD_HOSTNAME: ${{ secrets.DCE_NONPROD_HOSTNAME }}
+      NOTIFY_EMAIL: ${{ secrets.NOTIFY_EMAIL }}
 
 ---
 
 name: Nonprod Deployment Pipeline
 
 on:
-  push:
-    branches:
-      - azdevops-cicd-migration
-  # release:
-  #   types:
-  #     - "published"
+  release:
+    types:
+      - "published"
 
-  # pull_request_review:
-  #   types: [submitted]
 jobs:
   deploy:
-    # if: github.event.review.state == 'approved'
+    if: github.event.review.state == 'approved'
     uses: ./.github/workflows/deploy.yaml
     with:
       environment: nonprod
-      version_tag: pr-${{ github.event.number }}
-      # version_tag: ${{ github.event.release.tag_name }}
-      # namespace: nonprod
+      version_tag: ${{ github.event.release.tag_name }}
+      namespace: nonprod
     secrets:
       AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
