@@ -44,7 +44,6 @@ on:
       NOTIFY_EMAIL:
         required: true
 
-
 # Build and Test Workflow
 
 jobs:
@@ -369,8 +368,8 @@ jobs:
 
           ./dce --config=./dce.yml leases login ${lease_id}
 
-    # Cleanup the PR environment
-    # Install Terraform
+      # Cleanup the PR environment
+      # Install Terraform
       - name: Install Terraform
         uses: hashicorp/setup-terraform@v1
         with:
@@ -433,6 +432,11 @@ jobs:
           name: deploy_scripts
           path: ${{ github.workspace }}/deploy_scripts
 
+      - name: Verify artifacts
+        run: |
+          ls -l ${{ github.workspace }}/bin
+          ls -l ${{ github.workspace }}/deploy_scripts
+
       - name: Create GitHub Release
         if: github.event_name != 'pull_request'
         uses: actions/create-release@v1
@@ -441,7 +445,7 @@ jobs:
         with:
           tag_name: ${{ github.event.inputs.release || 'v1.0.0' }}
           draft: false
-          Publish: false
+          prerelease: false
           files: |
             ${{ github.workspace }}/bin/build_artifacts.zip
             ${{ github.workspace }}/bin/terraform_artifacts.zip
