@@ -2,9 +2,11 @@ name: Nonprod PR Pipeline
 
 on:
   pull_request:
-    types: [ opened, synchronize, reopened, closed ]
     branches:
-     - master
+      - main
+  push:
+    tags:
+      - '*'
 
 jobs:
   build:
@@ -25,9 +27,13 @@ jobs:
 name: Nonprod Deployment Pipeline
 
 on:
-  release:
+  workflow_run:
+    workflows: ["Nonprod PR Pipeline"]
     types:
-      - "published"
+      - completed
+  push:
+    tags:
+      - '*'
 
 jobs:
   deploy:
