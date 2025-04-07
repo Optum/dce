@@ -4,9 +4,9 @@ on:
   pull_request:
     branches:
       - azdevops-cicd-migration
-  push:
-    tags:
-      - '*'
+  # push:
+  #   tags:
+  #     - '*'
 
 jobs:
   build:
