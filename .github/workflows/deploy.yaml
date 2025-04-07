@@ -45,7 +45,6 @@ on:
         required: true
 jobs:
   Release:
-    needs: [Deploy]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
