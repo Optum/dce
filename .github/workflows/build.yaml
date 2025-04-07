@@ -45,7 +45,7 @@ on:
         required: true
 
 # Build and Test Workflow
-
+jobs:
   TestAndBuild:
     runs-on: ubuntu-latest
     steps:
