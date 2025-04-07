@@ -261,7 +261,7 @@ jobs:
             ./scripts/deploy.sh \
             /home/runner/work/dce/dce/bin/build_artifacts.zip \
             github-pr-513\
-            000879607493-dce-artifacts-cd
+            000879607493-dce-artifacts-github-pr-513
 
       # Functional Tests --> TODO need to fix the test failures
       # - name: Functional Tests
