@@ -3,7 +3,7 @@ name: Nonprod PR Pipeline
 on:
   pull_request:
     branches:
-      - main
+      - azdevops-cicd-migration
   push:
     tags:
       - '*'
