@@ -27,10 +27,9 @@ jobs:
 name: Nonprod Deployment Pipeline
 
 on:
-  workflow_run:
-    workflows: ["Nonprod PR Pipeline"]
+  release:
     types:
-      - completed
+      - prereleased
   push:
     tags:
       - '*'
