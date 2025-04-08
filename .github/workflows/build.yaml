@@ -52,15 +52,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Setup Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: "3.x"
-
-      - name: Install Terraform
-        uses: hashicorp/setup-terraform@v1
-        with:
-          terraform_version: ${{ inputs.terraform_version }}
+      - name: Set environment variables
+        run: |
+          echo "ENVIRONMENT=${{ github.event.inputs.environment }}" >> $GITHUB_ENV
+          echo "BRANCH=${{ github.event.inputs.branch }}" >> $GITHUB_ENV
+          echo "RELEASE=${{ github.event.inputs.release }}" >> $GITHUB_ENV
+          echo "GO_VERSION=${{ github.event.inputs.go_version }}" >> $GITHUB_ENV
+          echo "TERRAFORM_VERSION=${{ github.event.inputs.terraform_version }}" >> $GITHUB_ENV
 
       - name: Setup Go
         uses: actions/setup-go@v2
@@ -127,11 +125,12 @@ jobs:
           echo "PR_NUMBER=${{ env.PR_NUMBER }}"
           echo "NS_BRANCH_OR_TAG=${{ env.NS_BRANCH_OR_TAG }}"
       - name: Set up the Go workspace
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v5
         with:
           go-version: ${{ inputs.go_version }}
-          go-path: ${{ github.workspace }}/gopath
-          go-bin: ${{ github.workspace }}/gopath/bin
+          check-latest: true
+          stable: true
+          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Download pipeline dependencies
         run: |
           set -ex
