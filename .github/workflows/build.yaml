@@ -63,9 +63,8 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ github.event.inputs.go_version  }}
-          check-latest: true
-      
+          go-version: ${{ inputs.go_version }}
+
       - name: Set up Golang CI Tools
         run: ./scripts/install_ci.sh
 
@@ -129,8 +128,8 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ inputs.go_version }}
-          check-latest: true
-          token: ${{ secrets.GITHUB_TOKEN }}
+          # check-latest: true
+          # token: ${{ secrets.GITHUB_TOKEN }}
       - name: Download pipeline dependencies
         run: |
           set -ex
@@ -384,8 +383,6 @@ jobs:
           cd modules
           terraform init -input=false
           terraform destroy -auto-approve
-
-          echo "destroy_status=success" >> $GITHUB_OUTPUT
 
       # End the DCE lease
       - name: End DCE Lease
