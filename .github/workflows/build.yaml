@@ -61,9 +61,11 @@ jobs:
           echo "TERRAFORM_VERSION=${{ github.event.inputs.terraform_version }}" >> $GITHUB_ENV
 
       - name: Setup Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v5
         with:
-          go-version: ${{ inputs.go_version }}
+          go-version: ${{ github.event.inputs.go_version  }}
+          check-latest: true
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Golang CI Tools
         run: ./scripts/install_ci.sh
@@ -129,7 +131,6 @@ jobs:
         with:
           go-version: ${{ inputs.go_version }}
           check-latest: true
-          stable: true
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Download pipeline dependencies
         run: |
@@ -384,6 +385,8 @@ jobs:
           cd modules
           terraform init -input=false
           terraform destroy -auto-approve
+
+          echo "destroy_status=success" >> $GITHUB_OUTPUT
 
       # End the DCE lease
       - name: End DCE Lease
