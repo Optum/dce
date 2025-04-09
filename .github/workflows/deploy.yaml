@@ -31,7 +31,14 @@ on:
       namespace:
         required: false
         type: string
-        default: nonprod # pr-#, nonprod, or prod
+      artifact_path:
+        required: false
+        type: string
+        default: ""
+      artifact_name:
+        required: false
+        type: string
+        default: ""
     secrets:
       AWS_DEFAULT_REGION:
         required: true
@@ -50,17 +57,19 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Download bin artifact
+      - name: Download bin artifacts
+        if: "${{ inputs.artifact_name != '' && inputs.artifact_path != '' }}"
         uses: actions/download-artifact@v4
         with:
-          name: bin
-          path: ${{ github.workspace }}/bin
+          name: ${{ inputs.artifact_name }}
+          path: ${{ inputs.artifact_path }}
 
-      - name: Download deploy_scripts artifact
+      - name: Download deploy_script artifacts
+        if: "${{ inputs.artifact_name != '' && inputs.artifact_path != '' }}"
         uses: actions/download-artifact@v4
         with:
-          name: deploy_scripts
-          path: ${{ github.workspace }}/deploy_scripts
+          name: ${{ inputs.artifact_name }}
+          path: ${{ inputs.artifact_path }}
 
       - name: Verify artifacts
         run: |
