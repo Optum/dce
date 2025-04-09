@@ -65,8 +65,7 @@ jobs:
         with:
           go-version: ${{ github.event.inputs.go_version  }}
           check-latest: true
-          token: ${{ secrets.GITHUB_TOKEN }}
-
+      
       - name: Set up Golang CI Tools
         run: ./scripts/install_ci.sh
 
