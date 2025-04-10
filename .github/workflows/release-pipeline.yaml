@@ -14,7 +14,7 @@ on:
 
 jobs:
   deploy:
-    if: ${{ github.event_name == 'workflow_run' }}
+    if: ${{ github.event_name == 'workflow_run' || github.event_name == 'release' }}
     uses: ./.github/workflows/deploy.yaml
     with:
       environment: nonprod
