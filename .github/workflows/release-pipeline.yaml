@@ -2,6 +2,11 @@
 name: Nonprod Deployment Pipeline
 
 on:
+  workflow_run:
+    workflows:
+      - Nonprod PR Pipeline # Name of the build pipeline workflow
+    types:
+      - completed
   release:
     types:
       - prereleased
@@ -11,7 +16,8 @@ on:
 
 jobs:
   deploy:
-    if: github.event.review.state == 'approved'
+    #if: github.event.review.state == 'approved'
+    if: ${{ github.event_name == 'release' || github.event_name == 'workflow_run' || github.event_name == 'push' }}
     uses: ./.github/workflows/deploy.yaml
     with:
       environment: nonprod
