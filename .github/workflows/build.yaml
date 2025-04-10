@@ -228,13 +228,13 @@ jobs:
             -var="budget_notification_from_email=${NOTIFY_EMAIL}" \
             -var="reset_nuke_toggle=false"
       # Build and Deploy Application Code to AWS
-      - name: Set up Node.js
-        uses: actions/setup-node@v2
-        with:
-          node-version: "14"
+      # - name: Set up Node.js
+      #   uses: actions/setup-node@v2
+      #   with:
+      #     node-version: "14"
 
-      - name: Install dependencies
-        run: npm install
+      # - name: Install dependencies
+      #   run: npm install
 
       - name: Build artifacts
         run: |
