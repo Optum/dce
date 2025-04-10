@@ -2,26 +2,23 @@
 name: Nonprod Deployment Pipeline
 
 on:
-  workflow_run:
-    workflows:
-      - Nonprod PR Pipeline # Name of the build pipeline workflow
-    types:
-      - completed
   release:
     types:
-      - prereleased
-  push:
-    tags:
-      - '*'
+      - published
+      - prereleased 
+  workflow_run:
+    workflows:
+      - Nonprod PR Pipeline
+    types:
+      - completed
 
 jobs:
   deploy:
-    #if: github.event.review.state == 'approved'
-    if: ${{ github.event_name == 'release' || github.event_name == 'workflow_run' || github.event_name == 'push' }}
+    if: ${{ github.event_name == 'workflow_run' }}
     uses: ./.github/workflows/deploy.yaml
     with:
       environment: nonprod
-      version_tag: ${{ github.event.release.tag_name }}
+      version_tag: ${{ github.event.workflow_run.head_commit.message }}
       namespace: nonprod
     secrets:
       AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
