@@ -75,13 +75,13 @@ jobs:
         run: make build
 
       - name: Publish build artifacts (bin)
-        uses:  actions/upload-artifact@v2
+        uses:  actions/upload-artifact@v4
         with:
           name: bin
           path: bin
 
       - name: Publish build artifacts (deploy_scripts)
-        uses:  actions/upload-artifact@v2
+        uses:  actions/upload-artifact@v4
         with:
           name: deploy_scripts
           path: scripts
@@ -111,7 +111,7 @@ jobs:
           echo "${NS}" > ./namespace.txt
 
       - name: Upload namespace file
-        uses:  actions/upload-artifact@v2
+        uses:  actions/upload-artifact@v4
         with:
           name: namespace
           path: namespace.txt
@@ -273,7 +273,7 @@ jobs:
 
       # - name: Publish Test Results
       #   if: always()
-      #   uses:  actions/upload-artifact@v2
+      #   uses:  actions/upload-artifact@v4
       #   with:
       #     name: Functional Tests
       #     path: ${{ github.workspace }}/junit-report/*.xml
@@ -282,25 +282,25 @@ jobs:
       # it in our Cleanup stage
 
       - name: Upload dce-cli Artifact
-        uses:  actions/upload-artifact@v2
+        uses:  actions/upload-artifact@v4
         with:
           name: dce-cli
           path: ${{ github.workspace }}/dce
 
       - name: Upload dce-yml Artifact
-        uses:  actions/upload-artifact@v2
+        uses:  actions/upload-artifact@v4
         with:
           name: dce-yml
           path: ${{ github.workspace }}/dce.yml
 
       - name: Upload lease_id Artifact
-        uses:  actions/upload-artifact@v2
+        uses:  actions/upload-artifact@v4
         with:
           name: lease_id
           path: ${{ github.workspace }}/lease_id.txt
 
       - name: Upload backend-tf Artifact
-        uses:  actions/upload-artifact@v2
+        uses:  actions/upload-artifact@v4
         with:
           name: backend-tf
           path: ${{ github.workspace }}/modules/backend.tf
