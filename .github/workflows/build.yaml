@@ -195,7 +195,7 @@ jobs:
 
       # Install Terraform
       - name: Install Terraform
-        uses: hashicorp/setup-terraform@v1
+        uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ inputs.terraform_version }}
 
@@ -370,7 +370,7 @@ jobs:
       # Cleanup the PR environment
       # Install Terraform
       - name: Install Terraform
-        uses: hashicorp/setup-terraform@v1
+        uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ inputs.terraform_version }}
 
