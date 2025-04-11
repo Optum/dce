@@ -1,119 +1,23 @@
-name: DCE deploy to environment
+
+name: Nonprod Deployment Pipeline
 
 on:
-  workflow_call:
-    inputs:
-      environment:
-        required: true
-        type: string
-        description: "The environment to deploy to (e.g. nonprod, prod)"
-        default: "nonprod"
-      branch:
-        required: false
-        type: string
-        default: master
-      release:
-        required: false
-        type: string
-        default: none
-      go_version:
-        required: false
-        type: string
-        default: "1.21.6"
-      terraform_version:
-        required: false
-        type: string
-        default: "1.7.4"
-      version_tag:
-        required: false
-        type: string
-        default: master # pr-#, nonprod, or vX.Y.Z
-      namespace:
-        required: false
-        type: string
-      # artifact_path:
-      #   required: false
-      #   type: string
-      #   default: ""
-      # artifact_name:
-      #   required: false
-      #   type: string
-      #   default: ""
-    secrets:
-      AWS_DEFAULT_REGION:
-        required: true
-      AWS_ACCESS_KEY_ID:
-        required: true
-      AWS_SECRET_ACCESS_KEY:
-        required: true
-      DCE_NONPROD_HOSTNAME:
-        required: true
-      NOTIFY_EMAIL:
-        required: true
+  release:
+    types:
+      - "published"
+      - "prereleased" # Add prerelease trigger
+
 jobs:
-  Release:
-    runs-on: ubuntu-latest
-    # if: github.event.pull_request.merged == true
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Download bin artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: bin
-          path: ./bin
-
-      - name: Download deploy_scripts artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: deploy_scripts
-          path: ./deploy_scripts
-
-      - name: Create GitHub Release
-        uses: actions/create-release@v1
-        with:
-          tag_name: ${{ github.ref_name }}
-          release_name: Release ${{ github.ref_name }}
-          body: |
-            This release includes the following artifacts:
-            - build_artifacts.zip
-            - terraform_artifacts.zip
-            - deploy.sh
-            - restore_db.sh
-          draft: false
-          prerelease: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload Release Assets
-        uses: actions/upload-release-asset@v1
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./bin/build_artifacts.zip
-          asset_name: build_artifacts.zip
-          asset_content_type: application/zip
-
-      - name: Upload Terraform Artifacts
-        uses: actions/upload-release-asset@v1
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./bin/terraform_artifacts.zip
-          asset_name: terraform_artifacts.zip
-          asset_content_type: application/zip
-
-      - name: Upload Deploy Script
-        uses: actions/upload-release-asset@v1
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./deploy_scripts/deploy.sh
-          asset_name: deploy.sh
-          asset_content_type: text/x-shellscript
-
-      - name: Upload Restore DB Script
-        uses: actions/upload-release-asset@v1
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./deploy_scripts/restore_db.sh
-          asset_name: restore_db.sh
-          asset_content_type: text/x-shellscript
+  deploy:
+    if: ${{ github.event_name == 'release' && (github.event.action == 'published' || github.event.action == 'prereleased') }}
+    uses: ./.github/workflows/pipeline.yaml
+    with:
+      environment: nonprod
+      version_tag: ${{ github.event.release.tag_name }}
+      namespace: nonprod
+    secrets:
+      AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      DCE_NONPROD_HOSTNAME: ${{ secrets.DCE_NONPROD_HOSTNAME }}
+      NOTIFY_EMAIL: ${{ secrets.NOTIFY_EMAIL }}
