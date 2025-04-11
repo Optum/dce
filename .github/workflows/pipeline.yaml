@@ -414,7 +414,7 @@ jobs:
   Release:
     needs: [Deploy]
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'release' && (github.event.action == 'published' || github.event.action == 'prereleased') }}
+    if: ${{ github.event.action == 'published' || github.event.action == 'prereleased' }}
     steps:
         - name: Checkout repository
           uses: actions/checkout@v3
