@@ -2,15 +2,11 @@
 name: Nonprod Deployment Pipeline
 
 on:
-  release:
-    types:
-      - published
-      - prereleased 
   workflow_run:
     workflows:
-      - Nonprod PR Pipeline
+      - Nonprod PR Pipeline # Ensure this matches the name of the PR pipeline
     types:
-      - completed
+      - completed # Trigger only when the PR pipeline completes successfully
 
 jobs:
   deploy:
@@ -18,7 +14,7 @@ jobs:
     uses: ./.github/workflows/deploy.yaml
     with:
       environment: nonprod
-      version_tag: ${{ github.event.workflow_run.head_commit.message }}
+      version_tag: ${{ github.event.release.tag_name }}
       namespace: nonprod
     secrets:
       AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
