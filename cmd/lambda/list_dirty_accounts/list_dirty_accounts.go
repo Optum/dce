@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/Optum/dce/pkg/db"
 	"github.com/aws/aws-sdk-go/aws"
@@ -49,30 +50,45 @@ func listNotReadyAccountsToCSV(dbSvc db.DBer, filePath, bucket, s3Key string) er
         return err
     }
 
-    // Write account data to the CSV file
-    for _, account := range accounts {
-
-        err := writer.Write([]string{
-            account.ID,
-            string(account.AccountStatus),
-        })
-        if err != nil {
-            log.Printf("Failed to write account data to CSV file: %s", err)
-            return err
-        }
-    }
-
-    log.Printf("Successfully saved NotReady accounts to %s", filePath)
-
-    // Upload the file to S3
-    sess := session.Must(session.NewSession())
-    s3Svc := s3.New(sess)
-    fileForUpload, err := os.Open(filePath)
+ // Write account data to the CSV file
+ for _, account := range accounts {
+    // Convert Unix timestamp to readable time string
+    lastModified := time.Unix(account.LastModifiedOn, 0).Format(time.RFC3339)
+    
+    err := writer.Write([]string{
+        account.ID,
+        string(account.AccountStatus),
+        lastModified,
+    })
     if err != nil {
-        log.Printf("Failed to open CSV file for upload: %s", err)
+        log.Printf("Failed to write account data to CSV file: %s", err)
         return err
     }
-    defer fileForUpload.Close()
+}
+
+// IMPORTANT: Flush the writer before closing the file
+writer.Flush()
+
+// Check for any write errors
+if err := writer.Error(); err != nil {
+    log.Printf("CSV writer error: %s", err)
+    return err
+}
+
+// Close the file before uploading
+file.Close()
+
+log.Printf("Successfully saved NotReady accounts to %s", filePath)
+
+// Upload the file to S3
+sess := session.Must(session.NewSession())
+s3Svc := s3.New(sess)
+fileForUpload, err := os.Open(filePath)
+if err != nil {
+    log.Printf("Failed to open CSV file for upload: %s", err)
+    return err
+}
+defer fileForUpload.Close()
 
     _, err = s3Svc.PutObject(&s3.PutObjectInput{
         Bucket: aws.String(bucket),

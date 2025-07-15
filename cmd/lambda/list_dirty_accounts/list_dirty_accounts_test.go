@@ -100,9 +100,21 @@ func (m *mockDB) GetReadyAccount() (*db.Account, error) {
 }
 
 // OrphanAccount is a stub implementation to satisfy db.DBer interface
-func (m *mockDB) OrphanAccount(accountID string) error {
-    // This is a stub implementation since it's not used in these tests
-    return m.err
+func (m *mockDB) OrphanAccount(accountID string) (*db.Account, error) {
+    if m.err != nil {
+        return nil, m.err
+    }
+    
+    // Find and return the account being orphaned
+    for i := range m.accounts {
+        if m.accounts[i].ID == accountID {
+            accountCopy := m.accounts[i]
+            return &accountCopy, nil
+        }
+    }
+    
+    // Return nil account if not found (or you could return an error)
+    return nil, errors.New("account not found")
 }
 
 func TestListNotReadyAccountsToCSV_Success(t *testing.T) {
