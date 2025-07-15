@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/Optum/dce/pkg/db"
 )
@@ -23,9 +24,12 @@ func main() {
     // Assert that dbSvc implements the db.DBer interface
     var _ db.DBer = dbSvc
 
-    filePath := "not_ready_accounts.csv"
+    // Generate the file name with the current date
+    currentDate := time.Now().Format("2006-01-02")
+    filePath := fmt.Sprintf("not_ready_accounts_%s.csv", currentDate)
+
     bucket := os.Getenv("ARTIFACT_BUCKET_NAME")
-    s3Key := "NotReadyAccounts/not_ready_accounts.csv"
+    s3Key := fmt.Sprintf("NotReadyAccounts/%s", filePath)
 
     err := listNotReadyAccountsToCSV(dbSvc, filePath, bucket, s3Key)
     if err != nil {
