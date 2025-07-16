@@ -28,7 +28,7 @@ resource "aws_lambda_function" "list_dirty_accounts" {
     variables = {
       ARTIFACT_BUCKET_NAME = var.artifact_bucket_name
       AWS_REGION           = var.aws_region
-      ACCOUNT_DB           = var.account_db
+      #ACCOUNT_DB           = var.account_db
     }
   }
 

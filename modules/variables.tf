@@ -283,10 +283,10 @@ variable "artifact_bucket_name" {
   type        = string
 }
 
-variable "account_db" {
-  description = "Account database identifier"
-  type        = string
-}
+# variable "account_db" {
+#   description = "Account database identifier"
+#   type        = string
+# }
 
 variable "environment" {
   description = "Environment name"
