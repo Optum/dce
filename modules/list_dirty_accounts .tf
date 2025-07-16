@@ -23,17 +23,4 @@ resource "aws_lambda_function" "list_dirty_accounts" {
   role          = aws_iam_role.lambda_execution_role.arn
   handler       = "main"
   filename      = "${path.module}/lambda_stub.zip" # Path to your Lambda deployment package
-
-  environment {
-    variables = {
-      ARTIFACT_BUCKET_NAME = var.artifact_bucket_name
-      AWS_REGION           = var.aws_region
-      #ACCOUNT_DB           = var.account_db
-    }
-  }
-
-  tags = {
-    Name        = "list_dirty_accounts"
-    Environment = var.environment
-  }
 }
