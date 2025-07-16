@@ -16,3 +16,24 @@ resource "aws_lambda_permission" "allow_cloudwatch_to_invoke_list_dirty_accounts
   function_name = aws_lambda_function.list_dirty_accounts.function_name
   principal     = "events.amazonaws.com"
 }
+resource "aws_lambda_function" "list_dirty_accounts" {
+  function_name = "list_dirty_accounts"
+  description   = "Lambda function to list dirty accounts"
+  runtime       = "go1.x"
+  role          = aws_iam_role.lambda_execution_role.arn
+  handler       = "main"
+  filename      = "${path.module}/lambda_stub.zip" # Path to your Lambda deployment package
+
+  environment {
+    variables = {
+      ARTIFACT_BUCKET_NAME = var.artifact_bucket_name
+      AWS_REGION           = var.aws_region
+      ACCOUNT_DB           = var.account_db
+    }
+  }
+
+  tags = {
+    Name        = "list_dirty_accounts"
+    Environment = var.environment
+  }
+}

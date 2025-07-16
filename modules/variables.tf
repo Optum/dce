@@ -278,3 +278,22 @@ variable "usage_table_wcu" {
   default     = 5
   description = "DynamoDB Usage table provisioned Write Capacity Units (WCUs). See https://aws.amazon.com/dynamodb/pricing/provisioned/"
 }
+variable "artifact_bucket_name" {
+  description = "Name of the S3 bucket for storing artifacts"
+  type        = string
+}
+
+variable "aws_region" {
+  description = "AWS region"
+  type        = string
+}
+
+variable "account_db" {
+  description = "Account database identifier"
+  type        = string
+}
+
+variable "environment" {
+  description = "Environment name"
+  type        = string
+}
