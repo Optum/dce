@@ -19,7 +19,6 @@ resource "aws_lambda_permission" "allow_cloudwatch_to_invoke_list_dirty_accounts
 resource "aws_lambda_function" "list_dirty_accounts" {
   function_name = "list_dirty_accounts"
   description   = "Lambda function to list dirty accounts"
-  runtime       = "go1.22"
   role          = aws_iam_role.lambda_execution.arn
   handler       = "main"
   filename      = "${path.module}/lambda_stub.zip" # Path to your Lambda deployment package
