@@ -259,6 +259,7 @@ jobs:
             /home/runner/work/dce/dce/bin/build_artifacts.zip \
             github-pr-${{ github.event.pull_request.number }}\
             000879607493-dce-artifacts-github-pr-${{ github.event.pull_request.number }}
+          echo "Finished deploying application code"
 
       # Functional Tests --> TODO need to fix the test failures
       # - name: Functional Tests
