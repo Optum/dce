@@ -12,7 +12,26 @@ resource "aws_iam_role" "lambda_execution" {
         "Service": ["lambda.amazonaws.com", "apigateway.amazonaws.com"]
       },
       "Effect": "Allow"
-    }
+    },
+    {
+        Effect = "Allow"
+        Action = [
+          "lambda:CreateFunction",
+          "lambda:UpdateFunctionCode",
+          "lambda:UpdateFunctionConfiguration",
+          "iam:PassRole"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "lambda:CreateFunction",
+          "lambda:UpdateFunctionCode",
+          "lambda:UpdateFunctionConfiguration"
+        ]
+        Resource = "*"
+      }
   ]
 }
 JSON
