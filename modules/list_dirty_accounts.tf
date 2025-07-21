@@ -40,5 +40,15 @@ resource "aws_lambda_permission" "allow_cloudwatch_to_invoke_list_dirty_accounts
 # Lambda function to list dirty accounts and trigger necessary actions
 # This function will be scheduled to run weekly to check for dirty accounts
 module "lambda" {
- source = "./modules/lambda"
+  source          = "./lambda"
+  namespace       = var.namespace
+  name            = "list-dirty-accounts"
+  description     = "Lambda function to list dirty accounts"
+  handler         = "list_dirty_accounts"
+  alarm_topic_arn = var.alarm_topic_arn
+}
+
+variable "alarm_topic_arn" {
+  description = "The ARN of the alarm topic for notifications"
+  type        = string
 }
