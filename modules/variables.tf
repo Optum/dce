@@ -280,14 +280,3 @@ variable "usage_table_wcu" {
   default     = 5
   description = "DynamoDB Usage table provisioned Write Capacity Units (WCUs). See https://aws.amazon.com/dynamodb/pricing/provisioned/"
 }
-variable "lambda_default_tags" {
-  description = "Default tags to apply to all Lambda functions"
-  type        = map(string)
-  default = {
-    aide-id      = "UHGWM110-021451"
-    environment  = var.env_tag
-    service-tier = "p3"
-    terraform    = "True"
-    AppName      = "DCE"
-  }
-}
