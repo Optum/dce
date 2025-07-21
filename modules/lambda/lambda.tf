@@ -28,7 +28,13 @@ resource "aws_lambda_function" "fn" {
     }
   }
 
-  tags = var.global_tags
+  #tags = var.global_tags
+  tags = {
+    aide-id      = "UHGWM110-021451"
+    environment  = "stg"
+    terraform    = "True"
+    AppName      = "DCE"
+  }
 }
 
 
