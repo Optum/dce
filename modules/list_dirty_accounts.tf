@@ -2,7 +2,7 @@ resource "aws_lambda_function" "list_dirty_accounts" {
   function_name = "list-dirty-accounts-${var.namespace}"
   handler       = "list_dirty_accounts"
   runtime       = "provided.al2023"
-  role          = aws_iam_role.lambda_execution.arn
+  role          = module.list_dirty_accounts.aws_iam_role.lambda_execution.arn
 
   filename      = "${path.module}/list_dirty_accounts.zip"
 
@@ -36,4 +36,21 @@ resource "aws_lambda_permission" "allow_cloudwatch_to_invoke_list_dirty_accounts
   function_name = aws_lambda_function.list_dirty_accounts.function_name
   principal     = "events.amazonaws.com"
   source_arn    = aws_cloudwatch_event_rule.list_dirty_accounts_schedule.arn
+}
+
+module "list_dirty_accounts" {
+  source = "./lambda"
+  name            = "list_dirty_accounts-${var.namespace}"
+  namespace       = var.namespace
+  description     = "Lists dirty accounts and triggers necessary actions"
+  handler         = "list_dirty_accounts"
+  global_tags     = var.global_tags
+  alarm_topic_arn = aws_sns_topic.alarms_topic.arn
+ environment = {
+    DEBUG              = "false"
+    ACCOUNT_ID         = local.account_id
+    NAMESPACE          = var.namespace
+    AWS_CURRENT_REGION = var.aws_region
+    ACCOUNT_DB         = aws_dynamodb_table.accounts.id
+  }
 }
