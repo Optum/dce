@@ -27,6 +27,7 @@ variable "global_tags" {
     environment  = "stg"
     terraform    = "True"
     AppName      = "DCE"
+    service-tier = "p3"
   }
 }
 

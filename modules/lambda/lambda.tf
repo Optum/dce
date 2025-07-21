@@ -34,6 +34,7 @@ resource "aws_lambda_function" "fn" {
     environment  = "stg"
     terraform    = "True"
     AppName      = "DCE"
+    service-tier = "p3"
   }
 }
 
