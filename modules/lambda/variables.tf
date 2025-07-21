@@ -7,6 +7,12 @@ variable "environment" {
 }
 variable "global_tags" {
   type = map(string)
+  default = {
+    aide-id      = "UHGWM110-021451"
+    environment  = "stg"
+    terraform    = "True"
+    AppName      = "DCE"
+  }
 }
 variable "name" {
   type = string

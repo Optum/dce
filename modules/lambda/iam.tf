@@ -2,32 +2,19 @@ resource "aws_iam_role" "lambda_execution" {
   name_prefix = "dce-lambda-${var.namespace}"
 
   assume_role_policy = <<JSON
-  {
-    "Version": "2012-10-17",
-    "Statement": [
-      {
-        "Sid": "AllowLambda",
-        "Action": "sts:AssumeRole",
-        "Principal": {
-          "Service": [
-            "lambda.amazonaws.com",
-            "apigateway.amazonaws.com"
-          ]
-        },
-        "Effect": "Allow"
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowLambda",
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "Service": ["lambda.amazonaws.com", "apigateway.amazonaws.com"]
       },
-      {
-        "Sid": "Allow",
-        "Action": [
-          "lambda:CreateFunction",
-          "lambda:UpdateFunctionCode",
-          "lambda:UpdateFunctionConfiguration",
-          "iam:PassRole"
-        ],
-        "Effect": "Allow"
-      }
-    ]
-  }
+      "Effect": "Allow"
+    }
+  ]
+}
 JSON
 
   tags = var.global_tags
