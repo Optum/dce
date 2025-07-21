@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"strings"
 	"text/template"
 
 	"github.com/pkg/errors"
@@ -16,6 +17,8 @@ import (
 	"github.com/Optum/dce/pkg/reset"
 	"github.com/avast/retry-go"
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sts"
 )
 
@@ -149,7 +152,47 @@ func nukeAccount(svc *service, isDryRun bool) error {
 	}
 	return nil
 }
+// SetAccountNotReadyIfLpS3AndOtherResources sets account status to NotReady if
+// there is an S3 bucket starting with "lp" and any other resource in the account
+// that does not start with "lp-".
+func SetAccountNotReadyIfLpS3AndOtherResources(dbSvc db.DBer, accountID string) error {
+    sess := session.Must(session.NewSession())
+    s3Client := s3.New(sess)
 
+    // List all S3 buckets
+    bucketsOutput, err := s3Client.ListBuckets(&s3.ListBucketsInput{})
+    if err != nil {
+        return errors.Wrap(err, "failed to list S3 buckets")
+    }
+
+    hasLpBucket := false
+    otherResourceExists := false
+
+    for _, bucket := range bucketsOutput.Buckets {
+        bucketName := aws.StringValue(bucket.Name)
+        if strings.HasPrefix(bucketName, "lp") {
+            hasLpBucket = true
+        } else {
+            otherResourceExists = true
+        }
+    }
+
+    // If no lp bucket, nothing to do
+    if !hasLpBucket {
+        return nil
+    }
+
+    // If there is any other resource (not starting with lp-), set NotReady
+    if otherResourceExists {
+        _, err := dbSvc.TransitionAccountStatus(accountID, db.Ready, db.NotReady)
+        if err != nil {
+            return errors.Wrap(err, "failed to set account status to NotReady")
+        }
+        log.Printf("Account %s set to NotReady due to S3 bucket and other resources", accountID)
+    }
+
+    return nil
+}
 func generateNukeConfig(svc *service, f io.Writer) error {
 	config := svc.config()
 
