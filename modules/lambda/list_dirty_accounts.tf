@@ -4,7 +4,7 @@ resource "aws_lambda_function" "list_dirty_accounts" {
   runtime       = "provided.al2023"
   role          = aws_iam_role.lambda_execution.arn
 
-  filename      = "${path.module}/../../bin/list_dirty_accounts.zip"
+  filename      = "${path.module}/list_dirty_accounts.zip"
 
   environment {
     variables = {
