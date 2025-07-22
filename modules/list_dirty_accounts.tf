@@ -45,10 +45,5 @@ module "lambda" {
   name            = "list-dirty-accounts"
   description     = "Lambda function to list dirty accounts"
   handler         = "list_dirty_accounts"
-  alarm_topic_arn = var.alarm_topic_arn
-}
-
-variable "alarm_topic_arn" {
-  description = "The ARN of the alarm topic for notifications"
-  type        = string
+   alarm_topic_arn = aws_sns_topic.alarms_topic.arn
 }
