@@ -2,7 +2,7 @@ resource "aws_lambda_function" "list_dirty_accounts" {
   function_name = "list-dirty-accounts-${var.namespace}"
   handler       = "list_dirty_accounts"
   runtime       = "provided.al2023"
-  role          = module.execution_role_arn
+  role          = module.lambda.execution_role_arn
 
   filename      = "${path.module}/list_dirty_accounts.zip"
 
@@ -40,7 +40,7 @@ resource "aws_lambda_permission" "allow_cloudwatch_to_invoke_list_dirty_accounts
 # Lambda function to list dirty accounts and trigger necessary actions
 # This function will be scheduled to run weekly to check for dirty accounts
 module "lambda" {
-  source          = "./lambda"
+  source          = "./modules/lambda"
   namespace       = var.namespace
   name            = "list-dirty-accounts"
   description     = "Lambda function to list dirty accounts"
