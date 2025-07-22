@@ -3,6 +3,7 @@ resource "aws_lambda_function" "list_dirty_accounts" {
   handler       = "list_dirty_accounts"
   runtime       = "provided.al2023"
   role          = module.lambda.execution_role_arn
+  filename      = "${path.module}/lambda_stub.zip"  
 
   environment {
     variables = {
