@@ -4,8 +4,6 @@ resource "aws_lambda_function" "list_dirty_accounts" {
   runtime       = "provided.al2023"
   role          = module.lambda.execution_role_arn
 
-  filename      = "${path.module}/list_dirty_accounts.zip"
-
   environment {
     variables = {
       ACCOUNT_DB = aws_dynamodb_table.accounts.id
