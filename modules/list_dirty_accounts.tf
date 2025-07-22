@@ -1,21 +1,21 @@
-# resource "aws_lambda_function" "list_dirty_accounts" {
-#   function_name = "list-dirty-accounts-${var.namespace}"
-#   handler       = "list_dirty_accounts"
-#   runtime       = "provided.al2023"
-#   role          = module.lambda.execution_role_arn
-#   filename      = "${path.module}/lambda_stub.zip"  
+resource "aws_lambda_function" "list_dirty_accounts" {
+  function_name = "list_dirty_accounts-github-pr-517"
+  handler       = "list_dirty_accounts"
+  runtime       = "provided.al2023" # or your runtime
+  role          = aws_iam_role.lambda_execution.arn
+  filename      = "${path.module}/list_dirty_accounts.zip"
 
-#   environment {
-#     variables = {
-#       ACCOUNT_DB = aws_dynamodb_table.accounts.id
-#       BUCKET     = aws_s3_bucket.artifacts.id
-#       S3_KEY     = "dirty_accounts.csv"
-#       NAMESPACE  = var.namespace
-#     }
-#   }
+  environment {
+    variables = {
+      ACCOUNT_DB = aws_dynamodb_table.accounts.id
+      BUCKET     = aws_s3_bucket.artifacts.id
+      S3_KEY     = "dirty_accounts.csv"
+      NAMESPACE  = var.namespace
+    }
+  }
 
-#   tags = var.global_tags
-# }
+  tags = var.global_tags
+}
 module "list_dirty_accounts_lambda" {
   source          = "./lambda"
   name            = "list-dirty-accounts-${var.namespace}"
