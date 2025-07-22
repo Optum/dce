@@ -1,8 +1,8 @@
 resource "aws_lambda_function" "list_dirty_accounts" {
-  function_name = "list_dirty_accounts-github-pr-517"
+  function_name = "list_dirty_accounts-${var.namespace}"
   handler       = "list_dirty_accounts"
   runtime       = "provided.al2023" # or your runtime
-  role          = aws_iam_role.lambda_execution.arn
+  role          = module.lambda_execution.arn
   filename      = "${path.module}/list_dirty_accounts.zip"
 
   environment {
@@ -55,6 +55,7 @@ resource "aws_lambda_permission" "allow_cloudwatch_to_invoke_list_dirty_accounts
   principal     = "events.amazonaws.com"
   source_arn    = aws_cloudwatch_event_rule.list_dirty_accounts_schedule.arn
 }
+
 # # Lambda function to list dirty accounts and trigger necessary actions
 # # This function will be scheduled to run weekly to check for dirty accounts
 # module "lambda" {
