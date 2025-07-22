@@ -29,12 +29,14 @@ resource "aws_cloudwatch_event_target" "list_dirty_accounts_lambda_target" {
 }
 
 resource "aws_lambda_permission" "allow_cloudwatch_to_invoke_list_dirty_accounts" {
+
   statement_id  = "AllowExecutionFromCloudWatch"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.list_dirty_accounts.function_name
   principal     = "events.amazonaws.com"
   source_arn    = aws_cloudwatch_event_rule.list_dirty_accounts_schedule.arn
 }
+
 # Lambda function to list dirty accounts and trigger necessary actions
 # This function will be scheduled to run weekly to check for dirty accounts
 module "lambda" {
