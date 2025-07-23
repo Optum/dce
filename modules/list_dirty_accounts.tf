@@ -1,7 +1,7 @@
 resource "aws_lambda_function" "list_dirty_accounts" {
   function_name = "list_dirty_accounts-${var.namespace}"
   handler       = "list_dirty_accounts"
-  runtime       = "provided.al2023" # or your runtime
+  runtime       = "provided.al2023" 
   role          = module.list_dirty_accounts_lambda.execution_role_arn
   filename      = "${path.module}/lambda_stub.zip"
 
@@ -55,14 +55,3 @@ resource "aws_lambda_permission" "allow_cloudwatch_to_invoke_list_dirty_accounts
   principal     = "events.amazonaws.com"
   source_arn    = aws_cloudwatch_event_rule.list_dirty_accounts_schedule.arn
 }
-
-# # Lambda function to list dirty accounts and trigger necessary actions
-# # This function will be scheduled to run weekly to check for dirty accounts
-# module "lambda" {
-#   source          = "./lambda"
-#   namespace       = var.namespace
-#   name            = "list-dirty-accounts"
-#   description     = "Lambda function to list dirty accounts"
-#   handler         = "list_dirty_accounts"
-#    alarm_topic_arn = aws_sns_topic.alarms_topic.arn
-# }

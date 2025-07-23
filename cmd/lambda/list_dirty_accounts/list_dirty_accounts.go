@@ -80,8 +80,14 @@ file.Close()
 
 log.Printf("Successfully saved NotReady accounts to %s", filePath)
 
+awsRegion := os.Getenv("AWS_CURRENT_REGION")
+if awsRegion == "" {
+    awsRegion = "us-east-1" // Provide a default region
+}
 // Upload the file to S3
-sess := session.Must(session.NewSession())
+sess := session.Must(session.NewSession(&aws.Config{
+    Region: aws.String(awsRegion),
+}))
 s3Svc := s3.New(sess)
 fileForUpload, err := os.Open(filePath)
 if err != nil {

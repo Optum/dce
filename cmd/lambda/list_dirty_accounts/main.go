@@ -1,14 +1,25 @@
 package main
 
 import (
+	"encoding/csv"
 	"fmt"
 	"log"
 	"os"
 	"time"
 
 	"github.com/Optum/dce/pkg/db"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
 )
 
+// Force keep imports by referencing them in a blank identifier declaration
+var (
+    _ = csv.NewWriter
+    _ = aws.String
+    _ = session.Must
+    _ = s3.New
+)
 func initializeDBService() db.DBer {
     dao, err := db.NewFromEnv()
     if err != nil {
