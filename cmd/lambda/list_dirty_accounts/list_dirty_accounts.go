@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/csv"
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -9,27 +10,160 @@ import (
 
 	"github.com/Optum/dce/pkg/db"
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/sts"
 )
 
+// scanAccountsForMissingLPBuckets scans all accounts and checks for S3 buckets starting with "lp-"
+// If accounts don't have such buckets, marks them as NotReady in the database
+func scanAccountsForMissingLPBuckets(dbSvc db.DBer, filePath, bucket, s3Key string) error {
+    log.Println("Scanning accounts for missing LP buckets (excluding Leased accounts)")
+
+    // Get accounts with different statuses and combine them
+    readyAccounts, err := dbSvc.FindAccountsByStatus(db.Ready)
+    if err != nil {
+        log.Printf("Failed to fetch Ready accounts: %s", err)
+        return err
+    }
+    
+    notReadyAccounts, err := dbSvc.FindAccountsByStatus(db.NotReady)
+    if err != nil {
+        log.Printf("Failed to fetch NotReady accounts: %s", err)
+        return err
+    }
+    
+    // Combine accounts (we check only Ready and NotReady accounts)
+    var accounts []*db.Account
+    accounts = append(accounts, readyAccounts...)
+    accounts = append(accounts, notReadyAccounts...)
+
+    log.Printf("Found %d total accounts to check", len(accounts))
+    
+    awsRegion := os.Getenv("AWS_CURRENT_REGION")
+    if awsRegion == "" {
+        awsRegion = "us-east-1"
+    }
+    
+    sess := session.Must(session.NewSession(&aws.Config{
+        Region: aws.String(awsRegion),
+    }))
+    
+    // Count of accounts marked as NotReady
+    markedCount := 0
+    
+    // For each account, check for LP buckets
+    for _, account := range accounts {
+        // Use the account credentials to check for LP buckets
+        hasLPBucket, err := checkForLPBuckets(sess, account.ID)
+        if err != nil {
+            log.Printf("Error checking LP buckets for account %s: %s", account.ID, err)
+            continue
+        }
+        
+        if !hasLPBucket {
+            log.Printf("Account %s is missing LP buckets - marking as NotReady", account.ID)
+            
+            if account.Metadata == nil {
+                account.Metadata = make(map[string]interface{})
+            }
+            
+            account.Metadata["LPBucketExists"] = false
+            account.Metadata["LPNotFound"] = true
+            account.Metadata["Reason"] = "LP bucket doesn't exist"
+            
+            if account.AccountStatus != db.NotReady {
+                account.AccountStatus = db.NotReady
+                markedCount++
+            }
+            
+            err := dbSvc.PutAccount(*account)
+            if err != nil {
+                log.Printf("Failed to update account %s status: %s", account.ID, err)
+            }
+        } else if account.AccountStatus == db.NotReady {
+            if lp, ok := account.Metadata["LPNotFound"].(bool); ok && lp {
+                log.Printf("Account %s has LP buckets but was marked as NotReady - updating metadata", account.ID)
+                account.Metadata["LPBucketExists"] = true
+                account.Metadata["LPNotFound"] = false
+                
+                err := dbSvc.PutAccount(*account)
+                if err != nil {
+                    log.Printf("Failed to update account %s metadata: %s", account.ID, err)
+                }
+            }
+        }
+    }
+    
+    log.Printf("Marked or updated %d accounts due to missing LP buckets", markedCount)
+    return nil
+}
+// checkForLPBuckets checks if an account has any S3 buckets starting with "lp-"
+func checkForLPBuckets(sess *session.Session, accountID string) (bool, error) {
+    // Create STS client for assuming roles
+    stsSvc := sts.New(sess)
+    
+    // Use OrganizationAccountAccessRole for cross-account access
+    roleARN := fmt.Sprintf("arn:aws:iam::%s:role/OrganizationAccountAccessRole", accountID)
+    sessionName := fmt.Sprintf("LP-Bucket-Check-%s", time.Now().Format("20060102-150405"))
+    
+    // Assume the role
+    assumeRoleInput := &sts.AssumeRoleInput{
+        RoleArn:         aws.String(roleARN),
+        RoleSessionName: aws.String(sessionName),
+        DurationSeconds: aws.Int64(900), 
+    }
+    
+    log.Printf("Attempting to assume role %s in account %s", roleARN, accountID)
+    assumeRoleOutput, err := stsSvc.AssumeRole(assumeRoleInput)
+    if err != nil {
+        return false, fmt.Errorf("failed to assume role in account %s: %w", accountID, err)
+    }
+    
+    crossAccountCreds := credentials.NewStaticCredentials(
+        *assumeRoleOutput.Credentials.AccessKeyId,
+        *assumeRoleOutput.Credentials.SecretAccessKey,
+        *assumeRoleOutput.Credentials.SessionToken,
+    )
+    
+    crossAccountConfig := aws.NewConfig().
+        WithCredentials(crossAccountCreds).
+        WithRegion(aws.StringValue(sess.Config.Region))
+    
+    crossAccountSess := session.Must(session.NewSession(crossAccountConfig))
+    
+    s3Svc := s3.New(crossAccountSess)
+    
+    result, err := s3Svc.ListBuckets(&s3.ListBucketsInput{})
+    if err != nil {
+        return false, fmt.Errorf("failed to list buckets for account %s: %w", accountID, err)
+    }
+    
+    // Check if any bucket name starts with "lp-"
+    for _, bucket := range result.Buckets {
+        if bucket.Name != nil && len(*bucket.Name) >= 3 && (*bucket.Name)[:3] == "lp-" {
+            log.Printf("Found LP bucket %s in account %s", *bucket.Name, accountID)
+            return true, nil
+        }
+    }
+    
+    log.Printf("No LP buckets found in account %s", accountID)
+    return false, nil
+}
 // listNotReadyAccountsToCSV retrieves all accounts with the status "NotReady" from the ACCOUNT_TABLE,
 // saves them to a CSV file, and uploads the file to the specified S3 bucket.
 func listNotReadyAccountsToCSV(dbSvc db.DBer, filePath, bucket, s3Key string) error {
     log.Println("Fetching all accounts with status NotReady from ACCOUNT_TABLE")
 
     // Query the ACCOUNT_TABLE for accounts with status "NotReady"
-    input := db.Account{
-        AccountStatus: db.NotReady,
-    }
-    accounts, err := dbSvc.FindAccountsByStatus(input.AccountStatus)
+    accounts, err := dbSvc.FindAccountsByStatus(db.NotReady)
     if err != nil {
         log.Printf("Failed to fetch accounts: %s", err)
         return err
     }
 
     log.Printf("Found %d accounts with status NotReady", len(accounts))
-  
 
     // Create or open the CSV file
     file, err := os.Create(filePath)
@@ -43,58 +177,77 @@ func listNotReadyAccountsToCSV(dbSvc db.DBer, filePath, bucket, s3Key string) er
     writer := csv.NewWriter(file)
     defer writer.Flush()
 
-    // Write the header row
-    err = writer.Write([]string{"AccountID", "Status", "LastUpdated"})
+    // Write the header row with additional field for LP Not Found
+    err = writer.Write([]string{"AccountID", "Status", "LastUpdated", "Reason", "LP_Not_Found"})
     if err != nil {
         log.Printf("Failed to write header to CSV file: %s", err)
         return err
     }
 
- // Write account data to the CSV file
- for _, account := range accounts {
-    // Convert Unix timestamp to readable time string
-    lastModified := time.Unix(account.LastModifiedOn, 0).Format(time.RFC3339)
-    
-    err := writer.Write([]string{
-        account.ID,
-        string(account.AccountStatus),
-        lastModified,
-    })
-    if err != nil {
-        log.Printf("Failed to write account data to CSV file: %s", err)
+    // Write account data to the CSV file
+    for _, account := range accounts {
+        // Default reason if not specified
+        reason := "Account marked as NotReady"
+        
+        // Default LP not found value
+        lpNotFound := "false"
+        
+        if account.Metadata != nil {
+            if r, ok := account.Metadata["Reason"].(string); ok && r != "" {
+                reason = r
+            }
+            
+            // Check if LP not found flag is set
+            if lp, ok := account.Metadata["LPNotFound"].(bool); ok && lp {
+                lpNotFound = "true"
+            }
+        }
+        
+        err := writer.Write([]string{
+            account.ID,
+            string(account.AccountStatus),
+            time.Unix(account.LastModifiedOn, 0).Format(time.RFC3339),
+            reason,
+            lpNotFound,
+        })
+        if err != nil {
+            log.Printf("Failed to write account data to CSV file: %s", err)
+            return err
+        }
+    }
+
+    writer.Flush()
+
+    if err := writer.Error(); err != nil {
+        log.Printf("CSV writer error: %s", err)
         return err
     }
-}
 
-// IMPORTANT: Flush the writer before closing the file
-writer.Flush()
+    file.Close()
 
-// Check for any write errors
-if err := writer.Error(); err != nil {
-    log.Printf("CSV writer error: %s", err)
-    return err
-}
+    log.Printf("Successfully saved NotReady accounts to %s", filePath)
 
-// Close the file before uploading
-file.Close()
+    // Upload the file to S3
+    awsRegion := os.Getenv("AWS_CURRENT_REGION")
+    if awsRegion == "" {
+        awsRegion = "us-east-1" 
+    }
+    
+    sess := session.Must(session.NewSession(&aws.Config{
+        Region: aws.String(awsRegion),
+    }))
+    s3Svc := s3.New(sess)
+    fileForUpload, err := os.Open(filePath)
+    if err != nil {
+        log.Printf("Failed to open CSV file for upload: %s", err)
+        return err
+    }
+    defer fileForUpload.Close()
 
-log.Printf("Successfully saved NotReady accounts to %s", filePath)
-
-awsRegion := os.Getenv("AWS_CURRENT_REGION")
-if awsRegion == "" {
-    awsRegion = "us-east-1" // Provide a default region
-}
-// Upload the file to S3
-sess := session.Must(session.NewSession(&aws.Config{
-    Region: aws.String(awsRegion),
-}))
-s3Svc := s3.New(sess)
-fileForUpload, err := os.Open(filePath)
-if err != nil {
-    log.Printf("Failed to open CSV file for upload: %s", err)
-    return err
-}
-defer fileForUpload.Close()
+    if bucket == "" {
+        log.Printf("Error: S3 bucket name is empty. Set ARTIFACT_BUCKET_NAME environment variable.")
+        return fmt.Errorf("S3 bucket name cannot be empty")
+    }
 
     _, err = s3Svc.PutObject(&s3.PutObjectInput{
         Bucket: aws.String(bucket),

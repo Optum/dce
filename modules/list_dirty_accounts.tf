@@ -37,8 +37,8 @@ module "list_dirty_accounts_lambda" {
 
 resource "aws_cloudwatch_event_rule" "list_dirty_accounts_schedule" {
   name                = "list-dirty-accounts-schedule-${var.namespace}"
-  description         = "Runs list_dirty_accounts Lambda every Sunday at 3 AM"
-  schedule_expression = "cron(0 3 ? * SUN *)"
+  description         = "Runs list_dirty_accounts Lambda every Sunday at 1 AM CST"
+  schedule_expression = "cron(0 7 ? * SUN *)"
 }
 
 resource "aws_cloudwatch_event_target" "list_dirty_accounts_lambda_target" {
