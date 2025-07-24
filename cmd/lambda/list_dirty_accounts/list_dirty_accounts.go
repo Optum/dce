@@ -16,9 +16,9 @@ import (
 	"github.com/aws/aws-sdk-go/service/sts"
 )
 
-// scanAccountsForMissingLPBuckets scans all accounts and checks for S3 buckets starting with "lp-"
+// scanAccountsForMissingRequiredBuckets scans all accounts and checks for S3 buckets starting with "lp-"
 // If accounts don't have such buckets, marks them as NotReady in the database
-func scanAccountsForMissingLPBuckets(dbSvc db.DBer, filePath, bucket, s3Key string) error {
+func scanAccountsForMissingRequiredBuckets(dbSvc db.DBer, filePath, bucket, s3Key string) error {
     log.Println("Scanning accounts for missing LP buckets (excluding Leased accounts)")
 
     // Get accounts with different statuses and combine them

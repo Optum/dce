@@ -246,7 +246,7 @@ func TestScanAccountsForMissingLPBuckets(t *testing.T) {
     mockLPChecker.On("checkForLPBuckets", mock.Anything, "456").Return(true, nil)
     
     // Call the function with a dummy file path
-    err := scanAccountsForMissingLPBuckets(dbSvc, "test.csv", "test-bucket", "test-key")
+    err := scanAccountsForMissingRequiredBuckets(dbSvc, "test.csv", "test-bucket", "test-key")
     
     // Verify no error
     assert.NoError(t, err)

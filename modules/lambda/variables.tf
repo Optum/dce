@@ -8,7 +8,7 @@ variable "environment" {
 variable "global_tags" {
   type = map(string)
   default = {
-    aide-id      = "UHGWM110-021451"
+    aide-id = ""
     environment  = "stg"
     terraform    = "True"
     AppName      = "DCE"

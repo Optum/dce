@@ -210,6 +210,7 @@ jobs:
         env:
           NAMESPACE: ${{ env.namespace }}
           NOTIFY_EMAIL: ${{secrets.NOTIFY_EMAIL }}
+          AIDE_ID: ${{ secrets.AIDE_ID }}
         run: |
           set -ex
           cd modules
@@ -219,14 +220,16 @@ jobs:
           terraform plan \
             -var="namespace=${NAMESPACE}" \
             -var="budget_notification_from_email=${NOTIFY_EMAIL}" \
-            -var="reset_nuke_toggle=false"
+            -var="reset_nuke_toggle=false" \
+            -var="aide_id=${{ secrets.AIDE_ID }}" \
 
           terraform apply \
             -auto-approve \
             -input=false \
             -var="namespace=${NAMESPACE}" \
             -var="budget_notification_from_email=${NOTIFY_EMAIL}" \
-            -var="reset_nuke_toggle=false"
+            -var="reset_nuke_toggle=false" \
+            -var="aide_id=${{ secrets.AIDE_ID }}"
       # Build and Deploy Application Code to AWS
       # - name: Set up Node.js
       #   uses: actions/setup-node@v2

@@ -27,7 +27,7 @@ func main() {
     // Generate the current date string
     currentDate := time.Now().Format("2006-01-02")
     
-    // 1. First call scanAccountsForMissingLPBuckets - this now marks accounts as NotReady in DB
+    // 1. First call scanAccountsForMissingRequiredBuckets - this now marks accounts as NotReady in DB
     lpFilePath := fmt.Sprintf("LP_Missing_%s.csv", currentDate)
     bucket := os.Getenv("ARTIFACT_BUCKET_NAME")
     if bucket == "" {
@@ -36,7 +36,7 @@ func main() {
     lpS3Key := fmt.Sprintf("LPMissingAccounts/%s", lpFilePath)
     
     log.Printf("Starting scan for accounts missing LP buckets...")
-    err := scanAccountsForMissingLPBuckets(dbSvc, lpFilePath, bucket, lpS3Key)
+    err := scanAccountsForMissingRequiredBuckets(dbSvc, lpFilePath, bucket, lpS3Key)
     if err != nil {
         log.Printf("Error scanning for LP buckets: %s", err)
 
