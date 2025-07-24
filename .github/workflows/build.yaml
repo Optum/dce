@@ -19,3 +19,4 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       DCE_NONPROD_HOSTNAME: ${{ secrets.DCE_NONPROD_HOSTNAME }}
       NOTIFY_EMAIL: ${{ secrets.NOTIFY_EMAIL }}
+      AIDE_ID: ${{ secrets.AIDE_ID }}
