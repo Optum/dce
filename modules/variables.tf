@@ -99,10 +99,7 @@ variable "budget_notification_from_email" {
   type    = string
   default = "notifications@example.com"
 }
-variable "aide_id" {
-  type        = string
-  description = "AIDE ID for global tags"
-}
+
 variable "budget_notification_bcc_emails" {
   type        = list(string)
   description = "Budget notifications emails will be bcc-d to these addresses"
