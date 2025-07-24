@@ -232,6 +232,18 @@ jobs:
             -var="budget_notification_from_email=${NOTIFY_EMAIL}" \
             -var="reset_nuke_toggle=false" \
             -var="global_tags={aide_id=\"${AIDE_ID}\",environment=\"stg\",terraform=\"True\",AppName=\"DCE\",service-tier=\"p3\"}"
+      
+      - name: Debug AIDE_ID Secret
+        env:
+            AIDE_ID: ${{ secrets.AIDE_ID }}
+        run: |
+          if [ -z "$AIDE_ID" ]; then
+            echo "AIDE_ID secret is empty or not set"
+            exit 1
+          else
+            echo "AIDE_ID secret is set (length: ${#AIDE_ID})"
+          fi
+
       # Build and Deploy Application Code to AWS
       # - name: Set up Node.js
       #   uses: actions/setup-node@v2
