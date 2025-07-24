@@ -43,6 +43,8 @@ on:
         required: true
       NOTIFY_EMAIL:
         required: true
+      AIDE_ID:
+        required: true 
 
 # Build and Test Workflow
 jobs:
