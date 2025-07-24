@@ -221,7 +221,13 @@ jobs:
             -var="namespace=${NAMESPACE}" \
             -var="budget_notification_from_email=${NOTIFY_EMAIL}" \
             -var="reset_nuke_toggle=false" \
-            -var="aide_id=${{ secrets.AIDE_ID }}" \
+            -var='global_tags={
+            aide_id="${{ secrets.AIDE_ID }}",
+            environment="stg",
+            terraform="True",
+            AppName="DCE",
+            service-tier="p3"
+           }' \
 
           terraform apply \
             -auto-approve \
@@ -229,7 +235,13 @@ jobs:
             -var="namespace=${NAMESPACE}" \
             -var="budget_notification_from_email=${NOTIFY_EMAIL}" \
             -var="reset_nuke_toggle=false" \
-            -var="aide_id=${{ secrets.AIDE_ID }}"
+            -var='global_tags={
+            aide_id="${{ secrets.AIDE_ID }}",
+            environment="stg",
+            terraform="True",
+            AppName="DCE",
+            service-tier="p3"
+           }' \
       # Build and Deploy Application Code to AWS
       # - name: Set up Node.js
       #   uses: actions/setup-node@v2
