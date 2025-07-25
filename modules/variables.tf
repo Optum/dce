@@ -19,9 +19,8 @@ variable "account_pool_metrics_widget_period" {
 }
 
 variable "global_tags" {
-  description = "The tags to apply to all resources that support tags"
+  description = "The tags to apply to all resources including aide_id"
   type        = map(string)
-
   default = {
     aide_id      = ""
     environment  = "stg"

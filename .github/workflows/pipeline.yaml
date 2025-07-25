@@ -207,39 +207,12 @@ jobs:
           lease_id=$(cat lease_id.txt)
           ./scripts/create-tf-backend.sh ${lease_id}
           
-      # Add this debug step before your Terraform Init/Apply step
-      - name: Debug Terraform Variables
-        env:
-          NAMESPACE: ${{ env.namespace }}
-          NOTIFY_EMAIL: ${{ secrets.NOTIFY_EMAIL }}
-          AIDE_ID: ${{ secrets.AIDE_ID }}
-        run: |
-          echo "=== TERRAFORM VARIABLE DEBUG ==="
-          echo "NAMESPACE: ${NAMESPACE}"
-          echo "NOTIFY_EMAIL: ${NOTIFY_EMAIL}"
-          echo "AIDE_ID: ${AIDE_ID}"
-          echo "AIDE_ID Length: ${#AIDE_ID}"
-          echo ""
-          echo "Complete global_tags variable being passed:"
-          echo "global_tags={aide_id=\"${AIDE_ID}\",environment=\"stg\",terraform=\"True\",AppName=\"DCE\",service-tier=\"p3\"}"
-          echo ""
-          echo "Formatted for readability:"
-          echo "{"
-          echo "  aide_id: \"${AIDE_ID}\""
-          echo "  environment: \"stg\""
-          echo "  terraform: \"True\""
-          echo "  AppName: \"DCE\""
-          echo "  service-tier: \"p3\""
-          echo "}"
-          echo "==============================="
-
-
-      # terraform init
       - name: Terraform Init/Apply
         env:
           NAMESPACE: ${{ env.namespace }}
-          NOTIFY_EMAIL: ${{secrets.NOTIFY_EMAIL }}
-          AIDE_ID: ${{ secrets.AIDE_ID }}
+          NOTIFY_EMAIL: ${{ secrets.NOTIFY_EMAIL }}
+          TF_VAR_aide_id: ${{ secrets.AIDE_ID }}  # Set as Terraform env var
+          TF_VAR_global_tags: '{"aide_id":"${{ secrets.AIDE_ID }}","environment":"stg","terraform":"True","AppName":"DCE","service-tier":"p3"}'
         run: |
           set -ex
           cd modules
@@ -249,16 +222,14 @@ jobs:
           terraform plan \
             -var="namespace=${NAMESPACE}" \
             -var="budget_notification_from_email=${NOTIFY_EMAIL}" \
-            -var="reset_nuke_toggle=false" \
-            -var="global_tags={aide_id=\"${AIDE_ID}\",environment=\"stg\",terraform=\"True\",AppName=\"DCE\",service-tier=\"p3\"}" \
+            -var="reset_nuke_toggle=false"
 
           terraform apply \
             -auto-approve \
             -input=false \
             -var="namespace=${NAMESPACE}" \
             -var="budget_notification_from_email=${NOTIFY_EMAIL}" \
-            -var="reset_nuke_toggle=false" \
-            -var="global_tags={aide_id=\"${AIDE_ID}\",environment=\"stg\",terraform=\"True\",AppName=\"DCE\",service-tier=\"p3\"}"
+            -var="reset_nuke_toggle=false"
     
 
       # Build and Deploy Application Code to AWS
