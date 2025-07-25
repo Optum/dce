@@ -5,17 +5,11 @@ variable "environment" {
   type    = map(string)
   default = { TERRAFORM = "true" }
 }
-  variable "global_tags" {
-    description = "The tags to apply to all resources including aide_id"
-    type        = map(string)
-    # default = {
-    #   aide_id      = ""
-    #   environment  = "stg"
-    #   terraform    = "True"
-    #   AppName      = "DCE"
-    #   service-tier = "p3"
-    # }
-  }
+
+variable "global_tags" {
+  type        = map(string)
+  description = "A map of global tags to apply to all resources created by this Terraform run. This is a JSON string."
+}
 variable "name" {
   type = string
 }

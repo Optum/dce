@@ -44,7 +44,8 @@ on:
       NOTIFY_EMAIL:
         required: true
       AIDE_ID:
-        required: true 
+        required: true
+  
 
 # Build and Test Workflow
 jobs:
@@ -213,8 +214,7 @@ jobs:
         env:
           NAMESPACE: ${{ env.namespace }}
           NOTIFY_EMAIL: ${{secrets.NOTIFY_EMAIL }}
-         # AIDE_ID: ${{ secrets.AIDE_ID }}
-          TF_VAR_global_tags: '{"aide_id": "UHGWM110-021451", "environment": "stg", "terraform": "True", "AppName": "DCE", "service-tier": "p3"}'
+          TF_VAR_global_tags: '{"aide-id": "${{ secrets.AIDE_ID }}", "environment": "stg", "terraform": "True", "AppName": "DCE", "service-tier": "p3"}'
          
         run: |
           set -ex
@@ -225,14 +225,14 @@ jobs:
           terraform plan \
             -var="namespace=${NAMESPACE}" \
             -var="budget_notification_from_email=${NOTIFY_EMAIL}" \
-            -var="reset_nuke_toggle=false" \
+            -var="reset_nuke_toggle=false" 
 
           terraform apply \
             -auto-approve \
             -input=false \
             -var="namespace=${NAMESPACE}" \
             -var="budget_notification_from_email=${NOTIFY_EMAIL}" \
-            -var="reset_nuke_toggle=false" \
+            -var="reset_nuke_toggle=false"
     
 
       # Build and Deploy Application Code to AWS

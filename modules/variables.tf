@@ -19,15 +19,8 @@ variable "account_pool_metrics_widget_period" {
 }
 
 variable "global_tags" {
-  description = "The tags to apply to all resources including"
   type        = map(string)
-  # default = {
-  #   aide_id      = var.aide_id
-  #   environment  = "stg"
-  #   terraform    = "True"
-  #   AppName      = "DCE"
-  #   service-tier = "p3"
-  # }
+  description = "A map of global tags to apply to all resources created by this Terraform run. This is a JSON string."
 }
 
 variable "namespace" {
