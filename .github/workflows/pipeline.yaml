@@ -383,6 +383,10 @@ jobs:
           terraform_version: ${{ inputs.terraform_version }}
 
       - name: Terraform destroy
+        env:
+          NAMESPACE: ${{ env.namespace }}
+          NOTIFY_EMAIL: ${{secrets.NOTIFY_EMAIL }}
+          TF_VAR_global_tags: '{"aide-id": "${{ secrets.AIDE_ID }}", "environment": "stg", "terraform": "True", "AppName": "DCE", "service-tier": "p3"}'
         run: |
           set -ex
           export TF_VAR_namespace=$(cat ./namespace.txt)
