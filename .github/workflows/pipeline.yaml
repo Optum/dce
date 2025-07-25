@@ -212,22 +212,35 @@ jobs:
         env:
           NAMESPACE: ${{ env.namespace }}
           NOTIFY_EMAIL: ${{ secrets.NOTIFY_EMAIL }}
-          AIDE_ID_VALUE: ${{ secrets.AIDE_ID }}  # Store secret in separate env var
+          AIDE_ID_VALUE: ${{ secrets.AIDE_ID }}
         run: |
           set -ex
           cd modules
           cat ./backend.tf
           terraform init -input=false
 
-          # Build the global_tags JSON using the environment variable
-          export TF_VAR_global_tags="{\"aide_id\":\"${AIDE_ID_VALUE}\",\"environment\":\"stg\",\"terraform\":\"True\",\"AppName\":\"DCE\",\"service-tier\":\"p3\"}"
+          # Verify AIDE_ID_VALUE is set
+          if [ -z "$AIDE_ID_VALUE" ]; then
+            echo "ERROR: AIDE_ID_VALUE is empty!"
+            exit 1
+          fi
+
+          # Use jq to build proper JSON (handles escaping automatically)
+          export TF_VAR_global_tags=$(jq -n \
+            --arg aide_id "$AIDE_ID_VALUE" \
+            --arg environment "stg" \
+            --arg terraform "True" \
+            --arg app_name "DCE" \
+            --arg service_tier "p3" \
+            '{
+              aide_id: $aide_id,
+              environment: $environment,
+              terraform: $terraform,
+              AppName: $app_name,
+              "service-tier": $service_tier
+            }')
           
-          echo "Global tags structure (aide_id length: ${#AIDE_ID_VALUE}):"
-          echo "aide_id: [HIDDEN]"
-          echo "environment: stg"
-          echo "terraform: True"
-          echo "AppName: DCE"
-          echo "service-tier: p3"
+          echo "TF_VAR_global_tags: $TF_VAR_global_tags"
 
           terraform plan \
             -var="namespace=${NAMESPACE}" \
@@ -239,8 +252,7 @@ jobs:
             -input=false \
             -var="namespace=${NAMESPACE}" \
             -var="budget_notification_from_email=${NOTIFY_EMAIL}" \
-            -var="reset_nuke_toggle=false"
-    
+            -var="reset_nuke_toggle=false"    
 
       # Build and Deploy Application Code to AWS
       # - name: Set up Node.js
