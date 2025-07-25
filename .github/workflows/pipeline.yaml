@@ -43,7 +43,7 @@ on:
         required: true
       NOTIFY_EMAIL:
         required: true
-      AIDE_ID_VALUE:
+      AIDE_ID:
         required: true 
 
 # Build and Test Workflow
@@ -208,26 +208,27 @@ jobs:
           ./scripts/create-tf-backend.sh ${lease_id}
         
       # terraform init
+      # Fix the environment variable consistency
       - name: Terraform Init/Apply
         env:
           NAMESPACE: ${{ env.namespace }}
           NOTIFY_EMAIL: ${{ secrets.NOTIFY_EMAIL }}
-          AIDE_ID_VALUE: ${{ secrets.AIDE_ID }}
+          AIDE_ID: ${{ secrets.AIDE_ID }}  # Changed from AIDE_ID_VALUE
         run: |
           set -ex
           cd modules
           cat ./backend.tf
           terraform init -input=false
 
-          # Verify AIDE_ID_VALUE is set
-          if [ -z "$AIDE_ID_VALUE" ]; then
-            echo "ERROR: AIDE_ID_VALUE is empty!"
+          # Verify AIDE_ID is set
+          if [ -z "$AIDE_ID" ]; then
+            echo "ERROR: AIDE_ID is empty!"
             exit 1
           fi
 
-          # Use jq to build proper JSON (handles escaping automatically)
+          # Use jq to build proper JSON
           export TF_VAR_global_tags=$(jq -n \
-            --arg aide_id "$AIDE_ID_VALUE" \
+            --arg aide_id "$AIDE_ID" \
             --arg environment "stg" \
             --arg terraform "True" \
             --arg app_name "DCE" \
@@ -252,7 +253,7 @@ jobs:
             -input=false \
             -var="namespace=${NAMESPACE}" \
             -var="budget_notification_from_email=${NOTIFY_EMAIL}" \
-            -var="reset_nuke_toggle=false"    
+            -var="reset_nuke_toggle=false"
 
       # Build and Deploy Application Code to AWS
       # - name: Set up Node.js
@@ -402,10 +403,27 @@ jobs:
           terraform_version: ${{ inputs.terraform_version }}
 
       - name: Terraform destroy
+        env:
+          AIDE_ID: ${{ secrets.AIDE_ID }}  # Add this
         run: |
           set -ex
           export TF_VAR_namespace=$(cat ./namespace.txt)
-          export TF_VAR_budget_notification_from_email=${{ env.NOTIFY_EMAIL }}
+          export TF_VAR_budget_notification_from_email=${{ secrets.NOTIFY_EMAIL }}
+          
+          # Add global_tags for destroy
+          export TF_VAR_global_tags=$(jq -n \
+            --arg aide_id "$AIDE_ID" \
+            --arg environment "stg" \
+            --arg terraform "True" \
+            --arg app_name "DCE" \
+            --arg service_tier "p3" \
+            '{
+              aide_id: $aide_id,
+              environment: $environment,
+              terraform: $terraform,
+              AppName: $app_name,
+              "service-tier": $service_tier
+            }')
 
           cd modules
           terraform init -input=false
@@ -441,7 +459,7 @@ jobs:
   Release:
     needs: [Deploy]
     runs-on: ubuntu-latest
-    if: ${{ github.event.action == 'published'}}
+    if: github.event_name == 'release' && github.event.action == 'published'
     steps:
         - name: Checkout repository
           uses: actions/checkout@v3
