@@ -8,7 +8,7 @@ variable "environment" {
 
 variable "global_tags" {
   type        = map(string)
-  description = "A map of global tags to apply to all resources created by this Terraform run. This is a JSON string."
+  description = "A map of global tags to apply to all resources"
 }
 variable "name" {
   type = string
