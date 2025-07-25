@@ -214,7 +214,7 @@ jobs:
           NAMESPACE: ${{ env.namespace }}
           NOTIFY_EMAIL: ${{secrets.NOTIFY_EMAIL }}
          # AIDE_ID: ${{ secrets.AIDE_ID }}
-          TF_VAR_global_tags: '{"aide_id": "${{ secrets.AIDE_ID }}", "environment": "stg", "terraform": "True", "AppName": "DCE", "service-tier": "p3"}'
+          TF_VAR_global_tags: '{"aide_id": "UHGWM110-021451", "environment": "stg", "terraform": "True", "AppName": "DCE", "service-tier": "p3"}'
          
         run: |
           set -ex
