@@ -8,13 +8,13 @@ variable "environment" {
   variable "global_tags" {
     description = "The tags to apply to all resources including aide_id"
     type        = map(string)
-    default = {
-      aide_id      = ""
-      environment  = "stg"
-      terraform    = "True"
-      AppName      = "DCE"
-      service-tier = "p3"
-    }
+    # default = {
+    #   aide_id      = ""
+    #   environment  = "stg"
+    #   terraform    = "True"
+    #   AppName      = "DCE"
+    #   service-tier = "p3"
+    # }
   }
 variable "name" {
   type = string
