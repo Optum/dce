@@ -19,7 +19,7 @@ import (
 // scanAccountsForMissingRequiredBuckets scans all accounts and checks for S3 buckets starting with "lp-"
 // If accounts don't have such buckets, marks them as NotReady in the database
 func scanAccountsForMissingRequiredBuckets(dbSvc db.DBer, filePath, bucket, s3Key string) error {
-    log.Println("Scanning accounts for missing LP buckets (excluding Leased accounts)")
+    log.Println("Scanning accounts for missing buckets (excluding Leased accounts)")
 
     // Get accounts with different statuses and combine them
     readyAccounts, err := dbSvc.FindAccountsByStatus(db.Ready)
@@ -53,25 +53,25 @@ func scanAccountsForMissingRequiredBuckets(dbSvc db.DBer, filePath, bucket, s3Ke
     // Count of accounts marked as NotReady
     markedCount := 0
     
-    // For each account, check for LP buckets
+    // For each account, check for required buckets
     for _, account := range accounts {
-        // Use the account credentials to check for LP buckets
-        hasLPBucket, err := checkForLPBuckets(sess, account.ID)
+        // Use the account credentials to check for required buckets
+        hasBucket, err := checkForBuckets(sess, account.ID)
         if err != nil {
-            log.Printf("Error checking LP buckets for account %s: %s", account.ID, err)
+            log.Printf("Error checking required buckets for account %s: %s", account.ID, err)
             continue
         }
         
-        if !hasLPBucket {
-            log.Printf("Account %s is missing LP buckets - marking as NotReady", account.ID)
+        if !hasBucket {
+            log.Printf("Account %s is missing required buckets - marking as NotReady", account.ID)
             
             if account.Metadata == nil {
                 account.Metadata = make(map[string]interface{})
             }
             
-            account.Metadata["LPBucketExists"] = false
-            account.Metadata["LPNotFound"] = true
-            account.Metadata["Reason"] = "LP bucket doesn't exist"
+            account.Metadata["BucketExists"] = false
+            account.Metadata["BucketNotFound"] = true
+            account.Metadata["Reason"] = "Required bucket doesn't exist"
             
             if account.AccountStatus != db.NotReady {
                 account.AccountStatus = db.NotReady
@@ -83,10 +83,10 @@ func scanAccountsForMissingRequiredBuckets(dbSvc db.DBer, filePath, bucket, s3Ke
                 log.Printf("Failed to update account %s status: %s", account.ID, err)
             }
         } else if account.AccountStatus == db.NotReady {
-            if lp, ok := account.Metadata["LPNotFound"].(bool); ok && lp {
-                log.Printf("Account %s has LP buckets but was marked as NotReady - updating metadata", account.ID)
-                account.Metadata["LPBucketExists"] = true
-                account.Metadata["LPNotFound"] = false
+            if requiredBucket, ok := account.Metadata["BucketNotFound"].(bool); ok && requiredBucket {
+                log.Printf("Account %s has required buckets but was marked as NotReady - updating metadata", account.ID)
+                account.Metadata["BucketExists"] = true
+                account.Metadata["BucketNotFound"] = false
                 
                 err := dbSvc.PutAccount(*account)
                 if err != nil {
@@ -96,17 +96,17 @@ func scanAccountsForMissingRequiredBuckets(dbSvc db.DBer, filePath, bucket, s3Ke
         }
     }
     
-    log.Printf("Marked or updated %d accounts due to missing LP buckets", markedCount)
+    log.Printf("Marked or updated %d accounts due to missing required buckets", markedCount)
     return nil
 }
-// checkForLPBuckets checks if an account has any S3 buckets starting with "lp-"
-func checkForLPBuckets(sess *session.Session, accountID string) (bool, error) {
+// checkForBuckets checks if an account has any S3 buckets starting with "lp-"
+func checkForBuckets(sess *session.Session, accountID string) (bool, error) {
     // Create STS client for assuming roles
     stsSvc := sts.New(sess)
     
     // Use OrganizationAccountAccessRole for cross-account access
     roleARN := fmt.Sprintf("arn:aws:iam::%s:role/OrganizationAccountAccessRole", accountID)
-    sessionName := fmt.Sprintf("LP-Bucket-Check-%s", time.Now().Format("20060102-150405"))
+    sessionName := fmt.Sprintf("Bucket-Check-%s", time.Now().Format("20060102-150405"))
     
     // Assume the role
     assumeRoleInput := &sts.AssumeRoleInput{
@@ -143,12 +143,12 @@ func checkForLPBuckets(sess *session.Session, accountID string) (bool, error) {
     // Check if any bucket name starts with "lp-"
     for _, bucket := range result.Buckets {
         if bucket.Name != nil && len(*bucket.Name) >= 3 && (*bucket.Name)[:3] == "lp-" {
-            log.Printf("Found LP bucket %s in account %s", *bucket.Name, accountID)
+            log.Printf("Found required bucket %s in account %s", *bucket.Name, accountID)
             return true, nil
         }
     }
     
-    log.Printf("No LP buckets found in account %s", accountID)
+    log.Printf("No required buckets found in account %s", accountID)
     return false, nil
 }
 // listNotReadyAccountsToCSV retrieves all accounts with the status "NotReady" from the ACCOUNT_TABLE,
@@ -177,8 +177,8 @@ func listNotReadyAccountsToCSV(dbSvc db.DBer, filePath, bucket, s3Key string) er
     writer := csv.NewWriter(file)
     defer writer.Flush()
 
-    // Write the header row with additional field for LP Not Found
-    err = writer.Write([]string{"AccountID", "Status", "LastUpdated", "Reason", "LP_Not_Found"})
+    // Write the header row with additional field for required Not Found
+    err = writer.Write([]string{"AccountID", "Status", "LastUpdated", "Reason", "required_Buckets_Not_Found"})
     if err != nil {
         log.Printf("Failed to write header to CSV file: %s", err)
         return err
@@ -189,17 +189,17 @@ func listNotReadyAccountsToCSV(dbSvc db.DBer, filePath, bucket, s3Key string) er
         // Default reason if not specified
         reason := "Account marked as NotReady"
         
-        // Default LP not found value
-        lpNotFound := "false"
+        // Default required not found value
+        BucketNotFound := "false"
         
         if account.Metadata != nil {
             if r, ok := account.Metadata["Reason"].(string); ok && r != "" {
                 reason = r
             }
             
-            // Check if LP not found flag is set
-            if lp, ok := account.Metadata["LPNotFound"].(bool); ok && lp {
-                lpNotFound = "true"
+            // Check if required not found flag is set
+            if requiredBucket, ok := account.Metadata["BucketNotFound"].(bool); ok && requiredBucket {
+                BucketNotFound = "true"
             }
         }
         
@@ -208,7 +208,7 @@ func listNotReadyAccountsToCSV(dbSvc db.DBer, filePath, bucket, s3Key string) er
             string(account.AccountStatus),
             time.Unix(account.LastModifiedOn, 0).Format(time.RFC3339),
             reason,
-            lpNotFound,
+            BucketNotFound,
         })
         if err != nil {
             log.Printf("Failed to write account data to CSV file: %s", err)
