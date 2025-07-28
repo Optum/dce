@@ -11,6 +11,7 @@ resource "aws_lambda_function" "list_dirty_accounts" {
       BUCKET     = aws_s3_bucket.artifacts.id
       S3_KEY     = "dirty_accounts.csv"
       NAMESPACE  = var.namespace
+      REQUIRED_BUCKET_PREFIX = var.required_bucket_prefix
     }
   }
 

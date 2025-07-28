@@ -16,7 +16,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sts"
 )
 
-// scanAccountsForMissingRequiredBuckets scans all accounts and checks for S3 buckets starting with "lp-"
+// scanAccountsForMissingRequiredBuckets scans all accounts for required S3 buckets
 // If accounts don't have such buckets, marks them as NotReady in the database
 func scanAccountsForMissingRequiredBuckets(dbSvc db.DBer, filePath, bucket, s3Key string) error {
     log.Println("Scanning accounts for missing buckets (excluding Leased accounts)")
@@ -27,32 +27,32 @@ func scanAccountsForMissingRequiredBuckets(dbSvc db.DBer, filePath, bucket, s3Ke
         log.Printf("Failed to fetch Ready accounts: %s", err)
         return err
     }
-    
+
     notReadyAccounts, err := dbSvc.FindAccountsByStatus(db.NotReady)
     if err != nil {
         log.Printf("Failed to fetch NotReady accounts: %s", err)
         return err
     }
-    
+
     // Combine accounts (we check only Ready and NotReady accounts)
     var accounts []*db.Account
     accounts = append(accounts, readyAccounts...)
     accounts = append(accounts, notReadyAccounts...)
 
     log.Printf("Found %d total accounts to check", len(accounts))
-    
+
     awsRegion := os.Getenv("AWS_CURRENT_REGION")
     if awsRegion == "" {
         awsRegion = "us-east-1"
     }
-    
+
     sess := session.Must(session.NewSession(&aws.Config{
         Region: aws.String(awsRegion),
     }))
-    
+
     // Count of accounts marked as NotReady
     markedCount := 0
-    
+
     // For each account, check for required buckets
     for _, account := range accounts {
         // Use the account credentials to check for required buckets
@@ -61,23 +61,23 @@ func scanAccountsForMissingRequiredBuckets(dbSvc db.DBer, filePath, bucket, s3Ke
             log.Printf("Error checking required buckets for account %s: %s", account.ID, err)
             continue
         }
-        
+
         if !hasBucket {
             log.Printf("Account %s is missing required buckets - marking as NotReady", account.ID)
-            
+
             if account.Metadata == nil {
                 account.Metadata = make(map[string]interface{})
             }
-            
+
             account.Metadata["BucketExists"] = false
             account.Metadata["BucketNotFound"] = true
             account.Metadata["Reason"] = "Required bucket doesn't exist"
-            
+
             if account.AccountStatus != db.NotReady {
                 account.AccountStatus = db.NotReady
                 markedCount++
             }
-            
+
             err := dbSvc.PutAccount(*account)
             if err != nil {
                 log.Printf("Failed to update account %s status: %s", account.ID, err)
@@ -87,7 +87,7 @@ func scanAccountsForMissingRequiredBuckets(dbSvc db.DBer, filePath, bucket, s3Ke
                 log.Printf("Account %s has required buckets but was marked as NotReady - updating metadata", account.ID)
                 account.Metadata["BucketExists"] = true
                 account.Metadata["BucketNotFound"] = false
-                
+
                 err := dbSvc.PutAccount(*account)
                 if err != nil {
                     log.Printf("Failed to update account %s metadata: %s", account.ID, err)
@@ -95,59 +95,65 @@ func scanAccountsForMissingRequiredBuckets(dbSvc db.DBer, filePath, bucket, s3Ke
             }
         }
     }
-    
+
     log.Printf("Marked or updated %d accounts due to missing required buckets", markedCount)
     return nil
 }
-// checkForBuckets checks if an account has any S3 buckets starting with "lp-"
+// checkForBuckets checks if an account has S3 buckets starting with the required prefix
 func checkForBuckets(sess *session.Session, accountID string) (bool, error) {
+    // Retrieve the bucket prefix from the environment variable
+    bucketPrefix := os.Getenv("REQUIRED_BUCKET_PREFIX")
+    if bucketPrefix == "" {
+        return false, fmt.Errorf("REQUIRED_BUCKET_PREFIX environment variable is not set")
+    }
+
     // Create STS client for assuming roles
     stsSvc := sts.New(sess)
-    
+
     // Use OrganizationAccountAccessRole for cross-account access
     roleARN := fmt.Sprintf("arn:aws:iam::%s:role/OrganizationAccountAccessRole", accountID)
     sessionName := fmt.Sprintf("Bucket-Check-%s", time.Now().Format("20060102-150405"))
-    
+
     // Assume the role
     assumeRoleInput := &sts.AssumeRoleInput{
         RoleArn:         aws.String(roleARN),
         RoleSessionName: aws.String(sessionName),
-        DurationSeconds: aws.Int64(900), 
+        DurationSeconds: aws.Int64(900),
     }
-    
+
     log.Printf("Attempting to assume role %s in account %s", roleARN, accountID)
     assumeRoleOutput, err := stsSvc.AssumeRole(assumeRoleInput)
     if err != nil {
         return false, fmt.Errorf("failed to assume role in account %s: %w", accountID, err)
     }
-    
+
     crossAccountCreds := credentials.NewStaticCredentials(
         *assumeRoleOutput.Credentials.AccessKeyId,
         *assumeRoleOutput.Credentials.SecretAccessKey,
         *assumeRoleOutput.Credentials.SessionToken,
     )
-    
+
     crossAccountConfig := aws.NewConfig().
         WithCredentials(crossAccountCreds).
         WithRegion(aws.StringValue(sess.Config.Region))
-    
+
     crossAccountSess := session.Must(session.NewSession(crossAccountConfig))
-    
+
     s3Svc := s3.New(crossAccountSess)
-    
+
     result, err := s3Svc.ListBuckets(&s3.ListBucketsInput{})
     if err != nil {
         return false, fmt.Errorf("failed to list buckets for account %s: %w", accountID, err)
     }
-    
-    // Check if any bucket name starts with "lp-"
+
+    // Check if any bucket name starts with the required prefix
     for _, bucket := range result.Buckets {
-        if bucket.Name != nil && len(*bucket.Name) >= 3 && (*bucket.Name)[:3] == "lp-" {
+        if bucket.Name != nil && len(*bucket.Name) >= len(bucketPrefix) && (*bucket.Name)[:len(bucketPrefix)] == bucketPrefix {
             log.Printf("Found required bucket %s in account %s", *bucket.Name, accountID)
             return true, nil
         }
     }
-    
+
     log.Printf("No required buckets found in account %s", accountID)
     return false, nil
 }

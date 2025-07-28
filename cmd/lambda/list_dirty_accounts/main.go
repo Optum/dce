@@ -1,12 +1,12 @@
 package main
 
 import (
-	"fmt"
-	"log"
-	"os"
-	"time"
+    "fmt"
+    "log"
+    "os"
+    "time"
 
-	"github.com/Optum/dce/pkg/db"
+    "github.com/Optum/dce/pkg/db"
 )
 
 func initializeDBService() db.DBer {
@@ -21,6 +21,13 @@ func initializeDBService() db.DBer {
 func main() {
     dbSvc := initializeDBService()
 
+    // Verify required environment variables
+    requiredBucketPrefix := os.Getenv("REQUIRED_BUCKET_PREFIX")
+    if requiredBucketPrefix == "" {
+        log.Fatalf("REQUIRED_BUCKET_PREFIX environment variable must be set")
+    }
+    log.Printf("Using REQUIRED_BUCKET_PREFIX: %s", requiredBucketPrefix)
+
     // Assert that dbSvc implements the db.DBer interface
     var _ db.DBer = dbSvc
 
@@ -28,21 +35,21 @@ func main() {
     currentDate := time.Now().Format("2006-01-02")
     
     // 1. First call scanAccountsForMissingRequiredBuckets - this now marks accounts as NotReady in DB
-    lpFilePath := fmt.Sprintf("LP_Missing_%s.csv", currentDate)
+    // Use dynamic prefix from environment variable instead of hardcoded "LP"
+    prefixFilePath := fmt.Sprintf("Missing_%s_Buckets_%s.csv", requiredBucketPrefix, currentDate)
     bucket := os.Getenv("ARTIFACT_BUCKET_NAME")
     if bucket == "" {
         log.Fatalf("ARTIFACT_BUCKET_NAME environment variable must be set")
     }
-    lpS3Key := fmt.Sprintf("LPMissingAccounts/%s", lpFilePath)
+    prefixS3Key := fmt.Sprintf("MissingBucketAccounts/%s", prefixFilePath)
     
-    log.Printf("Starting scan for accounts missing LP buckets...")
-    err := scanAccountsForMissingRequiredBuckets(dbSvc, lpFilePath, bucket, lpS3Key)
+    log.Printf("Starting scan for accounts missing %s buckets...", requiredBucketPrefix)
+    err := scanAccountsForMissingRequiredBuckets(dbSvc, prefixFilePath, bucket, prefixS3Key)
     if err != nil {
-        log.Printf("Error scanning for LP buckets: %s", err)
-
+        log.Printf("Error scanning for %s buckets: %s", requiredBucketPrefix, err)
     }
     
-    // 2. Then call listNotReadyAccountsToCSV - this now includes LP_Not_Found field
+    // 2. Then call listNotReadyAccountsToCSV - this now includes bucket status field
     notReadyFilePath := fmt.Sprintf("not_ready_accounts_%s.csv", currentDate)
     notReadyS3Key := fmt.Sprintf("NotReadyAccounts/%s", notReadyFilePath)
     

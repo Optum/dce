@@ -273,3 +273,8 @@ variable "usage_table_wcu" {
   default     = 5
   description = "DynamoDB Usage table provisioned Write Capacity Units (WCUs). See https://aws.amazon.com/dynamodb/pricing/provisioned/"
 }
+variable "required_bucket_prefix" {
+  description = "The prefix for required S3 buckets to check"
+  type        = string
+  default     = "" 
+}
