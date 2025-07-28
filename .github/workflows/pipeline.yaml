@@ -104,8 +104,18 @@ jobs:
       - name: Configure namespace
         run: |
           if [[ "${{ github.event.pull_request.number }}" != "" ]]; then
+            # If triggered by a pull request
             NS="github-pr-${{ github.event.pull_request.number }}"
+          elif [[ "${{ github.event.action }}" == "published" || "${{ github.event.action }}" == "prereleased" ]]; then
+            # If triggered by a release, extract PR number from the release tag or body
+            PR_NUMBER=$(echo "${{ github.event.release.body }}" | grep -oE 'PR-[0-9]+' | head -n 1 | sed 's/PR-//')
+            if [[ -z "$PR_NUMBER" ]]; then
+              echo "Error: Could not extract PR number from release body."
+              exit 1
+            fi
+            NS="github-pr-${PR_NUMBER}"
           else
+            # Default namespace for other cases
             NS="cd"
           fi
 
