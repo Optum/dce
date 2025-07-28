@@ -4,7 +4,7 @@ on:
   pull_request:
     types: [ opened, synchronize, reopened, closed ]
     branches:
-      - master
+      - get-failed-accounts
 
 jobs:
   build:
