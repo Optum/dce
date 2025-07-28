@@ -219,7 +219,7 @@ jobs:
           terraform init -input=false
            
               # Use the complete JSON from repository variable
-              export TF_VAR_global_tags='${{ vars.TF_VAR_GLOBAL_TAGS_JSON }}'
+              export TF_VAR_global_tags='${{ vars.TF_VAR_GLOBAL_TAGS}}'
               export TF_VAR_required_bucket_prefix="${TF_VAR_required_bucket_prefix}"
 
               echo "TF_VAR_global_tags is set: ${TF_VAR_global_tags}"
@@ -350,14 +350,12 @@ jobs:
         env:
           NAMESPACE: ${{ env.namespace }}
           NOTIFY_EMAIL: ${{ secrets.NOTIFY_EMAIL }}
-          RESOURCE_TAG_ID: ${{ secrets.RESOURCE_TAG_ID }}
+          TF_VAR_global_tags: ${{ vars.TF_VAR_GLOBAL_TAGS}}
         run: |
           set -ex
           export TF_VAR_namespace=$(cat ./namespace.txt)
           export TF_VAR_budget_notification_from_email="${NOTIFY_EMAIL}"
-          export TF_VAR_required_bucket_prefix="${REQUIRED_BUCKET_PREFIX}"
-
-
+  
           # Use the complete JSON from repository variable
           export TF_VAR_global_tags='${{ vars.TF_VAR_GLOBAL_TAGS}}'
           export TF_VAR_required_bucket_prefix="${REQUIRED_BUCKET_PREFIX}"
