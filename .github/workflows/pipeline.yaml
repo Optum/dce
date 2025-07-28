@@ -11,7 +11,7 @@ on:
       branch:
         required: false
         type: string
-        default: master
+        default: get-failed-accounts
       release:
         required: false
         type: string
@@ -27,7 +27,7 @@ on:
       version_tag:
         required: false
         type: string
-        default: master # pr-#, nonprod, or vX.Y.Z
+        default: get-failed-accounts # pr-#, nonprod, or vX.Y.Z
       namespace:
         required: false
         type: string
