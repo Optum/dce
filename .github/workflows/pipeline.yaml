@@ -103,25 +103,66 @@ jobs:
 
       - name: Configure namespace
         run: |
+          echo "=== GitHub Event Debug Info ==="
+          echo "Event name: ${{ github.event_name }}"
+          echo "Event action: ${{ github.event.action }}"
+          echo "PR number: ${{ github.event.pull_request.number }}"
+          echo "Release tag: ${{ github.event.release.tag_name }}"
+          echo "Ref name: ${{ github.ref_name }}"
+          echo "================================"
+          
+          # Get PR number from different sources
+          PR_NUMBER=""
+          
+          # Method 1: Direct PR event
           if [[ "${{ github.event.pull_request.number }}" != "" ]]; then
-            # If triggered by a pull request
-            NS="github-pr-${{ github.event.pull_request.number }}"
-          elif [[ "${{ github.event.action }}" == "published" || "${{ github.event.action }}" == "prereleased" ]]; then
-            # If triggered by a release, extract PR number from the release tag or body
-            PR_NUMBER=$(echo "${{ github.event.release.body }}" | grep -oE 'PR-[0-9]+' | head -n 1 | sed 's/PR-//')
-            if [[ -z "$PR_NUMBER" ]]; then
-              echo "Error: Could not extract PR number from release body."
-              exit 1
+            PR_NUMBER="${{ github.event.pull_request.number }}"
+            echo "Got PR number from pull_request event: ${PR_NUMBER}"
+          fi
+          
+          # Method 2: From workflow inputs (for workflow_call)
+          if [[ -z "$PR_NUMBER" && "${{ inputs.version_tag }}" =~ ^pr-[0-9]+$ ]]; then
+            PR_NUMBER=$(echo "${{ inputs.version_tag }}" | sed 's/pr-//')
+            echo "Got PR number from version_tag input: ${PR_NUMBER}"
+          fi
+          
+          # Method 3: From namespace input (for workflow_call)
+          if [[ -z "$PR_NUMBER" && "${{ inputs.namespace }}" =~ ^pr-[0-9]+$ ]]; then
+            PR_NUMBER=$(echo "${{ inputs.namespace }}" | sed 's/pr-//')
+            echo "Got PR number from namespace input: ${PR_NUMBER}"
+          fi
+          
+          # Method 4: From release tag (for release events)
+          if [[ -z "$PR_NUMBER" && "${{ github.event_name }}" == "release" ]]; then
+            # Try to extract from release tag (format: pr-123 or v1.0.0-pr-123)
+            PR_NUMBER=$(echo "${{ github.event.release.tag_name }}" | grep -oE 'pr-[0-9]+' | sed 's/pr-//')
+            if [[ -n "$PR_NUMBER" ]]; then
+              echo "Got PR number from release tag: ${PR_NUMBER}"
             fi
+          fi
+          
+          # Method 5: From release body (for release events)
+          if [[ -z "$PR_NUMBER" && "${{ github.event_name }}" == "release" ]]; then
+            PR_NUMBER=$(echo "${{ github.event.release.body }}" | grep -oE '(PR-|#)[0-9]+' | head -n 1 | sed 's/PR-\|#//')
+            if [[ -n "$PR_NUMBER" ]]; then
+              echo "Got PR number from release body: ${PR_NUMBER}"
+            fi
+          fi
+          
+          # Configure namespace based on PR number availability
+          # Similar to Azure DevOps logic: if PR_NUMBER is valid, use it; otherwise use "cd"
+          if [[ -n "$PR_NUMBER" && "$PR_NUMBER" =~ ^[0-9]+$ ]]; then
             NS="github-pr-${PR_NUMBER}"
+            echo "Using PR namespace: ${NS}"
           else
-            # Default namespace for other cases
             NS="cd"
+            echo "Using default namespace (no valid PR number found): ${NS}"
           fi
 
-          echo "Namespace is ${NS}"
+          echo "Final namespace is: ${NS}"
           echo "namespace=${NS}" >> $GITHUB_ENV
           echo "${NS}" > ./namespace.txt
+              
 
       - name: Upload namespace file
         uses: actions/upload-artifact@v4
@@ -258,19 +299,22 @@ jobs:
           ./scripts/build.sh
 
       - name: Deploy Application Code
+        env:
+          REQUIRED_BUCKET_PREFIX: ${{ vars.REQUIRED_BUCKET_PREFIX }}
         run: |
           echo "Running terraform output for artifacts_bucket_name"
           ARTIFACTS_BUCKET=$(cd modules && terraform output artifacts_bucket_name | tr -d '"')
           echo "ARTIFACTS_BUCKET=${ARTIFACTS_BUCKET}"
 
           echo "Running terraform output for namespace"
-          NAMESPACE=$(cd modules && terraform output namespace)
+          NAMESPACE=$(cd modules && terraform output namespace | tr -d '"')
           echo "Output namespace: ${NAMESPACE}"
 
+          # Use dynamic values instead of hardcoded PR references
           ./scripts/deploy.sh \
             /home/runner/work/dce/dce/bin/build_artifacts.zip \
-            github-pr-${{ github.event.pull_request.number }} \
-            000879607493-dce-artifacts-github-pr-${{ github.event.pull_request.number }}
+            ${NAMESPACE} \
+            ${ARTIFACTS_BUCKET}
 
       # Upload artifacts for release
       - name: Upload dce-cli Artifact
