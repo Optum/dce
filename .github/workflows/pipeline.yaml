@@ -300,27 +300,23 @@ jobs:
 
       - name: Set Terraform Output Variables
         run: |
-          echo "Getting Terraform outputs..."
-          ARTIFACTS_BUCKET=$(cd modules && terraform output artifacts_bucket_name | tr -d '"')
-          NAMESPACE=$(cd modules && terraform output namespace | tr -d '"')
-          
-          echo "ARTIFACTS_BUCKET=${ARTIFACTS_BUCKET}"
-          echo "NAMESPACE=${NAMESPACE}"
-          
-          # Export to GitHub environment for subsequent steps
-          echo "ARTIFACTS_BUCKET=${ARTIFACTS_BUCKET}" >> $GITHUB_ENV
-          echo "NAMESPACE=${NAMESPACE}" >> $GITHUB_ENV
+            echo "Getting Terraform outputs..."
+            ARTIFACTS_BUCKET=$(cd modules && terraform output artifacts_bucket_name | tr -d '" \n\r')
+            NAMESPACE=$(cd modules && terraform output namespace | tr -d '" \n\r')
+            
+            echo "Sanitized ARTIFACTS_BUCKET=${ARTIFACTS_BUCKET}"
+            echo "Sanitized NAMESPACE=${NAMESPACE}"
+            
+            # Export to GitHub environment for subsequent steps
+            echo "ARTIFACTS_BUCKET=${ARTIFACTS_BUCKET}" >> $GITHUB_ENV
+            echo "NAMESPACE=${NAMESPACE}" >> $GITHUB_ENV
 
-      - name: Debug Variables
+      - name: Debug Environment Variables
         run: |
-          echo "=== Debugging Variables ==="
           echo "ARTIFACTS_BUCKET=${ARTIFACTS_BUCKET}"
           echo "NAMESPACE=${NAMESPACE}"
-          echo "REQUIRED_BUCKET_PREFIX=${{ vars.REQUIRED_BUCKET_PREFIX }}"
-          echo "AWS Region: ${AWS_DEFAULT_REGION:-Not Set}"
-          echo "==========================" 
-        env:   
-          AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+          echo "Environment Variables:"
+          env | grep -E "ARTIFACTS_BUCKET|NAMESPACE"
 
       - name: Deploy Application Code
         env:
