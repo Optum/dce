@@ -327,39 +327,51 @@ jobs:
           # Ensure we're using the leased account credentials
           aws sts get-caller-identity
           
-          # Get clean Terraform outputs for tests
-          terraform output -json > ../terraform_outputs.json
-          
-          # Validate the JSON output before running tests
-          if ! jq . ../terraform_outputs.json > /dev/null 2>&1; then
-            echo "Invalid Terraform JSON output detected"
-            echo "Raw output:"
-            cat ../terraform_outputs.json
-            
-            # Try to get outputs individually and create valid JSON
-            echo "Attempting to create valid JSON from individual outputs..."
-            echo "{" > ../terraform_outputs.json
-            echo "  \"artifacts_bucket_name\": {" >> ../terraform_outputs.json
-            echo "    \"value\": \"$(terraform output -raw artifacts_bucket_name)\"" >> ../terraform_outputs.json
-            echo "  }," >> ../terraform_outputs.json
-            echo "  \"namespace\": {" >> ../terraform_outputs.json
-            echo "    \"value\": \"$(terraform output -raw namespace)\"" >> ../terraform_outputs.json
-            echo "  }" >> ../terraform_outputs.json
-            echo "}" >> ../terraform_outputs.json
-          fi
+          # Get individual outputs to files first to avoid command substitution issues
+          terraform output artifacts_bucket_name > ../artifacts_bucket_temp.txt 2>&1
+          terraform output namespace > ../namespace_temp.txt 2>&1
           
           cd ..
+          
+          # Extract the actual values from the output files
+          ARTIFACTS_BUCKET_VALUE=$(grep -o '"[^"]*"' artifacts_bucket_temp.txt | sed 's/"//g' | head -n1)
+          NAMESPACE_VALUE=$(grep -o '"[^"]*"' namespace_temp.txt | sed 's/"//g' | head -n1)
+          
+          # Fallback extraction if grep doesn't find quoted strings
+          if [[ -z "${ARTIFACTS_BUCKET_VALUE}" ]]; then
+            ARTIFACTS_BUCKET_VALUE=$(grep -v '^\s*$' artifacts_bucket_temp.txt | tail -n1 | sed 's/"//g' | tr -d '\n\r ')
+          fi
+          
+          if [[ -z "${NAMESPACE_VALUE}" ]]; then
+            NAMESPACE_VALUE=$(grep -v '^\s*$' namespace_temp.txt | tail -n1 | sed 's/"//g' | tr -d '\n\r ')
+          fi
+          
+          # Create valid JSON manually
+          cat > terraform_outputs.json << EOF
+          {
+            "artifacts_bucket_name": {
+              "value": "${ARTIFACTS_BUCKET_VALUE}"
+            },
+            "namespace": {
+              "value": "${NAMESPACE_VALUE}"
+            }
+          }
+          EOF
+          
+          # Clean up temp files
+          rm -f artifacts_bucket_temp.txt namespace_temp.txt
           
           # Validate the final JSON
           if ! jq . terraform_outputs.json > /dev/null 2>&1; then
             echo "Still unable to create valid Terraform JSON output"
+            echo "Generated JSON content:"
+            cat terraform_outputs.json
             exit 1
           fi
           
           echo "Valid Terraform JSON output created"
           
           # Run functional tests with timeout and generate JUnit report
-          # Set TF_VAR variables for tests that might need them
           export TF_VAR_namespace="${NAMESPACE}"
           export TF_VAR_artifacts_bucket_name="${ARTIFACTS_BUCKET}"
           
