@@ -304,36 +304,72 @@ jobs:
           TF_LOG_CORE: ""
           TF_LOG_PROVIDER: ""
         run: |
-          echo "Getting Terraform outputs using JSON format..."
+          echo "Getting Terraform outputs using individual commands..."
           cd modules
           
-          # Get JSON output and parse specific values
-          TERRAFORM_OUTPUT=$(terraform output -json)
-          echo "Raw Terraform JSON output:"
-          echo "${TERRAFORM_OUTPUT}"
+          # Get individual outputs and clean them
+          ARTIFACTS_BUCKET=$(terraform output -raw artifacts_bucket_name 2>/dev/null | grep -v "::debug::" | head -n1)
+          NAMESPACE=$(terraform output -raw namespace 2>/dev/null | grep -v "::debug::" | head -n1)
           
-          ARTIFACTS_BUCKET=$(echo "${TERRAFORM_OUTPUT}" | jq -r '.artifacts_bucket_name.value')
-          NAMESPACE=$(echo "${TERRAFORM_OUTPUT}" | jq -r '.namespace.value')
+          # Additional cleanup
+          ARTIFACTS_BUCKET=$(echo "${ARTIFACTS_BUCKET}" | tr -d '\n\r' | sed 's/::debug::.*$//')
+          NAMESPACE=$(echo "${NAMESPACE}" | tr -d '\n\r' | sed 's/::debug::.*$//')
           
-          echo "Parsed ARTIFACTS_BUCKET=${ARTIFACTS_BUCKET}"
-          echo "Parsed NAMESPACE=${NAMESPACE}"
+          echo "Cleaned ARTIFACTS_BUCKET=${ARTIFACTS_BUCKET}"
+          echo "Cleaned NAMESPACE=${NAMESPACE}"
           
-          # Validate and export
-          if [[ "${ARTIFACTS_BUCKET}" != "null" && "${ARTIFACTS_BUCKET}" != "" && ! "${ARTIFACTS_BUCKET}" =~ "::debug::" ]]; then
+          # Validate bucket name format (should be alphanumeric with dashes)
+          if [[ "${ARTIFACTS_BUCKET}" =~ ^[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9]$ ]]; then
             echo "ARTIFACTS_BUCKET=${ARTIFACTS_BUCKET}" >> $GITHUB_ENV
             echo "✅ ARTIFACTS_BUCKET exported successfully"
           else
-            echo "❌ Error: Invalid ARTIFACTS_BUCKET value: ${ARTIFACTS_BUCKET}"
+            echo "❌ Error: Invalid ARTIFACTS_BUCKET format: ${ARTIFACTS_BUCKET}"
             exit 1
           fi
           
-          if [[ "${NAMESPACE}" != "null" && "${NAMESPACE}" != "" && ! "${NAMESPACE}" =~ "::debug::" ]]; then
+          # Validate namespace format
+          if [[ "${NAMESPACE}" =~ ^[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9]$ ]]; then
             echo "NAMESPACE=${NAMESPACE}" >> $GITHUB_ENV
             echo "✅ NAMESPACE exported successfully"
           else
-            echo "❌ Error: Invalid NAMESPACE value: ${NAMESPACE}"
+            echo "❌ Error: Invalid NAMESPACE format: ${NAMESPACE}"
             exit 1
           fi
+              env:
+                TF_LOG: ""
+                TF_LOG_CORE: ""
+                TF_LOG_PROVIDER: ""
+              run: |
+                echo "Getting Terraform outputs using JSON format..."
+                cd modules
+                
+                # Get JSON output and parse specific values
+                TERRAFORM_OUTPUT=$(terraform output -json)
+                echo "Raw Terraform JSON output:"
+                echo "${TERRAFORM_OUTPUT}"
+                
+                ARTIFACTS_BUCKET=$(echo "${TERRAFORM_OUTPUT}" | jq -r '.artifacts_bucket_name.value')
+                NAMESPACE=$(echo "${TERRAFORM_OUTPUT}" | jq -r '.namespace.value')
+                
+                echo "Parsed ARTIFACTS_BUCKET=${ARTIFACTS_BUCKET}"
+                echo "Parsed NAMESPACE=${NAMESPACE}"
+                
+                # Validate and export
+                if [[ "${ARTIFACTS_BUCKET}" != "null" && "${ARTIFACTS_BUCKET}" != "" && ! "${ARTIFACTS_BUCKET}" =~ "::debug::" ]]; then
+                  echo "ARTIFACTS_BUCKET=${ARTIFACTS_BUCKET}" >> $GITHUB_ENV
+                  echo "✅ ARTIFACTS_BUCKET exported successfully"
+                else
+                  echo "❌ Error: Invalid ARTIFACTS_BUCKET value: ${ARTIFACTS_BUCKET}"
+                  exit 1
+                fi
+                
+                if [[ "${NAMESPACE}" != "null" && "${NAMESPACE}" != "" && ! "${NAMESPACE}" =~ "::debug::" ]]; then
+                  echo "NAMESPACE=${NAMESPACE}" >> $GITHUB_ENV
+                  echo "✅ NAMESPACE exported successfully"
+                else
+                  echo "❌ Error: Invalid NAMESPACE value: ${NAMESPACE}"
+                  exit 1
+                fi
 
       - name: Debug Environment Variables
         run: |
