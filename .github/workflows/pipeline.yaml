@@ -298,6 +298,18 @@ jobs:
           echo "Running build script"
           ./scripts/build.sh
 
+      - name: DCE Lease Login
+        env:
+          AWS_DEFAULT_REGION: us-east-1
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: |
+          set -ex
+          lease_id=$(cat ./lease_id.txt)
+          echo "Logging into lease ${lease_id}"
+          cat ./dce.yml
+          ./dce --config=./dce.yml leases login ${lease_id}
+
       - name: Set Terraform Output Variables
         env:
           TF_LOG: ""
@@ -388,21 +400,20 @@ jobs:
           terraform output -raw namespace || echo "Failed to get namespace"   
 
       - name: Deploy Application Code
-        env:
-          REQUIRED_BUCKET_PREFIX: ${{ vars.REQUIRED_BUCKET_PREFIX }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
         run: |
           echo "=== Deploy Application Code ==="
           echo "Using ARTIFACTS_BUCKET: ${ARTIFACTS_BUCKET}"
           echo "Using NAMESPACE: ${NAMESPACE}"
-          echo "Using REQUIRED_BUCKET_PREFIX: ${REQUIRED_BUCKET_PREFIX}"
           
-            ./scripts/deploy.sh \
+          # Use DCE lease credentials (they should be in the environment after dce leases login)
+          echo "Current AWS identity:"
+          aws sts get-caller-identity
+          
+          # Deploy using the dynamic variables
+          ./scripts/deploy.sh \
             /home/runner/work/dce/dce/bin/build_artifacts.zip \
-            github-pr-517\
-            000879607493-dce-artifacts-github-pr-517
+            "${NAMESPACE}" \
+            "${ARTIFACTS_BUCKET}"
           
 
       # Upload artifacts for release
@@ -471,17 +482,6 @@ jobs:
           cp ${{ github.workspace }}/backend-tf/backend.tf ./modules/
           chmod +x ./dce
 
-      - name: DCE Lease Login
-        env:
-          AWS_DEFAULT_REGION: us-east-1
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        run: |
-          set -ex
-          lease_id=$(cat ./lease_id.txt)
-          echo "Logging into lease ${lease_id}"
-          cat ./dce.yml
-          ./dce --config=./dce.yml leases login ${lease_id}
 
       # Cleanup - Install Terraform
       - name: Install Terraform for Cleanup
