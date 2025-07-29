@@ -300,16 +300,12 @@ jobs:
 
       - name: Set Terraform Output Variables
         run: |
-            echo "Getting Terraform outputs..."
-            ARTIFACTS_BUCKET=$(cd modules && terraform output artifacts_bucket_name | tr -d '" \n\r')
-            NAMESPACE=$(cd modules && terraform output namespace | tr -d '" \n\r')
-            
-            echo "Sanitized ARTIFACTS_BUCKET=${ARTIFACTS_BUCKET}"
-            echo "Sanitized NAMESPACE=${NAMESPACE}"
-            
-            # Export to GitHub environment for subsequent steps
-            echo "ARTIFACTS_BUCKET=${ARTIFACTS_BUCKET}" >> $GITHUB_ENV
-            echo "NAMESPACE=${NAMESPACE}" >> $GITHUB_ENV
+          ARTIFACTS_BUCKET=$(cd modules && terraform output -raw artifacts_bucket_name)
+          NAMESPACE=$(cd modules && terraform output -raw namespace)
+          echo "Sanitized ARTIFACTS_BUCKET=${ARTIFACTS_BUCKET}"
+          echo "Sanitized NAMESPACE=${NAMESPACE}"
+          echo "ARTIFACTS_BUCKET=${ARTIFACTS_BUCKET}" >> $GITHUB_ENV
+          echo "NAMESPACE=${NAMESPACE}" >> $GITHUB_ENV
 
       - name: Debug Environment Variables
         run: |
