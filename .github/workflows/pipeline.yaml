@@ -304,43 +304,99 @@ jobs:
           TF_LOG_CORE: ""
           TF_LOG_PROVIDER: ""
         run: |
-          echo "Getting Terraform outputs using individual commands..."
+          echo "Getting Terraform outputs using direct commands..."
           cd modules
           
-          # Create a simple script to get outputs
-          cat > get_outputs.sh << 'EOF'
-          #!/bin/bash
-          set -e
+          # Test terraform is working
+          echo "Testing terraform version:"
+          terraform version
           
-          # Get artifacts bucket name
-          terraform output -raw artifacts_bucket_name > artifacts_bucket_output.txt 2>&1
-          ARTIFACTS_BUCKET=$(grep -v "::debug::" artifacts_bucket_output.txt | head -n1 | tr -d '\n\r')
+          # Get outputs directly without intermediate script
+          echo "Getting ARTIFACTS_BUCKET..."
+          ARTIFACTS_BUCKET=$(terraform output -raw artifacts_bucket_name 2>/dev/null | grep -v "::debug::" | head -n1 | tr -d '\n\r')
           
-          # Get namespace
-          terraform output -raw namespace > namespace_output.txt 2>&1
-          NAMESPACE=$(grep -v "::debug::" namespace_output.txt | head -n1 | tr -d '\n\r')
+          echo "Getting NAMESPACE..."
+          NAMESPACE=$(terraform output -raw namespace 2>/dev/null | grep -v "::debug::" | head -n1 | tr -d '\n\r')
           
-          echo "ARTIFACTS_BUCKET=${ARTIFACTS_BUCKET}"
-          echo "NAMESPACE=${NAMESPACE}"
+          echo "Raw ARTIFACTS_BUCKET: [${ARTIFACTS_BUCKET}]"
+          echo "Raw NAMESPACE: [${NAMESPACE}]"
           
-          # Write to environment file
+          # Validate outputs before setting environment variables
+          if [[ -z "${ARTIFACTS_BUCKET}" ]]; then
+            echo "❌ Error: ARTIFACTS_BUCKET is empty"
+            echo "Terraform output debug:"
+            terraform output artifacts_bucket_name
+            exit 1
+          fi
+          
+          if [[ -z "${NAMESPACE}" ]]; then
+            echo "❌ Error: NAMESPACE is empty"
+            echo "Terraform output debug:"
+            terraform output namespace
+            exit 1
+          fi
+          
+          # Set environment variables
           echo "ARTIFACTS_BUCKET=${ARTIFACTS_BUCKET}" >> $GITHUB_ENV
           echo "NAMESPACE=${NAMESPACE}" >> $GITHUB_ENV
           
-          # Cleanup
-          rm -f artifacts_bucket_output.txt namespace_output.txt
-          EOF
-          
-          chmod +x get_outputs.sh
-          ./get_outputs.sh
-        
+          echo "✅ Environment variables set successfully"
+          echo "ARTIFACTS_BUCKET: ${ARTIFACTS_BUCKET}"
+          echo "NAMESPACE: ${NAMESPACE}"
+
       - name: Debug Environment Variables
         run: |
-          echo "ARTIFACTS_BUCKET=${ARTIFACTS_BUCKET}"
-          echo "NAMESPACE=${NAMESPACE}"
-          echo "Environment Variables:"
-          env | grep -E "ARTIFACTS_BUCKET|NAMESPACE"
-
+          echo "=== Environment Variables Debug ==="
+          echo "ARTIFACTS_BUCKET=${ARTIFACTS_BUCKET:-NOT_SET}"
+          echo "NAMESPACE=${NAMESPACE:-NOT_SET}"
+          echo "REQUIRED_BUCKET_PREFIX=${REQUIRED_BUCKET_PREFIX:-NOT_SET}"
+          echo "AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-NOT_SET}"
+          echo "AWS_ACCESS_KEY_ID is set: $([[ -n \"${AWS_ACCESS_KEY_ID}\" ]] && echo \"Yes\" || echo \"No\")"
+          echo "AWS_SECRET_ACCESS_KEY is set: $([[ -n \"${AWS_SECRET_ACCESS_KEY}\" ]] && echo \"Yes\" || echo \"No\")"
+          
+          echo "=== Variable Validation ==="
+          # Check if ARTIFACTS_BUCKET looks like a valid S3 bucket name
+          if [[ "${ARTIFACTS_BUCKET}" =~ ^[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9]$ ]]; then
+            echo "✅ ARTIFACTS_BUCKET format is valid"
+          else
+            echo "❌ ARTIFACTS_BUCKET format is invalid: ${ARTIFACTS_BUCKET}"
+            echo "ARTIFACTS_BUCKET length: ${#ARTIFACTS_BUCKET}"
+            echo "ARTIFACTS_BUCKET contains: $(echo "$ARTIFACTS_BUCKET" | od -c)"
+          fi
+          
+          # Check if NAMESPACE looks valid
+          if [[ "${NAMESPACE}" =~ ^[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9]$ ]]; then
+            echo "✅ NAMESPACE format is valid"
+          else
+            echo "❌ NAMESPACE format is invalid: ${NAMESPACE}"
+            echo "NAMESPACE length: ${#NAMESPACE}"
+            echo "NAMESPACE contains: $(echo "$NAMESPACE" | od -c)"
+          fi
+          
+          echo "=== Terraform Output Test ==="
+          cd modules
+          echo "Testing terraform output commands directly:"
+          echo "Raw artifacts_bucket_name output:"
+          terraform output -raw artifacts_bucket_name || echo "Failed to get artifacts_bucket_name"
+          echo "Raw namespace output:"
+          terraform output -raw namespace || echo "Failed to get namespace"
+          
+          echo "=== GitHub Environment File Check ==="
+          if [[ -f "$GITHUB_ENV" ]]; then
+            echo "GitHub environment file contents:"
+            cat "$GITHUB_ENV"
+          else
+            echo "GitHub environment file not found at: $GITHUB_ENV"
+          fi
+          
+          echo "=== All Environment Variables with ARTIFACTS/NAMESPACE/AWS ==="
+          env | grep -E "(ARTIFACTS|NAMESPACE|AWS|TF_)" | sort
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+          REQUIRED_BUCKET_PREFIX: ${{ vars.REQUIRED_BUCKET_PREFIX }}
+          
       - name: Deploy Application Code
         env:
           REQUIRED_BUCKET_PREFIX: ${{ vars.REQUIRED_BUCKET_PREFIX }}
