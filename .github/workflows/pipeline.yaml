@@ -11,7 +11,7 @@ on:
       branch:
         required: false
         type: string
-        default: get-failed-accounts
+        default: master
       release:
         required: false
         type: string
@@ -27,11 +27,11 @@ on:
       version_tag:
         required: false
         type: string
-        default: get-failed-accounts # pr-#, nonprod, or vX.Y.Z
+        default: master
       namespace:
         required: false
         type: string
-        default: nonprod # pr-#, nonprod, or prod
+        default: nonprod
     secrets:
       AWS_DEFAULT_REGION:
         required: true
@@ -44,7 +44,6 @@ on:
       NOTIFY_EMAIL:
         required: true
 
-# Build and Test Workflow
 jobs:
   TestAndBuild:
     runs-on: ubuntu-latest
@@ -73,11 +72,9 @@ jobs:
 
       - name: Create Release Artifacts
         run: |
-          # Create the zip files that the release expects
           cd bin
           zip -r build_artifacts.zip .
           cd ..
-          # Create terraform artifacts
           zip -r bin/terraform_artifacts.zip modules
 
       - name: Publish build artifacts (bin)
@@ -92,7 +89,6 @@ jobs:
           name: deploy_scripts
           path: scripts
 
-  # Deployment Workflow
   Deploy:
     needs: [TestAndBuild]
     runs-on: ubuntu-latest
@@ -103,66 +99,35 @@ jobs:
 
       - name: Configure namespace
         run: |
-          echo "=== GitHub Event Debug Info ==="
-          echo "Event name: ${{ github.event_name }}"
-          echo "Event action: ${{ github.event.action }}"
-          echo "PR number: ${{ github.event.pull_request.number }}"
-          echo "Release tag: ${{ github.event.release.tag_name }}"
-          echo "Ref name: ${{ github.ref_name }}"
-          echo "================================"
-          
-          # Get PR number from different sources
           PR_NUMBER=""
           
-          # Method 1: Direct PR event
           if [[ "${{ github.event.pull_request.number }}" != "" ]]; then
             PR_NUMBER="${{ github.event.pull_request.number }}"
-            echo "Got PR number from pull_request event: ${PR_NUMBER}"
           fi
           
-          # Method 2: From workflow inputs (for workflow_call)
           if [[ -z "$PR_NUMBER" && "${{ inputs.version_tag }}" =~ ^pr-[0-9]+$ ]]; then
             PR_NUMBER=$(echo "${{ inputs.version_tag }}" | sed 's/pr-//')
-            echo "Got PR number from version_tag input: ${PR_NUMBER}"
           fi
           
-          # Method 3: From namespace input (for workflow_call)
           if [[ -z "$PR_NUMBER" && "${{ inputs.namespace }}" =~ ^pr-[0-9]+$ ]]; then
             PR_NUMBER=$(echo "${{ inputs.namespace }}" | sed 's/pr-//')
-            echo "Got PR number from namespace input: ${PR_NUMBER}"
           fi
           
-          # Method 4: From release tag (for release events)
           if [[ -z "$PR_NUMBER" && "${{ github.event_name }}" == "release" ]]; then
-            # Try to extract from release tag (format: pr-123 or v1.0.0-pr-123)
             PR_NUMBER=$(echo "${{ github.event.release.tag_name }}" | grep -oE 'pr-[0-9]+' | sed 's/pr-//')
-            if [[ -n "$PR_NUMBER" ]]; then
-              echo "Got PR number from release tag: ${PR_NUMBER}"
+            if [[ -z "$PR_NUMBER" ]]; then
+              PR_NUMBER=$(echo "${{ github.event.release.body }}" | grep -oE '(PR-|#)[0-9]+' | head -n 1 | sed 's/PR-\|#//')
             fi
           fi
           
-          # Method 5: From release body (for release events)
-          if [[ -z "$PR_NUMBER" && "${{ github.event_name }}" == "release" ]]; then
-            PR_NUMBER=$(echo "${{ github.event.release.body }}" | grep -oE '(PR-|#)[0-9]+' | head -n 1 | sed 's/PR-\|#//')
-            if [[ -n "$PR_NUMBER" ]]; then
-              echo "Got PR number from release body: ${PR_NUMBER}"
-            fi
-          fi
-          
-          # Configure namespace based on PR number availability
-          # Similar to Azure DevOps logic: if PR_NUMBER is valid, use it; otherwise use "cd"
           if [[ -n "$PR_NUMBER" && "$PR_NUMBER" =~ ^[0-9]+$ ]]; then
             NS="github-pr-${PR_NUMBER}"
-            echo "Using PR namespace: ${NS}"
           else
             NS="cd"
-            echo "Using default namespace (no valid PR number found): ${NS}"
           fi
 
-          echo "Final namespace is: ${NS}"
           echo "namespace=${NS}" >> $GITHUB_ENV
           echo "${NS}" > ./namespace.txt
-              
 
       - name: Upload namespace file
         uses: actions/upload-artifact@v4
@@ -190,14 +155,11 @@ jobs:
           echo "${{ runner.tool_cache }}/go/bin" >> $GITHUB_PATH
           go install github.com/jstemmer/go-junit-report@latest
 
-          # Download dce-cli
           wget -q https://github.com/Optum/dce-cli/releases/download/v0.5.0/dce_linux_amd64.zip
-          # Validate checksum
           expected_sha="cb140c743373e28a6c1bd4ba3fe1b81a7431dd538e1ad430fede3c1aff4508db"
           test $(shasum -a 256 ./dce_linux_amd64.zip | awk '{print $1}') == "${expected_sha}"
           unzip ./dce_linux_amd64.zip -d ./
 
-      # Lease a DCE account, to use for deploying our PR environment
       - name: Lease DCE Account
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -207,9 +169,7 @@ jobs:
           DCE_NONPROD_HOSTNAME: ${{ secrets.DCE_NONPROD_HOSTNAME }}
         run: |
           set -ex
-          echo "Principal ID is ${NAMESPACE}"
-
-          echo "Configuring the dce-cli"
+          
           echo "
             api:
               host: ${{ secrets.DCE_NONPROD_HOSTNAME }}
@@ -217,7 +177,6 @@ jobs:
             region: us-east-1
           " > ./dce.yml
 
-          # Check to see if there's an active lease for this PR
           lease_id=$(
             ./dce --config=dce.yml leases list \
               -p ${NAMESPACE} -s Active | \
@@ -225,7 +184,6 @@ jobs:
           )
 
           if [ ! "${lease_id}" ]; then
-            echo "No lease exists for ${NAMESPACE}. Creating one..."
             created_lease=$(
               ./dce --config=dce.yml leases create \
                 --principal-id ${NAMESPACE} \
@@ -233,30 +191,22 @@ jobs:
                 --budget-amount 100 --budget-currency USD \
                 --email noreply@example.com
             )
-            echo "Created lease: ${created_lease}"
             lease_id=$(echo "${created_lease}" | jq -r .id)
           fi
 
-          echo "Using lease for PrincipalId=${NAMESPACE}, Id=${lease_id}"
-          echo "Logging into the DCE account"
           ./dce --config=dce.yml leases login ${lease_id}
-
-          # Save the lease ID to a file
           echo "${lease_id}" > ./lease_id.txt
 
-      # Install Terraform
       - name: Install Terraform
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: ${{ inputs.terraform_version }}
 
-      # Configure the Terraform backend
       - name: Configure Terraform Backend
         run: |
           lease_id=$(cat lease_id.txt)
           ./scripts/create-tf-backend.sh ${lease_id}
 
-      # terraform init and apply
       - name: Terraform Init/Apply
         env:
           NAMESPACE: ${{ env.namespace }}
@@ -266,15 +216,10 @@ jobs:
         run: |
           set -ex
           cd modules
-          cat ./backend.tf
           terraform init -input=false
            
-              # Use the complete JSON from repository variable
-              export TF_VAR_global_tags='${{ vars.TF_VAR_GLOBAL_TAGS}}'
-              export TF_VAR_required_bucket_prefix="${TF_VAR_required_bucket_prefix}"
-
-              echo "TF_VAR_global_tags is set: ${TF_VAR_global_tags}"
-              echo "TF_VAR_required_bucket_prefix is set: ${TF_VAR_required_bucket_prefix}"
+          export TF_VAR_global_tags='${{ vars.TF_VAR_GLOBAL_TAGS}}'
+          export TF_VAR_required_bucket_prefix="${TF_VAR_required_bucket_prefix}"
 
           terraform plan \
             -var="namespace=${NAMESPACE}" \
@@ -292,11 +237,8 @@ jobs:
             -var="required_bucket_prefix=${REQUIRED_BUCKET_PREFIX}" \
             -var="global_tags=${TF_VAR_global_tags}"
 
-
       - name: Build artifacts
-        run: |
-          echo "Running build script"
-          ./scripts/build.sh
+        run: ./scripts/build.sh
 
       - name: DCE Lease Login
         env:
@@ -306,8 +248,6 @@ jobs:
         run: |
           set -ex
           lease_id=$(cat ./lease_id.txt)
-          echo "Logging into lease ${lease_id}"
-          cat ./dce.yml
           ./dce --config=./dce.yml leases login ${lease_id}
 
       - name: Set Terraform Output Variables
@@ -316,107 +256,57 @@ jobs:
           TF_LOG_CORE: ""
           TF_LOG_PROVIDER: ""
         run: |
-            echo "Getting Terraform outputs using direct commands..."
-            cd modules
-
-            # Test terraform is working
-            echo "Testing terraform version:"
-            terraform version
-
-            # Write outputs to temporary files to avoid command substitution issues
-            echo "Writing terraform outputs to files..."
-            terraform output artifacts_bucket_name > ../artifacts_bucket_raw.txt 2>&1
-            terraform output namespace > ../namespace_raw.txt 2>&1
-            
-            cd ..
-            
-            # Debug: Show raw file contents
-            echo "=== Raw file contents ==="
-            echo "artifacts_bucket_raw.txt:"
-            cat artifacts_bucket_raw.txt
-            echo "namespace_raw.txt:"
-            cat namespace_raw.txt
-            
-            # Extract values and remove quotes properly
-            ARTIFACTS_BUCKET=$(grep -o '"[^"]*"' artifacts_bucket_raw.txt | sed 's/"//g' | head -n1)
-            NAMESPACE=$(grep -o '"[^"]*"' namespace_raw.txt | sed 's/"//g' | head -n1)
-            
-            # If grep doesn't find quoted strings, try extracting the last non-empty line
-            if [[ -z "${ARTIFACTS_BUCKET}" ]]; then
-              ARTIFACTS_BUCKET=$(grep -v '^\s*$' artifacts_bucket_raw.txt | tail -n1 | sed 's/"//g' | tr -d '\n\r ')
-            fi
-            
-            if [[ -z "${NAMESPACE}" ]]; then
-              NAMESPACE=$(grep -v '^\s*$' namespace_raw.txt | tail -n1 | sed 's/"//g' | tr -d '\n\r ')
-            fi
-            
-            # Clean up temp files
-            rm -f artifacts_bucket_raw.txt namespace_raw.txt
-
-            echo "Extracted ARTIFACTS_BUCKET: [${ARTIFACTS_BUCKET}]"
-            echo "Extracted NAMESPACE: [${NAMESPACE}]"
-
-            # Validate that we got actual values, not command strings
-            if [[ -z "${ARTIFACTS_BUCKET}" || "${ARTIFACTS_BUCKET}" =~ ^\[command\] ]]; then
-              echo "❌ Error: ARTIFACTS_BUCKET is empty or contains command text"
-              exit 1
-            fi
-
-            if [[ -z "${NAMESPACE}" || "${NAMESPACE}" =~ ^\[command\] ]]; then
-              echo "❌ Error: NAMESPACE is empty or contains command text"
-              exit 1
-            fi
-
-            # Additional validation for proper S3 bucket name format
-            if [[ ! "${ARTIFACTS_BUCKET}" =~ ^[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9]$ ]]; then
-              echo "❌ Error: ARTIFACTS_BUCKET has invalid format: ${ARTIFACTS_BUCKET}"
-              exit 1
-            fi
-
-            if [[ ! "${NAMESPACE}" =~ ^[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9]$ ]]; then
-              echo "❌ Error: NAMESPACE has invalid format: ${NAMESPACE}"
-              exit 1
-            fi
-
-            # Write to GitHub environment
-            echo "ARTIFACTS_BUCKET=${ARTIFACTS_BUCKET}" >> $GITHUB_ENV
-            echo "NAMESPACE=${NAMESPACE}" >> $GITHUB_ENV
-
-            echo "✅ Environment variables set successfully"
-            echo "ARTIFACTS_BUCKET: ${ARTIFACTS_BUCKET}"
-            echo "NAMESPACE: ${NAMESPACE}"
-
-      - name: Debug Terraform Output
-        run: |
-          echo "=== Debugging Terraform Output ==="
           cd modules
-          echo "Raw artifacts_bucket_name output:"
-          terraform output artifacts_bucket_name
-          echo "Raw namespace output:"
-          terraform output namespace
-          echo "Raw artifacts_bucket_name (raw):"
-          terraform output -raw artifacts_bucket_name || echo "Failed to get artifacts_bucket_name"
-          echo "Raw namespace (raw):"
-          terraform output -raw namespace || echo "Failed to get namespace"   
+          terraform output artifacts_bucket_name > ../artifacts_bucket_raw.txt 2>&1
+          terraform output namespace > ../namespace_raw.txt 2>&1
+          
+          cd ..
+          
+          ARTIFACTS_BUCKET=$(grep -o '"[^"]*"' artifacts_bucket_raw.txt | sed 's/"//g' | head -n1)
+          NAMESPACE=$(grep -o '"[^"]*"' namespace_raw.txt | sed 's/"//g' | head -n1)
+          
+          if [[ -z "${ARTIFACTS_BUCKET}" ]]; then
+            ARTIFACTS_BUCKET=$(grep -v '^\s*$' artifacts_bucket_raw.txt | tail -n1 | sed 's/"//g' | tr -d '\n\r ')
+          fi
+          
+          if [[ -z "${NAMESPACE}" ]]; then
+            NAMESPACE=$(grep -v '^\s*$' namespace_raw.txt | tail -n1 | sed 's/"//g' | tr -d '\n\r ')
+          fi
+          
+          rm -f artifacts_bucket_raw.txt namespace_raw.txt
+
+          if [[ -z "${ARTIFACTS_BUCKET}" || "${ARTIFACTS_BUCKET}" =~ ^\[command\] ]]; then
+            echo "Error: ARTIFACTS_BUCKET is empty or contains command text"
+            exit 1
+          fi
+
+          if [[ -z "${NAMESPACE}" || "${NAMESPACE}" =~ ^\[command\] ]]; then
+            echo "Error: NAMESPACE is empty or contains command text"
+            exit 1
+          fi
+
+          if [[ ! "${ARTIFACTS_BUCKET}" =~ ^[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9]$ ]]; then
+            echo "Error: ARTIFACTS_BUCKET has invalid format: ${ARTIFACTS_BUCKET}"
+            exit 1
+          fi
+
+          if [[ ! "${NAMESPACE}" =~ ^[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9]$ ]]; then
+            echo "Error: NAMESPACE has invalid format: ${NAMESPACE}"
+            exit 1
+          fi
+
+          echo "ARTIFACTS_BUCKET=${ARTIFACTS_BUCKET}" >> $GITHUB_ENV
+          echo "NAMESPACE=${NAMESPACE}" >> $GITHUB_ENV
 
       - name: Deploy Application Code
         run: |
-          echo "=== Deploy Application Code ==="
-          echo "Using ARTIFACTS_BUCKET: ${ARTIFACTS_BUCKET}"
-          echo "Using NAMESPACE: ${NAMESPACE}"
-          
-          # Use DCE lease credentials (they should be in the environment after dce leases login)
-          echo "Current AWS identity:"
           aws sts get-caller-identity
           
-          # Deploy using the dynamic variables
           ./scripts/deploy.sh \
             /home/runner/work/dce/dce/bin/build_artifacts.zip \
             "${NAMESPACE}" \
             "${ARTIFACTS_BUCKET}"
-          
 
-      # Upload artifacts for release
       - name: Upload dce-cli Artifact
         uses: actions/upload-artifact@v4
         with:
@@ -441,7 +331,6 @@ jobs:
           name: backend-tf
           path: ${{ github.workspace }}/modules/backend.tf
 
-      # Download artifacts for cleanup
       - name: Download dce-cli artifact
         uses: actions/download-artifact@v4
         with:
@@ -482,8 +371,6 @@ jobs:
           cp ${{ github.workspace }}/backend-tf/backend.tf ./modules/
           chmod +x ./dce
 
-
-      # Cleanup - Install Terraform
       - name: Install Terraform for Cleanup
         uses: hashicorp/setup-terraform@v2
         with:
@@ -498,19 +385,13 @@ jobs:
           set -ex
           export TF_VAR_namespace=$(cat ./namespace.txt)
           export TF_VAR_budget_notification_from_email="${NOTIFY_EMAIL}"
-  
-          # Use the complete JSON from repository variable
           export TF_VAR_global_tags='${{ vars.TF_VAR_GLOBAL_TAGS}}'
           export TF_VAR_required_bucket_prefix="${REQUIRED_BUCKET_PREFIX}"
-
-          echo "TF_VAR_global_tags: ${TF_VAR_global_tags}"
-          echo "TF_VAR_required_bucket_prefix: ${TF_VAR_required_bucket_prefix}"
 
           cd modules
           terraform init -input=false
           terraform destroy -auto-approve
 
-      # End the DCE lease
       - name: End DCE Lease
         env:
           AWS_DEFAULT_REGION: us-east-1
@@ -529,7 +410,6 @@ jobs:
                 '.[] | select( .id==$Id ) | .accountId'
           )
 
-          echo "Ending lease ${lease_id}"
           ./dce --config=./dce.yml leases end \
             -p ${namespace} \
             -a ${account_id}
@@ -554,14 +434,8 @@ jobs:
           name: deploy_scripts
           path: ./deploy_scripts
 
-      # Debug step to verify artifacts
       - name: Verify Downloaded Artifacts
         run: |
-          echo "=== Checking bin directory ==="
-          ls -la ./bin/
-          echo "=== Checking deploy_scripts directory ==="
-          ls -la ./deploy_scripts/
-          echo "=== Checking for specific files ==="
           [ -f "./bin/build_artifacts.zip" ] && echo "✅ build_artifacts.zip found" || echo "❌ build_artifacts.zip missing"
           [ -f "./bin/terraform_artifacts.zip" ] && echo "✅ terraform_artifacts.zip found" || echo "❌ terraform_artifacts.zip missing"
           [ -f "./deploy_scripts/deploy.sh" ] && echo "✅ deploy.sh found" || echo "❌ deploy.sh missing"
@@ -584,7 +458,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Only upload if files exist
       - name: Upload Build Artifacts
         if: ${{ hashFiles('./bin/build_artifacts.zip') != '' }}
         uses: actions/upload-release-asset@v1
