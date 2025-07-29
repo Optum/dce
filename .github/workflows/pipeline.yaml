@@ -298,23 +298,63 @@ jobs:
           echo "Running build script"
           ./scripts/build.sh
 
+      - name: Set Terraform Output Variables
+        run: |
+          echo "Getting Terraform outputs..."
+          ARTIFACTS_BUCKET=$(cd modules && terraform output artifacts_bucket_name | tr -d '"')
+          NAMESPACE=$(cd modules && terraform output namespace | tr -d '"')
+          
+          echo "ARTIFACTS_BUCKET=${ARTIFACTS_BUCKET}"
+          echo "NAMESPACE=${NAMESPACE}"
+          
+          # Export to GitHub environment for subsequent steps
+          echo "ARTIFACTS_BUCKET=${ARTIFACTS_BUCKET}" >> $GITHUB_ENV
+          echo "NAMESPACE=${NAMESPACE}" >> $GITHUB_ENV
+
+      - name: Debug Variables
+        run: |
+          echo "=== Debugging Variables ==="
+          echo "ARTIFACTS_BUCKET=${ARTIFACTS_BUCKET}"
+          echo "NAMESPACE=${NAMESPACE}"
+          echo "REQUIRED_BUCKET_PREFIX=${{ vars.REQUIRED_BUCKET_PREFIX }}"
+          echo "AWS Region: ${AWS_DEFAULT_REGION:-Not Set}"
+          echo "==========================" 
+        env:   
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+
       - name: Deploy Application Code
         env:
           REQUIRED_BUCKET_PREFIX: ${{ vars.REQUIRED_BUCKET_PREFIX }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
         run: |
-          echo "Running terraform output for artifacts_bucket_name"
-          ARTIFACTS_BUCKET=$(cd modules && terraform output artifacts_bucket_name | tr -d '"')
-          echo "ARTIFACTS_BUCKET=${ARTIFACTS_BUCKET}"
-
-          echo "Running terraform output for namespace"
-          NAMESPACE=$(cd modules && terraform output namespace | tr -d '"')
-          echo "Output namespace: ${NAMESPACE}"
-
-          # Use dynamic values instead of hardcoded PR references
+          echo "=== Deploy Application Code ==="
+          echo "Using ARTIFACTS_BUCKET: ${ARTIFACTS_BUCKET}"
+          echo "Using NAMESPACE: ${NAMESPACE}"
+          echo "Using REQUIRED_BUCKET_PREFIX: ${REQUIRED_BUCKET_PREFIX}"
+          
+          # Verify AWS credentials are working
+          echo "Verifying AWS credentials..."
+          aws sts get-caller-identity
+          
+          # Verify the artifact file exists
+          ARTIFACT_FILE="/home/runner/work/dce/dce/bin/build_artifacts.zip"
+          if [[ ! -f "${ARTIFACT_FILE}" ]]; then
+            echo "Error: build_artifacts.zip not found at ${ARTIFACT_FILE}"
+            echo "Contents of bin directory:"
+            ls -la /home/runner/work/dce/dce/bin/
+            exit 1
+          fi
+          
+          echo "Artifact file size: $(du -h ${ARTIFACT_FILE})"
+          
+          # Deploy with proper variable passing and error handling
+          echo "Executing deploy script..."
           ./scripts/deploy.sh \
-            /home/runner/work/dce/dce/bin/build_artifacts.zip \
-            ${NAMESPACE} \
-            ${ARTIFACTS_BUCKET}
+            "${ARTIFACT_FILE}" \
+            "${NAMESPACE}" \
+            "${ARTIFACTS_BUCKET}"
 
       # Upload artifacts for release
       - name: Upload dce-cli Artifact
