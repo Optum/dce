@@ -311,6 +311,9 @@ jobs:
       - name: Functional Tests
         env:
           GO111MODULE: "on"
+          TF_LOG: ""
+          TF_LOG_CORE: ""
+          TF_LOG_PROVIDER: ""
         run: |
           set -euxo pipefail
           mkdir -p junit-report
@@ -318,8 +321,54 @@ jobs:
           # Install dependencies
           go install github.com/jstemmer/go-junit-report@latest
           
+          # Set up test environment with proper Terraform context
+          cd modules
+          
+          # Ensure we're using the leased account credentials
+          aws sts get-caller-identity
+          
+          # Get clean Terraform outputs for tests
+          terraform output -json > ../terraform_outputs.json
+          
+          # Validate the JSON output before running tests
+          if ! jq . ../terraform_outputs.json > /dev/null 2>&1; then
+            echo "Invalid Terraform JSON output detected"
+            echo "Raw output:"
+            cat ../terraform_outputs.json
+            
+            # Try to get outputs individually and create valid JSON
+            echo "Attempting to create valid JSON from individual outputs..."
+            echo "{" > ../terraform_outputs.json
+            echo "  \"artifacts_bucket_name\": {" >> ../terraform_outputs.json
+            echo "    \"value\": \"$(terraform output -raw artifacts_bucket_name)\"" >> ../terraform_outputs.json
+            echo "  }," >> ../terraform_outputs.json
+            echo "  \"namespace\": {" >> ../terraform_outputs.json
+            echo "    \"value\": \"$(terraform output -raw namespace)\"" >> ../terraform_outputs.json
+            echo "  }" >> ../terraform_outputs.json
+            echo "}" >> ../terraform_outputs.json
+          fi
+          
+          cd ..
+          
+          # Validate the final JSON
+          if ! jq . terraform_outputs.json > /dev/null 2>&1; then
+            echo "Still unable to create valid Terraform JSON output"
+            exit 1
+          fi
+          
+          echo "Valid Terraform JSON output created"
+          
           # Run functional tests with timeout and generate JUnit report
-          go test -v ./tests/... -test.timeout 50m 2>&1 | tee >(go-junit-report > junit-report/functional.xml)
+          # Set TF_VAR variables for tests that might need them
+          export TF_VAR_namespace="${NAMESPACE}"
+          export TF_VAR_artifacts_bucket_name="${ARTIFACTS_BUCKET}"
+          
+          # Run tests with proper error handling
+          TEST_EXIT_CODE=0
+          go test -v ./tests/... -timeout 50m 2>&1 | tee test_output.log || TEST_EXIT_CODE=$?
+          
+          # Generate JUnit report from test output
+          cat test_output.log | go-junit-report > junit-report/functional.xml
           
           # Verify the JUnit report was generated
           if [[ ! -f junit-report/functional.xml ]]; then
@@ -327,7 +376,15 @@ jobs:
             exit 1
           fi
           
-          echo "Functional tests completed successfully"
+          # Clean up temporary files
+          rm -f test_output.log terraform_outputs.json
+          
+          if [[ $TEST_EXIT_CODE -eq 0 ]]; then
+            echo "Functional tests completed successfully"
+          else
+            echo "Functional tests failed with exit code $TEST_EXIT_CODE"
+            exit $TEST_EXIT_CODE
+          fi
 
       # Publish junit test results (for unit and functional tests) -- > TODO need to fix the test failures
       - name: Publish Test Results
