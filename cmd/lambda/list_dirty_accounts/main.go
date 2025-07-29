@@ -35,7 +35,7 @@ func main() {
     currentDate := time.Now().Format("2006-01-02")
     
     // 1. First call scanAccountsForMissingRequiredBuckets - this now marks accounts as NotReady in DB
-    // Use dynamic prefix from environment variable instead of hardcoded "LP"
+    // Use dynamic prefix from environment variable instead of hardcoded value
     prefixFilePath := fmt.Sprintf("Missing_%s_Buckets_%s.csv", requiredBucketPrefix, currentDate)
     bucket := os.Getenv("ARTIFACT_BUCKET_NAME")
     if bucket == "" {

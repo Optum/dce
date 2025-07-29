@@ -217,20 +217,20 @@ func (m *mockDB) UpsertLease(lease db.Lease) (*db.Lease, error) {
     return &lease, nil
 }
 
-// Mock for the checkForLPBuckets function
-type mockLPBucketChecker struct {
+// Mock for the checkForBuckets function
+type mockBucketChecker struct {
     mock.Mock
 }
 
-func (m *mockLPBucketChecker) checkForLPBuckets(sess *session.Session, accountID string) (bool, error) {
+func (m *mockBucketChecker) checkForBuckets(sess *session.Session, accountID string) (bool, error) {
     args := m.Called(sess, accountID)
     return args.Bool(0), args.Error(1)
 }
 
 // Override the real function with our mock for testing
-var mockLPChecker = &mockLPBucketChecker{}
+var mockBucketChecker = &mockBucketChecker{}
 
-func TestScanAccountsForMissingLPBuckets(t *testing.T) {
+func TestScanAccountsForMissingBuckets(t *testing.T) {
     // Setup mock accounts with different statuses
     mockAccounts := []db.Account{
         {ID: "123", AccountStatus: db.Ready, LastModifiedOn: time.Now().Unix()},
@@ -240,10 +240,10 @@ func TestScanAccountsForMissingLPBuckets(t *testing.T) {
     
     dbSvc := &mockDB{accounts: mockAccounts}
     
-    // Mock the LP bucket checker to return false (no LP buckets) for account 123
-    // and true (has LP buckets) for account 456
-    mockLPChecker.On("checkForLPBuckets", mock.Anything, "123").Return(false, nil)
-    mockLPChecker.On("checkForLPBuckets", mock.Anything, "456").Return(true, nil)
+    // Mock the bucket checker to return false (no buckets) for account 123
+    // and true (has buckets) for account 456
+    mockBucketChecker.On("checkForBuckets", mock.Anything, "123").Return(false, nil)
+    mockBucketChecker.On("checkForBuckets", mock.Anything, "456").Return(true, nil)
     
     // Call the function with a dummy file path
     err := scanAccountsForMissingRequiredBuckets(dbSvc, "test.csv", "test-bucket", "test-key")
@@ -256,7 +256,7 @@ func TestScanAccountsForMissingLPBuckets(t *testing.T) {
         if account.ID == "123" {
             assert.Equal(t, db.NotReady, account.AccountStatus)
             assert.NotNil(t, account.Metadata)
-            assert.Equal(t, true, account.Metadata["LPNotFound"])
+            assert.Equal(t, true, account.Metadata["BucketNotFound"])
         }
         if account.ID == "456" {
             // Account 456 should still be Leased
@@ -270,15 +270,15 @@ func TestListNotReadyAccountsToCSV_Success(t *testing.T) {
     assert.NoError(t, err)
     defer os.Remove(tmpfile.Name())
 
-    // Create mock accounts with the new LPNotFound field in metadata
+    // Create mock accounts with the new BucketNotFound field in metadata
     mockAccounts := []db.Account{
         {
             ID: "123", 
             AccountStatus: db.NotReady, 
             LastModifiedOn: time.Now().Unix(),
             Metadata: map[string]interface{}{
-                "Reason": "LP bucket doesn't exist",
-                "LPNotFound": true,
+                "Reason": "Required bucket doesn't exist",
+                "BucketNotFound": true,
             },
         },
         {
@@ -287,6 +287,7 @@ func TestListNotReadyAccountsToCSV_Success(t *testing.T) {
             LastModifiedOn: time.Now().Unix(),
             Metadata: map[string]interface{}{
                 "Reason": "Other reason",
+                "BucketNotFound": false,
             },
         },
     }
@@ -301,14 +302,14 @@ func TestListNotReadyAccountsToCSV_Success(t *testing.T) {
     assert.NoError(t, err)
     csvContent := string(content)
     
-    // Check for header with the new LP_Not_Found field
-    assert.Contains(t, csvContent, "AccountID,Status,LastUpdated,Reason,LP_Not_Found")
+    // Check for header with the new Bucket_Not_Found field
+    assert.Contains(t, csvContent, "AccountID,Status,LastUpdated,Reason,Bucket_Not_Found")
     
-    // Check that account 123 has true for LP_Not_Found
+    // Check that account 123 has true for Bucket_Not_Found
     assert.Contains(t, csvContent, "123,NotReady,")
-    assert.Contains(t, csvContent, "LP bucket doesn't exist,true")
+    assert.Contains(t, csvContent, "Required bucket doesn't exist,true")
     
-    // Check that account 456 has false for LP_Not_Found
+    // Check that account 456 has false for Bucket_Not_Found
     assert.Contains(t, csvContent, "456,NotReady,")
     assert.Contains(t, csvContent, "Other reason,false")
 }
@@ -327,18 +328,18 @@ func TestListNotReadyAccountsToCSV_CSVWriteError(t *testing.T) {
     assert.Error(t, err)
 }
 
-func TestCheckForLPBuckets(t *testing.T) {
+func TestCheckForBuckets(t *testing.T) {
     // This would be an integration test requiring AWS credentials
     // In a real test suite, you would mock the AWS SDK calls
     // Here we're just testing the mocking setup we created
     
     sess := session.Must(session.NewSession())
     
-    mockLPChecker.On("checkForLPBuckets", sess, "test-account").Return(true, nil)
+    mockBucketChecker.On("checkForBuckets", sess, "test-account").Return(true, nil)
     
-    hasLPBucket, err := mockLPChecker.checkForLPBuckets(sess, "test-account")
+    hasBucket, err := mockBucketChecker.checkForBuckets(sess, "test-account")
     
     assert.NoError(t, err)
-    assert.True(t, hasLPBucket)
-    mockLPChecker.AssertExpectations(t)
+    assert.True(t, hasBucket)
+    mockBucketChecker.AssertExpectations(t)
 }
