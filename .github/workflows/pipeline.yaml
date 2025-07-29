@@ -373,7 +373,7 @@ jobs:
             echo "✅ Environment variables set successfully"
             echo "ARTIFACTS_BUCKET: ${ARTIFACTS_BUCKET}"
             echo "NAMESPACE: ${NAMESPACE}"
-            
+
       - name: Debug Terraform Output
         run: |
           echo "=== Debugging Terraform Output ==="
@@ -399,27 +399,11 @@ jobs:
           echo "Using NAMESPACE: ${NAMESPACE}"
           echo "Using REQUIRED_BUCKET_PREFIX: ${REQUIRED_BUCKET_PREFIX}"
           
-          # Verify AWS credentials are working
-          echo "Verifying AWS credentials..."
-          aws sts get-caller-identity
+            ./scripts/deploy.sh \
+            /home/runner/work/dce/dce/bin/build_artifacts.zip \
+            github-pr-517\
+            000879607493-dce-artifacts-github-pr-517
           
-          # Verify the artifact file exists
-          ARTIFACT_FILE="/home/runner/work/dce/dce/bin/build_artifacts.zip"
-          if [[ ! -f "${ARTIFACT_FILE}" ]]; then
-            echo "Error: build_artifacts.zip not found at ${ARTIFACT_FILE}"
-            echo "Contents of bin directory:"
-            ls -la /home/runner/work/dce/dce/bin/
-            exit 1
-          fi
-          
-          echo "Artifact file size: $(du -h ${ARTIFACT_FILE})"
-          
-          # Deploy with proper variable passing and error handling
-          echo "Executing deploy script..."
-          ./scripts/deploy.sh \
-            "${ARTIFACT_FILE}" \
-            "${NAMESPACE}" \
-            "${ARTIFACTS_BUCKET}"
 
       # Upload artifacts for release
       - name: Upload dce-cli Artifact
