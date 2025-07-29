@@ -307,6 +307,40 @@ jobs:
             "${NAMESPACE}" \
             "${ARTIFACTS_BUCKET}"
 
+        # Functional Tests --> TODO need to fix the test failures
+      - name: Functional Tests
+        env:
+          GO111MODULE: "on"
+        run: |
+          set -euxo pipefail
+          mkdir -p junit-report
+          
+          # Install dependencies
+          go install github.com/jstemmer/go-junit-report@latest
+          
+          # Run functional tests with timeout and generate JUnit report
+          go test -v ./tests/... -test.timeout 50m 2>&1 | tee >(go-junit-report > junit-report/functional.xml)
+          
+          # Verify the JUnit report was generated
+          if [[ ! -f junit-report/functional.xml ]]; then
+            echo "Functional test report not generated"
+            exit 1
+          fi
+          
+          echo "Functional tests completed successfully"
+
+      # Publish junit test results (for unit and functional tests) -- > TODO need to fix the test failures
+      - name: Publish Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Functional-Test-Results
+          path: junit-report/functional.xml
+  
+
+        # Publish the dce-cli executable, so we can use
+        # it in our Cleanup stage
+
       - name: Upload dce-cli Artifact
         uses: actions/upload-artifact@v4
         with:
@@ -436,10 +470,10 @@ jobs:
 
       - name: Verify Downloaded Artifacts
         run: |
-          [ -f "./bin/build_artifacts.zip" ] && echo "✅ build_artifacts.zip found" || echo "❌ build_artifacts.zip missing"
-          [ -f "./bin/terraform_artifacts.zip" ] && echo "✅ terraform_artifacts.zip found" || echo "❌ terraform_artifacts.zip missing"
-          [ -f "./deploy_scripts/deploy.sh" ] && echo "✅ deploy.sh found" || echo "❌ deploy.sh missing"
-          [ -f "./deploy_scripts/restore_db.sh" ] && echo "✅ restore_db.sh found" || echo "❌ restore_db.sh missing"
+          [ -f "./bin/build_artifacts.zip" ] && echo "build_artifacts.zip found" || echo "build_artifacts.zip missing"
+          [ -f "./bin/terraform_artifacts.zip" ] && echo "terraform_artifacts.zip found" || echo "terraform_artifacts.zip missing"
+          [ -f "./deploy_scripts/deploy.sh" ] && echo "deploy.sh found" || echo "deploy.sh missing"
+          [ -f "./deploy_scripts/restore_db.sh" ] && echo "restore_db.sh found" || echo "restore_db.sh missing"
 
       - name: Create GitHub Release
         id: create_release
