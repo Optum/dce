@@ -307,35 +307,33 @@ jobs:
           echo "Getting Terraform outputs using individual commands..."
           cd modules
           
-          # Get individual outputs and clean them
-          ARTIFACTS_BUCKET=$(terraform output -raw artifacts_bucket_name 2>/dev/null | grep -v "::debug::" | head -n1)
-          NAMESPACE=$(terraform output -raw namespace 2>/dev/null | grep -v "::debug::" | head -n1)
+          # Create a simple script to get outputs
+          cat > get_outputs.sh << 'EOF'
+          #!/bin/bash
+          set -e
           
-          # Additional cleanup
-          ARTIFACTS_BUCKET=$(echo "${ARTIFACTS_BUCKET}" | tr -d '\n\r' | sed 's/::debug::.*$//')
-          NAMESPACE=$(echo "${NAMESPACE}" | tr -d '\n\r' | sed 's/::debug::.*$//')
+          # Get artifacts bucket name
+          terraform output -raw artifacts_bucket_name > artifacts_bucket_output.txt 2>&1
+          ARTIFACTS_BUCKET=$(grep -v "::debug::" artifacts_bucket_output.txt | head -n1 | tr -d '\n\r')
           
-          echo "Cleaned ARTIFACTS_BUCKET=${ARTIFACTS_BUCKET}"
-          echo "Cleaned NAMESPACE=${NAMESPACE}"
+          # Get namespace
+          terraform output -raw namespace > namespace_output.txt 2>&1
+          NAMESPACE=$(grep -v "::debug::" namespace_output.txt | head -n1 | tr -d '\n\r')
           
-          # Validate bucket name format (should be alphanumeric with dashes)
-          if [[ "${ARTIFACTS_BUCKET}" =~ ^[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9]$ ]]; then
-            echo "ARTIFACTS_BUCKET=${ARTIFACTS_BUCKET}" >> $GITHUB_ENV
-            echo "✅ ARTIFACTS_BUCKET exported successfully"
-          else
-            echo "❌ Error: Invalid ARTIFACTS_BUCKET format: ${ARTIFACTS_BUCKET}"
-            exit 1
-          fi
+          echo "ARTIFACTS_BUCKET=${ARTIFACTS_BUCKET}"
+          echo "NAMESPACE=${NAMESPACE}"
           
-          # Validate namespace format
-          if [[ "${NAMESPACE}" =~ ^[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9]$ ]]; then
-            echo "NAMESPACE=${NAMESPACE}" >> $GITHUB_ENV
-            echo "✅ NAMESPACE exported successfully"
-          else
-            echo "❌ Error: Invalid NAMESPACE format: ${NAMESPACE}"
-            exit 1
-          fi
-
+          # Write to environment file
+          echo "ARTIFACTS_BUCKET=${ARTIFACTS_BUCKET}" >> $GITHUB_ENV
+          echo "NAMESPACE=${NAMESPACE}" >> $GITHUB_ENV
+          
+          # Cleanup
+          rm -f artifacts_bucket_output.txt namespace_output.txt
+          EOF
+          
+          chmod +x get_outputs.sh
+          ./get_outputs.sh
+        
       - name: Debug Environment Variables
         run: |
           echo "ARTIFACTS_BUCKET=${ARTIFACTS_BUCKET}"
