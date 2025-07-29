@@ -307,7 +307,6 @@ jobs:
             "${NAMESPACE}" \
             "${ARTIFACTS_BUCKET}"
 
-        # Functional Tests --> TODO need to fix the test failures
       - name: Functional Tests
         env:
           GO111MODULE: "on"
@@ -345,31 +344,41 @@ jobs:
           if [[ -z "${NAMESPACE_VALUE}" ]]; then
             NAMESPACE_VALUE=$(grep -v '^\s*$' namespace_temp.txt | tail -n1 | sed 's/"//g' | tr -d '\n\r ')
           fi
+
+          # Create valid JSON using jq
           
-          # Create valid JSON manually
-          cat > terraform_outputs.json << EOF
-          {
-            "artifacts_bucket_name": {
-              "value": "${ARTIFACTS_BUCKET_VALUE}"
-            },
-            "namespace": {
-              "value": "${NAMESPACE_VALUE}"
-            }
-          }
-          EOF
+          jq -n \
+            --arg bucket "$ARTIFACTS_BUCKET_VALUE" \
+            --arg namespace "$NAMESPACE_VALUE" \
+            '{
+              "artifacts_bucket_name": {
+                "value": $bucket
+              },
+              "namespace": {
+                "value": $namespace
+              }
+            }' > terraform_outputs.json
+
+          # Replace placeholders with actual values
+          sed -i "s/ARTIFACTS_BUCKET_PLACEHOLDER/${ARTIFACTS_BUCKET_VALUE}/g" terraform_outputs.json
+          sed -i "s/NAMESPACE_PLACEHOLDER/${NAMESPACE_VALUE}/g" terraform_outputs.json
+
           
           # Clean up temp files
           rm -f artifacts_bucket_temp.txt namespace_temp.txt
           
           # Validate the final JSON
           if ! jq . terraform_outputs.json > /dev/null 2>&1; then
-            echo "Still unable to create valid Terraform JSON output"
+            echo "❌ Still unable to create valid Terraform JSON output"
             echo "Generated JSON content:"
             cat terraform_outputs.json
+            echo "ARTIFACTS_BUCKET_VALUE: [${ARTIFACTS_BUCKET_VALUE}]"
+            echo "NAMESPACE_VALUE: [${NAMESPACE_VALUE}]"
             exit 1
           fi
           
           echo "Valid Terraform JSON output created"
+          cat terraform_outputs.json
           
           # Run functional tests with timeout and generate JUnit report
           export TF_VAR_namespace="${NAMESPACE}"
