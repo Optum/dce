@@ -299,13 +299,41 @@ jobs:
           ./scripts/build.sh
 
       - name: Set Terraform Output Variables
+        env:
+          TF_LOG: ""
+          TF_LOG_CORE: ""
+          TF_LOG_PROVIDER: ""
         run: |
-          ARTIFACTS_BUCKET=$(cd modules && terraform output -raw artifacts_bucket_name)
-          NAMESPACE=$(cd modules && terraform output -raw namespace)
-          echo "Sanitized ARTIFACTS_BUCKET=${ARTIFACTS_BUCKET}"
-          echo "Sanitized NAMESPACE=${NAMESPACE}"
-          echo "ARTIFACTS_BUCKET=${ARTIFACTS_BUCKET}" >> $GITHUB_ENV
-          echo "NAMESPACE=${NAMESPACE}" >> $GITHUB_ENV
+          echo "Getting Terraform outputs using JSON format..."
+          cd modules
+          
+          # Get JSON output and parse specific values
+          TERRAFORM_OUTPUT=$(terraform output -json)
+          echo "Raw Terraform JSON output:"
+          echo "${TERRAFORM_OUTPUT}"
+          
+          ARTIFACTS_BUCKET=$(echo "${TERRAFORM_OUTPUT}" | jq -r '.artifacts_bucket_name.value')
+          NAMESPACE=$(echo "${TERRAFORM_OUTPUT}" | jq -r '.namespace.value')
+          
+          echo "Parsed ARTIFACTS_BUCKET=${ARTIFACTS_BUCKET}"
+          echo "Parsed NAMESPACE=${NAMESPACE}"
+          
+          # Validate and export
+          if [[ "${ARTIFACTS_BUCKET}" != "null" && "${ARTIFACTS_BUCKET}" != "" && ! "${ARTIFACTS_BUCKET}" =~ "::debug::" ]]; then
+            echo "ARTIFACTS_BUCKET=${ARTIFACTS_BUCKET}" >> $GITHUB_ENV
+            echo "✅ ARTIFACTS_BUCKET exported successfully"
+          else
+            echo "❌ Error: Invalid ARTIFACTS_BUCKET value: ${ARTIFACTS_BUCKET}"
+            exit 1
+          fi
+          
+          if [[ "${NAMESPACE}" != "null" && "${NAMESPACE}" != "" && ! "${NAMESPACE}" =~ "::debug::" ]]; then
+            echo "NAMESPACE=${NAMESPACE}" >> $GITHUB_ENV
+            echo "✅ NAMESPACE exported successfully"
+          else
+            echo "❌ Error: Invalid NAMESPACE value: ${NAMESPACE}"
+            exit 1
+          fi
 
       - name: Debug Environment Variables
         run: |
