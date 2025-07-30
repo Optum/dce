@@ -327,55 +327,54 @@ jobs:
           # Ensure we're using the leased account credentials
           aws sts get-caller-identity
           
-          # Clean any existing state or cache that might cause issues
-          rm -f .terraform/terraform.tfstate
-          
-          # Initialize Terraform cleanly
-          terraform init -input=false -no-color
-          
           # Disable all Terraform logging to prevent output contamination
           export TF_LOG=""
           export TF_LOG_CORE=""
           export TF_LOG_PROVIDER=""
           export TF_IN_AUTOMATION="true"
           
-          # Get clean individual outputs to avoid JSON parsing issues
+          # Ensure clean state access (remove any cached/problematic state files)
+          rm -f .terraform/terraform.tfstate*
+          
+          # Re-initialize to ensure clean state
+          terraform init -input=false -no-color -reconfigure
+          
+          # Get clean individual outputs using -raw flag
           terraform output -raw artifacts_bucket_name > ../artifacts_bucket_value.txt 2>/dev/null || {
-            echo "Failed to get artifacts_bucket_name output"
-            terraform output artifacts_bucket_name
+            echo "❌ Failed to get artifacts_bucket_name output"
+            terraform output artifacts_bucket_name 2>&1 | head -10
             exit 1
           }
           
           terraform output -raw namespace > ../namespace_value.txt 2>/dev/null || {
-            echo "Failed to get namespace output"
-            terraform output namespace
+            echo "❌ Failed to get namespace output"
+            terraform output namespace 2>&1 | head -10
             exit 1
           }
           
           cd ..
           
-          # Read the clean values
-          ARTIFACTS_BUCKET_VALUE=$(cat artifacts_bucket_value.txt | tr -d '\n\r ')
-          NAMESPACE_VALUE=$(cat namespace_value.txt | tr -d '\n\r ')
+          # Read and validate the clean values
+          ARTIFACTS_BUCKET_VALUE=$(cat artifacts_bucket_value.txt | tr -d '\n\r\t ')
+          NAMESPACE_VALUE=$(cat namespace_value.txt | tr -d '\n\r\t ')
           
-          # Validate the values
           if [[ -z "${ARTIFACTS_BUCKET_VALUE}" ]]; then
-            echo "ARTIFACTS_BUCKET_VALUE is empty"
+            echo "❌ ARTIFACTS_BUCKET_VALUE is empty"
             echo "Content of artifacts_bucket_value.txt:"
-            cat artifacts_bucket_value.txt
+            cat artifacts_bucket_value.txt | hexdump -C
             exit 1
           fi
           
           if [[ -z "${NAMESPACE_VALUE}" ]]; then
-            echo "NAMESPACE_VALUE is empty"
+            echo "❌ NAMESPACE_VALUE is empty"
             echo "Content of namespace_value.txt:"
-            cat namespace_value.txt
+            cat namespace_value.txt | hexdump -C
             exit 1
           fi
           
-          echo "Retrieved Terraform outputs:"
-          echo "ARTIFACTS_BUCKET_VALUE: ${ARTIFACTS_BUCKET_VALUE}"
-          echo "NAMESPACE_VALUE: ${NAMESPACE_VALUE}"
+          echo "✅ Retrieved Terraform outputs:"
+          echo "ARTIFACTS_BUCKET_VALUE: '${ARTIFACTS_BUCKET_VALUE}'"
+          echo "NAMESPACE_VALUE: '${NAMESPACE_VALUE}'"
           
           # Create the terraform_outputs.json file using jq for clean JSON
           jq -n \
@@ -392,46 +391,62 @@ jobs:
           
           # Validate the final JSON
           if ! jq . terraform_outputs.json > /dev/null 2>&1; then
-            echo "Generated invalid JSON"
+            echo "❌ Generated invalid JSON"
             echo "JSON content:"
             cat terraform_outputs.json
             exit 1
           fi
           
-          echo "Valid Terraform JSON output created:"
+          echo "✅ Valid Terraform JSON output created:"
           cat terraform_outputs.json
           
           # Clean up temp files
           rm -f artifacts_bucket_value.txt namespace_value.txt
           
           # Set environment variables for tests
-          export TF_VAR_namespace="${NAMESPACE}"
-          export TF_VAR_artifacts_bucket_name="${ARTIFACTS_BUCKET}"
+          export TF_VAR_namespace="${NAMESPACE_VALUE}"
+          export TF_VAR_artifacts_bucket_name="${ARTIFACTS_BUCKET_VALUE}"
           export TERRAFORM_DIR="$(pwd)/modules"
           
-          # Ensure Terraform state is accessible for tests (remove problematic refresh)
-          cd modules
-          # terraform refresh -input=false -no-color > /dev/null 2>&1  # Remove this line
-          
           # Verify Terraform state is accessible
-          if ! terraform show > /dev/null 2>&1; then
-            echo " Terraform state may not be accessible, but continuing with tests"
+          cd modules
+          if terraform show > /dev/null 2>&1; then
+            echo "✅ Terraform state is accessible"
           else
-            echo "Terraform state is accessible"
+            echo "⚠️ Warning: Terraform state may not be accessible, but continuing with tests"
           fi
-          
           cd ..
           
-          # Run tests with proper error handling
+          # Run tests with proper error handling and debugging
+          echo "🧪 Starting functional tests..."
+          echo "Environment variables:"
+          echo "TF_VAR_namespace: ${TF_VAR_namespace:-NOT_SET}"
+          echo "TF_VAR_artifacts_bucket_name: ${TF_VAR_artifacts_bucket_name:-NOT_SET}"
+          echo "TERRAFORM_DIR: ${TERRAFORM_DIR:-NOT_SET}"
+          
           TEST_EXIT_CODE=0
           go test -v ./tests/... -timeout 50m 2>&1 | tee test_output.log || TEST_EXIT_CODE=$?
           
+          # Show test summary
+          echo "📊 Test Summary:"
+          echo "Exit code: $TEST_EXIT_CODE"
+          if [[ -f test_output.log ]]; then
+            echo "Test output log size: $(wc -l < test_output.log) lines"
+            echo "Last 20 lines of test output:"
+            tail -20 test_output.log
+          fi
+          
           # Generate JUnit report from test output
-          cat test_output.log | go-junit-report > junit-report/functional.xml
+          if [[ -f test_output.log ]]; then
+            cat test_output.log | go-junit-report > junit-report/functional.xml
+          else
+            echo "❌ No test output log found"
+            exit 1
+          fi
           
           # Verify the JUnit report was generated
           if [[ ! -f junit-report/functional.xml ]]; then
-            echo "Functional test report not generated"
+            echo "❌ Functional test report not generated"
             exit 1
           fi
           
@@ -439,9 +454,9 @@ jobs:
           rm -f test_output.log terraform_outputs.json
           
           if [[ $TEST_EXIT_CODE -eq 0 ]]; then
-            echo "Functional tests completed successfully"
+            echo "✅ Functional tests completed successfully"
           else
-            echo "Functional tests failed with exit code $TEST_EXIT_CODE"
+            echo "❌ Functional tests failed with exit code $TEST_EXIT_CODE"
             exit $TEST_EXIT_CODE
           fi
 
