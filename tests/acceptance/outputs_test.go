@@ -14,10 +14,7 @@ func TestTerraformOutputs(t *testing.T) {
 		TerraformDir: "../../modules",
 	}
 
-	tfOut, ok := terraform.OutputAll(t, tfOpts).(map[string]interface{})
-	if !ok {
-		t.Fatalf("Failed to cast terraform outputs to map[string]interface{}")
-	}
+	tfOut := terraform.OutputAll(t, tfOpts)
 
 	assert.Regexp(t,
 		regexp.MustCompile("^Accounts"),

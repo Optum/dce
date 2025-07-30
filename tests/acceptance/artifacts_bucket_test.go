@@ -24,11 +24,6 @@ func TestArtifactsBucket(t *testing.T) {
 	tfOpts := &terraform.Options{
 		TerraformDir: "../../modules",
 	}
-	// Initialize and apply the Terraform configuration
-	terraform.InitAndApply(t, tfOpts)
-	defer terraform.Destroy(t, tfOpts)
-
-	// Fetch the bucket name from Terraform output
 	bucketName := terraform.Output(t, tfOpts, "artifacts_bucket_name")
 
 	t.Run("should be encrypted by default", func(t *testing.T) {

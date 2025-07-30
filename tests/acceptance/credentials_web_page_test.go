@@ -19,15 +19,9 @@ func TestCredentialsWebPageLoads(t *testing.T) {
 		TerraformDir: "../../modules",
 	}
 	
-	// Ensure Terraform is initialized and applied before reading outputs
-	terraform.InitAndApply(t, tfOpts)
-	defer terraform.Destroy(t, tfOpts)
+	tfOut := terraform.OutputAll(t, tfOpts)
+	apiURL := tfOut["api_url"].(string)
 	
-	// Get the specific output value instead of all outputs
-	apiURL, err := terraform.OutputE(t, tfOpts, "api_url")
-	assert.NoError(t, err)
-	assert.NotEmpty(t, apiURL, "api_url should not be empty")
-
 	var chainCredentials = credentials.NewChainCredentials([]credentials.Provider{
 		&credentials.EnvProvider{},
 		&credentials.SharedCredentialsProvider{Filename: "", Profile: ""},

@@ -60,9 +60,6 @@ func TestApi(t *testing.T) {
 	tfOut := terraform.OutputAll(t, tfOpts)
 
 	apiURL, ok := tfOut["api_url"].(string)
-	if !ok {
-		t.Fatalf("api_url should be a non-empty string, but got: %v", tfOut["api_url"])
-	}
 	if !ok || apiURL == "" {
 		t.Fatalf("api_url should be a non-empty string, but got: %v", tfOut["api_url"])
 	}
