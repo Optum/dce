@@ -341,42 +341,9 @@ jobs:
           rm -f .terraform/terraform.tfstate*
           rm -f terraform.tfstate*
           
-          # Re-initialize Terraform with clean state and wrapper disabled
+          # Re-initialize Terraform with clean state
           terraform init -input=false -no-color -reconfigure
           
-          # CRITICAL: Create a wrapper script to intercept terraform calls
-          cat > terraform_wrapper.sh << 'EOF'
-          #!/bin/bash
-          if [[ "$1" == "output" && "$2" == "-json" ]]; then
-              # Return pre-created clean JSON instead of executing terraform
-              if [[ -f "terraform_outputs.json" ]]; then
-                  cat terraform_outputs.json
-                  exit 0
-              else
-                  echo "Error: terraform_outputs.json not found" >&2
-                  exit 1
-              fi
-          elif [[ "$1" == "output" ]]; then
-              # Handle individual output requests
-              OUTPUT_NAME="$2"
-              if [[ -f "terraform_outputs.json" ]]; then
-                  jq -r ".${OUTPUT_NAME}.value" terraform_outputs.json 2>/dev/null || {
-                      echo "Error: Output ${OUTPUT_NAME} not found" >&2
-                      exit 1
-                  }
-                  exit 0
-              else
-                  echo "Error: terraform_outputs.json not found" >&2
-                  exit 1
-              fi
-          else
-              # Pass through all other terraform commands to real terraform
-              exec /usr/bin/terraform "$@"
-          fi
-          EOF
-                    
-                    chmod +x terraform_wrapper.sh
-                    
           # Get clean individual outputs using real terraform
           terraform output -raw artifacts_bucket_name > ../artifacts_bucket_value.txt 2>/dev/null || {
             echo "❌ Failed to get artifacts_bucket_name output"
@@ -423,7 +390,6 @@ jobs:
           echo "API_URL_VALUE: '${API_URL_VALUE}'"
           
           # Create the terraform_outputs.json file using jq for clean JSON
-          cd modules
           jq -n \
             --arg bucket "$ARTIFACTS_BUCKET_VALUE" \
             --arg namespace "$NAMESPACE_VALUE" \
@@ -448,13 +414,69 @@ jobs:
             exit 1
           fi
           
-          echo "✅ Valid Terraform JSON output created in modules directory:"
+          echo "✅ Valid Terraform JSON output created:"
           cat terraform_outputs.json
           
-          # Replace terraform in PATH with our wrapper
-          export PATH="$(pwd):$PATH"
+          # Copy the JSON file to modules directory as well
+          cp terraform_outputs.json modules/terraform_outputs.json
           
-          cd ..
+          # Create terraform wrapper script in /usr/local/bin (which is in PATH)
+          sudo tee /usr/local/bin/terraform > /dev/null << 'EOF'
+          #!/bin/bash
+
+          # Determine the working directory for terraform_outputs.json
+          TERRAFORM_OUTPUTS_JSON=""
+          if [[ -f "terraform_outputs.json" ]]; then
+              TERRAFORM_OUTPUTS_JSON="terraform_outputs.json"
+          elif [[ -f "modules/terraform_outputs.json" ]]; then
+              TERRAFORM_OUTPUTS_JSON="modules/terraform_outputs.json"
+          elif [[ -f "../terraform_outputs.json" ]]; then
+              TERRAFORM_OUTPUTS_JSON="../terraform_outputs.json"
+          elif [[ -f "../../terraform_outputs.json" ]]; then
+              TERRAFORM_OUTPUTS_JSON="../../terraform_outputs.json"
+          fi
+
+          if [[ "$1" == "output" && "$2" == "-json" ]]; then
+              # Return pre-created clean JSON instead of executing terraform
+              if [[ -n "$TERRAFORM_OUTPUTS_JSON" && -f "$TERRAFORM_OUTPUTS_JSON" ]]; then
+                  cat "$TERRAFORM_OUTPUTS_JSON"
+                  exit 0
+              else
+                  echo "Error: terraform_outputs.json not found in any expected location" >&2
+                  echo "Current directory: $(pwd)" >&2
+                  echo "Checked locations:" >&2
+                  echo "  - terraform_outputs.json" >&2
+                  echo "  - modules/terraform_outputs.json" >&2
+                  echo "  - ../terraform_outputs.json" >&2
+                  echo "  - ../../terraform_outputs.json" >&2
+                  exit 1
+              fi
+          elif [[ "$1" == "output" && "$#" -eq 2 ]]; then
+              # Handle individual output requests
+              OUTPUT_NAME="$2"
+              if [[ -n "$TERRAFORM_OUTPUTS_JSON" && -f "$TERRAFORM_OUTPUTS_JSON" ]]; then
+                  jq -r ".${OUTPUT_NAME}.value" "$TERRAFORM_OUTPUTS_JSON" 2>/dev/null || {
+                      echo "Error: Output ${OUTPUT_NAME} not found" >&2
+                      exit 1
+                  }
+                  exit 0
+              else
+                  echo "Error: terraform_outputs.json not found for output ${OUTPUT_NAME}" >&2
+                  exit 1
+              fi
+          else
+              # Pass through all other terraform commands to real terraform
+              exec /usr/bin/terraform "$@"
+          fi
+          EOF
+          
+          # Make the wrapper executable
+          sudo chmod +x /usr/local/bin/terraform
+          
+          # Verify the wrapper is working
+          echo "🔍 Testing terraform wrapper:"
+          terraform output -json | jq . > /dev/null && echo "✅ Wrapper JSON test passed" || echo "❌ Wrapper JSON test failed"
+          terraform output artifacts_bucket_name && echo "✅ Wrapper individual output test passed" || echo "❌ Wrapper individual output test failed"
           
           # Clean up temp files
           rm -f artifacts_bucket_value.txt namespace_value.txt api_url_value.txt
@@ -464,20 +486,13 @@ jobs:
           export TF_VAR_artifacts_bucket_name="${ARTIFACTS_BUCKET_VALUE}"
           export TERRAFORM_DIR="$(pwd)/modules"
           
-          # Run tests with our wrapper in place
+          # Run tests with wrapper in place
           echo "🧪 Starting functional tests with terraform wrapper..."
           echo "Environment variables:"
           echo "TF_VAR_namespace: ${TF_VAR_namespace:-NOT_SET}"
           echo "TF_VAR_artifacts_bucket_name: ${TF_VAR_artifacts_bucket_name:-NOT_SET}"
           echo "TERRAFORM_DIR: ${TERRAFORM_DIR:-NOT_SET}"
-          echo "PATH: ${PATH}"
-          
-          # Verify the wrapper works
-          echo "🔍 Testing terraform wrapper:"
-          cd modules
-          ./terraform_wrapper.sh output -json | jq . > /dev/null && echo "✅ Wrapper JSON test passed" || echo "❌ Wrapper JSON test failed"
-          ./terraform_wrapper.sh output artifacts_bucket_name && echo "✅ Wrapper individual output test passed" || echo "❌ Wrapper individual output test failed"
-          cd ..
+          echo "Terraform location: $(which terraform)"
           
           TEST_EXIT_CODE=0
           go test -v ./tests/... -timeout 50m 2>&1 | tee test_output.log || TEST_EXIT_CODE=$?
@@ -497,7 +512,10 @@ jobs:
           fi
           
           # Clean up temporary files
-          rm -f test_output.log modules/terraform_outputs.json modules/terraform_wrapper.sh
+          rm -f test_output.log terraform_outputs.json modules/terraform_outputs.json
+          
+          # Restore original terraform binary for cleanup
+          sudo rm -f /usr/local/bin/terraform
           
           if [[ $TEST_EXIT_CODE -eq 0 ]]; then
             echo "✅ Functional tests completed successfully"
