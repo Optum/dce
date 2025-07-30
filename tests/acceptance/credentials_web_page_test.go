@@ -18,8 +18,13 @@ func TestCredentialsWebPageLoads(t *testing.T) {
 	tfOpts := &terraform.Options{
 		TerraformDir: "../../modules",
 	}
-	tfOut := terraform.OutputAll(t, tfOpts)
-	apiURL := tfOut["api_url"].(string)
+	
+	// Ensure Terraform is initialized and applied before reading outputs
+	terraform.InitAndApply(t, tfOpts)
+	defer terraform.Destroy(t, tfOpts)
+	
+	// Get the specific output value instead of all outputs
+	apiURL := terraform.Output(t, tfOpts, "api_url")
 
 	var chainCredentials = credentials.NewChainCredentials([]credentials.Provider{
 		&credentials.EnvProvider{},

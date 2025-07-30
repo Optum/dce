@@ -14,6 +14,12 @@ func TestTerraformOutputs(t *testing.T) {
 		TerraformDir: "../../modules",
 	}
 
+	// Ensure terraform is initialized and applied before getting outputs
+	terraform.Init(t, tfOpts)
+	terraform.Plan(t, tfOpts)
+	terraform.Apply(t, tfOpts)
+	defer terraform.Destroy(t, tfOpts)
+
 	tfOut := terraform.OutputAll(t, tfOpts)
 
 	assert.Regexp(t,
