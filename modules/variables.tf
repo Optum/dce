@@ -25,7 +25,9 @@ variable "global_tags" {
 }
 
 variable "namespace" {
+  type        = string
   description = "The namespace for this Terraform run"
+  default     = "dce"
 }
 
 variable "reset_nuke_template_bucket" {
