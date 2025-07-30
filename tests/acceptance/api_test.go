@@ -53,44 +53,53 @@ var (
 )
 
 func TestApi(t *testing.T) {
-    // Grab the API URL and other outputs from Terraform
-    tfOpts := &terraform.Options{
-        TerraformDir: "../../modules",
-    }
+	// Grab the API url from Terraform output
+	tfOpts := &terraform.Options{
+		TerraformDir: "../../modules",
+	}
+	tfOut := terraform.OutputAll(t, tfOpts)
 
-    // Get all Terraform outputs
-    tfOut := terraform.OutputAll(t, tfOpts)
+	apiURL, ok := tfOut["api_url"].(string)
+	if !ok {
+		t.Fatalf("api_url should be a non-empty string, but got: %v", tfOut["api_url"])
+	}
+	if !ok || apiURL == "" {
+		t.Fatalf("api_url should be a non-empty string, but got: %v", tfOut["api_url"])
+	}
+	require.NotEmpty(t, apiURL, "api_url should not be empty")
 
-    // Validate and parse the outputs
-    apiURL, ok := tfOut["api_url"].(string)
-    require.True(t, ok, "api_url should be a non-empty string")
-    require.NotEmpty(t, apiURL, "api_url should not be empty")
+	awsRegion, ok := tfOut["aws_region"].(string)
+	if !ok || awsRegion == "" {
+		t.Fatalf("aws_region should be a non-empty string, but got: %v", tfOut["aws_region"])
+	}
+	require.NotEmpty(t, awsRegion, "aws_region should not be empty")
 
-    awsRegion, ok := tfOut["aws_region"].(string)
-    require.True(t, ok, "aws_region should be a non-empty string")
-    require.NotEmpty(t, awsRegion, "aws_region should not be empty")
+	accountsTableName, ok := tfOut["accounts_table_name"].(string)
+	if !ok || accountsTableName == "" {
+		t.Fatalf("accounts_table_name should be a non-empty string, but got: %v", tfOut["accounts_table_name"])
+	}
+	require.NotEmpty(t, accountsTableName, "accounts_table_name should not be empty")
 
-    accountsTableName, ok := tfOut["accounts_table_name"].(string)
-    require.True(t, ok, "accounts_table_name should be a non-empty string")
-    require.NotEmpty(t, accountsTableName, "accounts_table_name should not be empty")
+	leasesTableName, ok := tfOut["leases_table_name"].(string)
+	if !ok || leasesTableName == "" {
+		t.Fatalf("leases_table_name should be a non-empty string, but got: %v", tfOut["leases_table_name"])
+	}
+	require.NotEmpty(t, leasesTableName, "leases_table_name should not be empty")
 
-    leasesTableName, ok := tfOut["leases_table_name"].(string)
-    require.True(t, ok, "leases_table_name should be a non-empty string")
-    require.NotEmpty(t, leasesTableName, "leases_table_name should not be empty")
-
-    // Configure the DB service
-    awsSession, err := session.NewSession()
-    require.NoError(t, err, "Failed to create AWS session")
-    dbSvc = db.New(
-        dynamodb.New(
-            awsSession,
-            aws.NewConfig().WithRegion(awsRegion),
-        ),
-        accountsTableName,
-        leasesTableName,
-        7,
-    )
+	// Configure the DB service
+	awsSession, err := session.NewSession()
+	require.Nil(t, err)
+	dbSvc = db.New(
+		dynamodb.New(
+			awsSession,
+			aws.NewConfig().WithRegion(awsRegion),
+		),
+		accountsTableName,
+		leasesTableName,
+		7,
+	)
 }
+
 
 type leaseRequest struct {
 	PrincipalID string `json:"principalId"`

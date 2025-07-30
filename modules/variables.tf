@@ -21,6 +21,7 @@ variable "account_pool_metrics_widget_period" {
 variable "global_tags" {
   type        = map(string)
   description = "A map of global tags to apply to all resources"
+  default     = {}
 }
 
 variable "namespace" {

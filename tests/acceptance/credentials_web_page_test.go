@@ -24,7 +24,9 @@ func TestCredentialsWebPageLoads(t *testing.T) {
 	defer terraform.Destroy(t, tfOpts)
 	
 	// Get the specific output value instead of all outputs
-	apiURL := terraform.Output(t, tfOpts, "api_url")
+	apiURL, err := terraform.OutputE(t, tfOpts, "api_url")
+	assert.NoError(t, err)
+	assert.NotEmpty(t, apiURL, "api_url should not be empty")
 
 	var chainCredentials = credentials.NewChainCredentials([]credentials.Provider{
 		&credentials.EnvProvider{},
