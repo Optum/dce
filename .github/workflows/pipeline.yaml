@@ -409,9 +409,17 @@ jobs:
           export TF_VAR_artifacts_bucket_name="${ARTIFACTS_BUCKET}"
           export TERRAFORM_DIR="$(pwd)/modules"
           
-          # Ensure Terraform state is accessible for tests
+          # Ensure Terraform state is accessible for tests (remove problematic refresh)
           cd modules
-          terraform refresh -input=false -no-color > /dev/null 2>&1
+          # terraform refresh -input=false -no-color > /dev/null 2>&1  # Remove this line
+          
+          # Verify Terraform state is accessible
+          if ! terraform show > /dev/null 2>&1; then
+            echo " Terraform state may not be accessible, but continuing with tests"
+          else
+            echo "Terraform state is accessible"
+          fi
+          
           cd ..
           
           # Run tests with proper error handling
