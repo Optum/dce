@@ -123,7 +123,7 @@ func checkForBuckets(sess *session.Session, accountID string, dbSvc db.DBer) (bo
     stsSvc := sts.New(sess)
     sessionName := fmt.Sprintf("Bucket-Check-%s", time.Now().Format("20060102-150405"))
 
-    // Assume the role using the AdminRoleArn from database (same pattern as spend.go)
+    // Assume the role using the AdminRoleArn from database
     log.Printf("Assuming role %s for bucket check", adminRoleArn)
     assumeRoleInput := &sts.AssumeRoleInput{
         RoleArn:         aws.String(adminRoleArn),
