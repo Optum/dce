@@ -244,17 +244,17 @@ jobs:
       - name: Validate Build Artifacts
         run: |
           echo "Validating build artifacts..."
-          [ -f "./bin/build_artifacts.zip" ] && echo "✅ build_artifacts.zip created" || (echo "❌ build_artifacts.zip missing" && exit 1)
-          [ -f "./bin/terraform_artifacts.zip" ] && echo "✅ terraform_artifacts.zip created" || (echo "❌ terraform_artifacts.zip missing" && exit 1)
-          [ -f "./scripts/deploy.sh" ] && echo "✅ deploy.sh exists" || (echo "❌ deploy.sh missing" && exit 1)
-          [ -f "./scripts/restore_db.sh" ] && echo "✅ restore_db.sh exists" || (echo "❌ restore_db.sh missing" && exit 1)
+          [ -f "./bin/build_artifacts.zip" ] && echo "build_artifacts.zip created" || (echo "build_artifacts.zip missing" && exit 1)
+          [ -f "./bin/terraform_artifacts.zip" ] && echo "terraform_artifacts.zip created" || (echo "terraform_artifacts.zip missing" && exit 1)
+          [ -f "./scripts/deploy.sh" ] && echo "deploy.sh exists" || (echo "deploy.sh missing" && exit 1)
+          [ -f "./scripts/restore_db.sh" ] && echo "restore_db.sh exists" || (echo "restore_db.sh missing" && exit 1)
           
           # Validate file sizes
           build_size=$(stat -c%s "./bin/build_artifacts.zip" 2>/dev/null || echo "0")
           terraform_size=$(stat -c%s "./bin/terraform_artifacts.zip" 2>/dev/null || echo "0")
           
-          [ "$build_size" -gt 0 ] && echo "✅ build_artifacts.zip has content ($build_size bytes)" || (echo "❌ build_artifacts.zip is empty" && exit 1)
-          [ "$terraform_size" -gt 0 ] && echo "✅ terraform_artifacts.zip has content ($terraform_size bytes)" || (echo "❌ terraform_artifacts.zip is empty" && exit 1)
+          [ "$build_size" -gt 0 ] && echo "build_artifacts.zip has content ($build_size bytes)" || (echo "build_artifacts.zip is empty" && exit 1)
+          [ "$terraform_size" -gt 0 ] && echo "terraform_artifacts.zip has content ($terraform_size bytes)" || (echo "terraform_artifacts.zip is empty" && exit 1)
       
       - name: Upload Build Artifacts for Release
         uses: actions/upload-artifact@v4
@@ -479,10 +479,10 @@ jobs:
       - name: Verify Downloaded Artifacts
         run: |
           echo "Verifying downloaded artifacts..."
-          [ -f "./bin/build_artifacts.zip" ] && echo "✅ build_artifacts.zip found" || echo "❌ build_artifacts.zip missing"
-          [ -f "./bin/terraform_artifacts.zip" ] && echo "✅ terraform_artifacts.zip found" || echo "❌ terraform_artifacts.zip missing"
-          [ -f "./scripts/deploy.sh" ] && echo "✅ deploy.sh found" || echo "❌ deploy.sh missing"
-          [ -f "./scripts/restore_db.sh" ] && echo "✅ restore_db.sh found" || echo "❌ restore_db.sh missing"
+          [ -f "./bin/build_artifacts.zip" ] && echo "build_artifacts.zip found" || echo "build_artifacts.zip missing"
+          [ -f "./bin/terraform_artifacts.zip" ] && echo "terraform_artifacts.zip found" || echo "terraform_artifacts.zip missing"
+          [ -f "./scripts/deploy.sh" ] && echo "deploy.sh found" || echo "deploy.sh missing"
+          [ -f "./scripts/restore_db.sh" ] && echo "restore_db.sh found" || echo "restore_db.sh missing"
 
       - name: Create GitHub Release
         id: create_release
