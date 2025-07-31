@@ -56,7 +56,7 @@ func scanAccountsForMissingRequiredBuckets(dbSvc db.DBer, filePath, bucket, s3Ke
     // For each account, check for required buckets
     for _, account := range accounts {
         // Use the account credentials to check for required buckets
-        hasBucket, err := checkForBuckets(sess, account.ID)
+        hasBucket, err := checkForBuckets(sess, account.ID, dbSvc)
         if err != nil {
             log.Printf("Error checking required buckets for account %s: %s", account.ID, err)
             continue
@@ -100,31 +100,41 @@ func scanAccountsForMissingRequiredBuckets(dbSvc db.DBer, filePath, bucket, s3Ke
     return nil
 }
 // checkForBuckets checks if an account has S3 buckets starting with the required prefix
-func checkForBuckets(sess *session.Session, accountID string) (bool, error) {
+func checkForBuckets(sess *session.Session, accountID string, dbSvc db.DBer) (bool, error) {
     // Retrieve the bucket prefix from the environment variable
     bucketPrefix := os.Getenv("REQUIRED_BUCKET_PREFIX")
     if bucketPrefix == "" {
         return false, fmt.Errorf("REQUIRED_BUCKET_PREFIX environment variable is not set")
     }
 
+    // Get the account record from database to retrieve AdminRoleArn
+    account, err := dbSvc.GetAccount(accountID)
+    if err != nil {
+        return false, fmt.Errorf("failed to get account %s from database: %w", accountID, err)
+    }
+
+    // Use AdminRoleArn from account record
+    adminRoleArn := account.AdminRoleArn
+    if adminRoleArn == "" {
+        return false, fmt.Errorf("AdminRoleArn not found for account %s", accountID)
+    }
+
     // Create STS client for assuming roles
     stsSvc := sts.New(sess)
-
-    // Use OrganizationAccountAccessRole for cross-account access
-    roleARN := fmt.Sprintf("arn:aws:iam::%s:role/OrganizationAccountAccessRole", accountID)
     sessionName := fmt.Sprintf("Bucket-Check-%s", time.Now().Format("20060102-150405"))
 
-    // Assume the role
+    // Assume the role using the AdminRoleArn from database (same pattern as spend.go)
+    log.Printf("Assuming role %s for bucket check", adminRoleArn)
     assumeRoleInput := &sts.AssumeRoleInput{
-        RoleArn:         aws.String(roleARN),
+        RoleArn:         aws.String(adminRoleArn),
         RoleSessionName: aws.String(sessionName),
         DurationSeconds: aws.Int64(900),
     }
 
-    log.Printf("Attempting to assume role %s in account %s", roleARN, accountID)
+    log.Printf("Attempting to assume role %s in account %s", adminRoleArn, accountID)
     assumeRoleOutput, err := stsSvc.AssumeRole(assumeRoleInput)
     if err != nil {
-        return false, fmt.Errorf("failed to assume role in account %s: %w", accountID, err)
+        return false, fmt.Errorf("failed to assume role %s in account %s: %w", adminRoleArn, accountID, err)
     }
 
     crossAccountCreds := credentials.NewStaticCredentials(
@@ -143,18 +153,18 @@ func checkForBuckets(sess *session.Session, accountID string) (bool, error) {
 
     result, err := s3Svc.ListBuckets(&s3.ListBucketsInput{})
     if err != nil {
-        return false, fmt.Errorf("failed to list buckets for account %s: %w", accountID, err)
+        return false, fmt.Errorf("failed to list buckets for account %s using role %s: %w", accountID, adminRoleArn, err)
     }
 
     // Check if any bucket name starts with the required prefix
     for _, bucket := range result.Buckets {
         if bucket.Name != nil && len(*bucket.Name) >= len(bucketPrefix) && (*bucket.Name)[:len(bucketPrefix)] == bucketPrefix {
-            log.Printf("Found required bucket %s in account %s", *bucket.Name, accountID)
+            log.Printf("Found required bucket %s in account %s using role %s", *bucket.Name, accountID, adminRoleArn)
             return true, nil
         }
     }
 
-    log.Printf("No required buckets found in account %s", accountID)
+    log.Printf("No required buckets found in account %s using role %s", accountID, adminRoleArn)
     return false, nil
 }
 // listNotReadyAccountsToCSV retrieves all accounts with the status "NotReady" from the ACCOUNT_TABLE,
