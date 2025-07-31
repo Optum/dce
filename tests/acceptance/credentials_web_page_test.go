@@ -18,9 +18,10 @@ func TestCredentialsWebPageLoads(t *testing.T) {
 	tfOpts := &terraform.Options{
 		TerraformDir: "../../modules",
 	}
+	
 	tfOut := terraform.OutputAll(t, tfOpts)
 	apiURL := tfOut["api_url"].(string)
-
+	
 	var chainCredentials = credentials.NewChainCredentials([]credentials.Provider{
 		&credentials.EnvProvider{},
 		&credentials.SharedCredentialsProvider{Filename: "", Profile: ""},

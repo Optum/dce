@@ -5,8 +5,10 @@ variable "environment" {
   type    = map(string)
   default = { TERRAFORM = "true" }
 }
+
 variable "global_tags" {
-  type = map(string)
+  type        = map(string)
+  description = "A map of global tags to apply to all resources"
 }
 variable "name" {
   type = string

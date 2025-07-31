@@ -97,6 +97,7 @@ func TestApi(t *testing.T) {
 	)
 }
 
+
 type leaseRequest struct {
 	PrincipalID string `json:"principalId"`
 	AccountID   string `json:"accountId"`

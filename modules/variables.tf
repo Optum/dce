@@ -19,17 +19,15 @@ variable "account_pool_metrics_widget_period" {
 }
 
 variable "global_tags" {
-  description = "The tags to apply to all resources that support tags"
   type        = map(string)
-
-  default = {
-    Terraform = "True"
-    AppName   = "DCE"
-  }
+  description = "A map of global tags to apply to all resources"
+  default     = {}
 }
 
 variable "namespace" {
+  type        = string
   description = "The namespace for this Terraform run"
+  default     = "dce"
 }
 
 variable "reset_nuke_template_bucket" {
@@ -277,4 +275,9 @@ variable "usage_table_wcu" {
   type        = number
   default     = 5
   description = "DynamoDB Usage table provisioned Write Capacity Units (WCUs). See https://aws.amazon.com/dynamodb/pricing/provisioned/"
+}
+variable "required_bucket_prefix" {
+  description = "The prefix for required S3 buckets to check"
+  type        = string
+  default     = "" 
 }

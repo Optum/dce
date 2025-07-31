@@ -27,11 +27,11 @@ on:
       version_tag:
         required: false
         type: string
-        default: master # pr-#, nonprod, or vX.Y.Z
+        default: master
       namespace:
         required: false
         type: string
-        default: nonprod # pr-#, nonprod, or prod
+        default: nonprod
     secrets:
       AWS_DEFAULT_REGION:
         required: true
@@ -44,7 +44,6 @@ on:
       NOTIFY_EMAIL:
         required: true
 
-# Build and Test Workflow
 jobs:
   TestAndBuild:
     runs-on: ubuntu-latest
@@ -68,25 +67,27 @@ jobs:
       - name: Set up Golang CI Tools
         run: ./scripts/install_ci.sh
 
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
       - name: Build Go executables
         run: make build
 
+      - name: Create Release Artifacts
+        run: |
+          cd bin
+          zip -r build_artifacts.zip .
+          cd ..
+          zip -r bin/terraform_artifacts.zip modules
+
       - name: Publish build artifacts (bin)
-        uses:  actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4
         with:
           name: bin
           path: bin
 
       - name: Publish build artifacts (deploy_scripts)
-        uses:  actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4
         with:
           name: deploy_scripts
           path: scripts
-
-  # Deployment Workflow
 
   Deploy:
     needs: [TestAndBuild]
@@ -98,20 +99,38 @@ jobs:
 
       - name: Configure namespace
         run: |
+          PR_NUMBER=""
+          
           if [[ "${{ github.event.pull_request.number }}" != "" ]]; then
-            NS="github-pr-${{ github.event.pull_request.number }}"
+            PR_NUMBER="${{ github.event.pull_request.number }}"
+          fi
+          
+          if [[ -z "$PR_NUMBER" && "${{ inputs.version_tag }}" =~ ^pr-[0-9]+$ ]]; then
+            PR_NUMBER=$(echo "${{ inputs.version_tag }}" | sed 's/pr-//')
+          fi
+          
+          if [[ -z "$PR_NUMBER" && "${{ inputs.namespace }}" =~ ^pr-[0-9]+$ ]]; then
+            PR_NUMBER=$(echo "${{ inputs.namespace }}" | sed 's/pr-//')
+          fi
+          
+          if [[ -z "$PR_NUMBER" && "${{ github.event_name }}" == "release" ]]; then
+            PR_NUMBER=$(echo "${{ github.event.release.tag_name }}" | grep -oE 'pr-[0-9]+' | sed 's/pr-//')
+            if [[ -z "$PR_NUMBER" ]]; then
+              PR_NUMBER=$(echo "${{ github.event.release.body }}" | grep -oE '(PR-|#)[0-9]+' | head -n 1 | sed 's/PR-\|#//')
+            fi
+          fi
+          
+          if [[ -n "$PR_NUMBER" && "$PR_NUMBER" =~ ^[0-9]+$ ]]; then
+            NS="github-pr-${PR_NUMBER}"
           else
             NS="cd"
           fi
 
-          echo "Namespace is ${NS}"
-
           echo "namespace=${NS}" >> $GITHUB_ENV
-
           echo "${NS}" > ./namespace.txt
 
       - name: Upload namespace file
-        uses:  actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4
         with:
           name: namespace
           path: namespace.txt
@@ -124,12 +143,12 @@ jobs:
         run: |
           echo "PR_NUMBER=${{ env.PR_NUMBER }}"
           echo "NS_BRANCH_OR_TAG=${{ env.NS_BRANCH_OR_TAG }}"
+
       - name: Set up the Go workspace
         uses: actions/setup-go@v3
         with:
           go-version: ${{ inputs.go_version }}
-          # check-latest: true
-          # token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Download pipeline dependencies
         run: |
           set -ex
@@ -137,9 +156,7 @@ jobs:
           echo "${{ runner.tool_cache }}/go/bin" >> $GITHUB_PATH
           go install github.com/jstemmer/go-junit-report@latest
 
-          # Download dce-cli
           wget -q https://github.com/Optum/dce-cli/releases/download/v0.5.0/dce_linux_amd64.zip
-          # Validate checksum
           expected_sha="cb140c743373e28a6c1bd4ba3fe1b81a7431dd538e1ad430fede3c1aff4508db"
           test $(shasum -a 256 ./dce_linux_amd64.zip | awk '{print $1}') == "${expected_sha}"
           unzip ./dce_linux_amd64.zip -d ./
@@ -152,19 +169,17 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: us-east-1
           NAMESPACE: ${{ env.namespace }}
-          DCE_NONPROD_HOSTNAME: ${{secrets.DCE_NONPROD_HOSTNAME}}
+          DCE_NONPROD_HOSTNAME: ${{ secrets.DCE_NONPROD_HOSTNAME }}
         run: |
           set -ex
-          echo "Principal ID is ${NAMESPACE}"
-
-          echo "Configuring the dce-cli"
+          
           echo "
             api:
               host: ${{ secrets.DCE_NONPROD_HOSTNAME }}
               basepath: /api
             region: us-east-1
           " > ./dce.yml
-
+          
           # Check to see if there's an active lease for this PR
           lease_id=$(
             ./dce --config=dce.yml leases list \
@@ -173,7 +188,6 @@ jobs:
           )
 
           if [ ! "${lease_id}" ]; then
-            echo "No lease exists for ${NAMESPACE}. Creating one..."
             created_lease=$(
               ./dce --config=dce.yml leases create \
                 --principal-id ${NAMESPACE} \
@@ -181,132 +195,167 @@ jobs:
                 --budget-amount 100 --budget-currency USD \
                 --email noreply@example.com
             )
-            echo "Created lease: ${created_lease}"
             lease_id=$(echo "${created_lease}" | jq -r .id)
           fi
 
-          echo "Using lease for PrincipalId=${NAMESPACE}, Id=${lease_id}"
-          echo "Logging into the DCE account"
           ./dce --config=dce.yml leases login ${lease_id}
-
-          # Save the lease ID to a file, so we can reference it later
-          # (note that we can't assign variables across jobs in different stages)
           echo "${lease_id}" > ./lease_id.txt
 
-      # Install Terraform
+        # Install Terraform
       - name: Install Terraform
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: ${{ inputs.terraform_version }}
 
-      # Configure the Terraform backend
+        # Configure the Terraform backend
       - name: Configure Terraform Backend
         run: |
           lease_id=$(cat lease_id.txt)
           ./scripts/create-tf-backend.sh ${lease_id}
-
-      # terraform init
+        # terraform init
       - name: Terraform Init/Apply
         env:
           NAMESPACE: ${{ env.namespace }}
-          NOTIFY_EMAIL: ${{secrets.NOTIFY_EMAIL }}
+          NOTIFY_EMAIL: ${{ secrets.NOTIFY_EMAIL }}
+          REQUIRED_BUCKET_PREFIX: ${{ vars.REQUIRED_BUCKET_PREFIX }}
+          TF_VAR_global_tags: ${{ vars.TF_VAR_GLOBAL_TAGS }}
         run: |
           set -ex
           cd modules
-          cat ./backend.tf
           terraform init -input=false
+           
+          export TF_VAR_global_tags='${{ vars.TF_VAR_GLOBAL_TAGS}}'
+          export TF_VAR_required_bucket_prefix="${TF_VAR_required_bucket_prefix}"
 
           terraform plan \
             -var="namespace=${NAMESPACE}" \
             -var="budget_notification_from_email=${NOTIFY_EMAIL}" \
-            -var="reset_nuke_toggle=false"
+            -var="reset_nuke_toggle=false" \
+            -var="required_bucket_prefix=${TF_VAR_required_bucket_prefix}" \
+            -var="global_tags=${TF_VAR_global_tags}"
 
           terraform apply \
             -auto-approve \
             -input=false \
             -var="namespace=${NAMESPACE}" \
             -var="budget_notification_from_email=${NOTIFY_EMAIL}" \
-            -var="reset_nuke_toggle=false"
-      # Build and Deploy Application Code to AWS
-      # - name: Set up Node.js
-      #   uses: actions/setup-node@v2
-      #   with:
-      #     node-version: "14"
-
-      # - name: Install dependencies
-      #   run: npm install
+            -var="reset_nuke_toggle=false" \
+            -var="required_bucket_prefix=${REQUIRED_BUCKET_PREFIX}" \
+            -var="global_tags=${TF_VAR_global_tags}"
 
       - name: Build artifacts
+        run: ./scripts/build.sh
+
+      - name: DCE Lease Login
+        env:
+          AWS_DEFAULT_REGION: us-east-1
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
-          echo "Running build script"
-          ./scripts/build.sh
+          set -ex
+          lease_id=$(cat ./lease_id.txt)
+          ./dce --config=./dce.yml leases login ${lease_id}
+
+      - name: Set Terraform Output Variables
+        env:
+          TF_LOG: ""
+          TF_LOG_CORE: ""
+          TF_LOG_PROVIDER: ""
+        run: |
+          cd modules
+          terraform output artifacts_bucket_name > ../artifacts_bucket_raw.txt 2>&1
+          terraform output namespace > ../namespace_raw.txt 2>&1
+          
+          cd ..
+          
+          ARTIFACTS_BUCKET=$(grep -o '"[^"]*"' artifacts_bucket_raw.txt | sed 's/"//g' | head -n1)
+          NAMESPACE=$(grep -o '"[^"]*"' namespace_raw.txt | sed 's/"//g' | head -n1)
+          
+          if [[ -z "${ARTIFACTS_BUCKET}" ]]; then
+            ARTIFACTS_BUCKET=$(grep -v '^\s*$' artifacts_bucket_raw.txt | tail -n1 | sed 's/"//g' | tr -d '\n\r ')
+          fi
+          
+          if [[ -z "${NAMESPACE}" ]]; then
+            NAMESPACE=$(grep -v '^\s*$' namespace_raw.txt | tail -n1 | sed 's/"//g' | tr -d '\n\r ')
+          fi
+          
+          rm -f artifacts_bucket_raw.txt namespace_raw.txt
+
+          if [[ -z "${ARTIFACTS_BUCKET}" || "${ARTIFACTS_BUCKET}" =~ ^\[command\] ]]; then
+            echo "Error: ARTIFACTS_BUCKET is empty or contains command text"
+            exit 1
+          fi
+
+          if [[ -z "${NAMESPACE}" || "${NAMESPACE}" =~ ^\[command\] ]]; then
+            echo "Error: NAMESPACE is empty or contains command text"
+            exit 1
+          fi
+
+          if [[ ! "${ARTIFACTS_BUCKET}" =~ ^[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9]$ ]]; then
+            echo "Error: ARTIFACTS_BUCKET has invalid format: ${ARTIFACTS_BUCKET}"
+            exit 1
+          fi
+
+          if [[ ! "${NAMESPACE}" =~ ^[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9]$ ]]; then
+            echo "Error: NAMESPACE has invalid format: ${NAMESPACE}"
+            exit 1
+          fi
+
+          echo "ARTIFACTS_BUCKET=${ARTIFACTS_BUCKET}" >> $GITHUB_ENV
+          echo "NAMESPACE=${NAMESPACE}" >> $GITHUB_ENV
 
       - name: Deploy Application Code
         run: |
-
-          echo "Running terraform output for artifacts_bucket_name"
-          ARTIFACTS_BUCKET=$(cd modules && terraform output artifacts_bucket_name | tr -d '"') # Remove quotes and newlines
-          echo "ARTIFACTS_BUCKET=${ARTIFACTS_BUCKET}"
-
-          echo "Starting to print the artifacts bucket name"
-          echo "ARTIFACTS_BUCKET=${ARTIFACTS_BUCKET}"
-
-          echo "Running terraform output for namespace"
-          NAMESPACE=$(cd modules && terraform output namespace) 
-          echo "Output namespace: ${NAMESPACE}"
-
-            ./scripts/deploy.sh \
+          aws sts get-caller-identity
+          
+          ./scripts/deploy.sh \
             /home/runner/work/dce/dce/bin/build_artifacts.zip \
-            github-pr-513\
-            000879607493-dce-artifacts-github-pr-513
+            "${NAMESPACE}" \
+            "${ARTIFACTS_BUCKET}"
 
       # Functional Tests --> TODO need to fix the test failures
+
       # - name: Functional Tests
       #   run: |
       #     set -euxo pipefail
       #     mkdir -p junit-report
-      #     # Run functional tests
+
       #     go get github.com/jstemmer/go-junit-report
       #     go test -v ./tests/... -test.timeout 50m 2>&1 | tee >(go-junit-report > junit-report/functional.xml)
-
-      # Publish junit test results (for unit and functional tests) -- > TODO need to fix the test failures
+    
+       # Publish junit test results (for unit and functional tests) -- > TODO need to fix the test failures
 
       # - name: Publish Test Results
       #   if: always()
-      #   uses:  actions/upload-artifact@v4
-      #   with:
-      #     name: Functional Tests
-      #     path: ${{ github.workspace }}/junit-report/*.xml
-
-      # Publish the dce-cli executable, so we can use
-      # it in our Cleanup stage
+      #   uses: actions/upload-artifact@v4
+      #   with: 
+      #     name: Functional-Test-Results
+      #     path: junit-report/functional.xml
+      #     retention-days: 7
 
       - name: Upload dce-cli Artifact
-        uses:  actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4
         with:
           name: dce-cli
           path: ${{ github.workspace }}/dce
 
       - name: Upload dce-yml Artifact
-        uses:  actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4
         with:
           name: dce-yml
           path: ${{ github.workspace }}/dce.yml
 
       - name: Upload lease_id Artifact
-        uses:  actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4
         with:
           name: lease_id
           path: ${{ github.workspace }}/lease_id.txt
 
       - name: Upload backend-tf Artifact
-        uses:  actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4
         with:
           name: backend-tf
           path: ${{ github.workspace }}/modules/backend.tf
-
-      - name: Checkout the git repo code
-        uses: actions/checkout@v3
 
       - name: Download dce-cli artifact
         uses: actions/download-artifact@v4
@@ -341,19 +390,37 @@ jobs:
       - name: Copy Artifacts to Working Dir
         run: |
           set -ex
-
-          # GitHub Actions wraps artifact files inside a directory
-          # in the github.workspace dir (which is different than our working dir...)
-          # Extract these out into our working dir, for easier access
           cp ${{ github.workspace }}/dce-cli/dce ./
           cp ${{ github.workspace }}/dce-yml/dce.yml ./
           cp ${{ github.workspace }}/lease_id/lease_id.txt ./
           cp ${{ github.workspace }}/namespace/namespace.txt ./
           cp ${{ github.workspace }}/backend-tf/backend.tf ./modules/
-
           chmod +x ./dce
 
-      - name: DCE Lease Login
+        # Cleanup the PR environment
+      - name: Terraform for Cleanup
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: ${{ inputs.terraform_version }}
+
+      - name: Terraform destroy
+        env:
+          NAMESPACE: ${{ env.namespace }}
+          NOTIFY_EMAIL: ${{ secrets.NOTIFY_EMAIL }}
+          TF_VAR_global_tags: ${{ vars.TF_VAR_GLOBAL_TAGS}}
+        run: |
+          set -ex
+          export TF_VAR_namespace=$(cat ./namespace.txt)
+          export TF_VAR_budget_notification_from_email="${NOTIFY_EMAIL}"
+          export TF_VAR_global_tags='${{ vars.TF_VAR_GLOBAL_TAGS}}'
+          export TF_VAR_required_bucket_prefix="${REQUIRED_BUCKET_PREFIX}"
+
+          cd modules
+          terraform init -input=false
+          terraform destroy -auto-approve
+          
+        # End the DCE lease
+      - name: End DCE Lease
         env:
           AWS_DEFAULT_REGION: us-east-1
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -361,43 +428,9 @@ jobs:
         run: |
           set -ex
           lease_id=$(cat ./lease_id.txt)
-          echo "Logging into lease ${lease_id}"
-
-          cat ./dce.yml
-
-          ./dce --config=./dce.yml leases login ${lease_id}
-
-      # Cleanup the PR environment
-      # Install Terraform
-      - name: Install Terraform
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: ${{ inputs.terraform_version }}
-
-      - name: Terraform destroy
-        run: |
-          set -ex
-          export TF_VAR_namespace=$(cat ./namespace.txt)
-          export TF_VAR_budget_notification_from_email=${{ env.NOTIFY_EMAIL }}
-
-          cd modules
-          terraform init -input=false
-          terraform destroy -auto-approve
-
-      # End the DCE lease
-      - name: End DCE Lease
-        env:
-          AWS_DEFAULT_REGION: us-east-1
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY}}
-        run: |
-          set -ex
-          lease_id=$(cat ./lease_id.txt)
           namespace=$(cat ./namespace.txt)
 
-          leases=$(
-            ./dce --config=dce.yml leases list -s Active \
-          )
+          leases=$(./dce --config=dce.yml leases list -s Active)
           account_id=$(
             echo $leases | \
               jq -r \
@@ -405,39 +438,36 @@ jobs:
                 '.[] | select( .id==$Id ) | .accountId'
           )
 
-          echo "Ending lease ${lease_id}"
-
           ./dce --config=./dce.yml leases end \
             -p ${namespace} \
             -a ${account_id}
-  
+
   Release:
     needs: [TestAndBuild]
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'release' && (github.event.action == 'published' || github.event.action == 'prereleased') }}
+    if: ${{ github.event.action == 'published' || github.event.action == 'prereleased' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Setup Go
-        uses: actions/setup-go@v3
+      - name: Download bin artifacts
+        uses: actions/download-artifact@v4
         with:
-          go-version: ${{ inputs.go_version }}
+          name: bin
+          path: ./bin
 
-      - name: Build and Create Artifacts
-        run: |
-          make build
-          cd bin
-          zip -r build_artifacts.zip .
-          cd ..
-          zip -r bin/terraform_artifacts.zip modules
+      - name: Download deploy_scripts artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: deploy_scripts
+          path: ./deploy_scripts
 
-      - name: Verify files exist
+      - name: Verify Downloaded Artifacts
         run: |
-          [ -f "./bin/build_artifacts.zip" ] && echo "✅ build_artifacts.zip created" || echo "❌ build_artifacts.zip missing"
-          [ -f "./bin/terraform_artifacts.zip" ] && echo "✅ terraform_artifacts.zip created" || echo "❌ terraform_artifacts.zip missing"
-          [ -f "./scripts/deploy.sh" ] && echo "✅ deploy.sh found" || echo "❌ deploy.sh missing"
-          [ -f "./scripts/restore_db.sh" ] && echo "✅ restore_db.sh found" || echo "❌ restore_db.sh missing"
+          [ -f "./bin/build_artifacts.zip" ] && echo "build_artifacts.zip found" || echo "build_artifacts.zip missing"
+          [ -f "./bin/terraform_artifacts.zip" ] && echo "terraform_artifacts.zip found" || echo "terraform_artifacts.zip missing"
+          [ -f "./deploy_scripts/deploy.sh" ] && echo "deploy.sh found" || echo "deploy.sh missing"
+          [ -f "./deploy_scripts/restore_db.sh" ] && echo "restore_db.sh found" || echo "restore_db.sh missing"
 
       - name: Create GitHub Release
         id: create_release
@@ -451,12 +481,13 @@ jobs:
             - terraform_artifacts.zip
             - deploy.sh
             - restore_db.sh
-          draft: false
-          prerelease: false
+          draft: true
+          prerelease: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Build Artifacts
+        if: ${{ hashFiles('./bin/build_artifacts.zip') != '' }}
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
@@ -467,6 +498,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Terraform Artifacts
+        if: ${{ hashFiles('./bin/terraform_artifacts.zip') != '' }}
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
@@ -477,20 +509,22 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Deploy Script
+        if: ${{ hashFiles('./deploy_scripts/deploy.sh') != '' }}
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./scripts/deploy.sh
+          asset_path: ./deploy_scripts/deploy.sh
           asset_name: deploy.sh
           asset_content_type: text/x-shellscript
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Restore DB Script
+        if: ${{ hashFiles('./deploy_scripts/restore_db.sh') != '' }}
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./scripts/restore_db.sh
+          asset_path: ./deploy_scripts/restore_db.sh
           asset_name: restore_db.sh
           asset_content_type: text/x-shellscript
         env:

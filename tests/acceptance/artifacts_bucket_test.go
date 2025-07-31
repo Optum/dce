@@ -50,5 +50,4 @@ func TestArtifactsBucket(t *testing.T) {
 		require.Nil(t, err)
 		require.Equal(t, *versioningOutput.Status, "Enabled")
 	})
-
 }
