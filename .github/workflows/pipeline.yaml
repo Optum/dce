@@ -477,7 +477,7 @@ jobs:
         run: |
           echo "Verifying downloaded artifacts..."
           [ -f "./bin/build_artifacts.zip" ] && echo "build_artifacts.zip found" || echo "build_artifacts.zip missing"
-          [ -f "./bin/terraform_artifacts.zip" ] && echo "terraform_artifacts.zip found" || echo "❌ terraform_artifacts.zip missing"
+          [ -f "./bin/terraform_artifacts.zip" ] && echo "terraform_artifacts.zip found" || echo "terraform_artifacts.zip missing"
           [ -f "./scripts/deploy.sh" ] && echo "deploy.sh found" || echo "deploy.sh missing"
           [ -f "./scripts/restore_db.sh" ] && echo "restore_db.sh found" || echo "restore_db.sh missing"
 
