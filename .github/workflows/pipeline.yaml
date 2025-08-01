@@ -442,90 +442,78 @@ jobs:
             -p ${namespace} \
             -a ${account_id}
 
+  
   Release:
     needs: [Deploy]
     runs-on: ubuntu-latest
-    if: ${{ github.event.action == 'published' || github.event.action == 'prereleased' }}
+    if: ${{ 
+      github.event.action == 'published' || 
+      github.event.action == 'prereleased' || 
+      (github.event_name == 'workflow_call' && inputs.release != 'none') ||
+      github.event_name == 'workflow_dispatch'}}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Download bin artifacts
+      - name: Download Build Artifacts
         uses: actions/download-artifact@v4
         with:
-          name: bin
+          name: release_build_artifacts
           path: ./bin
 
-      - name: Download deploy_scripts artifacts
+      - name: Download Terraform Artifacts
         uses: actions/download-artifact@v4
         with:
-          name: deploy_scripts
-          path: ./deploy_scripts
+          name: release_terraform_artifacts
+          path: ./bin
+
+      - name: Download Deploy Scripts
+        uses: actions/download-artifact@v4
+        with:
+          name: release_deploy_scripts
+          path: ./scripts
 
       - name: Verify Downloaded Artifacts
         run: |
+          echo "Verifying downloaded artifacts..."
           [ -f "./bin/build_artifacts.zip" ] && echo "build_artifacts.zip found" || echo "build_artifacts.zip missing"
-          [ -f "./bin/terraform_artifacts.zip" ] && echo "terraform_artifacts.zip found" || echo "terraform_artifacts.zip missing"
-          [ -f "./deploy_scripts/deploy.sh" ] && echo "deploy.sh found" || echo "deploy.sh missing"
-          [ -f "./deploy_scripts/restore_db.sh" ] && echo "restore_db.sh found" || echo "restore_db.sh missing"
+          [ -f "./bin/terraform_artifacts.zip" ] && echo "terraform_artifacts.zip found" || echo "❌ terraform_artifacts.zip missing"
+          [ -f "./scripts/deploy.sh" ] && echo "deploy.sh found" || echo "deploy.sh missing"
+          [ -f "./scripts/restore_db.sh" ] && echo "restore_db.sh found" || echo "restore_db.sh missing"
 
-      - name: Create GitHub Release
-        id: create_release
-        uses: actions/create-release@v1
+      - name: Generate Release Tag
+        id: generate_tag
+        run: |
+          if [ "${{ github.event_name }}" == "release" ]; then
+            echo "tag_name=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          elif [ "${{ inputs.version_tag }}" != "master" ] && [ "${{ inputs.version_tag }}" != "" ]; then
+            echo "tag_name=${{ inputs.version_tag }}" >> $GITHUB_OUTPUT
+          else
+            # Generate a unique tag based on current timestamp and run number
+            TAG_NAME="v$(date +%Y%m%d-%H%M%S)-${{ github.run_number }}"
+            echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create or Update GitHub Release
+        uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ github.ref_name }}
-          release_name: Release ${{ github.ref_name }}
+          tag_name: ${{ steps.generate_tag.outputs.tag_name }}
+          name: Release ${{ steps.generate_tag.outputs.tag_name }}
           body: |
             This release includes the following artifacts:
             - build_artifacts.zip
             - terraform_artifacts.zip
             - deploy.sh
             - restore_db.sh
-          draft: true
-          prerelease: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload Build Artifacts
-        if: ${{ hashFiles('./bin/build_artifacts.zip') != '' }}
-        uses: actions/upload-release-asset@v1
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./bin/build_artifacts.zip
-          asset_name: build_artifacts.zip
-          asset_content_type: application/zip
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload Terraform Artifacts
-        if: ${{ hashFiles('./bin/terraform_artifacts.zip') != '' }}
-        uses: actions/upload-release-asset@v1
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./bin/terraform_artifacts.zip
-          asset_name: terraform_artifacts.zip
-          asset_content_type: application/zip
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload Deploy Script
-        if: ${{ hashFiles('./deploy_scripts/deploy.sh') != '' }}
-        uses: actions/upload-release-asset@v1
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./deploy_scripts/deploy.sh
-          asset_name: deploy.sh
-          asset_content_type: text/x-shellscript
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload Restore DB Script
-        if: ${{ hashFiles('./deploy_scripts/restore_db.sh') != '' }}
-        uses: actions/upload-release-asset@v1
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./deploy_scripts/restore_db.sh
-          asset_name: restore_db.sh
-          asset_content_type: text/x-shellscript
+            
+            Generated from workflow run: ${{ github.run_number }}
+            Commit: ${{ github.sha }}
+          draft: false
+          prerelease: false
+          files: |
+            ./bin/build_artifacts.zip
+            ./bin/terraform_artifacts.zip
+            ./scripts/deploy.sh
+            ./scripts/restore_db.sh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
