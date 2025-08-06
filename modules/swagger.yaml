@@ -999,27 +999,29 @@ definitions:
       and it was rolled back.
   usage:
     description: "usage cost of the aws account from start date to end date"
-    type: object
-    properties:
-      principalId:
-        type: string
-        description: >
-          principalId of the user who owns the lease of the AWS account
-      accountId:
-        type: string
-        description: accountId of the AWS account
-      startDate:
-        type: number
-        description: usage start date as Epoch Timestamp
-      endDate:
-        type: number
-        description: usage end date as Epoch Timestamp
-      costAmount:
-        type: number
-        description: usage cost Amount of AWS account for given period
-      costCurrency:
-        type: string
-        description: usage cost currency
-      timeToLive:
-        type: number
-        description: ttl attribute as Epoch Timestamp
+    type: array
+    items:
+      type: object
+      properties:
+        principalId:
+          type: string
+          description: >
+            principalId of the user who owns the lease of the AWS account
+        accountId:
+          type: string
+          description: accountId of the AWS account
+        startDate:
+          type: number
+          description: usage start date as Epoch Timestamp
+        endDate:
+          type: number
+          description: usage end date as Epoch Timestamp
+        costAmount:
+          type: number
+          description: usage cost Amount of AWS account for given period
+        costCurrency:
+          type: string
+          description: usage cost currency
+        timeToLive:
+          type: number
+          description: ttl attribute as Epoch Timestamp
