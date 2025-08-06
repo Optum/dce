@@ -17,7 +17,7 @@ At the end of the lease, or if the lease's budget is reached, the account is wip
 
 ## Getting Started & Documentation
 
-Documentation coming soon.
+[Disposable Cloud Environment (DCE)’s documentation!](https://dce.readthedocs.io/en/latest/).
 
 ## DCE CLI
 
