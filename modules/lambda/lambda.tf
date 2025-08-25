@@ -27,10 +27,15 @@ resource "aws_lambda_function" "fn" {
       target_arn = dead_letter_config.value
     }
   }
-
+  
   tags = var.global_tags
-}
 
+  vpc_config {
+    subnet_ids         = [data.aws_subnet.private_subnet.id]
+    security_group_ids = [data.aws_security_group.lamda_sg.id]
+  }
+
+}
 
 # Lambda code deployments are managed outside of Terraform,
 # by our Jenkins pipeline.
@@ -44,5 +49,19 @@ data "archive_file" "lambda_code_stub" {
   source {
     filename = "stub_file"
     content  = "STUB CONTENT"
+  }
+}
+
+data "aws_subnet" "private_subnet" {
+  filter {
+    name   = "cidr-block"
+    values = ["10.112.244.128/25"]
+  }
+}
+
+data "aws_security_group" "lambda_sg" {
+  filter {
+    name   = "group-name"
+    values = ["lambda"]
   }
 }

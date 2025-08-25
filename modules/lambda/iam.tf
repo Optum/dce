@@ -75,6 +75,11 @@ resource "aws_iam_role_policy_attachment" "cognito_read_only" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonCognitoReadOnly"
 }
 
+resource "aws_iam_role_policy_attachment" "lambda_vpc_access" {
+  role       = aws_iam_role.lambda_execution.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+}
+
 # Allow Lambda to assume roles
 resource "aws_iam_role_policy" "lambda_inline" {
   role   = aws_iam_role.lambda_execution.name
