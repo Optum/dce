@@ -16,3 +16,10 @@ output "execution_role_name" {
 output "execution_role_arn" {
   value = aws_iam_role.lambda_execution.arn
 }
+output "private_subnet_ids" {
+  value = data.aws_subnets.private.ids
+}
+
+output "lambda_security_group_ids" {
+  value = data.aws_security_groups.lambda_sg.ids
+}

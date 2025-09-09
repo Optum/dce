@@ -31,8 +31,8 @@ resource "aws_lambda_function" "fn" {
   tags = var.global_tags
 
   vpc_config {
-    subnet_ids         = [data.aws_subnet.private_subnet.id]
-    security_group_ids = [data.aws_security_group.lambda_sg.id]
+    subnet_ids         = [data.aws_subnets.private.ids[0]]
+    security_group_ids = [data.aws_security_groups.lambda_sg.id]
   }
 
 }
@@ -52,16 +52,17 @@ data "archive_file" "lambda_code_stub" {
   }
 }
 
-data "aws_subnet" "private_subnet" {
+data "aws_subnets" "private" {
   filter {
-    name   = "cidr-block"
-    values = ["10.112.244.128/25"]
+    name   = "tag:Name"
+    values = ["dce_private"]
   }
 }
 
-data "aws_security_group" "lambda_sg" {
+data "aws_security_groups" "lambda_sg" {
   filter {
-    name   = "group-name"
+    name   = "tag:Name"
     values = ["lambda"]
   }
 }
+
