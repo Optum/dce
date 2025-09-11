@@ -32,7 +32,7 @@ resource "aws_lambda_function" "fn" {
 
   vpc_config {
     subnet_ids         = [data.aws_subnets.private.ids[0]]
-    security_group_ids = [data.aws_security_groups.lambda_sg.id]
+    security_group_ids = [data.aws_security_groups.lambda_sg.ids[0]]
   }
 
 }
@@ -61,7 +61,7 @@ data "aws_subnets" "private" {
 
 data "aws_security_groups" "lambda_sg" {
   filter {
-    name   = "tag:Name"
+    name   = "group-name"
     values = ["lambda"]
   }
 }
