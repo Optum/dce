@@ -217,19 +217,18 @@ jobs:
       run: |
         set -ex
         echo "== Identity & Region =="
-        echo "AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}"
-        aws sts get-caller-identity
-        aws configure list
+          echo "AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}"
+          aws sts get-caller-identity
+          aws configure list
 
-        echo "== SG Probe (no filters) =="
-        aws ec2 describe-security-groups --region "${AWS_DEFAULT_REGION:-us-east-1}" --query "SecurityGroups[].{Id:GroupId,Name:GroupName,VpcId:VpcId}"
+          echo "== SG Probe (no filters) =="
+          aws ec2 describe-security-groups --region "${AWS_DEFAULT_REGION:-us-east-1}" --query "SecurityGroups[].{Id:GroupId,Name:GroupName,VpcId:VpcId}"
 
-        echo "== Subnet Probe (no filters) =="
-        aws ec2 describe-subnets  --region "${AWS_DEFAULT_REGION:-us-east-1}" --query "Subnets[].{Id:SubnetId,VpcId:VpcId,CIDR:CidrBlock}"
+          echo "== Subnet Probe (no filters) =="
+          aws ec2 describe-subnets  --region "${AWS_DEFAULT_REGION:-us-east-1}" --query "Subnets[].{Id:SubnetId,VpcId:VpcId,CIDR:CidrBlock}"
 
-        echo "== TF_VARs =="
-        env | sort | grep -i '^TF_VAR' || true
-
+          echo "== TF_VARs =="
+          env | sort | grep -i '^TF_VAR' || true
         cd modules
         terraform init -input=false
 
