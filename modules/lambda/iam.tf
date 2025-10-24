@@ -9,7 +9,7 @@ resource "aws_iam_role" "lambda_execution" {
       "Sid": "AllowLambda",
       "Action": "sts:AssumeRole",
       "Principal": {
-        "Service": ["lambda.amazonaws.com", "apigateway.amazonaws.com"]
+        "Service": ["lambda.amazonaws.com"]
       },
       "Effect": "Allow"
     }
@@ -64,11 +64,11 @@ resource "aws_iam_role_policy_attachment" "lambda_s3" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
 }
 
-# Allow cloudwatch logs for API Gateway
-resource "aws_iam_role_policy_attachment" "gateway_logs" {
-  role       = aws_iam_role.lambda_execution.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs"
-}
+# # Allow cloudwatch logs for API Gateway
+# resource "aws_iam_role_policy_attachment" "gateway_logs" {
+#   role       = aws_iam_role.lambda_execution.name
+#   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs"
+# }
 
 resource "aws_iam_role_policy_attachment" "cognito_read_only" {
   role       = aws_iam_role.lambda_execution.name
