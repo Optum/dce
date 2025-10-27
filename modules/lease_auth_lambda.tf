@@ -13,7 +13,7 @@ module "lease_auth_lambda" {
     AWS_CURRENT_REGION                 = var.aws_region
     ACCOUNT_DB                         = aws_dynamodb_table.accounts.id
     LEASE_DB                           = aws_dynamodb_table.leases.id
-    COGNITO_USER_POOL_ID               = module.api_gateway_authorizer.user_pool_id
-    COGNITO_ROLES_ATTRIBUTE_ADMIN_NAME = var.cognito_roles_attribute_admin_name
+    # COGNITO_USER_POOL_ID               = module.api_gateway_authorizer.user_pool_id
+    # COGNITO_ROLES_ATTRIBUTE_ADMIN_NAME = var.cognito_roles_attribute_admin_name
   }
 }

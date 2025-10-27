@@ -1,67 +1,67 @@
-locals {
-  portal_gateway_name = "${var.namespace_prefix}-${var.namespace}"
-  stage_name          = "api"
+# locals {
+#   portal_gateway_name = "${var.namespace_prefix}-${var.namespace}"
+#   stage_name          = "api"
 
-  api_swagger_tpl = templatefile("${path.module}/swagger.yaml", {
-    leases_lambda               = module.leases_lambda.invoke_arn
-    lease_auth_lambda           = module.lease_auth_lambda.invoke_arn
-    accounts_lambda             = module.accounts_lambda.invoke_arn
-    usages_lambda               = module.usage_lambda.invoke_arn
-    credentials_web_page_lambda = module.credentials_web_page_lambda.invoke_arn
-    namespace                   = "${var.namespace_prefix}-${var.namespace}"
-  })
-}
+#   api_swagger_tpl = templatefile("${path.module}/swagger.yaml", {
+#     leases_lambda               = module.leases_lambda.invoke_arn
+#     lease_auth_lambda           = module.lease_auth_lambda.invoke_arn
+#     accounts_lambda             = module.accounts_lambda.invoke_arn
+#     usages_lambda               = module.usage_lambda.invoke_arn
+#     credentials_web_page_lambda = module.credentials_web_page_lambda.invoke_arn
+#     namespace                   = "${var.namespace_prefix}-${var.namespace}"
+#   })
+# }
 
-resource "aws_api_gateway_rest_api" "gateway_api" {
-  name        = local.portal_gateway_name
-  description = local.portal_gateway_name
-  body        = local.api_swagger_tpl
-}
+# resource "aws_api_gateway_rest_api" "gateway_api" {
+#   name        = local.portal_gateway_name
+#   description = local.portal_gateway_name
+#   body        = local.api_swagger_tpl
+# }
 
-module "api_gateway_authorizer" {
-  source             = "./authentication"
-  name               = var.namespace_prefix
-  namespace          = var.namespace
-  callback_urls      = ["${aws_api_gateway_stage.api.invoke_url}/auth"]
-  logout_urls        = ["${aws_api_gateway_stage.api.invoke_url}/auth"]
-  identity_providers = var.cognito_identity_providers
-  api_gateway_arn    = aws_api_gateway_stage.api.execution_arn
-}
+# module "api_gateway_authorizer" {
+#   source             = "./authentication"
+#   name               = var.namespace_prefix
+#   namespace          = var.namespace
+#   callback_urls      = ["${aws_api_gateway_stage.api.invoke_url}/auth"]
+#   logout_urls        = ["${aws_api_gateway_stage.api.invoke_url}/auth"]
+#   identity_providers = var.cognito_identity_providers
+#   api_gateway_arn    = aws_api_gateway_stage.api.execution_arn
+# }
 
-module "ssm_parameter_names" {
-  source    = "./ssm_parameter_names"
-  namespace = var.namespace
-}
+# module "ssm_parameter_names" {
+#   source    = "./ssm_parameter_names"
+#   namespace = var.namespace
+# }
 
-resource "aws_ssm_parameter" "identity_pool_id" {
-  name  = module.ssm_parameter_names.identity_pool_id
-  type  = "String"
-  value = module.api_gateway_authorizer.identity_pool_id
-}
+# resource "aws_ssm_parameter" "identity_pool_id" {
+#   name  = module.ssm_parameter_names.identity_pool_id
+#   type  = "String"
+#   value = module.api_gateway_authorizer.identity_pool_id
+# }
 
-resource "aws_ssm_parameter" "user_pool_domain" {
-  name  = module.ssm_parameter_names.user_pool_domain
-  type  = "String"
-  value = module.api_gateway_authorizer.user_pool_domain
-}
+# resource "aws_ssm_parameter" "user_pool_domain" {
+#   name  = module.ssm_parameter_names.user_pool_domain
+#   type  = "String"
+#   value = module.api_gateway_authorizer.user_pool_domain
+# }
 
-resource "aws_ssm_parameter" "client_id" {
-  name  = module.ssm_parameter_names.client_id
-  type  = "String"
-  value = module.api_gateway_authorizer.client_id
-}
+# resource "aws_ssm_parameter" "client_id" {
+#   name  = module.ssm_parameter_names.client_id
+#   type  = "String"
+#   value = module.api_gateway_authorizer.client_id
+# }
 
-resource "aws_ssm_parameter" "user_pool_id" {
-  name  = module.ssm_parameter_names.user_pool_id
-  type  = "String"
-  value = module.api_gateway_authorizer.user_pool_id
-}
+# resource "aws_ssm_parameter" "user_pool_id" {
+#   name  = module.ssm_parameter_names.user_pool_id
+#   type  = "String"
+#   value = module.api_gateway_authorizer.user_pool_id
+# }
 
-resource "aws_ssm_parameter" "user_pool_endpoint" {
-  name  = module.ssm_parameter_names.user_pool_endpoint
-  type  = "String"
-  value = module.api_gateway_authorizer.user_pool_endpoint
-}
+# resource "aws_ssm_parameter" "user_pool_endpoint" {
+#   name  = module.ssm_parameter_names.user_pool_endpoint
+#   type  = "String"
+#   value = module.api_gateway_authorizer.user_pool_endpoint
+# }
 
 # resource "aws_lambda_permission" "allow_api_gateway" {
 #   function_name = module.leases_lambda.arn
@@ -105,48 +105,48 @@ resource "aws_ssm_parameter" "user_pool_endpoint" {
 #   source_arn    = "${aws_api_gateway_rest_api.gateway_api.execution_arn}/*/*"
 # }
 
-resource "aws_api_gateway_stage" "api" {
-  stage_name    = local.stage_name
-  rest_api_id   = aws_api_gateway_rest_api.gateway_api.id
-  deployment_id = aws_api_gateway_deployment.gateway_deployment.id
-}
+# resource "aws_api_gateway_stage" "api" {
+#   stage_name    = local.stage_name
+#   rest_api_id   = aws_api_gateway_rest_api.gateway_api.id
+#   deployment_id = aws_api_gateway_deployment.gateway_deployment.id
+# }
 
-resource "aws_api_gateway_deployment" "gateway_deployment" {
-  rest_api_id = aws_api_gateway_rest_api.gateway_api.id
+# resource "aws_api_gateway_deployment" "gateway_deployment" {
+#   rest_api_id = aws_api_gateway_rest_api.gateway_api.id
 
-  variables = {
-    // API Changes won't get deployed, without a trigger in TF
-    // See https://medium.com/coryodaniel/til-forcing-terraform-to-deploy-a-aws-api-gateway-deployment-ed36a9f60c1a
-    // and https://github.com/terraform-providers/terraform-provider-aws/issues/162#issuecomment-475323730
-    change_trigger = sha256(local.api_swagger_tpl)
-  }
+#   variables = {
+#     // API Changes won't get deployed, without a trigger in TF
+#     // See https://medium.com/coryodaniel/til-forcing-terraform-to-deploy-a-aws-api-gateway-deployment-ed36a9f60c1a
+#     // and https://github.com/terraform-providers/terraform-provider-aws/issues/162#issuecomment-475323730
+#     change_trigger = sha256(local.api_swagger_tpl)
+#   }
 
-  lifecycle {
-    create_before_destroy = true
-  }
-}
+#   lifecycle {
+#     create_before_destroy = true
+#   }
+# }
 
-// Configure a policy to use for accessing APIs
-// This may be consumed by end users, who which to setup
-// IAM principals to talk to the APIs
-resource "aws_iam_policy" "api_execute_admin" {
-  name        = "${var.namespace_prefix}-api-execute-admin-${var.namespace}"
-  description = "Provides access to all ${var.namespace_prefix} admin API endpoints"
+# // Configure a policy to use for accessing APIs
+# // This may be consumed by end users, who which to setup
+# // IAM principals to talk to the APIs
+# resource "aws_iam_policy" "api_execute_admin" {
+#   name        = "${var.namespace_prefix}-api-execute-admin-${var.namespace}"
+#   description = "Provides access to all ${var.namespace_prefix} admin API endpoints"
 
-  policy = <<JSON
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "execute-api:Invoke"
-      ],
-      "Resource": [
-        "${aws_api_gateway_rest_api.gateway_api.execution_arn}/*"
-      ]
-    }
-  ]
-}
-JSON
-}
+#   policy = <<JSON
+# {
+#   "Version": "2012-10-17",
+#   "Statement": [
+#     {
+#       "Effect": "Allow",
+#       "Action": [
+#         "execute-api:Invoke"
+#       ],
+#       "Resource": [
+#         "${aws_api_gateway_rest_api.gateway_api.execution_arn}/*"
+#       ]
+#     }
+#   ]
+# }
+# JSON
+# }

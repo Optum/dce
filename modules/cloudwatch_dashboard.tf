@@ -1,8 +1,8 @@
 locals {
   metrics_namespace = "DCE/AccountPool"
   vars = {
-    api_name                                = aws_api_gateway_rest_api.gateway_api.name
-    api_stage_name                          = aws_api_gateway_stage.api.stage_name
+    # api_name                                = aws_api_gateway_rest_api.gateway_api.name
+    # api_stage_name                          = aws_api_gateway_stage.api.stage_name
     region                                  = var.aws_region
     codebuild_name                          = aws_codebuild_project.reset_build.name
     accounts_lambda_name                    = module.accounts_lambda.name

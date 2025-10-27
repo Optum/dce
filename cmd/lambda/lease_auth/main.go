@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-
 	"log"
+	"os"
 
 	"github.com/Optum/dce/pkg/api"
 	"github.com/Optum/dce/pkg/common"
@@ -30,8 +30,8 @@ func main() {
 	tokenSvc := common.STS{Client: sts.New(awsSession)}
 	cognitoSvc := cognitoidentityprovider.New(awsSession)
 	userDetails := &api.UserDetails{
-		CognitoUserPoolID:        common.RequireEnv("COGNITO_USER_POOL_ID"),
-		RolesAttributesAdminName: common.RequireEnv("COGNITO_ROLES_ATTRIBUTE_ADMIN_NAME"),
+		CognitoUserPoolID:        os.Getenv("COGNITO_USER_POOL_ID"),
+		RolesAttributesAdminName: os.Getenv("COGNITO_ROLES_ATTRIBUTE_ADMIN_NAME"),
 		CognitoClient:            cognitoSvc,
 	}
 

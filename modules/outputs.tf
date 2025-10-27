@@ -98,9 +98,9 @@ output "account_deleted_topic_arn" {
   value = aws_sns_topic.account_deleted.arn
 }
 
-output "api_url" {
-  value = aws_api_gateway_stage.api.invoke_url
-}
+# output "api_url" {
+#   value = aws_api_gateway_stage.api.invoke_url
+# }
 
 output "alarm_sns_topic_arn" {
   description = "The ARN of the SNS Alarms topic"
@@ -123,37 +123,37 @@ output "principal_policy_name" {
   value = local.principal_policy_name
 }
 
-output "cognito_user_pool_id" {
-  value = module.api_gateway_authorizer.user_pool_id
-}
+# output "cognito_user_pool_id" {
+#   value = module.api_gateway_authorizer.user_pool_id
+# }
 
-output "cognito_user_pool_client_id" {
-  value = module.api_gateway_authorizer.client_id
-}
+# output "cognito_user_pool_client_id" {
+#   value = module.api_gateway_authorizer.client_id
+# }
 
-output "cognito_user_pool_endpoint" {
-  value = module.api_gateway_authorizer.user_pool_endpoint
-}
+# output "cognito_user_pool_endpoint" {
+#   value = module.api_gateway_authorizer.user_pool_endpoint
+# }
 
-output "cognito_identity_pool_id" {
-  value = module.api_gateway_authorizer.identity_pool_id
-}
+# output "cognito_identity_pool_id" {
+#   value = module.api_gateway_authorizer.identity_pool_id
+# }
 
-output "role_user_arn" {
-  value = module.api_gateway_authorizer.user_role_arn
-}
+# output "role_user_arn" {
+#   value = module.api_gateway_authorizer.user_role_arn
+# }
 
-output "role_admin_arn" {
-  value = module.api_gateway_authorizer.admin_role_arn
-}
+# output "role_admin_arn" {
+#   value = module.api_gateway_authorizer.admin_role_arn
+# }
 
-output "role_user_policy" {
-  value = module.api_gateway_authorizer.user_policy_arn
-}
+# output "role_user_policy" {
+#   value = module.api_gateway_authorizer.user_policy_arn
+# }
 
-output "role_admin_policy" {
-  value = module.api_gateway_authorizer.admin_policy_arn
-}
+# output "role_admin_policy" {
+#   value = module.api_gateway_authorizer.admin_policy_arn
+# }
 
 output "codebuild_reset_name" {
   value = aws_codebuild_project.reset_build.id
