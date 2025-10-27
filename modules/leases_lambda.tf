@@ -16,8 +16,8 @@ module "leases_lambda" {
     LEASE_DB                           = aws_dynamodb_table.leases.id
     LEASE_ADDED_TOPIC                  = aws_sns_topic.lease_added.arn
     DECOMMISSION_TOPIC                 = aws_sns_topic.lease_removed.arn
-    COGNITO_USER_POOL_ID               = module.api_gateway_authorizer.user_pool_id
-    COGNITO_ROLES_ATTRIBUTE_ADMIN_NAME = var.cognito_roles_attribute_admin_name
+    # COGNITO_USER_POOL_ID               = module.api_gateway_authorizer.user_pool_id
+    # COGNITO_ROLES_ATTRIBUTE_ADMIN_NAME = var.cognito_roles_attribute_admin_name
     MAX_LEASE_BUDGET_AMOUNT            = var.max_lease_budget_amount
     MAX_LEASE_PERIOD                   = var.max_lease_period
     PRINCIPAL_BUDGET_AMOUNT            = var.principal_budget_amount

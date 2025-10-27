@@ -107,13 +107,13 @@ output "alarm_sns_topic_arn" {
   value       = aws_sns_topic.alarms_topic.arn
 }
 
-output "api_access_policy_name" {
-  value = aws_iam_policy.api_execute_admin.name
-}
+# output "api_access_policy_name" {
+#   value = aws_iam_policy.api_execute_admin.name
+# }
 
-output "api_access_policy_arn" {
-  value = aws_iam_policy.api_execute_admin.arn
-}
+# output "api_access_policy_arn" {
+#   value = aws_iam_policy.api_execute_admin.arn
+# }
 
 output "principal_role_name" {
   value = local.principal_role_name
