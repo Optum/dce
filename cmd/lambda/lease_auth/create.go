@@ -3,11 +3,13 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/Optum/dce/pkg/api"
 	"github.com/Optum/dce/pkg/api/response"
@@ -29,38 +31,35 @@ type CreateController struct {
 }
 
 // Call - function to return a specific AWS Lease record to the request
-func (controller CreateController) Call(ctx context.Context, req *events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-
-	leaseID := req.PathParameters["id"]
-	if leaseID == "" {
-		leaseID = req.QueryStringParameters["id"]
+func (controller CreateController) Call(ctx context.Context, req *events.ALBTargetGroupRequest) (*events.ALBTargetGroupResponse, error) {
+	pathParts := strings.Split(req.Path, "/")
+	leaseID := req.QueryStringParameters["id"]
+	if leaseID == "" && len(pathParts) >= 2 {
+		leaseID = pathParts[len(pathParts)-2]
 	}
 
 	// Get the Lease Information
 	lease, err := controller.Dao.GetLeaseByID(leaseID)
 	if err != nil {
 		log.Printf("Error Getting Lease (%s) by Id: %s", leaseID, err)
-		return response.CreateAPIGatewayErrorResponse(http.StatusInternalServerError,
-			response.CreateErrorResponse("ServerError",
-				fmt.Sprintf("Failed Get on Lease %s",
-					leaseID))), nil
+		return response.CreateALBResponseError(fmt.Errorf("failed Get on Lease %s", leaseID))
 	}
 	if lease == nil {
 		log.Printf("Error Getting Lease (%s) by Id: %s", leaseID, err)
-		return response.NotFoundError(), nil
+		return response.CreateALBResponseError(fmt.Errorf("not found %s", leaseID))
 	}
 	// Don't return any lease information if the lease isn't active
 	if lease.LeaseStatus != db.Active {
 		log.Printf("Lease (%s) isn't in an active state", leaseID)
-		return response.UnauthorizedError(), nil
+		return response.CreateALBResponseError(fmt.Errorf("unauthorized, lease is not in active state: %s", leaseID))
 	}
 
 	// Get the User Information
-	user := controller.UserDetailer.GetUser(&req.RequestContext)
+	user := controller.UserDetailer.GetUserALB(&req.RequestContext)
 	if user.Role != api.AdminGroupName {
 		if lease.PrincipalID != user.Username {
 			log.Printf("User (%s) doesn't have access to lease %s", user.Username, leaseID)
-			return response.NotFoundError(), nil
+			return response.CreateALBResponseError(fmt.Errorf("not found %s", leaseID))
 		}
 	}
 
@@ -69,15 +68,11 @@ func (controller CreateController) Call(ctx context.Context, req *events.APIGate
 	account, err := controller.Dao.GetAccount(accountID)
 	if err != nil {
 		log.Printf("Error Getting Account (%s) by Id: %s", accountID, err)
-		return response.CreateAPIGatewayErrorResponse(http.StatusInternalServerError,
-			response.CreateErrorResponse("ServerError",
-				fmt.Sprintf("Failed List on Account %s", accountID))), nil
+		return response.CreateALBResponseError(errors.New("internal server error"))
 	}
 	if account == nil {
 		log.Printf("Account (%s) doesn't exist", accountID)
-		return response.CreateAPIGatewayErrorResponse(http.StatusInternalServerError,
-			response.CreateErrorResponse("ServerError",
-				fmt.Sprintf("Account %s could not be found", accountID))), nil
+		return response.CreateALBResponseError(fmt.Errorf("not found %s", leaseID))
 	}
 
 	log.Printf("Assuming Role: %s", account.PrincipalRoleArn)
@@ -94,13 +89,13 @@ func (controller CreateController) Call(ctx context.Context, req *events.APIGate
 	)
 	if err != nil {
 		log.Printf("Failed to assume role %s: %s", *assumeRoleInputs.RoleArn, err.Error())
-		return response.ServerError(), nil
+		return response.CreateALBResponseError(errors.New("internal server error"))
 	}
 
 	consoleURL, err := controller.buildConsoleURL(*assumeRoleOutput.Credentials)
 	if err != nil {
 		log.Printf("Error building signin url: %s", err)
-		return response.ServerError(), nil
+		return response.CreateALBResponseError(errors.New("internal server error"))
 	}
 	result := response.LeaseAuthResponse{
 		AccessKeyID:     *assumeRoleOutput.Credentials.AccessKeyId,
@@ -108,7 +103,8 @@ func (controller CreateController) Call(ctx context.Context, req *events.APIGate
 		SessionToken:    *assumeRoleOutput.Credentials.SessionToken,
 		ConsoleURL:      consoleURL,
 	}
-	return response.CreateAPIGatewayJSONResponse(http.StatusCreated, result), nil
+
+	return response.CreateALBResponseSuccess(result, 201)
 }
 
 func (controller CreateController) buildConsoleURL(creds sts.Credentials) (string, error) {

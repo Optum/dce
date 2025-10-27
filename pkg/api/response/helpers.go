@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
 )
@@ -93,6 +94,63 @@ func CreateAPIGatewayErrorResponse(responseCode int,
 
 	// Return an error
 	return CreateAPIGatewayResponse(responseCode, string(apiResponse))
+}
+
+// generateALBResponseError generates an ALB response for errors based on the input error message
+func CreateALBResponseError(inputError error) (*events.ALBTargetGroupResponse, error) {
+	statusCode := 500
+	errorMsg := "Internal Server Error"
+
+	if strings.HasPrefix(strings.ToLower(inputError.Error()), "unauthorized") {
+		statusCode = 401
+	} else if strings.HasPrefix(strings.ToLower(inputError.Error()), "forbidden") {
+		statusCode = 403
+	} else if strings.HasPrefix(strings.ToLower(inputError.Error()), "not found") {
+		statusCode = 404
+	} else if strings.HasPrefix(strings.ToLower(inputError.Error()), "bad request") {
+		statusCode = 400
+	}
+
+	if statusCode != 500 {
+		errorMsg = inputError.Error()
+	}
+
+	return &events.ALBTargetGroupResponse{
+		StatusCode:        statusCode,
+		StatusDescription: http.StatusText(statusCode),
+		Headers: map[string]string{
+			"Content-Type": "application/json",
+		},
+		MultiValueHeaders: map[string][]string{
+			"Content-Type": []string{"application/json"},
+		},
+		Body:            fmt.Sprintf("{\"error\": \"%s\"}", errorMsg),
+		IsBase64Encoded: false,
+	}, nil
+}
+
+// generateALBResponseSuccess generates an ALB response for successful requests
+func CreateALBResponseSuccess(resp any, statusCode int) (*events.ALBTargetGroupResponse, error) {
+	var marshaledResponseBody []byte
+	var err error
+
+	marshaledResponseBody, err = json.Marshal(resp)
+	if err != nil {
+		return CreateALBResponseError(fmt.Errorf("internal server error: %w", err))
+	}
+
+	return &events.ALBTargetGroupResponse{
+		StatusCode:        statusCode,
+		StatusDescription: http.StatusText(statusCode),
+		Headers: map[string]string{
+			"Content-Type": "application/json",
+		},
+		MultiValueHeaders: map[string][]string{
+			"Content-Type": {"application/json"},
+		},
+		Body:            string(marshaledResponseBody),
+		IsBase64Encoded: false,
+	}, nil
 }
 
 // BuildNextURL merges the next parameters of pagination into the request parameters and returns an API URL.

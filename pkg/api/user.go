@@ -3,11 +3,12 @@ package api
 import (
 	"context"
 	"fmt"
-	"github.com/Optum/dce/pkg/errors"
-	"github.com/awslabs/aws-lambda-go-api-proxy/gorillamux"
 	"log"
 	"net/http"
 	"strings"
+
+	"github.com/Optum/dce/pkg/errors"
+	"github.com/awslabs/aws-lambda-go-api-proxy/gorillamux"
 
 	"github.com/Optum/dce/pkg/awsiface"
 	"github.com/aws/aws-lambda-go/events"
@@ -47,6 +48,7 @@ func (u *User) Authorize(principalID string) error {
 //go:generate mockery -name UserDetailer
 type UserDetailer interface {
 	GetUser(reqCtx *events.APIGatewayProxyRequestContext) *User
+	GetUserALB(reqCtx *events.ALBTargetGroupRequestContext) *User
 }
 
 // UserDetails - Gets User information
@@ -111,6 +113,12 @@ func (u *UserDetails) GetUser(reqCtx *events.APIGatewayProxyRequestContext) *Use
 	return user
 }
 
+func (u *UserDetails) GetUserALB(reqCtx *events.ALBTargetGroupRequestContext) *User {
+	return &User{
+		Role: AdminGroupName,
+	}
+}
+
 func (u *UserDetails) isUserInAdminGroup(username string) (bool, error) {
 
 	groups, err := u.CognitoClient.AdminListGroupsForUser(&cognitoidentityprovider.AdminListGroupsForUserInput{
@@ -119,7 +127,7 @@ func (u *UserDetails) isUserInAdminGroup(username string) (bool, error) {
 	})
 	if err != nil {
 		log.Printf("Was not abile to query a users for its groups: %s", err)
-		return false, fmt.Errorf("Was not abile to query a users for its groups: %s", err)
+		return false, fmt.Errorf("was not abile to query a users for its groups: %s", err)
 	}
 	for _, group := range groups.Groups {
 		if *group.GroupName == AdminGroupName {

@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -15,7 +16,7 @@ import (
 type Controller interface {
 	// Call is invoked when an instance of a controller is handling a request. Returns a response to be returned to the
 	// API consumer.
-	Call(ctx context.Context, req *events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error)
+	Call(ctx context.Context, req *events.ALBTargetGroupRequest) (*events.ALBTargetGroupResponse, error)
 }
 
 // Router structure holds AccountController instance for request
@@ -29,13 +30,13 @@ type Router struct {
 }
 
 // Route - provides a router for the given resource
-func (router *Router) Route(ctx context.Context, req *events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+func (router *Router) Route(ctx context.Context, req *events.ALBTargetGroupRequest) (events.ALBTargetGroupResponse, error) {
 
-	var res events.APIGatewayProxyResponse
+	var res *events.ALBTargetGroupResponse
 	var err error
 	strLen := len(router.ResourceName)
 
-	requestUser := router.UserDetails.GetUser(&req.RequestContext)
+	requestUser := router.UserDetails.GetUserALB(&req.RequestContext)
 	ctxWithUser := context.WithValue(ctx, DceCtxKey, *requestUser)
 
 	switch {
@@ -51,14 +52,18 @@ func (router *Router) Route(ctx context.Context, req *events.APIGatewayProxyRequ
 	default:
 		errMsg := fmt.Sprintf("Resource %s not found for method %s", req.Path, req.HTTPMethod)
 		log.Println(errMsg)
-		return response.BadRequestError(errMsg), nil
+		res, err = response.CreateALBResponseError(errors.New(errMsg))
+		return *res, err
 	}
 
 	// Handle errors that the controllers did not know how to handle
 	if err != nil {
 		log.Printf("Controller error: %s", err)
-		return response.ServerError(), nil
+		res, err = response.CreateALBResponseError(errors.New("internal server error"))
+		return *res, err
 	}
 
-	return res, nil
+	log.Printf("Route Response: %+v", res)
+
+	return *res, nil
 }
