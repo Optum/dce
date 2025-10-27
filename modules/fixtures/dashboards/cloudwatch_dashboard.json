@@ -49,49 +49,6 @@
     },
     {
       "type": "metric",
-      "width": 24,
-      "height": 6,
-      "properties": {
-        "metrics": [
-          [
-            "AWS/ApiGateway",
-            "5XXError",
-            "ApiName",
-            "${api_name}",
-            "Stage",
-            "${api_stage_name}",
-            {
-              "color": "#d62728"
-            }
-          ],
-          [
-            ".",
-            "4XXError",
-            ".",
-            ".",
-            ".",
-            "."
-          ],
-          [
-            ".",
-            "Count",
-            ".",
-            "."
-          ]
-        ],
-        "view": "timeSeries",
-        "stacked": false,
-        "title": "API Gateway",
-        "region": "${region}",
-        "legend": {
-          "position": "bottom"
-        },
-        "stat": "Sum",
-        "period": 300
-      }
-    },
-    {
-      "type": "metric",
       "width": 12,
       "height": 6,
       "properties": {
